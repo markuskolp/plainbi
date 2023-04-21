@@ -6,8 +6,7 @@
 
 generic CRUD App in "runtime" mode:
   - add page routing for switching between pages
-  - fetch table data including pagination
-  - add "edit" button to table
+  - add pagination
   - fetch row data for edit form !
   - make DELETE work
   - load modal only when opening (especially for edit form ! and lookup fetching)

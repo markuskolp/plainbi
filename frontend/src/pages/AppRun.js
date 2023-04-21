@@ -13,7 +13,10 @@ import {
   Input,
   Select,
   InputNumber,
-  DatePicker
+  DatePicker,
+  Space,
+  Popconfirm,
+  message
 } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import NoPage from "./utils/NoPage";
@@ -53,10 +56,12 @@ const AppRun = () => {
     );
   };
 
+  /*
   const tableData = () => {  
     const { data } = getData("/api/data/table/KFG_ADHOC.json");
     return data;
   }
+  */
 
   const getTableData = async () => {
         await Axios.get("/api/data/table/KFG_ADHOC.json").then(
@@ -68,7 +73,6 @@ const AppRun = () => {
           }
         );
       };
-
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -84,23 +88,13 @@ const AppRun = () => {
     setIsModalOpen(false);
   };
 
-  //onClick={showDeleteConfirm}
-  const showDeleteConfirm = () => {
-    confirm({
-      title: 'Wirklich löschen?',
-      icon: <ExclamationCircleFilled />,
-      //content: 'Some descriptions',
-      okText: 'Ja',
-      okType: 'danger',
-      cancelText: 'Nein',
-      onOk() {
-        console.log('Löschen bestätigt');
-      },
-      onCancel() {
-        console.log('Löschen abgebrochen');
-      },
-    });
+
+  const deleteConfirm = (e) => {
+    console.log(e);
+    message.success('Wurde gelöscht.');
   };
+
+
 
   //const [form] = Form.useForm();
   //const formValueAlias = Form.useWatch("alias", form);
@@ -275,8 +269,8 @@ const AppRun = () => {
   function getColumn(column_label, column_name) {
     return {
       title: column_label,
-      //dataIndex: column_name,
-      key: column_name
+      dataIndex: column_name,
+      //key: column_name
       //width: 50,
       //render
     };
@@ -290,21 +284,38 @@ const AppRun = () => {
     .map((column) => {
       return getColumn(column.column_label, column.column_name);
     })
+    .concat(getColumnAction(true, true))
   ;
   
-  //    .push(getColumnAction());
+  //    .push(getColumnAction(true, true));
 
-  function getColumnAction() {
+  function getColumnAction(delete_allowed, edit_allowed) {
     return {
       title: " ",
       key: "action",
-      width: 25,
-      render: (_, record) => (
-        editallowed && 
-        <Link onClick={showModal}>
-          <EditOutlined style={{ fontSize: "18px" }} />
-        </Link>
-      )
+      width: 100,
+      render: (_, record) => ([
+        <Space>
+          {delete_allowed && 
+            <Popconfirm
+            title="Löschen"
+            description="Wirklich löschen?"
+            onConfirm={deleteConfirm}
+            //onCancel={cancel}
+            okText="Ja"
+            cancelText="Nein"
+            //<Link onClick={(e) => { this.onDelete(record.key, e); }}>
+            >
+            <DeleteOutlined style={{ fontSize: "18px" }} />
+            </Popconfirm>
+          }
+          {edit_allowed && 
+          <Link onClick={showModal}>
+            <EditOutlined style={{ fontSize: "18px" }} />
+          </Link>
+          }
+        </Space>
+      ])
     };
   }
 
@@ -323,6 +334,7 @@ const AppRun = () => {
 
   const [mode, setMode] = useState("inline");
   const [theme, setTheme] = useState("light");
+
 
   return appIndex === -1 ? (
     <NoPage />
@@ -362,30 +374,31 @@ const AppRun = () => {
             />
                 <Table
                   size="small"
-                  columns={columnItemsForSummary}
-                  datasource={tabledata}
+                  columns={columnItemsForSummary} 
+                  dataSource={tabledata}
                   //dataSource={pageMetadataRelevant.name.table_columns}
                   //pagination={{ pageSize: 50 }}
                   pagination={false}
                   //scroll={{ y: 500 }}
-                  loading={loading}
+                  //loading={loading}
             /> 
             
             <Modal
               title={pageMetadataRelevant.name}
               open={isModalOpen}
-              //onOk={handleOk}
-              //onCancel={handleCancel}
+              onOk={handleOk}
+              onCancel={handleCancel}
               centered
               width={1000}
               footer={[
-                delete_allowed && <Button
+                /*delete_allowed && <Button
                   key="1"
                   danger
                   htmlType="button"
                   icon={<DeleteOutlined />}
                   onClick={showDeleteConfirm}
                 >Löschen</Button>,
+                */
                 <Button
                   key="2"
                   htmlType="button"
@@ -398,6 +411,7 @@ const AppRun = () => {
                   onClick={handleOk}
                 >Speichern</Button>
               ]}
+              
             >
               <Form {...layoutpage} layout="horizontal">
                 {pageMetadataRelevant.table_columns.map((column) => {
@@ -460,17 +474,6 @@ const AppRun = () => {
   );
 };
 
-/*
-    - Tabs left vertical with pages (<appname> and then the <pagenames>) -> add routing !
-    - Breadcrumb (<appname> / <pagename>) (first page is default entry point)
-    - Page header (pagename) + New button
-    - Table + Edit button
-    - Modal dialog with all columns as form items
-                  datatype: "number", //text/number/date/boolean
-              ui: "lookup", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
-
-*/
 
 export default AppRun;
 
-// <Text>url param: {id}</Text>
