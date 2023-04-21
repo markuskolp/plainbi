@@ -50,10 +50,10 @@ log.setLevel(logging.DEBUG)
 
 #params = urllib.parse.quote_plus("DSN=DWH_DEV")
 #dbengine = sqlalchemy.create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
-server = 'VNTSV147'
-database = 'ANALYSIS'
-username="MESSE-MUENCHEN\kribbel"
-password="j0E#beimesse"
+server = 'xxx'
+database = 'xxx'
+username="xxx"
+password="xxx"
 eng_str = fr'mssql+pymssql://{username}:{password}@{server}/{database}'
 dbengine = sqlalchemy.create_engine(eng_str)
 
