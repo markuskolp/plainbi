@@ -17,16 +17,20 @@ generic CRUD App in "runtime" mode:
 bundle with real backend API !
 
 todo for Joe:
-  - API endpoints for: lookup
+  - API endpoints alle gemeinsam führen
+    - umsetzen: lookup
   - integrated security: /login, /logout routes -> JWT Tokens !
   - integrated database/repository e.g. with H2, SQLite, etc.
+  - .env für credentials (z.B. DB-Konfig)
+  - wie stellt man sicher, dass bei einem Softwareupdate die Inhalte vom Repo gleich bleiben
+  - Repo lokal oder auf externe DB erlauben -> muss aber initiales Anlegen der DDL erfolgen !
 
 
 # ------------------------------------------------
 # later
 # ------------------------------------------------
 
-add message/notfication overall (see AppsAdhocView.js) 
+add message/notfication overall (see AppRun.js) 
   - catch all errors, especially with API calls
 
 generic CRUD App in "runtime" mode:
@@ -34,7 +38,7 @@ generic CRUD App in "runtime" mode:
   - add sorting to table
 
 make everything work :)
-  - add live API to MM DWH and make CRUD apps generic (runtime)
+  - add live API to (Flask backend) and make CRUD apps generic (runtime)
     - try use case: Adhoc Report Execution (CSV, Excel, JSON>HTML)
     - try use case (generic CRUD): Adhoc Konfig
     - try use case (generic CRUD): DWH Administration
@@ -106,7 +110,6 @@ Security:
 
 Portal: 
 - add search bar
-
 
 Links:
 - Navbar:   https://medium.com/zestgeek/ant-design-navbar-with-responsive-drawer-a8d718e471e0
