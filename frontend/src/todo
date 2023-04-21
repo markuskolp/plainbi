@@ -1,0 +1,100 @@
+# ------------------------------------------------
+# asap
+# ------------------------------------------------
+
+Bundle with backend API
+
+
+>>> ab 16./17. MAR 2023 >>>
+
+make everything work :)
+  - add live API to MM DWH and make CRUD apps generic (runtime)
+    - try use case: Adhoc Report Execution (CSV, Excel, JSON>HTML)
+    - try use case (generic CRUD): Adhoc Konfig
+    - try use case (generic CRUD): DWH Administration
+
+
+# ------------------------------------------------
+# later
+# ------------------------------------------------
+
+make static resources configurable (logo, title, additional images, theme colors, ...)
+
+generic CRUD App in "runtime" mode:
+  - add page routing for switching between pages
+  - fetch table data ! -> add "edit" button
+  - fetch row data for edit form !
+  - add buttons (depending on allowed actions)
+  - make DELETE work
+  - make PUT work (update)
+  - make POST work (new)
+
+check paths
+- how to separate "run" from "admin" of generic CRUD apps
+  - /apps
+  - /apps/admin/...
+  - /apps/run/...
+
+"codeeditor" as "ui" option for columns/fields (react-monaco-editor)
+"markdown" as "ui" option (react-markdown)
+
+check width'es on all pages !
+
+Adhoc Application --> should be generated with CRUD Template !
+  - CRUD page: /apps/adhoc
+    - Table with a list of all adhoc + NEW + EDIT + DELETE Buttons
+  - CRUD modal or page: /apps/adhoc/<nr>/edit
+    - Fields: 
+      - Name (text)
+      - Button group to select output format: CSV|Excel|HTML
+      - Query (title)
+      - Query (textbox) with "copy code" button in upper right corner and SQL syntax highlighting
+      - SAVE + DELETE buttons
+
+Apps create/edit dialog:
+  - page columns - make editable in table !
+
+Home:
+  - table width ?!
+  - make both tables look like separate cards (white background, grey surrounding)
+
+Apps create/edit dialog:
+  - "copy to clipboard" not working ?!
+  - add rule to "url": no blanks, no special characters
+  - if param "id" is missing -> then mode=create, else mode=edit
+      mode=create: no "delete" button
+      mode=edit: get metadata of app and fill the form
+  - "editing of columns" is missing right now
+  - redesign the page UI
+
+
+/apps/adhoc/<nr>
+  - Loading Component throws error ?!
+  - Table: make pagination dynamic
+  - Add sorting and filtering
+  - Make height 100% with minimum of 500?
+
+Home > Table:
+  - sorting doesn't work
+  - add link to the "name" to /apps/adhoc/<nr>/export?format=<outputformat>
+
+Apps list:
+  - add switch from cards to list
+
+zusätzliche Ressourcen auf Homeseite neben den Adhoc's (Cognos, Looker Datastudio, ...)
+  - vorerst in einer Tabelle pflegen, auch mit Berechtigung
+
+Security:
+	- integrated Users and Roles
+    - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
+	  - User
+  - external Users / Anbindung an AD !
+  - SSO
+  - API securen mit JWT, ...?
+
+Portal: 
+- add search bar
+
+
+Links:
+- Navbar:   https://medium.com/zestgeek/ant-design-navbar-with-responsive-drawer-a8d718e471e0

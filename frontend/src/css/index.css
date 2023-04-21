@@ -1,0 +1,76 @@
+/* add google font Inter */
+@import url("https://fonts.googleapis.com/css2?family=Inter&display=swap");
+
+.App {
+  padding: 20px;
+}
+#logo{
+  max-height: 60px;
+  max-width: 120px;
+  line-height: 60px;
+} 
+* {
+  font-family: Inter, Roboto, Arial, sans-serif !important; /* set overall font family */
+}
+.site-layout-content {
+  min-height: 280px;
+  padding: 24px;
+}
+.layout {
+  min-height: 100vh; /* uses 100% height for the layout component, that brings the footer to the bottom of the page */
+}
+header {
+  background: #fff !important; /* change background color of table header row - overwrites default */
+  border-bottom: 1pt solid rgb(220, 220, 220, 1) !important; /* add border line to bottom of header / navbar */
+}
+header h1 {
+  text-transform: uppercase;
+  font-size: 14px !important;
+  line-height: 50px !important;
+  padding-top: 2px;
+}
+.ant-table-thead > tr > th {
+  background-color: #fff !important; /* change background color of table header row - overwrites default */
+}
+.right {
+  float: right;
+}
+main {
+  padding: 20px 50px !important; /* add 20px padding to top and bottom - overwrites default "0px 50px" */
+}
+header .anticon {
+  font-size: 18px; /* overwrite icon size in header */
+}
+header a .anticon {
+  font-size: 18px; /* overwrite icon size in header */
+  color: rgba(0, 0, 0, 0.88);
+}
+.pageheader {
+  padding-inline: 0px;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 32px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: none !important;
+}
+table * a {
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+table * a:hover {
+  color: rgb(106, 145, 206) !important;
+}
+header a:hover .anticon {
+  color: rgb(106, 145, 206); /* rgba(24, 144, 255, 0.88); */
+}
+table .anticon {
+  font-size: 20px; /* overwrite icon size in tables */
+}
+.ant-card-meta-title {
+  font-size: 14px !important;
+  /*text-align: center;*/
+}
+.sqlcode {
+  font-family: monospace !important;
+}
