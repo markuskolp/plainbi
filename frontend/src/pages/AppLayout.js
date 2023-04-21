@@ -10,6 +10,7 @@ import {
 import "antd/dist/reset.css";
 import "../css/index.css";
 import { Outlet } from "react-router-dom";
+//import logo from "./logo";
 
 const { Title, Link } = Typography;
 const { Header, Content, Footer } = Layout;
@@ -36,7 +37,7 @@ const AppLayout = () => {
           <Header>
             <Space size={"middle"}>
               <Link href="/">
-                <Image id="logo" src="logo" preview={false} />
+                <Image id="logo" src="/logo" preview={false} />
               </Link>
               <Link href="/">
                 <Title>Data & BI</Title>

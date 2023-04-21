@@ -36,7 +36,7 @@ const Settings = () => {
       key: '1',
       label: `Datenquelle`,
       children: <React.Fragment>
-          <Card style={{ backgroundColor: 'rgb(220,220,220,0.3)', border:'none', width: 200, marginTop: 16, marginLeft: 160 }} hoverable={true} type="inner" cover={<img alt="Logo MS SQL Server" src="static/mssql.svg" height="50"/>}>
+          <Card style={{ backgroundColor: 'rgb(220,220,220,0.3)', border:'none', width: 200, marginTop: 16, marginLeft: 160 }} hoverable={true} type="inner" cover={<img alt="Logo MS SQL Server" src="/static/mssql.svg" height="50"/>}>
             <Meta
               //avatar={<Avatar src="/mssql.svg" />}
               title="MS SQL Server"

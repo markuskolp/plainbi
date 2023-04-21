@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   Table,
@@ -18,13 +18,37 @@ import {
 import { PageHeader } from "@ant-design/pro-layout";
 import NoPage from "./utils/NoPage";
 import { EditOutlined, PlusOutlined } from "@ant-design/icons";
+import Axios from "axios";
 const { Header, Content, Sider } = Layout;
-
+const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 const AppRun = () => {
   let { id } = useParams();
   let id_type = Number.isNaN(id * 1) ? "alias" : "id";
+
+  const [lookupdata, setlookupdata] = useState([]);
+  const [loading, setloading] = useState(true);
+  useEffect(() => {
+    getLookupData();
+  }, []);
+
+  const getLookupData = async () => {
+//    async function getLookupData(lookupid) {
+    //console.log('fetching lookup', lookupid);
+    await Axios.get("/api/lookup/data/ADHOC_AUSGABEFORMAT.json").then(
+      (res) => {
+        setloading(false);
+        setlookupdata(
+          res.data.map((row) => ({
+            value: row.r,
+            label: row.d
+          }))
+        );
+      }
+    );
+  };
+
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -147,7 +171,41 @@ const AppRun = () => {
           alias: "all",
           allowed_actions: ["create", "update", "delete"],
           table: "KFG_ADHOC",
-          table_columns: []
+          table_columns: [
+            {
+              column_name: "ADHOC_ID",
+              column_label: "ID",
+              datatype: "number", //text/number/date/boolean
+              editable: false,
+              required: true
+            },
+            {
+              column_name: "ADHOC_NAME",
+              column_label: "Adhoc Name",
+              datatype: "text", //text/number/date/boolean
+              ui: "textinput", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
+              editable: true,
+              required: true
+            },
+            {
+              column_name: "SQL_QUERY",
+              column_label: "SQL Abfrage",
+              datatype: "text", //text/number/date/boolean
+              ui: "textarea", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
+              editable: true,
+              required: true,
+              show_in_overview: false,
+            },
+            {
+              column_name: "OUTPUT_FORMAT",
+              column_label: "Ausgabeformat",
+              ui: "lookup", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
+              lookup: "ADHOC_AUSGABEFORMAT",
+              datatype: "text", //text/number/date/boolean
+              editable: true,
+              required: true
+            },
+          ]
         }
       ]
     }
@@ -279,7 +337,8 @@ const AppRun = () => {
                             placeholder="bitte auswählen ..."
                             allowClear
                             showSearch
-                            options={[
+                            options={lookupdata}
+                              /*[
                               {
                                 value: "f.re.e 2023",
                                 label: ""
@@ -292,14 +351,15 @@ const AppRun = () => {
                                 value: "...",
                                 label: "..."
                               }
-                            ]}
+                              ]
+                          }*/
                           />
                         ) : column.ui === "hidden" ? (
                           ""
                         ) : column.ui === "numberinput" ? (
                           <InputNumber />
                         ) : column.ui === "textarea" ? (
-                          <Input />
+                          <TextArea rows={6} />
                         ) : column.ui === "textinput" ? (
                           <Input />
                         ) : column.ui === "datepicker" ? (
