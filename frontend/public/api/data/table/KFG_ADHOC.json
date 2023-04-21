@@ -1,0 +1,38 @@
+[
+    {
+        "adhoc_id": "1",
+        "adhoc_name": "Report 1",
+        "sql_query": "select * from xxx",
+        "output_format": "CSV"
+    },
+    {
+        "adhoc_id": "2",
+        "adhoc_name": "Report 1",
+        "sql_query": "select * from xxx",
+        "output_format": "CSV"
+    },
+    {
+        "adhoc_id": "3",
+        "adhoc_name": "Report 3",
+        "sql_query": "select * from xxx",
+        "output_format": "XLSX"
+    },
+    {
+        "adhoc_id": "4",
+        "adhoc_name": "Report 4",
+        "sql_query": "select * from xxx",
+        "output_format": "CSV"
+    },
+    {
+        "adhoc_id": "5",
+        "adhoc_name": "Report 5",
+        "sql_query": "select * from xxx",
+        "output_format": "CSV"
+    },
+    {
+        "adhoc_id": "6",
+        "adhoc_name": "Report 6",
+        "sql_query": "select * from xxx",
+        "output_format": "XLSX"
+    }
+]

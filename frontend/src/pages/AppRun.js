@@ -17,37 +17,57 @@ import {
 } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import NoPage from "./utils/NoPage";
-import { EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, PlusOutlined, ExclamationCircleFilled, DeleteOutlined } from "@ant-design/icons";
 import Axios from "axios";
+import Title from "antd/es/skeleton/Title";
+import getData from "./utils/getData";
 const { Header, Content, Sider } = Layout;
 const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 const AppRun = () => {
-  let { id } = useParams();
-  let id_type = Number.isNaN(id * 1) ? "alias" : "id";
+  let { id } = useParams(); // get URL parameters - here the "id" of a app
+  let id_type = Number.isNaN(id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" of the app or its "alias"
 
   const [lookupdata, setlookupdata] = useState([]);
+  const [tabledata, settabledata] = useState([]);
   const [loading, setloading] = useState(true);
   useEffect(() => {
     getLookupData();
+    getTableData();
   }, []);
-
+  
   const getLookupData = async () => {
 //    async function getLookupData(lookupid) {
     //console.log('fetching lookup', lookupid);
-    await Axios.get("/api/lookup/data/ADHOC_AUSGABEFORMAT.json").then(
+    await Axios.get("/api/data/lookup/ADHOC_AUSGABEFORMAT.json").then(
       (res) => {
-        setloading(false);
         setlookupdata(
           res.data.map((row) => ({
             value: row.r,
             label: row.d
           }))
         );
+        //setloading(false);
       }
     );
   };
+
+  const tableData = () => {  
+    const { data } = getData("/api/data/table/KFG_ADHOC.json");
+    return data;
+  }
+
+  const getTableData = async () => {
+        await Axios.get("/api/data/table/KFG_ADHOC.json").then(
+          (res) => {
+            console.log(JSON.stringify(res.data));
+            settabledata(res.data);
+            console.log(JSON.stringify(tabledata));
+            setloading(false);
+          }
+        );
+      };
 
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,6 +82,24 @@ const AppRun = () => {
 
   const handleCancel = () => {
     setIsModalOpen(false);
+  };
+
+  //onClick={showDeleteConfirm}
+  const showDeleteConfirm = () => {
+    confirm({
+      title: 'Wirklich löschen?',
+      icon: <ExclamationCircleFilled />,
+      //content: 'Some descriptions',
+      okText: 'Ja',
+      okType: 'danger',
+      cancelText: 'Nein',
+      onOk() {
+        console.log('Löschen bestätigt');
+      },
+      onCancel() {
+        console.log('Löschen abgebrochen');
+      },
+    });
   };
 
   //const [form] = Form.useForm();
@@ -80,6 +118,9 @@ const AppRun = () => {
     //
   };
 
+
+  // metadata of all applications
+  // todo: fetch this from API !
   const appMetadata = [
     {
       id: "1",
@@ -140,7 +181,8 @@ const AppRun = () => {
               datatype: "...", //text/number/date/boolean
               ui: "...", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
               editable: false,
-              required: false
+              required: false,
+              showdetailsonly: true
             }
           ]
         },
@@ -173,14 +215,14 @@ const AppRun = () => {
           table: "KFG_ADHOC",
           table_columns: [
             {
-              column_name: "ADHOC_ID",
+              column_name: "adhoc_id",
               column_label: "ID",
               datatype: "number", //text/number/date/boolean
               editable: false,
               required: true
             },
             {
-              column_name: "ADHOC_NAME",
+              column_name: "adhoc_name",
               column_label: "Adhoc Name",
               datatype: "text", //text/number/date/boolean
               ui: "textinput", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
@@ -188,16 +230,16 @@ const AppRun = () => {
               required: true
             },
             {
-              column_name: "SQL_QUERY",
+              column_name: "sql_query",
               column_label: "SQL Abfrage",
               datatype: "text", //text/number/date/boolean
               ui: "textarea", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
               editable: true,
               required: true,
-              show_in_overview: false,
+              showdetailsonly: true,
             },
             {
-              column_name: "OUTPUT_FORMAT",
+              column_name: "output_format",
               column_label: "Ausgabeformat",
               ui: "lookup", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
               lookup: "ADHOC_AUSGABEFORMAT",
@@ -226,6 +268,10 @@ const AppRun = () => {
   const appMetadataRelevant = appMetadata[appIndex === -1 ? 0 : appIndex];
   const pageMetadataRelevant = appMetadataRelevant.pages[pageIndex];
 
+  const create_allowed = pageMetadataRelevant.allowed_actions.includes("create");
+  const edit_allowed = pageMetadataRelevant.allowed_actions.includes("edit");
+  const delete_allowed = pageMetadataRelevant.allowed_actions.includes("delete");
+
   function getColumn(column_label, column_name) {
     return {
       title: column_label,
@@ -239,6 +285,13 @@ const AppRun = () => {
   const columnItems = pageMetadataRelevant.table_columns.map((column) => {
     return getColumn(column.column_label, column.column_name);
   });
+  const columnItemsForSummary = pageMetadataRelevant.table_columns
+    .filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal)
+    .map((column) => {
+      return getColumn(column.column_label, column.column_name);
+    })
+  ;
+  
   //    .push(getColumnAction());
 
   function getColumnAction() {
@@ -247,6 +300,7 @@ const AppRun = () => {
       key: "action",
       width: 25,
       render: (_, record) => (
+        editallowed && 
         <Link onClick={showModal}>
           <EditOutlined style={{ fontSize: "18px" }} />
         </Link>
@@ -293,6 +347,7 @@ const AppRun = () => {
               title=""
               subTitle=""
               extra={[
+                create_allowed && 
                 <Button
                   //href="/apps/edit"
                   onClick={showModal}
@@ -302,24 +357,47 @@ const AppRun = () => {
                 >
                   Neu
                 </Button>
-                //todo: check if "create" action is allowed
+                
               ]}
             />
-            <Table
-              size="small"
-              columns={columnItems}
-              dataSource={pageMetadataRelevant.name.table_columns}
-              //pagination={{ pageSize: 50 }}
-              pagination={false}
-              //scroll={{ y: 500 }}
-            />
+                <Table
+                  size="small"
+                  columns={columnItemsForSummary}
+                  datasource={tabledata}
+                  //dataSource={pageMetadataRelevant.name.table_columns}
+                  //pagination={{ pageSize: 50 }}
+                  pagination={false}
+                  //scroll={{ y: 500 }}
+                  loading={loading}
+            /> 
+            
             <Modal
               title={pageMetadataRelevant.name}
               open={isModalOpen}
-              onOk={handleOk}
-              onCancel={handleCancel}
+              //onOk={handleOk}
+              //onCancel={handleCancel}
               centered
               width={1000}
+              footer={[
+                delete_allowed && <Button
+                  key="1"
+                  danger
+                  htmlType="button"
+                  icon={<DeleteOutlined />}
+                  onClick={showDeleteConfirm}
+                >Löschen</Button>,
+                <Button
+                  key="2"
+                  htmlType="button"
+                  onClick={handleCancel}
+                >Abbrechen</Button>,
+                <Button
+                  key="3"
+                  type="primary"
+                  htmlType="submit"
+                  onClick={handleOk}
+                >Speichern</Button>
+              ]}
             >
               <Form {...layoutpage} layout="horizontal">
                 {pageMetadataRelevant.table_columns.map((column) => {

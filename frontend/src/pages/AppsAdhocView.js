@@ -1,13 +1,25 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Table, Button } from "antd";
+import { Table, Button, notification } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
 import { LoadingMessage } from "./utils/LoadingMessage";
 import Axios from "axios";
 
 const AppsAdhocView = () => {
+  const message = (type, message, description) => {
+    alert(type + ': ' + message);
+    /*
+    notification.error({
+      message: message,
+      description: description,
+      onClick: () => {
+        console.log('Notification Clicked!');
+      },
+    })
+    */
+  };
   const [state, setstate] = useState([]);
   const [loading, setloading] = useState(true);
   useEffect(() => {
@@ -28,7 +40,10 @@ const AppsAdhocView = () => {
           }))
         );
       }
-    );
+    ).catch(error => 
+      message('error', 'Daten abrufen', error)
+    )
+
   };
 
   const columns = [

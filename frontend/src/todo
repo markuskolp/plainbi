@@ -2,9 +2,37 @@
 # asap
 # ------------------------------------------------
 
-Bundle with backend API
+## AppRun
 
->>> ab 16./17. MAR 2023 >>>
+generic CRUD App in "runtime" mode:
+  - add page routing for switching between pages
+  - fetch table data including pagination
+  - add "edit" button to table
+  - fetch row data for edit form !
+  - make DELETE work
+  - load modal only when opening (especially for edit form ! and lookup fetching)
+  - fetch lookup separately
+  - make PUT work (update)
+  - make POST work (new)
+
+bundle with real backend API !
+
+todo for Joe:
+  - API endpoints for: lookup
+  - integrated security: /login, /logout routes -> JWT Tokens !
+  - integrated database/repository e.g. with H2, SQLite, etc.
+
+
+# ------------------------------------------------
+# later
+# ------------------------------------------------
+
+add message/notfication overall (see AppsAdhocView.js) 
+  - catch all errors, especially with API calls
+
+generic CRUD App in "runtime" mode:
+  - add search/filter to table
+  - add sorting to table
 
 make everything work :)
   - add live API to MM DWH and make CRUD apps generic (runtime)
@@ -12,21 +40,7 @@ make everything work :)
     - try use case (generic CRUD): Adhoc Konfig
     - try use case (generic CRUD): DWH Administration
 
-
-# ------------------------------------------------
-# later
-# ------------------------------------------------
-
 make static resources configurable (logo, title, additional images, theme colors, ...)
-
-generic CRUD App in "runtime" mode:
-  - add page routing for switching between pages
-  - fetch table data ! -> add "edit" button
-  - fetch row data for edit form !
-  - add buttons (depending on allowed actions)
-  - make DELETE work
-  - make PUT work (update)
-  - make POST work (new)
 
 check paths
 - how to separate "run" from "admin" of generic CRUD apps
