@@ -4,6 +4,7 @@
 
 ## AppRun
 
+
 generic CRUD App in "runtime" mode:
   - add page routing for switching between pages
   - add pagination

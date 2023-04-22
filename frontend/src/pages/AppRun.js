@@ -35,6 +35,8 @@ const AppRun = () => {
   const [lookupdata, setlookupdata] = useState([]);
   const [tabledata, settabledata] = useState([]);
   const [loading, setloading] = useState(true);
+  const [page, setPage] = useState(true);
+
   useEffect(() => {
     getLookupData();
     getTableData();
@@ -336,6 +338,12 @@ const AppRun = () => {
   const [theme, setTheme] = useState("light");
 
 
+  const menuOnClick = (e) => {
+    console.log('set page to id: ', e.key);
+    setPage(e.key);
+    //setPagemetadatarelevant(appmetadatarelevant.pages[page-1])
+  };
+
   return appIndex === -1 ? (
     <NoPage />
   ) : (
@@ -351,6 +359,7 @@ const AppRun = () => {
               mode={mode}
               theme={theme}
               items={pageItems}
+              onClick={menuOnClick}
             />
           </Sider>
           <Content style={{ background: "#FFF" }}>
