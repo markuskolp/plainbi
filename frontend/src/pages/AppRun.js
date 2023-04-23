@@ -66,7 +66,8 @@ const AppRun = () => {
   */
 
   const getTableData = async () => {
-        await Axios.get("/api/data/table/KFG_ADHOC.json").then(
+    
+        await Axios.get("/api/data/table/"+appMetadataRelevant.pages[page-1].table+".json").then(
           (res) => {
             console.log(JSON.stringify(res.data));
             settabledata(res.data);
@@ -341,6 +342,7 @@ const AppRun = () => {
   const menuOnClick = (e) => {
     console.log('set page to id: ', e.key);
     setPage(e.key);
+    getTableData();
     //setPagemetadatarelevant(appmetadatarelevant.pages[page-1])
   };
 
