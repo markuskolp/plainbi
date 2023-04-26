@@ -37,23 +37,8 @@ const AppRun = () => {
   }, []);
 
   const initializeApp = async () => {
-    /*
-    let appIndex = -1;
-    let pageIndex = 0;
-    if (id_type === "id") {
-      console.log("type id");
-      appIndex = appMetadata.findIndex((x) => x.id === id);
-      console.log(appIndex);
-    } else {
-      console.log("type alias");
-      appIndex = appMetadata.findIndex((x) => x.alias === id);
-      console.log(appIndex);
-    }
-    const appMetadataRelevant = appMetadata[appIndex === -1 ? 0 : appIndex];
-    */
     // get app metadata
-    await Axios.get("/api/crud/metadata/DWH_ADMIN.json").then(
-//      await Axios.get("/api/crud/metadata/ADHOC.json").then(
+    await Axios.get("/api/crud/metadata/"+id+".json").then(
       (res) => {
         //console.log(Array.isArray(res.data));
         //console.log(JSON.stringify(res.data));
@@ -61,8 +46,14 @@ const AppRun = () => {
         //console.log(appMetadata);
         setLoading(false);
       }
+    ).catch(
+      function (error) {
+        setAppNotFound(true);
+        setLoading(false);
+      }
     );
   };
+  
 
   return appNotFound === true ? (
         <NoPage />
@@ -75,8 +66,8 @@ const AppRun = () => {
         )
       )
   ;
+
 };
 
 
 export default AppRun;
-

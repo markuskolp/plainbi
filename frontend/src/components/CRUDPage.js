@@ -147,7 +147,7 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
             />
                 <Table
                   size="small"
-                  columns={tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
+                  columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
                     .map((column) => {
                       return getColumn(column.column_label, column.column_name);
                     })
