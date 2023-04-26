@@ -3,7 +3,7 @@ import React from "react";
 import { Alert, Tabs, Card, Avatar, Form, Input, Button, Space , Typography } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { PageHeader } from "@ant-design/pro-layout";
-import UnderConstruction from "./utils/UnderConstruction";
+import UnderConstruction from "../components/UnderConstruction";
 
 const { Text, Link } = Typography;
 const { Meta } = Card;

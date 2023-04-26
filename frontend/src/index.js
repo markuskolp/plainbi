@@ -7,7 +7,7 @@ import Apps from "./pages/apps/list";
 import AppEdit from "./pages/apps/edit";
 import AppRun from "./pages/AppRun";
 import AppsAdhocView from "./pages/AppsAdhocView";
-import NoPage from "./pages/utils/NoPage";
+import NoPage from "./pages/NoPage";
 import Settings from "./pages/Settings";
 import UserProfile from "./pages/UserProfile";
 import "antd/dist/reset.css";

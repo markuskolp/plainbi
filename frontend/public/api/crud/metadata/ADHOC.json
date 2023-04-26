@@ -1,0 +1,53 @@
+{
+   "id":"2",
+   "name":"Adhoc Konfiguration",
+   "alias":"adhoc",
+   "pages":[
+      {
+         "id":"1",
+         "name":"Adhocs",
+         "alias":"all",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "table":"KFG_ADHOC",
+         "table_columns":[
+            {
+               "column_name":"adhoc_id",
+               "column_label":"ID",
+               "datatype":"number",
+               "editable":"false",
+               "required":"true"
+            },
+            {
+               "column_name":"adhoc_name",
+               "column_label":"Adhoc Name",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"sql_query",
+               "column_label":"SQL Abfrage",
+               "datatype":"text",
+               "ui":"textarea",
+               "editable":"true",
+               "required":"true",
+               "showdetailsonly":"true"
+            },
+            {
+               "column_name":"output_format",
+               "column_label":"Ausgabeformat",
+               "ui":"lookup",
+               "lookup":"ADHOC_AUSGABEFORMAT",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      }
+   ]
+}

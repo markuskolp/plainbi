@@ -1,5 +1,5 @@
 import React from "react";
-import UnderConstruction from "./utils/UnderConstruction";
+import UnderConstruction from "../components/UnderConstruction";
 
 const UserProfile = () => {
   return (

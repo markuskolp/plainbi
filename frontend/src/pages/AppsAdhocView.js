@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { Table, Button, notification } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
-import { LoadingMessage } from "./utils/LoadingMessage";
+import { LoadingMessage } from "../components/LoadingMessage";
 import Axios from "axios";
 
 const AppsAdhocView = () => {
