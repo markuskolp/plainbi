@@ -33,6 +33,3 @@ Prio 2
 GET: /api/data/adhoc/<nr>/ -> liefert JSON
   
 GET: /api/data/adhoc/<nr>/excel -> liefer Excel-Datei
-
-
-
