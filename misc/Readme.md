@@ -4,5 +4,7 @@ Defined in DBML.
 
 Current version see:
 
-- xxx
+- [repository_datamodel.dbml](https://github.com/markuskolp/plainbi/blob/main/misc/repository_datamodel.dbml)
 - or graphical view online at dbdiagram.io: https://dbdiagram.io/d/644a4f2adca9fb07c423cb3c
+
+
