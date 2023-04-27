@@ -8,3 +8,4 @@ Current version see:
 - or graphical view online at dbdiagram.io: https://dbdiagram.io/d/644a4f2adca9fb07c423cb3c
 
 
+![](https://github.com/markuskolp/plainbi/blob/main/misc/plainbi_repository_datamodel.PNG)
