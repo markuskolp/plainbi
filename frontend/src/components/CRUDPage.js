@@ -26,8 +26,26 @@ const { Text, Link } = Typography;
 
 //TODO: Modal for create and update
 //TODO: lookupData
-//"datatype": "number", //text/number/date/boolean
-//            "ui": "lookup", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
+/*
+Enum datatype {
+  text
+  number
+  date
+  boolean
+}
+
+Enum ui {
+  hidden
+  textinput
+  numberinput
+  datepicker
+  lookup
+  textarea
+  textarea_sql
+  textarea_markdown
+  switch
+}
+*/
 
 const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
     

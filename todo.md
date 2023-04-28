@@ -1,8 +1,9 @@
 # Prio
 
 Prio 1
-- Adhoc
-- CRUD
+- Adhoc API
+- CRUD API
+- Repo API
 
 Prio 2
 - versionierte Tabellen

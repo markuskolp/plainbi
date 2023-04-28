@@ -1,4 +1,23 @@
 
+# Repository /api/repo
+
+/api/repo/lookup
+/api/repo/application
+/api/repo/adhoc
+/api/repo/datasource
+/api/repo/user
+/api/repo/group
+/api/repo/role -> NO endpoint for role ! (is defined initially with init SQL script - only entries are "Admin" and "User")
+
+# Adhoc Runtime /api/adhoc
+
+/api/adhoc/
+
+# CRUD Runtime /api/crud
+
+
+
+
 # Lookups
 
 Lookups are saved in table "plainbi_lookup" with ID and SQL 
