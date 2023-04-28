@@ -1,0 +1,45 @@
+[
+    {
+        "id": "1",
+        "name": "db_type",
+        "sql_query": "select 'mssql' as r, 'MS SQL Server' as d",
+        "datasource_id": "1" 
+    },
+    {
+        "id": "2",
+        "name": "datasource",
+        "sql_query": "select id as r, name as d from datasource",
+        "datasource_id": "1" 
+    },
+    {
+        "id": "3",
+        "name": "role",
+        "sql_query": "select id as r, name as d from role",
+        "datasource_id": "1" 
+    },
+    {
+        "id": "4",
+        "name": "user",
+        "sql_query": "select id as r, name as d from user",
+        "datasource_id": "1" 
+    },
+    {
+        "id": "5",
+        "name": "group",
+        "sql_query": "select id as r, name as d from group",
+        "datasource_id": "1" 
+    },
+    {
+        "id": "6",
+        "name": "application",
+        "sql_query": "select id as r, name as d from application",
+        "datasource_id": "1" 
+    },
+    {
+        "id": "7",
+        "name": "output_format",
+        "sql_query": "select 'HTML' as r, 'HTML' as d union all select 'XLSX' as r, 'Excel' as d union all select 'CSV' as r, 'CSV' as d",
+        "datasource_id": "1" 
+    }
+    
+]

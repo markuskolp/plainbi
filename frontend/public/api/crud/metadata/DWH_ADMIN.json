@@ -20,7 +20,7 @@
                 "column_label":"Veranstaltung",
                 "datatype":"number",
                 "ui":"lookup",
-                "lookup":"VERANSTALTUNG",
+                "lookup":"veranstaltung",
                 "editable":true,
                 "required":true
             },
@@ -81,7 +81,7 @@
                 "column_label":"Veranstaltung",
                 "datatype":"number",
                 "ui":"lookup",
-                "lookup":"VERANSTALTUNG",
+                "lookup":"veranstaltung",
                 "editable":true,
                 "required":true
             },
@@ -133,7 +133,7 @@
                 "column_label":"Veranstaltung",
                 "datatype":"number",
                 "ui":"lookup",
-                "lookup":"VERANSTALTUNG",
+                "lookup":"veranstaltung",
                 "editable":true,
                 "required":true
             },

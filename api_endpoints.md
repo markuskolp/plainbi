@@ -47,7 +47,7 @@ Additionally, following repository objects can deliver data, as they have a sql 
 |URL|Description|
 |-|-|
 |GET /api/repo/adhoc/\<id\>/data|The data of a adhoc (result of its SQL)|
-|GET /api/repo/adhoc/\<id\>/data?format=XLSX|CSV|The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file|
+|GET /api/repo/adhoc/\<id\>/data?format=XLSX\|CSV|The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file|
 |GET /api/repo/lookup/\<id\>/data|The data of a lookup (result of its SQL)|
 
 ### to be discussed 

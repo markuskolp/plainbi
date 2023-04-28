@@ -44,6 +44,8 @@ Enum ui {
   textarea_sql
   textarea_markdown
   switch
+  password
+  email
 }
 */
 

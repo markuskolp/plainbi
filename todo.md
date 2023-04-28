@@ -23,4 +23,3 @@ Prio 2
 	- sql ausführen und daten zurückliefern als JSON
 	- wenn format=XLSX, dann Excel zurückliefern
 - security (login/logout) - session handling in flask - user erstmal in plainbi repository anlegen (später gegen AD/LDAP und SSO)
-

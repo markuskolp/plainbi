@@ -42,7 +42,7 @@
                "column_name":"output_format",
                "column_label":"Ausgabeformat",
                "ui":"lookup",
-               "lookup":"ADHOC_AUSGABEFORMAT",
+               "lookup":"output_format",
                "datatype":"text",
                "editable":"true",
                "required":"true"

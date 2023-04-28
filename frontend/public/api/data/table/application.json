@@ -1,0 +1,16 @@
+[
+    {
+        "id": "1",
+        "name": "DWH Applikation",
+        "alias": "dwhadmin",
+        "spec_json": "{...}",
+        "datasource_id": "1"
+    },
+    {
+        "id": "2",
+        "name": "Adhoc Konfiguration",
+        "alias": "adhoc",
+        "spec_json": "{...}",
+        "datasource_id": "1"
+    }
+]

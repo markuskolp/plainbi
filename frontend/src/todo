@@ -4,27 +4,32 @@
 
 ## AppRun
 
+make static resources configurable (logo, title, additional images, theme colors, ...)
+
+add ui elements:
+- password
+- email
+- textarea_sql
+- textarea_markdown
 
 generic CRUD App in "runtime" mode:
-  - add page routing for switching between pages -> works a bit -> make it correct !!!
   - add pagination
-  - fetch row data for edit form !
   - make DELETE work
   - load modal only when opening (especially for edit form ! and lookup fetching)
   - fetch lookup separately
+    - in table view
+    - and in modal
   - make PUT work (update)
   - make POST work (new)
 
-bundle with real backend API !
+bundle with python backend API !
 
-todo for Joe:
-  - API endpoints alle gemeinsam führen
-    - umsetzen: lookup
+
+## general
+
   - integrated security: /login, /logout routes -> JWT Tokens !
   - integrated database/repository e.g. with H2, SQLite, etc.
-  - .env für credentials (z.B. DB-Konfig)
   - wie stellt man sicher, dass bei einem Softwareupdate die Inhalte vom Repo gleich bleiben
-  - Repo lokal oder auf externe DB erlauben -> muss aber initiales Anlegen der DDL erfolgen !
 
 
 # ------------------------------------------------
@@ -44,14 +49,6 @@ make everything work :)
     - try use case (generic CRUD): Adhoc Konfig
     - try use case (generic CRUD): DWH Administration
 
-make static resources configurable (logo, title, additional images, theme colors, ...)
-
-check paths
-- how to separate "run" from "admin" of generic CRUD apps
-  - /apps
-  - /apps/admin/...
-  - /apps/run/...
-
 "codeeditor" as "ui" option for columns/fields (react-monaco-editor)
 "markdown" as "ui" option (react-markdown)
 
@@ -67,9 +64,6 @@ Adhoc Application --> should be generated with CRUD Template !
       - Query (title)
       - Query (textbox) with "copy code" button in upper right corner and SQL syntax highlighting
       - SAVE + DELETE buttons
-
-Apps create/edit dialog:
-  - page columns - make editable in table !
 
 Home:
   - table width ?!

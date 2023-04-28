@@ -1,0 +1,26 @@
+[
+    {
+        "id": "1",
+        "username": "kolp",
+        "email": "kolp@...",
+        "fullname": "Markus Kolp",
+        "password_hash": "*38&52%/$!",
+        "role_id": 1
+    },
+    {
+        "id": "2",
+        "username": "kribbel",
+        "email": "kribbel@...",
+        "fullname": "Johannes Kribbel",
+        "password_hash": "*490%$&!",
+        "role_id": 1
+    },
+    {
+        "id": "3",
+        "username": "marketingdummy",
+        "email": "marketingdummy@...",
+        "fullname": "Marketing Dummy User 1",
+        "password_hash": "",
+        "role_id": 2
+    }
+]
