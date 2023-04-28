@@ -24,8 +24,9 @@ Following types of repository objects exist:
 |Category|Type|Description|
 |-|-|-|
 |resource|application|CRUD application|
-|util|lookup|Lookup which is used in a CRUD application|
 |resource|adhoc|Adhoc query|
+|resource|external_resource|External resources e.g. of other BI tools. can be used in plainbi to show data assets in other data tools. plainbi lists them with the other resources (application, adhoc) and allows users to see a consolidated view of plainbi resources (internal) and all other data assets (external)|
+|util|lookup|Lookup which is used in a CRUD application|
 |util|datasource|Datasource|
 |security|user|User|
 |security|group|Group / used to define which user is allowed to access which resource (adhoc or application)|
