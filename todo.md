@@ -24,13 +24,3 @@ Prio 2
 	- wenn format=XLSX, dann Excel zurückliefern
 - security (login/logout) - session handling in flask - user erstmal in plainbi repository anlegen (später gegen AD/LDAP und SSO)
 
-|adhoc|
-|-|
-|adhoc_id|
-|adhoc_name|
-|sql|
-|output_format (HTML, XLSX, CSV)|
-
-GET: /api/data/adhoc/<nr>/ -> liefert JSON
-  
-GET: /api/data/adhoc/<nr>/excel -> liefer Excel-Datei
