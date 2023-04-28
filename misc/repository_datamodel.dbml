@@ -39,55 +39,21 @@ Table application as APP {
   id int [pk]
   name varchar 
   alias varchar 
+  spec_json varchar
   datasource_id int [ref: > DS.id]
 }
 
-Table application_table as APPT {
-  application_id nt [pk, ref: > APP.id]
-  id int [pk]
-  name varchar 
-  alias varchar 
-  table_name varchar [note: 'including schema name if necessary']
-  create_allowed bit
-  update_allowed bit
-  delete_allowed bit
+Table application_to_group as APPTG {
+  application_id int [pk, ref: > APP.id]
+  group_id int [pk, ref: > G.id]
 }
 
-Table application_table_columns as APPTC {
-  application_table_id int [pk, ref: > APPT.id]
-  id int [pk]
-  column_name varchar
-  column_label varchar
-  datatype datatypes
-  editable varchar
-  required varchar
-  ui uis
-  lookup_id int [ref: > L.id]
-}
-
-Enum datatypes {
-  text
-  number
-  date
-  boolean
-}
-
-Enum uis {
-  hidden
-  textinput
-  numberinput
-  datepicker
-  lookup
-  textarea
-  textarea_sql
-  textarea_markdown
-  switch
-}
 
 Table lookup as L {
   id int [pk]
   name varchar 
   sql_query varchar
+  datasource_id int [ref: > DS.id]
 }
 
 Table datasource as DS {
@@ -119,6 +85,7 @@ Table adhoc as A {
   name varchar
   sql_query varchar
   output_format outputformats
+  datasource_id int [ref: > DS.id]
 }
 
 Enum outputformats {
@@ -131,3 +98,4 @@ Table adhoc_to_group as AG {
   adhoc_id int [pk, ref: > A.id]
   group_id int [pk, ref: > G.id]
 }
+
