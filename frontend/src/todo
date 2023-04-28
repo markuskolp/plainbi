@@ -4,16 +4,24 @@
 
 ## AppRun
 
-make static resources configurable (logo, title, additional images, theme colors, ...)
+Apps.js -> get apps from API !
+external resources -> table and crud !
+homepage -> get all entitled resources (external_resource, adhoc, application)
+homepage -> additional tiles (e.g. list of fairs !)
+
+API to get all entitled resources (additionally a view in repo to consolidate the resources ?)
 
 add ui elements:
 - password
 - email
 - textarea_sql
-- textarea_markdown
+- textarea_markdown (react-markdown)
+- textarea_json (with formatter and validator)
+    https://sujinleeme.github.io/react-json-editor/ + json schema !
+
+https://github.com/react-monaco-editor/react-monaco-editor    
 
 generic CRUD App in "runtime" mode:
-  - add pagination
   - make DELETE work
   - load modal only when opening (especially for edit form ! and lookup fetching)
   - fetch lookup separately
@@ -27,9 +35,9 @@ bundle with python backend API !
 
 ## general
 
-  - integrated security: /login, /logout routes -> JWT Tokens !
-  - integrated database/repository e.g. with H2, SQLite, etc.
-  - wie stellt man sicher, dass bei einem Softwareupdate die Inhalte vom Repo gleich bleiben
+- integrated security: /login, /logout routes -> JWT Tokens !
+- integrated database/repository -> sqlite
+- wie stellt man sicher, dass bei einem Softwareupdate die Inhalte vom Repo gleich bleiben
 
 
 # ------------------------------------------------
@@ -40,6 +48,7 @@ add message/notfication overall (see AppRun.js)
   - catch all errors, especially with API calls
 
 generic CRUD App in "runtime" mode:
+  - add pagination
   - add search/filter to table
   - add sorting to table
 
@@ -48,9 +57,6 @@ make everything work :)
     - try use case: Adhoc Report Execution (CSV, Excel, JSON>HTML)
     - try use case (generic CRUD): Adhoc Konfig
     - try use case (generic CRUD): DWH Administration
-
-"codeeditor" as "ui" option for columns/fields (react-monaco-editor)
-"markdown" as "ui" option (react-markdown)
 
 check width'es on all pages !
 

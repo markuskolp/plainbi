@@ -20,7 +20,7 @@ const Apps = () => {
         onBack={() => window.history.back()}
         title="Applikationen"
         subTitle=""
-        extra={[
+        /*extra={[
           <Button
             href="/apps/edit"
             key="1"
@@ -29,7 +29,7 @@ const Apps = () => {
           >
             Neu
           </Button>
-        ]}
+        ]}*/
       />
       <br />
       <Row gutter={16}>
