@@ -1,0 +1,32 @@
+[
+	{
+		"key": "1",
+		"name": "Ticketaktionen - Wallet",
+		"description": "This is a ...",
+		"outputformat": "XLSX",
+		"dataset": "Adhoc",
+		"source": "Adhoc Tool",
+		"type": "Report",
+		"url": "static/Demo.xlsx"
+	},
+	{
+		"key": "2",
+		"name": "ELQ - Prüfung Datenübertragung",
+		"description": "...",
+		"outputformat": "HTML",
+		"dataset": "Adhoc",
+		"source": "Adhoc Tool",
+		"type": "Report",
+		"url": "adhoc/2"
+	},
+	{
+		"key": "3",
+		"name": "BigQuery vs. ADT - \"Consent-Quote\"",
+		"description": "...",
+		"outputformat": "CSV",
+		"dataset": "Adhoc",
+		"source": "Adhoc Tool",
+		"type": "Report",
+		"url": "static/Demo.csv"
+	}
+]

@@ -178,6 +178,7 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
                   //pagination={{ pageSize: 50 }}
                   pagination={false}
                   //scroll={{ y: 500 }}
+                  //scroll={{ x: 300 }}
                   loading={loading}
             /> 
             

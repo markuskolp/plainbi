@@ -3,10 +3,13 @@
 The application has a REST API running on /api.
 Request and response bodies generally use JSON.
 
+A **authentication** API is necessary to retrieve a JWT token for accessing all other enpoints. The JWT token ensures, that the user accessing the endpoints can only retrieve eligable data.
+
 ## General entry points
 
 |URL|Description|
 |-|-|
+|/api/auth|Authentication (retrieves a JWT Token to be used for all other requests)|
 |/api/repo|plainbi Repository|
 |/api/crud|CRUD Applications|
 |/api/metadata|Datasource metadata (e.g. of tables)|
@@ -41,6 +44,12 @@ Just replace \<type\> which one of the repository objects above:
 |PUT /api/repo/\<type\>/\<id\>|update a \<type\>|
 |POST /api/repo/\<type\>|add a \<type\>|
 |DELETE /api/repo/\<type\>/\<id\>|delete a \<type\>|
+
+Additionally, following endpoint delivers all repository objects with the category **resource** (application, adhoc, external_resource)
+
+|URL|Description|
+|-|-|
+|GET /api/repo/resources|metadata of ALL repository objects with category **resource** (application, adhoc, external_resource)|
 
 Additionally, following repository objects can deliver data, as they have a sql query definition
 

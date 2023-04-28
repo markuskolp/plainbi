@@ -4,10 +4,9 @@
 
 ## AppRun
 
-homepage -> get all entitled resources (external_resource, adhoc, application)
-homepage -> additional tiles (e.g. list of fairs !)
+act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
-API to get all entitled resources (additionally a view in repo to consolidate the resources ?)
+homepage -> additional tiles (e.g. list of fairs !)
 
 generic CRUD App in "runtime" mode:
   - make DELETE work
@@ -30,6 +29,10 @@ https://github.com/react-monaco-editor/react-monaco-editor
 
 
 bundle with python backend API !
+
+add security -> in frontend prepare login.html/.js and logout.html/.js
+
+if possible get JWT in session -> test this with Cube.js :)
 
 
 ## general
