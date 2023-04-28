@@ -17,6 +17,7 @@ frontend/build
 .env.production.local
 *.nogit
 *.zip
+*.bat
 
 # logs
 logs

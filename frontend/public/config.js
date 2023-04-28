@@ -2,7 +2,8 @@
 var BASE_URL = '<API_URL_GOES_HERE>';
 
 // header and footer
-var HEADER_TITLE = ' '; //Data & BI';
+var APP_TITLE = ''; //Data & BI';
+var HEADER_TITLE = ''; //Data & BI';
 var FOOTER = ''; //© 2023 created by Data & BI';
 
 // theme

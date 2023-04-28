@@ -16,6 +16,7 @@ const { Title, Link } = Typography;
 const { Header, Content, Footer } = Layout;
 
 // config.js
+const app_title = window.APP_TITLE;
 const header_title = window.HEADER_TITLE;
 const footer = window.FOOTER;
 const color_primary = window.THEME_COLOR_PRIMARY;
@@ -23,6 +24,10 @@ const color_success = window.THEME_COLOR_SUCCESS;
 const color_error = window.THEME_COLOR_ERROR;
 const color_info = window.THEME_COLOR_INFO;
 const font_size = window.THEME_FONT_SIZE;
+
+// set document title if given
+document.title = app_title ? app_title : 'plainbi';
+
 
 const ThemeLayout = () => {
   const {
@@ -49,7 +54,7 @@ const ThemeLayout = () => {
                 <Image id="logo" src="/logo" preview={false} />
               </Link>
               <Link href="/">
-                <Title>{header_title ? header_title : 'Data & BI'}</Title>
+                <Title>{header_title ? header_title : ' '}</Title>
               </Link>
             </Space>
             <Space size={"middle"} className="right">
