@@ -77,6 +77,24 @@ Enum db_types {
 
 
 /**
+* External resources
+*/
+
+Table external_resource as ES {
+  id int [pk]
+  name varchar
+  url varchar
+  description varchar
+  source varchar
+  dataset varchar
+}
+
+Table external_resource_to_group as ESG {
+  external_resource_id int [pk, ref: > ES.id]
+  group_id int [pk, ref: > G.id]
+}
+
+/**
 * Adhoc Tool
 */
 
