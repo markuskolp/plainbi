@@ -11,7 +11,6 @@ import {
 const { Meta } = Card;
 const { Title, Link } = Typography;
 
-const onClick = () => console.log("Works!");
 
 const Apps = () => {
   return (
@@ -59,6 +58,23 @@ const Apps = () => {
               bordered={true}
               hoverable={true}
               title="Adhoc Konfiguration"
+              /*extra={
+                <a href="/apps/edit/2">
+                  <EditOutlined />
+                </a>
+              }*/
+            />
+          </Link>
+        </Col>
+        <Col span={6}>
+          <Link href="/apps/ext_res">
+            <Card
+              style={{ maxWidth: 300, marginTop: 16 }}
+              bodyStyle={{ display: "none" }}
+              type="inner"
+              bordered={true}
+              hoverable={true}
+              title="Externe Ressourcen"
               /*extra={
                 <a href="/apps/edit/2">
                   <EditOutlined />

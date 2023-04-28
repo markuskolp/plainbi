@@ -5,7 +5,6 @@
 ## AppRun
 
 Apps.js -> get apps from API !
-external resources -> table and crud !
 homepage -> get all entitled resources (external_resource, adhoc, application)
 homepage -> additional tiles (e.g. list of fairs !)
 

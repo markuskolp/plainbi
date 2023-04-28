@@ -88,12 +88,12 @@ const AdhocRuntime = () => {
           <h1>Lädt...</h1>
         ) : (
           //<LoadingMessage />
-          <Table
+          <Table 
             size="small"
             columns={columns}
             dataSource={state}
             pagination={{ pageSize: 50 }}
-            scroll={{ y: 500 }}
+            scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
             loading={loading}
           />
         )}

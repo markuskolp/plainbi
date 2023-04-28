@@ -12,7 +12,7 @@
             "update",
             "delete"
          ],
-         "table":"KFG_ADHOC",
+         "table":"adhoc",
          "table_columns":[
             {
                "column_name":"adhoc_id",
