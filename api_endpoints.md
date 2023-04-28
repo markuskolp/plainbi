@@ -68,7 +68,7 @@ Additionally, following repository objects can deliver data, as they have a sql 
 
 ## CRUD Runtime /api/crud
 
-The CRUD API delivers data for a give table and also allows to edit/update, delete or adding a new entry/row to this table.
+The CRUD API delivers data for a given table and also allows to edit/update, delete or add a new entries/rows to this table.
 
 |URL|Description|
 |-|-|
@@ -76,7 +76,7 @@ The CRUD API delivers data for a give table and also allows to edit/update, dele
 |GET /api/crud/\<tablename\>/\<pk\>|data of a table row, defined by the pk (primary key)|
 |PUT /api/crud/\<tablename\>/\<pk\>|update a table row, identified by the pk (primary key)|
 |POST /api/crud/\<tablename\>|add a table row|
-|DELETE /api/crud/\<tablename\>/\<pk\>|delete a table row|
+|DELETE /api/crud/\<tablename\>/\<pk\>|delete a table row, identified by the pk (primary key)|
 
 For PUT and DELETE the primary key can also be given in the request body as attributes. This is especially necessary, if the table has a composite primary key. This would be difficult as URL parameter \<pk\>.
 

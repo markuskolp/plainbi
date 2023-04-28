@@ -11,6 +11,7 @@ import Settings from "./pages/Settings";
 import UserProfile from "./pages/UserProfile";
 import "antd/dist/reset.css";
 import "./css/index.css";
+import LoginPage from "./pages/Login";
 
 const App = () => {
   return (
@@ -18,6 +19,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<ThemeLayout />}>
           <Route index element={<Home />} />
+          <Route path="login" element={<LoginPage />} />
           <Route path="settings" element={<Settings />} />
           <Route path="profile" element={<UserProfile />} />
           <Route path="adhoc/:id" element={<AdhocRuntime />} />

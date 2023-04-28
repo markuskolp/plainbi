@@ -6,8 +6,6 @@
 
 act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
-homepage -> additional tiles (e.g. list of fairs !)
-
 generic CRUD App in "runtime" mode:
   - make DELETE work
   - load modal only when opening (especially for edit form ! and lookup fetching)
@@ -18,15 +16,15 @@ generic CRUD App in "runtime" mode:
   - make POST work (new)
 
 add ui elements:
-- password
-- email
-- textarea_sql
-- textarea_markdown (react-markdown)
-- textarea_json (with formatter and validator)
+- https://github.com/react-monaco-editor/react-monaco-editor
+  - textarea_sql
+  - textarea_json (with formatter and validator)
     https://sujinleeme.github.io/react-json-editor/ + json schema !
+- textarea_markdown (react-markdown)
 
-https://github.com/react-monaco-editor/react-monaco-editor    
+    
 
+homepage -> additional tiles (e.g. list of fairs !)
 
 bundle with python backend API !
 

@@ -88,6 +88,10 @@
                           <InputNumber />
                         ) : column.ui === "textarea" ? (
                           <TextArea rows={6} />
+                        ) : column.ui === "password" ? (
+                          <Input.Password />
+                        ) : column.ui === "email" ? (
+                          <Input />
                         ) : column.ui === "textinput" ? (
                           <Input />
                         ) : column.ui === "datepicker" ? (
