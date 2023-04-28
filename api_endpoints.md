@@ -14,7 +14,7 @@ Request and response bodies generally use JSON.
 
 ## Repository /api/repo
 
-### /api/repo/<type>
+### /api/repo/\<type\>
 
 Following types of repository objects exist:
 
@@ -32,28 +32,28 @@ Following types of repository objects exist:
 |security|adhoc_to_group|Security: assign adhoc to a group|
 
 The API endpoint for managing the metadata of these objects are identical.
-Just replace <type> which one of the repository objects above:
+Just replace \<type\> which one of the repository objects above:
 
 |URL|Description|
 |-|-|
-|GET /api/repo/<type>|metadata of ALL <type>|
-|GET /api/repo/<type>/<id>|metadata of a specific <type>|
-|PUT /api/repo/<type>/<id>|update a <type>|
-|POST /api/repo/<type>|add a <type>|
-|DELETE /api/repo/<type>/<id>|delete a <type>|
+|GET /api/repo/\<type\>|metadata of ALL \<type\>|
+|GET /api/repo/\<type\>/\<id\>|metadata of a specific \<type\>|
+|PUT /api/repo/\<type\>/\<id\>|update a \<type\>|
+|POST /api/repo/\<type\>|add a \<type\>|
+|DELETE /api/repo/\<type\>/\<id\>|delete a \<type\>|
 
 Additionally, following repository objects can deliver data, as they have a sql query definition
 
 |URL|Description|
 |-|-|
-|GET /api/repo/adhoc/<id>/data|The data of a adhoc (result of its SQL)|
-|GET /api/repo/adhoc/<id>/data?format=XLSX|CSV|The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file|
-|GET /api/repo/lookup/<id>/data|The data of a lookup (result of its SQL)|
+|GET /api/repo/adhoc/\<id\>/data|The data of a adhoc (result of its SQL)|
+|GET /api/repo/adhoc/\<id\>/data?format=XLSX|CSV|The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file|
+|GET /api/repo/lookup/\<id\>/data|The data of a lookup (result of its SQL)|
 
 ### to be discussed 
 
-- do I need the metadata of an adhoc sql query (to manage the datatypes) ? or is it part of the result "GET /api/repo/adhoc/<id>/data" ?
-- use <id> and other unique, but stable identifier ? e.g. <alias>, <nr>, ...
+- do I need the metadata of an adhoc sql query (to manage the datatypes) ? or is it part of the result "GET /api/repo/adhoc/\<id\>/data" ?
+- use \<id\> and other unique, but stable identifier ? e.g. <alias>, <nr>, ...
 
 
 ## CRUD Runtime /api/crud
@@ -62,13 +62,13 @@ The CRUD API delivers data for a give table and also allows to edit/update, dele
 
 |URL|Description|
 |-|-|
-|GET /api/crud/<tablename>|data of table|
-|GET /api/crud/<tablename>/<pk>|data of a table row, defined by the pk (primary key)|
-|PUT /api/crud/<tablename>/<pk>|update a table row, identified by the pk (primary key)|
-|POST /api/crud/<tablename>|add a table row|
-|DELETE /api/crud/<tablename>/<pk>|delete a <type>|
+|GET /api/crud/\<tablename\>|data of table|
+|GET /api/crud/\<tablename\>/\<pk\>|data of a table row, defined by the pk (primary key)|
+|PUT /api/crud/\<tablename\>/\<pk\>|update a table row, identified by the pk (primary key)|
+|POST /api/crud/\<tablename\>|add a table row|
+|DELETE /api/crud/\<tablename\>/\<pk\>|delete a table row|
 
-For PUT and DELETE the primary key can also be given in the request body as attributes. This is especially necessary, if the table has a composite primary key. This would be difficult as URL parameter <pk>.
+For PUT and DELETE the primary key can also be given in the request body as attributes. This is especially necessary, if the table has a composite primary key. This would be difficult as URL parameter \<pk\>.
 
 ### Versioned tables
 
@@ -105,6 +105,7 @@ Additionally the metadata of tables can be retrieved.
 This is important for the CRUD frontend, as it needs to now about the datatypes, primary keys, etc. of a table that should be administered.
 
 |URL|Description|
-|-|-||GET /api/metadata/tables|metadata of all available tables|
-|GET /api/metadata/table/<tablename>|metadata of a specific table|
+|-|-|
+|GET /api/metadata/tables|metadata of all available tables|
+|GET /api/metadata/table/\<tablename\>|metadata of a specific table|
 
