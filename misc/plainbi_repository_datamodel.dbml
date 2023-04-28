@@ -1,0 +1,101 @@
+/**
+* Security
+*/
+
+Table user as U {
+  id int [pk]
+  username varchar [note: 'kolp'] 
+  email varchar [note: 'a@a.com']
+  fullname varchar [note: 'Markus Kolp']
+  password_hash varchar [note: 'encrypted password']
+  role_id int [ref: > R.id]
+}
+
+Table role as R {
+  id int [pk]
+  name roles 
+}
+
+Enum roles {
+  Admin
+  User
+}
+
+Table group as G {
+  id int [pk]
+  name varchar 
+}
+
+Table user_to_group as UG {
+  user_id int [pk, ref: > U.id]
+  group_id int [pk, ref: > G.id]
+}
+
+/**
+* CRUD Application metadata
+*/
+
+Table application as APP {
+  id int [pk]
+  name varchar 
+  alias varchar 
+  spec_json varchar
+  datasource_id int [ref: > DS.id]
+}
+
+Table application_to_group as APPTG {
+  application_id int [pk, ref: > APP.id]
+  group_id int [pk, ref: > G.id]
+}
+
+
+Table lookup as L {
+  id int [pk]
+  name varchar 
+  sql_query varchar
+  datasource_id int [ref: > DS.id]
+}
+
+Table datasource as DS {
+  id int [pk]
+  name varchar
+  db_type db_types
+  db_host varchar 
+  db_port varchar 
+  db_name varchar [note: 'database name']
+  db_user varchar
+  db_pass_hash varchar
+}
+
+Enum db_types {
+  mssql
+  postgres
+  mysql
+  oracle
+  sqlite
+}
+
+
+/**
+* Adhoc Tool
+*/
+
+Table adhoc as A {
+  id int [pk]
+  name varchar
+  sql_query varchar
+  output_format outputformats
+  datasource_id int [ref: > DS.id]
+}
+
+Enum outputformats {
+  HTML
+  Excel
+  CSV
+}
+
+Table adhoc_to_group as AG {
+  adhoc_id int [pk, ref: > A.id]
+  group_id int [pk, ref: > G.id]
+}
+

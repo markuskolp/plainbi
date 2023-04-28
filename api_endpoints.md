@@ -1,3 +1,19 @@
+# API endpoints
+
+## General entry points
+
+|Entry point|Description|
+|-|-|
+|/api/adhoc-|
+|/api/crud-|
+|/api/metadata-|
+|/api/repo-|
+
+
+
+
+
+
 
 # Repository /api/repo
 
