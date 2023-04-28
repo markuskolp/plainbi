@@ -15,6 +15,15 @@ import { Outlet } from "react-router-dom";
 const { Title, Link } = Typography;
 const { Header, Content, Footer } = Layout;
 
+// config.js
+const header_title = window.HEADER_TITLE;
+const footer = window.FOOTER;
+const color_primary = window.THEME_COLOR_PRIMARY;
+const color_success = window.THEME_COLOR_SUCCESS;
+const color_error = window.THEME_COLOR_ERROR;
+const color_info = window.THEME_COLOR_INFO;
+const font_size = window.THEME_FONT_SIZE;
+
 const ThemeLayout = () => {
   const {
     token: { colorBgContainer }
@@ -25,11 +34,11 @@ const ThemeLayout = () => {
       <ConfigProvider
         theme={{
           token: {
-            colorPrimary: "rgb(106, 145, 206)",
-            colorSuccess: "#91c311",
-            colorError: "#b31013",
-            colorInfo: "#3b80e0",
-            fontSize: 13
+            colorPrimary: color_primary ? color_primary : "#333333",
+            colorSuccess: color_success ? color_success : "#91c311",
+            colorError: color_error ? color_error : "#b31013",
+            colorInfo: color_info ? color_info : "#3b80e0",
+            fontSize: font_size ? font_size : 13
           }
         }}
       >
@@ -40,7 +49,7 @@ const ThemeLayout = () => {
                 <Image id="logo" src="/logo" preview={false} />
               </Link>
               <Link href="/">
-                <Title>Data & BI</Title>
+                <Title>{header_title ? header_title : 'Data & BI'}</Title>
               </Link>
             </Space>
             <Space size={"middle"} className="right">
@@ -70,7 +79,7 @@ const ThemeLayout = () => {
             </div>
           </Content>
           <Footer style={{ textAlign: "center" }}>
-            ©2023 created by Data & BI
+            {footer ? footer : 'created by the plainbi team with love'}
           </Footer>
         </Layout>
       </ConfigProvider>
