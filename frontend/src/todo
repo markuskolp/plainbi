@@ -4,11 +4,19 @@
 
 ## AppRun
 
-Apps.js -> get apps from API !
 homepage -> get all entitled resources (external_resource, adhoc, application)
 homepage -> additional tiles (e.g. list of fairs !)
 
 API to get all entitled resources (additionally a view in repo to consolidate the resources ?)
+
+generic CRUD App in "runtime" mode:
+  - make DELETE work
+  - load modal only when opening (especially for edit form ! and lookup fetching)
+  - fetch lookup separately
+    - in table view
+    - and in modal
+  - make PUT work (update)
+  - make POST work (new)
 
 add ui elements:
 - password
@@ -20,14 +28,6 @@ add ui elements:
 
 https://github.com/react-monaco-editor/react-monaco-editor    
 
-generic CRUD App in "runtime" mode:
-  - make DELETE work
-  - load modal only when opening (especially for edit form ! and lookup fetching)
-  - fetch lookup separately
-    - in table view
-    - and in modal
-  - make PUT work (update)
-  - make POST work (new)
 
 bundle with python backend API !
 
