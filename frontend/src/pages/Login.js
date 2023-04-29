@@ -1,8 +1,6 @@
 import React from "react";
-import { Form, Input, Button, Checkbox } from 'antd';
+import { Form, Input, Button, Checkbox,Image, Space  } from 'antd';
 import Icon from '@ant-design/icons';
-//import 'antd/dist/antd.css';
-
 
 const LoginPage = () => {
 
@@ -16,8 +14,15 @@ const LoginPage = () => {
   };
 
   return (
-      <div className="login-warp">
-        <h1>Login</h1><br />
+      <div className="login">
+        <div>
+          <Image id="logo" src="/logo" preview={false} />
+          </div>
+          <div>
+          <br/>
+          <h1>Bitte anmelden ...</h1>
+          <br />
+          </div>
         <Form layout="horizontal">
           <Form.Item
             rules={[{ required: true, message: 'Bitte Username eingeben.' }]}

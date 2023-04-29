@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ThemeLayout from "./pages/ThemeLayout";
+import ThemeLayoutNoHeader from "./pages/ThemeLayoutNoHeader";
 import Home from "./pages/Home";
 import Apps from "./pages/Apps";
 import AppRuntime from "./pages/AppRuntime";
@@ -17,9 +18,11 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<ThemeLayoutNoHeader />}>
+          <Route path="login" element={<LoginPage />} />
+        </Route>
         <Route path="/" element={<ThemeLayout />}>
           <Route index element={<Home />} />
-          <Route path="login" element={<LoginPage />} />
           <Route path="settings" element={<Settings />} />
           <Route path="profile" element={<UserProfile />} />
           <Route path="adhoc/:id" element={<AdhocRuntime />} />

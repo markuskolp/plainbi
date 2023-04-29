@@ -22,22 +22,15 @@ add ui elements:
     https://sujinleeme.github.io/react-json-editor/ + json schema !
 - textarea_markdown (react-markdown)
 
-    
-
 homepage -> additional tiles (e.g. list of fairs !)
 
 bundle with python backend API !
 
-add security -> in frontend prepare login.html/.js and logout.html/.js
+add security in python backend
+  - use JWT (https://flask-jwt-extended.readthedocs.io/en/stable/)
+  - combine with login.js frontend 
+  - if possible get JWT in session -> test this with Cube.js :)
 
-if possible get JWT in session -> test this with Cube.js :)
-
-
-## general
-
-- integrated security: /login, /logout routes -> JWT Tokens !
-- integrated database/repository -> sqlite
-- wie stellt man sicher, dass bei einem Softwareupdate die Inhalte vom Repo gleich bleiben
 
 
 # ------------------------------------------------

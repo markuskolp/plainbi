@@ -74,3 +74,9 @@ table .anticon {
 .sqlcode {
   font-family: monospace !important;
 }
+.login {
+  margin-top:50px;
+  margin-left:30%;
+  margin-right:30%;
+  margin-bottom:100px;
+}
