@@ -8,6 +8,8 @@ act.development.js:209 Warning: Each child in a list should have a unique "key" 
 
 generic CRUD App in "runtime" mode:
   - make DELETE work
+    - get ID from metadata ? or add all row data to the delete statement ?
+
   - load modal only when opening (especially for edit form ! and lookup fetching)
   - fetch lookup separately
     - in table view
@@ -31,11 +33,14 @@ add security in python backend
   - combine with login.js frontend 
   - if possible get JWT in session -> test this with Cube.js :)
 
-
-
 # ------------------------------------------------
 # later
 # ------------------------------------------------
+
+finish dark mode switch
+- put it in user profile page or as menu option when clicking on avatar in upper right corner
+- make 3 options: yes / no / browser default
+- save setting in repository (table: user_preference)
 
 add message/notfication overall (see AppRun.js) 
   - catch all errors, especially with API calls

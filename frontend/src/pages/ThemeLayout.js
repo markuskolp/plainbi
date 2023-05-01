@@ -1,6 +1,7 @@
 import React from "react";
+import { useState } from "react";
 import { ConfigProvider, Tooltip, Image, Space } from "antd";
-import { Layout, theme } from "antd";
+import { Layout, theme, Button } from "antd";
 import { Typography } from "antd";
 import {
   AppstoreOutlined,
@@ -34,10 +35,19 @@ const ThemeLayout = () => {
     token: { colorBgContainer }
   } = theme.useToken();
 
+  const { defaultAlgorithm, darkAlgorithm } = theme;
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const handleDarkModeSwitch = () => {
+    setIsDarkMode((previousValue) => !previousValue);
+   };
+
   return (
     <React.Fragment>
       <ConfigProvider
         theme={{
+          algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
           token: {
             colorPrimary: color_primary ? color_primary : "#333333",
             colorSuccess: color_success ? color_success : "#91c311",
@@ -93,3 +103,10 @@ const ThemeLayout = () => {
 };
 
 export default ThemeLayout;
+
+/*
+
+              <Button onClick={handleDarkModeSwitch}>
+                Change Theme to {isDarkMode ? "Light" : "Dark"}
+              </Button>
+*/

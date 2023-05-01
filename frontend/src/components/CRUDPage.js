@@ -87,11 +87,29 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
     );
   };
 
-
+  // removeTableRow
+  const removeTableRow = async (tableName, record) => {
+    setLoading(true);
+    await Axios.delete("/api/crud/"+tableName, {  // /${id
+        headers: { 
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        data: {
+          record
+        }
+      }).then( 
+      (res) => {
+        getTableData(table);
+      }
+      )
+  };
 
     // deleteConfirm
-    const deleteConfirm = (e) => {
-      console.log(e);
+    const deleteConfirm = (record) => {
+      console.log("deleteConfirm for table: " + table);
+      console.log(record);
+      removeTableRow(table, record);
       message.success('Wurde gelöscht.');
     };
 
@@ -104,7 +122,7 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
     };
     
     // add action buttons to a table record
-   function getColumnAction(deleteAllowed, updateAllowed) {
+   function getColumnAction( deleteAllowed, updateAllowed) {
     return {
       title: " ",
       key: "action",
@@ -115,7 +133,7 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
             <Popconfirm
             title="Löschen"
             description="Wirklich löschen?"
-            onConfirm={deleteConfirm}
+            onConfirm={(e) => { deleteConfirm(record, e); }}
             //onCancel={cancel}
             okText="Ja"
             cancelText="Nein"
