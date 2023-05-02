@@ -7,13 +7,10 @@
 act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
 generic CRUD App in "runtime" mode:
-  - make DELETE work
-    - get ID from metadata ? or add all row data to the delete statement ?
-
-  - load modal only when opening (especially for edit form ! and lookup fetching)
+  - load modal empty for "new" and fill it with values for "edit/update"
   - fetch lookup separately
+    - todo: only supports 1 lookup currently -> make it generic for <n> lookups
     - in table view
-    - and in modal
   - make PUT work (update)
   - make POST work (new)
 

@@ -6,23 +6,15 @@ import {
   Button,
   Typography,
   Layout,
-  Menu,
-  Modal,
-  Switch,
-  Form,
   Input,
-  Select,
-  InputNumber,
-  DatePicker,
   Space,
   Popconfirm,
   message
 } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-const { Header, Content, Sider } = Layout;
-const { TextArea } = Input;
-const { Text, Link } = Typography;
+import CRUDModal from "./CRUDModal";
+const { Link } = Typography;
 
 //TODO: Modal for create and update
 //TODO: lookupData
@@ -53,22 +45,7 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
-
-  const layout = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 14 }
-    };
-    const layoutpage = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 14 }
-    };
-    /*
-  
-    const [lookupData, setLookupData] = useState([]);
-    const [columnItems, setColumnItems] = useState([]);
-    const [columnItemsForSummary, setColumnItemsForSummary] = useState([]);
-  
-    */
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     getTableData(table);
@@ -115,11 +92,15 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
 
     // showModal
     const showEditModal = () => {
-      
+      setShowModal(true);
     };
     const showCreateModal = () => {
-      
+      setShowModal(true);
     };
+    // closeModal
+    const closeModal = () => {
+      setShowModal(false);
+    }
     
     // add action buttons to a table record
    function getColumnAction( deleteAllowed, updateAllowed) {
@@ -200,6 +181,10 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
                   loading={loading}
             /> 
             
+            {showModal &&
+            <CRUDModal tableColumns={tableColumns} handleClose={closeModal}/>
+            }
+
             </React.Fragment>
     );
 

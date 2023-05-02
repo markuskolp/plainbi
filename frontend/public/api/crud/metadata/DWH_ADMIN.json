@@ -116,6 +116,15 @@
                 "ui":"switch",
                 "editable":true,
                 "required":true
+            },
+            {
+                "column_name":"LOOKUP2",
+                "column_label":"lookup 2",
+                "datatype":"number",
+                "ui":"lookup",
+                "lookup":"veranstaltung2",
+                "editable":true,
+                "required":true
             }
           ]
       },
