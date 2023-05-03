@@ -33,7 +33,7 @@
                "column_name":"sql_query",
                "column_label":"SQL Abfrage",
                "datatype":"text",
-               "ui":"textarea",
+               "ui":"textarea_sql",
                "editable":"true",
                "required":"true",
                "showdetailsonly":"true"

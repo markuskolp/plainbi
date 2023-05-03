@@ -18,6 +18,7 @@ import {
   Popconfirm,
   message
 } from "antd";
+import MonacoEditor from 'react-monaco-editor';
 const { Header, Content, Sider } = Layout;
 const { TextArea } = Input;
 const { Text, Link } = Typography;
@@ -169,6 +170,17 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
                           <InputNumber />
                         ) : column.ui === "textarea" ? (
                           <TextArea rows={6} />
+                        ) : column.ui === "textarea_sql" ? (
+                          <MonacoEditor
+                            //width="800"
+                            //height="600"
+                            language="sql"
+                            theme="vs-light"
+                            //value={code}
+                            //options={options}
+                            //onChange={::this.onChange}
+                            //editorDidMount={::this.editorDidMount}
+                          />
                         ) : column.ui === "password" ? (
                           <Input.Password />
                         ) : column.ui === "email" ? (

@@ -17,9 +17,20 @@ generic CRUD App in "runtime" mode:
 add ui elements:
 - https://github.com/react-monaco-editor/react-monaco-editor
   - textarea_sql
+    - todo: font, syntax highlighting, border
   - textarea_json (with formatter and validator)
     https://sujinleeme.github.io/react-json-editor/ + json schema !
 - textarea_markdown (react-markdown)
+
+      import ReactMarkdown from 'react-markdown';
+      const markdown = `
+      # header
+      Just a link: https://reactjs.com.
+      `;
+      <ReactMarkdown children={markdown} /> 
+      //import remarkGfm from 'remark-gfm';
+      //remarkPlugins={[remarkGfm]} />
+
 
 homepage -> additional tiles (e.g. list of fairs !)
 
