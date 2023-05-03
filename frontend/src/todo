@@ -9,18 +9,16 @@ act.development.js:209 Warning: Each child in a list should have a unique "key" 
 generic CRUD App in "runtime" mode:
   - load modal empty for "new" and fill it with values for "edit/update"
   - fetch lookup separately
-    - todo: only supports 1 lookup currently -> make it generic for <n> lookups
     - in table view
   - make PUT work (update)
   - make POST work (new)
 
+monaco-editor evtl. switchen auf https://wangchujiang.com/react-monacoeditor/ ?
+
 add ui elements:
-- https://github.com/react-monaco-editor/react-monaco-editor
-  - textarea_sql
-    - todo: font, syntax highlighting, border
   - textarea_json (with formatter and validator)
     https://sujinleeme.github.io/react-json-editor/ + json schema !
-- textarea_markdown (react-markdown)
+  - textarea_markdown (react-markdown)
 
       import ReactMarkdown from 'react-markdown';
       const markdown = `

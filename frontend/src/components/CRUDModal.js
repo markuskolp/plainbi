@@ -19,6 +19,7 @@ import {
   message
 } from "antd";
 import MonacoEditor from 'react-monaco-editor';
+import SelectLookup from './SelectLookup';
 const { Header, Content, Sider } = Layout;
 const { TextArea } = Input;
 const { Text, Link } = Typography;
@@ -26,15 +27,15 @@ const { Text, Link } = Typography;
 const CRUDModal = ({ tableColumns, handleClose }) => {
     
   const [loading, setLoading] = useState(true);
-  const [lookupData, setLookupData] = useState([]);
+//  const [lookupData, setLookupData] = useState([]);
 
   /*
     const [columnItems, setColumnItems] = useState([]);
     const [columnItemsForSummary, setColumnItemsForSummary] = useState([]);
     */
 
+/*
   useEffect(() => {
-
     tableColumns.map((column) => {
             if (column.ui === "lookup" ) {
               console.log(column.column_name + ' ' + column.ui + ' ' + column.lookup);
@@ -58,23 +59,13 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
                 label: row.d
               }))
             );
-            /*
-            setLookupData( {
-              id: lookupid,
-              values: 
-              res.data.map((row) => ({
-                value: row.r,
-                label: row.d
-              }))
-            }
-            );
-            */
             
             setLoading(false);
             console.log("lookupData: " + JSON.stringify(lookupData));
           }
         )
       };
+    */
 
       /*
     const getLookup = async (lookupid) =>  {
@@ -105,6 +96,28 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
     labelCol: { span: 6 },
     wrapperCol: { span: 14 }
   };
+
+  const options = {
+    autoIndent: 'full',
+    contextmenu: true,
+    //fontFamily: 'monospace',
+    //fontSize: 13,
+    //lineHeight: 24,
+    hideCursorInOverviewRuler: true,
+    matchBrackets: 'always',
+    minimap: {
+      enabled: false,
+    },
+    scrollbar: {
+      horizontalSliderSize: 2,
+      verticalSliderSize: 10,
+    },
+    selectOnLineNumbers: true,
+    roundedSelection: false,
+    readOnly: false,
+    cursorStyle: 'line',
+    automaticLayout: true,
+  }; 
 
   return (
     <React.Fragment>
@@ -143,27 +156,7 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
                         {!column.editable ? (
                           <Text>...</Text>
                         ) : column.ui === "lookup" ? (
-                          <Select
-                            placeholder="bitte auswählen ..."
-                            allowClear
-                            showSearch
-                            options={lookupData}
-                              /*[
-                              {
-                                value: "a",
-                                label: ""
-                              },
-                              {
-                                value: "b",
-                                label: ""
-                              },
-                              {
-                                value: "...",
-                                label: "..."
-                              }
-                              ]
-                          }*/
-                          />
+                          <SelectLookup lookupid={column.lookup}/>
                         ) : column.ui === "hidden" ? (
                           ""
                         ) : column.ui === "numberinput" ? (
@@ -171,16 +164,31 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
                         ) : column.ui === "textarea" ? (
                           <TextArea rows={6} />
                         ) : column.ui === "textarea_sql" ? (
-                          <MonacoEditor
+                          <div class="monaco-editor-wrapper">
+                            <MonacoEditor
                             //width="800"
-                            //height="600"
+                            height="300"
                             language="sql"
                             theme="vs-light"
                             //value={code}
-                            //options={options}
+                            options={options}
                             //onChange={::this.onChange}
                             //editorDidMount={::this.editorDidMount}
-                          />
+                            />
+                          </div>
+                        ) : column.ui === "textarea_json" ? (
+                          <div class="monaco-editor-wrapper">
+                            <MonacoEditor
+                            //width="800"
+                            height="300"
+                            language="json"
+                            theme="vs-light"
+                            //value={code}
+                            options={options}
+                            //onChange={::this.onChange}
+                            //editorDidMount={::this.editorDidMount}
+                            />
+                          </div>
                         ) : column.ui === "password" ? (
                           <Input.Password />
                         ) : column.ui === "email" ? (

@@ -1,0 +1,10 @@
+[
+    {
+        "d": "MS SQL Server",
+        "r": "mssql"
+    },
+    {
+        "d": "SQLite",
+        "r": "sqlite"
+    }
+]

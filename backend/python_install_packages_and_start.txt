@@ -6,3 +6,19 @@ c:\Projects\python\python.exe -m pip install python-dotenv
 
 c:\Projects\python\python.exe crudapi.py
 
+
+C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe install --upgrade pip
+
+C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe -m pip install sqlalchemy
+C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe -m pip install flask
+C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe -m pip install python-dotenv
+
+C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe crudapi.py
+
+# anaconda
+
+C:\Users\kolp\AppData\Local\anaconda3\python.exe -m pip install sqlalchemy
+C:\Users\kolp\AppData\Local\anaconda3\python.exe -m pip install flask
+C:\Users\kolp\AppData\Local\anaconda3\python.exe -m pip install python-dotenv
+
+C:\Users\kolp\AppData\Local\anaconda3\python.exe crudapi.py

@@ -9,6 +9,26 @@
   max-width: 120px;
   line-height: 60px;
 } 
+div.monaco-editor * {
+  font-family: Consolas, "Courier New", monospace !important;
+}
+div.monaco-editor-wrapper {
+  border-color: #d9d9d9;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
+  padding: 1px;
+  margin-right: -1px;
+}
+/*
+div.monaco-editor {
+  background-color:white;
+  border-color: #d9d9d9 !important;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #d9d9d9;
+}
+*/
 * {
   font-family: Inter, Roboto, Arial, sans-serif !important; /* set overall font family */
 }
