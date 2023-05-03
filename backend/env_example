@@ -1,0 +1,8 @@
+# save file as .env locally (.env files are not versioned in git!)
+
+# example entries for mssql
+db_server=
+db_database=
+db_username=
+db_password=
+db_engine=mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_database}

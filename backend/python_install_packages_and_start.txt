@@ -1,0 +1,8 @@
+c:\Projects\python\python.exe -m pip install --upgrade pip
+
+c:\Projects\python\python.exe -m pip install sqlalchemy
+c:\Projects\python\python.exe -m pip install flask
+c:\Projects\python\python.exe -m pip install python-dotenv
+
+c:\Projects\python\python.exe crudapi.py
+
