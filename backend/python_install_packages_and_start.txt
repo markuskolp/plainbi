@@ -1,11 +1,4 @@
-c:\Projects\python\python.exe -m pip install --upgrade pip
-
-c:\Projects\python\python.exe -m pip install sqlalchemy
-c:\Projects\python\python.exe -m pip install flask
-c:\Projects\python\python.exe -m pip install python-dotenv
-
-c:\Projects\python\python.exe crudapi.py
-
+# python
 
 C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe install --upgrade pip
 
@@ -17,8 +10,12 @@ C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe crudapi.py
 
 # anaconda
 
-C:\Users\kolp\AppData\Local\anaconda3\python.exe -m pip install sqlalchemy
-C:\Users\kolp\AppData\Local\anaconda3\python.exe -m pip install flask
-C:\Users\kolp\AppData\Local\anaconda3\python.exe -m pip install python-dotenv
+open anaconda prompt
 
-C:\Users\kolp\AppData\Local\anaconda3\python.exe crudapi.py
+conda config --set ssl_verify false
+conda install sqlalchemy
+conda install flask
+conda install python-dotenv
+python.exe crudapi.py
+
+# --channel conda-forge
