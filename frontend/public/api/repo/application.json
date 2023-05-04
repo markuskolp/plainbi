@@ -1,7 +1,7 @@
 [
     {
         "id": "1",
-        "name": "DWH Applikation",
+        "name": "DWH Administration",
         "alias": "dwh_admin",
         "spec_json": "{...}",
         "datasource_id": "2"

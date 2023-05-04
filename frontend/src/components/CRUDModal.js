@@ -20,6 +20,7 @@ import {
 } from "antd";
 import MonacoEditor from 'react-monaco-editor';
 import SelectLookup from './SelectLookup';
+import MarkdownEditor from './MarkdownEditor';
 const { Header, Content, Sider } = Layout;
 const { TextArea } = Input;
 const { Text, Link } = Typography;
@@ -27,60 +28,6 @@ const { Text, Link } = Typography;
 const CRUDModal = ({ tableColumns, handleClose }) => {
     
   const [loading, setLoading] = useState(true);
-//  const [lookupData, setLookupData] = useState([]);
-
-  /*
-    const [columnItems, setColumnItems] = useState([]);
-    const [columnItemsForSummary, setColumnItemsForSummary] = useState([]);
-    */
-
-/*
-  useEffect(() => {
-    tableColumns.map((column) => {
-            if (column.ui === "lookup" ) {
-              console.log(column.column_name + ' ' + column.ui + ' ' + column.lookup);
-              getLookupData(column.lookup);
-            }
-    }
-    );
-    
-   //console.log("test: " + getLookup("output_format"));
-    
-  }, [tableColumns]);
-
-  const getLookupData = async (lookupid) => {
-    //    async function getLookupData(lookupid) {
-        console.log('fetching lookup', lookupid);
-        await Axios.get("/api/data/lookup/"+lookupid+".json").then(
-          (res) => {
-            console.log("lookupData: " + JSON.stringify(res));
-            setLookupData( res.data.map((row) => ({
-                value: row.r,
-                label: row.d
-              }))
-            );
-            
-            setLoading(false);
-            console.log("lookupData: " + JSON.stringify(lookupData));
-          }
-        )
-      };
-    */
-
-      /*
-    const getLookup = async (lookupid) =>  {
-      console.log("getLookup: " + lookupid);
-      await Axios.get("/api/data/lookup/"+lookupid+".json").then(
-        (res) => {
-          console.log("getLookup: " + JSON.stringify(res.data));
-          return res.data.map((row) => ({
-              value: row.r,
-              label: row.d
-            }))
-        }
-        )
-    };
-    */
 
   const handleOk = () => {
     // todo: add or update to API
@@ -118,6 +65,7 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
     cursorStyle: 'line',
     automaticLayout: true,
   }; 
+
 
   return (
     <React.Fragment>
@@ -161,6 +109,8 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
                           ""
                         ) : column.ui === "numberinput" ? (
                           <InputNumber />
+                        ) : column.ui === "textarea_markdown" ? (
+                          <MarkdownEditor />
                         ) : column.ui === "textarea" ? (
                           <TextArea rows={6} />
                         ) : column.ui === "textarea_sql" ? (
@@ -218,3 +168,6 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
 };
 
 export default CRUDModal;
+
+      //import remarkGfm from 'remark-gfm';
+      //remarkPlugins={[remarkGfm]} />

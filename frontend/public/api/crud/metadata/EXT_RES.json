@@ -41,7 +41,7 @@
             {
                "column_name":"description",
                "column_label":"Beschreibung",
-               "ui":"textinput",
+               "ui":"textarea_markdown",
                "datatype":"text",
                "editable":"true",
                "required":"true"

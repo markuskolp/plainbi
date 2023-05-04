@@ -13,23 +13,6 @@ generic CRUD App in "runtime" mode:
   - make PUT work (update)
   - make POST work (new)
 
-monaco-editor evtl. switchen auf https://wangchujiang.com/react-monacoeditor/ ?
-
-add ui elements:
-  - textarea_json (with formatter and validator)
-    https://sujinleeme.github.io/react-json-editor/ + json schema !
-  - textarea_markdown (react-markdown)
-
-      import ReactMarkdown from 'react-markdown';
-      const markdown = `
-      # header
-      Just a link: https://reactjs.com.
-      `;
-      <ReactMarkdown children={markdown} /> 
-      //import remarkGfm from 'remark-gfm';
-      //remarkPlugins={[remarkGfm]} />
-
-
 homepage -> additional tiles (e.g. list of fairs !)
 
 bundle with python backend API !
@@ -43,12 +26,19 @@ add security in python backend
 # later
 # ------------------------------------------------
 
+crud ui textarea components
+  - json:
+    - textarea_json (with formatter and validator)
+    - https://sujinleeme.github.io/react-json-editor/ + json schema !
+  - monaco-editor evtl. switchen auf https://wangchujiang.com/react-monacoeditor/ ?
+  - markdown: erweitern um "remark-gfm"
+
 finish dark mode switch
 - put it in user profile page or as menu option when clicking on avatar in upper right corner
 - make 3 options: yes / no / browser default
 - save setting in repository (table: user_preference)
 
-add message/notfication overall (see AppRun.js) 
+add message/notification overall (see AppRun.js) 
   - catch all errors, especially with API calls
 
 generic CRUD App in "runtime" mode:
