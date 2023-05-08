@@ -7,13 +7,14 @@ const { TextArea } = Input;
 //TODO: set initial value
 //TODO: handle callback (change of value in textarea)
 
-const MarkdownEditor = ({ defaultValue, callback }) => {
+const MarkdownEditor = ({ defaultValue, callback, handleChange }) => {
 
   const [markdown, setMarkdown] = useState('');
 
   const onChange = (e) => {
     console.log('MarkdownEditor - Textarea change:', e.target.value);
     setMarkdown(e.target.value);
+    handleChange();
   };
 
   return (

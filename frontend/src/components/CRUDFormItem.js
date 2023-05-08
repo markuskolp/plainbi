@@ -18,9 +18,16 @@ const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 
-const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue }) => {
+const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, handleChange }) => {
 
   const dateFormat = 'YYYY-MM-DD';
+
+  const handleDatePickerChange = (date, dateString) => {
+    //console.log("handleDatePickerChange - name: " + name + " / value: " + dateString);
+    const emuEvent = { "target": { "name": name, "value": dateString}} // emulate event.target.name/.value object
+    console.log(emuEvent);
+    handleChange(emuEvent); 
+ }
 
   return (                    
             <React.Fragment>
@@ -32,15 +39,15 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                 {!editable ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookup" ? (
-                  <SelectLookup lookupid={lookup} defaultValue={defaultValue}/>
+                  <SelectLookup lookupid={lookup} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "hidden" ? (
                   ""
                 ) : ui === "numberinput" ? (
-                  <InputNumber defaultValue={defaultValue}/>
+                  <InputNumber defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea_markdown" ? (
-                  <MarkdownEditor defaultValue={defaultValue} />
+                  <MarkdownEditor defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea" ? (
-                  <TextArea rows={6} defaultValue={defaultValue}/>
+                  <TextArea rows={6} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea_sql" ? (
                   <div class="monaco-editor-wrapper">
                     <MonacoEditor
@@ -51,6 +58,7 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                     value={defaultValue}
                     options={options}
                     //onChange={::this.onChange}
+                    onChange={handleChange}
                     //editorDidMount={::this.editorDidMount}
                     />
                   </div>
@@ -64,22 +72,23 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                     value={defaultValue}
                     options={options}
                     //onChange={::this.onChange}
+                    onChange={handleChange}
                     //editorDidMount={::this.editorDidMount}
                     />
                   </div>
                 ) : ui === "password" ? (
-                  <Input.Password defaultValue={defaultValue}/>
+                  <Input.Password defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "email" ? (
-                  <Input defaultValue={defaultValue}/>
+                  <Input defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textinput" ? (
-                  <Input defaultValue={defaultValue}/> 
+                  <Input defaultValue={defaultValue} onChange={handleChange}/> 
                 ) : ui === "datepicker" ? (
                   defaultValue ?
-                  <DatePicker defaultValue={dayjs(defaultValue,{dateFormat})} format={dateFormat}  />
+                  <DatePicker defaultValue={dayjs(defaultValue,{dateFormat})} format={dateFormat} onChange={handleDatePickerChange} /> 
                   :
-                  <DatePicker format={dateFormat}  />
+                  <DatePicker format={dateFormat} onChange={handleDatePickerChange} /> 
                 ) : ui === "switch" ? (
-                  <Switch defaultChecked={defaultValue}/>
+                  <Switch defaultChecked={defaultValue} onChange={handleChange}/>
                 ) : ui === "label" ? (
                   <Text>{defaultValue}</Text>
                 ) : (

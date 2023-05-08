@@ -36,9 +36,53 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
       )
   };
 
+  // updateTableRow
+  const updateTableRow = async (tableName, record, pk) => {
+    setLoading(true);
+    await Axios.put("/api/crud/"+tableName+"/"+pk, {  
+        headers: { 
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        data: record
+      }).then( 
+      (res) => {
+        getRecordData(tableName, pk);
+        message.success('Erfolgreich gespeichert.');
+      }
+      ).catch(function (error) {
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Speichern.');
+      }
+      )
+  };
+
+    // addTableRow
+    const addTableRow = async (tableName, record, pk) => {
+      setLoading(true);
+      await Axios.post("/api/crud/"+tableName, {  
+          headers: { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          data: record          
+        }).then( 
+        (res) => {
+          getRecordData(tableName, pk);
+          message.success('Erfolgreich gespeichert.');
+        }
+        ).catch(function (error) {
+          setLoading(false);
+          message.error('Es gab einen Fehler beim Speichern.');
+        }
+        )
+    };
+  
+
   const handleOk = () => {
-    // todo: add or update to API
-    // if all ok, then close modal
+    // add or update to API
+    // TODO: check if all required fields are filled (except fields with increment)
+    type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData, pk);
     handleClose();
   };
 
@@ -74,6 +118,12 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
   }; 
 
 
+  const handleChange =(event) =>{
+    const {name, value} = event.target;
+    console.log("handleChange - name: " + name + " / value: " + value);
+    setRecordData({...recordData, [name]: value}); // TODO: updating existing fields doesn't work ?!
+  }
+
   return (
     <React.Fragment>
       <Modal
@@ -106,7 +156,7 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
 
                   return (
                     (type == 'new' || recordData ) ? // only show if type is "new" or the data record could be retrieved (for "editing")
-                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue}/>
+                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} handleChange={handleChange}/>
                     : ""
                   )
 

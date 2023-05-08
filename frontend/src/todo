@@ -7,11 +7,11 @@
 act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
 generic CRUD App in "runtime" mode:
-  - load modal empty for "new" and fill it with values for "edit/update"
   - fetch lookup separately
     - in table view
-  - make PUT work (update)
-  - make POST work (new)
+  - make PUT work (update) + make POST work (new)
+    - numberinput -> error with handling change
+    - field validaten before save !
 
 homepage -> additional tiles (e.g. list of fairs !)
 
