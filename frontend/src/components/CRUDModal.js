@@ -149,6 +149,8 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
                           <DatePicker />
                         ) : column.ui === "switch" ? (
                           <Switch />
+                        ) : column.ui === "label" ? (
+                          <Text>?</Text>
                         ) : (
                           <Text>?</Text>
                         )}

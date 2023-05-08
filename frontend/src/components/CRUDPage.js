@@ -28,6 +28,7 @@ Enum datatype {
 
 Enum ui {
   hidden
+  label
   textinput
   numberinput
   datepicker
@@ -54,10 +55,12 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
   // getTableData
   const getTableData = async (tableName) => {
     
-    await Axios.get("/api/data/table/"+tableName+".json").then(
+    //await Axios.get("/api/data/table/"+tableName).then(
+    await Axios.get("/api/crud/"+tableName).then(
       (res) => {
-        console.log(JSON.stringify(res.data));
-        setTableData(res.data);
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        setTableData(resData);
         console.log(JSON.stringify(tableData));
         setLoading(false);
       }

@@ -19,5 +19,12 @@
         "alias": "ext_res",
         "spec_json": "{...}",
         "datasource_id": "1"
+    },
+    {
+        "id": "4",
+        "name": "CRUD API Test",
+        "alias": "crud_test",
+        "spec_json": "{...}",
+        "datasource_id": "1"
     }
 ]
