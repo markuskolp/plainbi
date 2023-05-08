@@ -42,19 +42,21 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
+const CRUDPage = ({ name, table, tableColumns, pkColumns, allowedActions }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [pkColumn, setPkColumn] = useState();
 
   useEffect(() => {
     getTableData(table);
+    setPkColumn(pkColumns); // set first column from pk list // TODO: take all pk columns if composite key
   }, [table]);
 
   // getTableData
   const getTableData = async (tableName) => {
-    
+    setTableData(null);
     //await Axios.get("/api/data/table/"+tableName).then(
     await Axios.get("/api/crud/"+tableName).then(
       (res) => {
@@ -64,13 +66,17 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
         console.log(JSON.stringify(tableData));
         setLoading(false);
       }
-    );
+      ).catch(function (error) {
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der Daten.');
+      }
+      )
   };
 
   // removeTableRow
-  const removeTableRow = async (tableName, record) => {
+  const removeTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    await Axios.delete("/api/crud/"+tableName, {  // /${id
+    await Axios.delete("/api/crud/"+tableName+"/"+pk, {  
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -81,6 +87,11 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
       }).then( 
       (res) => {
         getTableData(table);
+        message.success('Wurde gelöscht.');
+      }
+      ).catch(function (error) {
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Löschen.');
       }
       )
   };
@@ -89,8 +100,8 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
     const deleteConfirm = (record) => {
       console.log("deleteConfirm for table: " + table);
       console.log(record);
-      removeTableRow(table, record);
-      message.success('Wurde gelöscht.');
+      pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
+      removeTableRow(table, record, record[pkColumn[0]]);
     };
 
     // showModal
@@ -113,7 +124,7 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
       width: 100,
       render: (_, record) => ([
         <Space>
-          {deleteAllowed && 
+          {deleteAllowed && pkColumn &&
             <Popconfirm
             title="Löschen"
             description="Wirklich löschen?"
@@ -126,7 +137,7 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
             <DeleteOutlined style={{ fontSize: "18px" }} />
             </Popconfirm>
           }
-          {updateAllowed && 
+          {updateAllowed && pkColumn &&
           <Link onClick={showEditModal}>
             <EditOutlined style={{ fontSize: "18px" }} />
           </Link>

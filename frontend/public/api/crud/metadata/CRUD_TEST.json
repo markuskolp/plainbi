@@ -13,6 +13,7 @@
             "delete"
          ],
          "table":"DWH.CONFIG.crud_api_testtable",
+         "pk_columns":["nr"],
          "table_columns":[
             {
                "column_name":"nr",
@@ -49,6 +50,7 @@
             "delete"
          ],
          "table":"DWH.CONFIG.crud_api_tv_testtable",
+         "pk_columns":["nr"],
          "table_columns":[
             {
                "column_name":"nr",
