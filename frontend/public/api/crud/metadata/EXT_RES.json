@@ -1,0 +1,68 @@
+{
+   "id":"3",
+   "name":"externe Ressourcen",
+   "alias":"ext_res",
+   "pages":[
+      {
+         "id":"1",
+         "name":"externe Ressourcen",
+         "alias":"all",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "table":"external_resource",
+         "table_columns":[
+            {
+               "column_name":"id",
+               "column_label":"ID",
+               "datatype":"number",
+               "editable":"false",
+               "required":"true"
+            },
+            {
+               "column_name":"name",
+               "column_label":"Name",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"url",
+               "column_label":"Aufruf URL",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true",
+               "showdetailsonly":"true"
+            },
+            {
+               "column_name":"description",
+               "column_label":"Beschreibung",
+               "ui":"textarea_markdown",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"source",
+               "column_label":"Quelle / System",
+               "ui":"textinput",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"dataset",
+               "column_label":"Datensatz",
+               "ui":"textinput",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      }
+   ]
+}

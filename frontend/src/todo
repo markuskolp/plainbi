@@ -4,37 +4,51 @@
 
 ## AppRun
 
+act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
 generic CRUD App in "runtime" mode:
-  - add page routing for switching between pages -> works a bit -> make it correct !!!
-  - add pagination
-  - fetch row data for edit form !
-  - make DELETE work
-  - load modal only when opening (especially for edit form ! and lookup fetching)
   - fetch lookup separately
-  - make PUT work (update)
-  - make POST work (new)
+    - in table view
+  - Modal / Form
+    - numberinput -> error with handling change
+    - field validaten before save !
 
-bundle with real backend API !
+versioned tables !
 
-todo for Joe:
-  - API endpoints alle gemeinsam führen
-    - umsetzen: lookup
-  - integrated security: /login, /logout routes -> JWT Tokens !
-  - integrated database/repository e.g. with H2, SQLite, etc.
-  - .env für credentials (z.B. DB-Konfig)
-  - wie stellt man sicher, dass bei einem Softwareupdate die Inhalte vom Repo gleich bleiben
-  - Repo lokal oder auf externe DB erlauben -> muss aber initiales Anlegen der DDL erfolgen !
+homepage -> additional tiles (e.g. list of fairs !)
 
+repo / settings page -> make it work with API
+
+compound primary keys !
+
+add security in python backend
+  - use JWT (https://flask-jwt-extended.readthedocs.io/en/stable/)
+  - combine with login.js frontend 
+  - if possible get JWT in session -> test this with Cube.js :)
 
 # ------------------------------------------------
 # later
 # ------------------------------------------------
 
-add message/notfication overall (see AppRun.js) 
+incremental fields ?!
+
+crud ui textarea components
+  - json:
+    - textarea_json (with formatter and validator)
+    - https://sujinleeme.github.io/react-json-editor/ + json schema !
+  - monaco-editor evtl. switchen auf https://wangchujiang.com/react-monacoeditor/ ?
+  - markdown: erweitern um "remark-gfm"
+
+finish dark mode switch
+- put it in user profile page or as menu option when clicking on avatar in upper right corner
+- make 3 options: yes / no / browser default
+- save setting in repository (table: user_preference)
+
+add message/notification overall (see AppRun.js) 
   - catch all errors, especially with API calls
 
 generic CRUD App in "runtime" mode:
+  - add pagination
   - add search/filter to table
   - add sorting to table
 
@@ -43,17 +57,6 @@ make everything work :)
     - try use case: Adhoc Report Execution (CSV, Excel, JSON>HTML)
     - try use case (generic CRUD): Adhoc Konfig
     - try use case (generic CRUD): DWH Administration
-
-make static resources configurable (logo, title, additional images, theme colors, ...)
-
-check paths
-- how to separate "run" from "admin" of generic CRUD apps
-  - /apps
-  - /apps/admin/...
-  - /apps/run/...
-
-"codeeditor" as "ui" option for columns/fields (react-monaco-editor)
-"markdown" as "ui" option (react-markdown)
 
 check width'es on all pages !
 
@@ -67,9 +70,6 @@ Adhoc Application --> should be generated with CRUD Template !
       - Query (title)
       - Query (textbox) with "copy code" button in upper right corner and SQL syntax highlighting
       - SAVE + DELETE buttons
-
-Apps create/edit dialog:
-  - page columns - make editable in table !
 
 Home:
   - table width ?!

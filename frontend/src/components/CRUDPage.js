@@ -6,96 +6,138 @@ import {
   Button,
   Typography,
   Layout,
-  Menu,
-  Modal,
-  Switch,
-  Form,
   Input,
-  Select,
-  InputNumber,
-  DatePicker,
   Space,
   Popconfirm,
   message
 } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-const { Header, Content, Sider } = Layout;
-const { TextArea } = Input;
-const { Text, Link } = Typography;
+import CRUDModal from "./CRUDModal";
+const { Link } = Typography;
 
 //TODO: Modal for create and update
 //TODO: lookupData
-//"datatype": "number", //text/number/date/boolean
-//            "ui": "lookup", //hidden/textinput/numberinput/datepicker/lookup/textarea/textarea_markdown/switch
+/*
+Enum datatype {
+  text
+  number
+  date
+  boolean
+}
 
-const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
+Enum ui {
+  hidden
+  label
+  textinput
+  numberinput
+  datepicker
+  lookup
+  textarea
+  textarea_sql
+  textarea_markdown
+  switch
+  password
+  email
+}
+*/
+
+const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
-
-  const layout = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 14 }
-    };
-    const layoutpage = {
-      labelCol: { span: 6 },
-      wrapperCol: { span: 14 }
-    };
-    /*
-  
-    const [lookupData, setLookupData] = useState([]);
-    const [columnItems, setColumnItems] = useState([]);
-    const [columnItemsForSummary, setColumnItemsForSummary] = useState([]);
-  
-    */
+  const [showModal, setShowModal] = useState(false);
+  const [pkColumn, setPkColumn] = useState();
+  const [currentPK, setCurrentPK] = useState();
+  const [modalMode, setModalMode] = useState("new"); // new/edit
 
   useEffect(() => {
-    getTableData(table);
-  }, [table]);
+    getTableData(tableName);
+    setPkColumn(pkColumns); // set first column from pk list // TODO: take all pk columns if composite key
+  }, [tableName]);
 
   // getTableData
   const getTableData = async (tableName) => {
-    
-    await Axios.get("/api/data/table/"+tableName+".json").then(
+    setTableData(null);
+    //await Axios.get("/api/data/table/"+tableName).then(
+    await Axios.get("/api/crud/"+tableName).then(
       (res) => {
-        console.log(JSON.stringify(res.data));
-        setTableData(res.data);
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        setTableData(resData);
         console.log(JSON.stringify(tableData));
         setLoading(false);
       }
-    );
+      ).catch(function (error) {
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der Daten.');
+      }
+      )
   };
 
-
+  // removeTableRow
+  const removeTableRow = async (tableName, record, pk) => {
+    setLoading(true);
+    await Axios.delete("/api/crud/"+tableName+"/"+pk, {  
+        headers: { 
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        data: {
+          record
+        }
+      }).then( 
+      (res) => {
+        getTableData(tableName);
+        message.success('Erfolgreich gelöscht.');
+      }
+      ).catch(function (error) {
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Löschen.');
+      }
+      )
+  };
 
     // deleteConfirm
-    const deleteConfirm = (e) => {
-      console.log(e);
-      message.success('Wurde gelöscht.');
+    const deleteConfirm = (record) => {
+      console.log("deleteConfirm for table: " + tableName);
+      console.log(record);
+      pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
+      removeTableRow(tableName, record, record[pkColumn[0]]);
     };
 
     // showModal
-    const showEditModal = () => {
-      
+    const showEditModal = (record) => {
+      console.log("showEditModal for table: " + tableName);
+      console.log(record);
+      pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
+      setModalMode("edit");
+      setCurrentPK(record[pkColumn[0]]);
+      setShowModal(true);
     };
     const showCreateModal = () => {
-      
+      setModalMode("new");
+      setShowModal(true);
     };
+    // closeModal
+    const closeModal = () => {
+      setShowModal(false);
+      getTableData(tableName);
+    }
     
     // add action buttons to a table record
-   function getColumnAction(deleteAllowed, updateAllowed) {
+   function getColumnAction( deleteAllowed, updateAllowed) {
     return {
       title: " ",
       key: "action",
       width: 100,
       render: (_, record) => ([
         <Space>
-          {deleteAllowed && 
+          {deleteAllowed && pkColumn &&
             <Popconfirm
             title="Löschen"
             description="Wirklich löschen?"
-            onConfirm={deleteConfirm}
+            onConfirm={(e) => { deleteConfirm(record, e); }}
             //onCancel={cancel}
             okText="Ja"
             cancelText="Nein"
@@ -104,8 +146,8 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
             <DeleteOutlined style={{ fontSize: "18px" }} />
             </Popconfirm>
           }
-          {updateAllowed && 
-          <Link onClick={showEditModal}>
+          {updateAllowed && pkColumn &&
+          <Link onClick={(e) => { showEditModal(record, e); }}>
             <EditOutlined style={{ fontSize: "18px" }} />
           </Link>
           }
@@ -158,9 +200,14 @@ const CRUDPage = ({ name, table, tableColumns, allowedActions }) => {
                   //pagination={{ pageSize: 50 }}
                   pagination={false}
                   //scroll={{ y: 500 }}
+                  //scroll={{ x: 300 }}
                   loading={loading}
             /> 
             
+            {showModal &&
+            <CRUDModal tableColumns={tableColumns} handleClose={closeModal} type={modalMode} tableName={tableName} pk={currentPK}/>
+            }
+
             </React.Fragment>
     );
 

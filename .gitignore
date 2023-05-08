@@ -17,6 +17,7 @@ frontend/build
 .env.production.local
 *.nogit
 *.zip
+*.bat
 
 # logs
 logs
@@ -24,3 +25,7 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+#python
+venv
+__pycache__

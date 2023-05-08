@@ -1,0 +1,23 @@
+[
+    {
+        "id": "1",
+        "name": "DWH Applikation",
+        "alias": "dwh_admin",
+        "spec_json": "{...}",
+        "datasource_id": "2"
+    },
+    {
+        "id": "2",
+        "name": "Adhoc Konfiguration",
+        "alias": "adhoc",
+        "spec_json": "{...}",
+        "datasource_id": "1"
+    },
+    {
+        "id": "3",
+        "name": "externe Ressourcen",
+        "alias": "ext_res",
+        "spec_json": "{...}",
+        "datasource_id": "1"
+    }
+]

@@ -1,0 +1,2 @@
+FLASK_APP=crudapi.py
+FLASK_ENV=development

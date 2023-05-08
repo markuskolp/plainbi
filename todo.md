@@ -1,8 +1,9 @@
 # Prio
 
 Prio 1
-- Adhoc
-- CRUD
+- Adhoc API
+- CRUD API
+- Repo API
 
 Prio 2
 - versionierte Tabellen
@@ -22,14 +23,3 @@ Prio 2
 	- sql ausführen und daten zurückliefern als JSON
 	- wenn format=XLSX, dann Excel zurückliefern
 - security (login/logout) - session handling in flask - user erstmal in plainbi repository anlegen (später gegen AD/LDAP und SSO)
-
-|adhoc|
-|-|
-|adhoc_id|
-|adhoc_name|
-|sql|
-|output_format (HTML, XLSX, CSV)|
-
-GET: /api/data/adhoc/<nr>/ -> liefert JSON
-  
-GET: /api/data/adhoc/<nr>/excel -> liefer Excel-Datei

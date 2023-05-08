@@ -74,3 +74,41 @@ table .anticon {
 .sqlcode {
   font-family: monospace !important;
 }
+.login {
+  margin-top:50px;
+  margin-left:30%;
+  margin-right:30%;
+  margin-bottom:100px;
+}
+div.monaco-editor * {
+  font-family: Consolas, "Courier New", monospace !important;
+}
+.markdowncontainer {
+  display:flex;
+}
+.markdowncontainer_editor {
+  width: 50%;
+  overflow: auto;
+}
+.markdowncontainer_result {
+  width: 50%;
+  padding: 1em;
+}
+
+div.monaco-editor-wrapper {
+  border-color: #d9d9d9;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
+  padding: 1px;
+  margin-right: -1px;
+}
+/*
+div.monaco-editor {
+  background-color:white;
+  border-color: #d9d9d9 !important;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #d9d9d9;
+}
+*/

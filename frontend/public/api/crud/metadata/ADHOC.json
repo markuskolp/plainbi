@@ -12,7 +12,7 @@
             "update",
             "delete"
          ],
-         "table":"KFG_ADHOC",
+         "table":"adhoc",
          "table_columns":[
             {
                "column_name":"adhoc_id",
@@ -33,7 +33,7 @@
                "column_name":"sql_query",
                "column_label":"SQL Abfrage",
                "datatype":"text",
-               "ui":"textarea",
+               "ui":"textarea_sql",
                "editable":"true",
                "required":"true",
                "showdetailsonly":"true"
@@ -42,7 +42,7 @@
                "column_name":"output_format",
                "column_label":"Ausgabeformat",
                "ui":"lookup",
-               "lookup":"ADHOC_AUSGABEFORMAT",
+               "lookup":"output_format",
                "datatype":"text",
                "editable":"true",
                "required":"true"

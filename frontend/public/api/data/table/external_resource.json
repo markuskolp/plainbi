@@ -1,0 +1,18 @@
+[
+    {
+        "id": "1",
+        "name": "Cognos Report 1",
+        "url": "https://xxx",
+        "description": "",
+        "source": "Cognos",
+        "dataset": "Dataset 1"
+    },
+    {
+        "id": "1",
+        "name": "GA Dashboard 1",
+        "url": "https://xxx",
+        "description": "",
+        "source": "Looker Datastudio",
+        "dataset": "Dataset 2"
+    }
+]
