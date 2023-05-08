@@ -4,7 +4,7 @@ import Axios from "axios";
 import { Select } from "antd";
 
 
-const SelectLookup = ({ lookupid }) => {
+const SelectLookup = ({ lookupid, defaultValue }) => {
 
   const [loading, setLoading] = useState(true);
   const [lookupData, setLookupData] = useState([]);
@@ -39,6 +39,7 @@ const SelectLookup = ({ lookupid }) => {
             allowClear
             showSearch
             options={lookupData}
+            defaultValue={defaultValue}
           />
         </React.Fragment>
       )

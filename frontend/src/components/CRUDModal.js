@@ -1,33 +1,40 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
+import CRUDFormItem from "./CRUDFormItem";
 import {
-  Table,
   Button,
-  Typography,
-  Layout,
-  Menu,
   Modal,
-  Switch,
   Form,
-  Input,
-  Select,
-  InputNumber,
-  DatePicker,
-  Space,
-  Popconfirm,
   message
 } from "antd";
-import MonacoEditor from 'react-monaco-editor';
-import SelectLookup from './SelectLookup';
-import MarkdownEditor from './MarkdownEditor';
-const { Header, Content, Sider } = Layout;
-const { TextArea } = Input;
-const { Text, Link } = Typography;
 
-const CRUDModal = ({ tableColumns, handleClose }) => {
+const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
     
   const [loading, setLoading] = useState(true);
+  const [recordData, setRecordData] = useState([]);
+
+  useEffect(() => {
+    type == 'edit' ? getRecordData(tableName, pk) : setRecordData(null);
+  }, [type, tableName, pk]);
+
+  // getRecordData
+  const getRecordData = async (tableName) => {
+    setRecordData(null);
+    await Axios.get("/api/crud/"+tableName+"/"+pk).then(
+      (res) => {
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        setRecordData(resData);
+        console.log(JSON.stringify(recordData));
+        setLoading(false);
+      }
+      ).catch(function (error) {
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der Daten.');
+      }
+      )
+  };
 
   const handleOk = () => {
     // todo: add or update to API
@@ -91,72 +98,18 @@ const CRUDModal = ({ tableColumns, handleClose }) => {
             
           >
 
-
           <Form {...layoutpage} layout="horizontal">
-                {tableColumns && tableColumns.map((column) => {
+                { tableColumns && tableColumns.map((column) => {
+
+                  const dataValue = (recordData ? recordData[column.column_name] : ""); // get record data of the current column or set to nothing
+                  //const dataValue = recordData[column.column_name]; // get record data of the current column or set to nothing
+
                   return (
-                    <React.Fragment>
-                      <Form.Item
-                        name={column.column_name}
-                        label={column.column_label}
-                        rules={[{ required: column.required }]}
-                      >
-                        {!column.editable ? (
-                          <Text>...</Text>
-                        ) : column.ui === "lookup" ? (
-                          <SelectLookup lookupid={column.lookup}/>
-                        ) : column.ui === "hidden" ? (
-                          ""
-                        ) : column.ui === "numberinput" ? (
-                          <InputNumber />
-                        ) : column.ui === "textarea_markdown" ? (
-                          <MarkdownEditor />
-                        ) : column.ui === "textarea" ? (
-                          <TextArea rows={6} />
-                        ) : column.ui === "textarea_sql" ? (
-                          <div class="monaco-editor-wrapper">
-                            <MonacoEditor
-                            //width="800"
-                            height="300"
-                            language="sql"
-                            theme="vs-light"
-                            //value={code}
-                            options={options}
-                            //onChange={::this.onChange}
-                            //editorDidMount={::this.editorDidMount}
-                            />
-                          </div>
-                        ) : column.ui === "textarea_json" ? (
-                          <div class="monaco-editor-wrapper">
-                            <MonacoEditor
-                            //width="800"
-                            height="300"
-                            language="json"
-                            theme="vs-light"
-                            //value={code}
-                            options={options}
-                            //onChange={::this.onChange}
-                            //editorDidMount={::this.editorDidMount}
-                            />
-                          </div>
-                        ) : column.ui === "password" ? (
-                          <Input.Password />
-                        ) : column.ui === "email" ? (
-                          <Input />
-                        ) : column.ui === "textinput" ? (
-                          <Input />
-                        ) : column.ui === "datepicker" ? (
-                          <DatePicker />
-                        ) : column.ui === "switch" ? (
-                          <Switch />
-                        ) : column.ui === "label" ? (
-                          <Text>?</Text>
-                        ) : (
-                          <Text>?</Text>
-                        )}
-                      </Form.Item>
-                    </React.Fragment>
-                  );
+                    (type == 'new' || recordData ) ? // only show if type is "new" or the data record could be retrieved (for "editing")
+                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue}/>
+                    : ""
+                  )
+
                 })}
               </Form>
 

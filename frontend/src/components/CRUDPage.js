@@ -42,17 +42,19 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, table, tableColumns, pkColumns, allowedActions }) => {
+const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [pkColumn, setPkColumn] = useState();
+  const [currentPK, setCurrentPK] = useState();
+  const [modalMode, setModalMode] = useState("new"); // new/edit
 
   useEffect(() => {
-    getTableData(table);
+    getTableData(tableName);
     setPkColumn(pkColumns); // set first column from pk list // TODO: take all pk columns if composite key
-  }, [table]);
+  }, [tableName]);
 
   // getTableData
   const getTableData = async (tableName) => {
@@ -86,8 +88,8 @@ const CRUDPage = ({ name, table, tableColumns, pkColumns, allowedActions }) => {
         }
       }).then( 
       (res) => {
-        getTableData(table);
-        message.success('Wurde gelöscht.');
+        getTableData(tableName);
+        message.success('Erfolgreich gelöscht.');
       }
       ).catch(function (error) {
         setLoading(false);
@@ -98,17 +100,23 @@ const CRUDPage = ({ name, table, tableColumns, pkColumns, allowedActions }) => {
 
     // deleteConfirm
     const deleteConfirm = (record) => {
-      console.log("deleteConfirm for table: " + table);
+      console.log("deleteConfirm for table: " + tableName);
       console.log(record);
       pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
-      removeTableRow(table, record, record[pkColumn[0]]);
+      removeTableRow(tableName, record, record[pkColumn[0]]);
     };
 
     // showModal
-    const showEditModal = () => {
+    const showEditModal = (record) => {
+      console.log("showEditModal for table: " + tableName);
+      console.log(record);
+      pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
+      setModalMode("edit");
+      setCurrentPK(record[pkColumn[0]]);
       setShowModal(true);
     };
     const showCreateModal = () => {
+      setModalMode("new");
       setShowModal(true);
     };
     // closeModal
@@ -138,7 +146,7 @@ const CRUDPage = ({ name, table, tableColumns, pkColumns, allowedActions }) => {
             </Popconfirm>
           }
           {updateAllowed && pkColumn &&
-          <Link onClick={showEditModal}>
+          <Link onClick={(e) => { showEditModal(record, e); }}>
             <EditOutlined style={{ fontSize: "18px" }} />
           </Link>
           }
@@ -196,7 +204,7 @@ const CRUDPage = ({ name, table, tableColumns, pkColumns, allowedActions }) => {
             /> 
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleClose={closeModal}/>
+            <CRUDModal tableColumns={tableColumns} handleClose={closeModal} type={modalMode} tableName={tableName} pk={currentPK}/>
             }
 
             </React.Fragment>
