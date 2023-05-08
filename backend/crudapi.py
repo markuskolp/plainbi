@@ -564,7 +564,7 @@ def delete_item(tab,pk):
         pkcols=(metadata["columns"])[0]
         log.warning("implicit pk first column")
         
-    chkout=get_item_raw(tab,pk,pk_column_list=pkcols)
+    chkout=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
             out["errors"]="PK ist nicht vorhanden"
