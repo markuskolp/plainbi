@@ -9,7 +9,7 @@ import {
   message
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk }) => {
     
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
@@ -49,7 +49,7 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
     await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
       (res) => {
         message.success('Erfolgreich gespeichert.');
-        handleClose();
+        handleSave();
       }
       ).catch(function (error) {
         setLoading(false);
@@ -64,7 +64,7 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
       await Axios.post("/api/crud/"+tableName, record).then( 
         (res) => {
           message.success('Erfolgreich gespeichert.');
-          handleClose();
+          handleSave();
         }
         ).catch(function (error) {
           setLoading(false);
@@ -124,7 +124,7 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
             title={name}
             open={true}
             onOk={handleOk}
-            onCancel={handleClose}
+            onCancel={handleCancel}
             centered
             width={1000}
             footer={[
@@ -136,7 +136,7 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
                 onClick={showDeleteConfirm}
               >Löschen</Button>,
               */
-              <Button key="2" htmlType="button" onClick={handleClose} >Abbrechen</Button>,
+              <Button key="2" htmlType="button" onClick={handleCancel} >Abbrechen</Button>,
               <Button key="3" type="primary" htmlType="submit" onClick={handleOk} >Speichern</Button>
             ]}
             
