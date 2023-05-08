@@ -29,6 +29,12 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
     handleChange(emuEvent); 
  }
 
+ const handleNumberInputChange = (value) => {
+  const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+  console.log(emuEvent);
+  handleChange(emuEvent); 
+ }
+
   return (                    
             <React.Fragment>
               <Form.Item
@@ -36,14 +42,14 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                 label={label}
                 rules={[{ required: (required === "true" ? true : false) }]}
               >
-                {!editable ? (
+                {editable === "false" ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookup" ? (
                   <SelectLookup name={name} lookupid={lookup} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "hidden" ? (
                   ""
                 ) : ui === "numberinput" ? (
-                  <InputNumber name={name} defaultValue={defaultValue} onChange={handleChange}/>
+                  <InputNumber name={name} defaultValue={defaultValue} onInput={(val) => handleNumberInputChange(val)} onStep={(val) => handleNumberInputChange(val)}/>
                 ) : ui === "textarea_markdown" ? (
                   <MarkdownEditor name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea" ? (

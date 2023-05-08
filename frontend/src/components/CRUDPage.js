@@ -122,6 +122,10 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) 
     // closeModal
     const closeModal = () => {
       setShowModal(false);
+    }
+    // closeAndRefreshModal
+    const closeAndRefreshModal = () => {
+      setShowModal(false);
       getTableData(tableName);
     }
     
@@ -205,7 +209,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) 
             /> 
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleClose={closeModal} type={modalMode} tableName={tableName} pk={currentPK}/>
+            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK}/>
             }
 
             </React.Fragment>

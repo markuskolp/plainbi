@@ -11,13 +11,18 @@ generic CRUD App in "runtime" mode:
     - in table view
   - Modal / Form
     - numberinput -> error with handling change
-    - field validaten before save !
+    - field validation before save (especially required fields) !
+
+test all field types: lookup, textarea, textarea_sql, textarea_markdown, switch, password, email
+
+add description to lookup page (in "settings")
 
 versioned tables !
 
 homepage -> additional tiles (e.g. list of fairs !)
 
 repo / settings page -> make it work with API
+  - get apps metadata from REPO ! (delete all static files in public/api/...)
 
 compound primary keys !
 
@@ -25,6 +30,12 @@ add security in python backend
   - use JWT (https://flask-jwt-extended.readthedocs.io/en/stable/)
   - combine with login.js frontend 
   - if possible get JWT in session -> test this with Cube.js :)
+
+bundle and run first version on DEV server
+  - use flask as webserver ? how to replace "proxy" setting ?
+  - make customer CI settings (logo, title, etc.)
+
+get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
 # ------------------------------------------------
 # later
