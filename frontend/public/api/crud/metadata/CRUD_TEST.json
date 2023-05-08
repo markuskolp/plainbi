@@ -45,6 +45,7 @@
          "id":"2",
          "name":"Testtable (Versionierung)",
          "alias":"table_tv",
+         "versioned": true,
          "allowed_actions":[
             "create",
             "update",

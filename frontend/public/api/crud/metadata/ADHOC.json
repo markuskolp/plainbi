@@ -12,7 +12,7 @@
             "update",
             "delete"
          ],
-         "table":"adhoc",
+         "table":"plainbi_adhoc",
          "table_columns":[
             {
                "column_name":"adhoc_id",

@@ -42,7 +42,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) => {
+const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, versioned, isRepo }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
@@ -50,6 +50,8 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) 
   const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new"); // new/edit
+  let api = "/api/crud/";
+  api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
 
   useEffect(() => {
     getTableData(tableName);
@@ -60,7 +62,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) 
   const getTableData = async (tableName) => {
     setTableData(null);
     //await Axios.get("/api/data/table/"+tableName).then(
-    await Axios.get("/api/crud/"+tableName).then(
+    await Axios.get(api+tableName+(versioned ? "?v" : "")).then(
       (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
@@ -78,7 +80,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) 
   // removeTableRow
   const removeTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    await Axios.delete("/api/crud/"+tableName+"/"+pk, {  
+    await Axios.delete(api+tableName+"/"+(versioned ? "?v&" : "")+pk, {  
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'

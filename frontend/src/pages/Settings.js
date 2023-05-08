@@ -136,7 +136,7 @@ const Settings = () => {
     return getItem(obj.name // label
         , obj.id // key
         , null // icon
-        , <CRUDPage name={obj.name} table={obj.table} tableColumns={obj.table_columns} allowedActions={obj.allowed_actions} /> // children
+        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} allowedActions={obj.allowed_actions} isRepo="true"/> // children
         , null // type
         );
   })
