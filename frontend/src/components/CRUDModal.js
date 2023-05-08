@@ -36,19 +36,20 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
       )
   };
 
+  /*{  
+    headers: { 
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    */
+
   // updateTableRow
   const updateTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    await Axios.put("/api/crud/"+tableName+"/"+pk, {  
-        headers: { 
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        data: record
-      }).then( 
+    await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
       (res) => {
-        getRecordData(tableName, pk);
         message.success('Erfolgreich gespeichert.');
+        handleClose();
       }
       ).catch(function (error) {
         setLoading(false);
@@ -60,16 +61,10 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
     // addTableRow
     const addTableRow = async (tableName, record, pk) => {
       setLoading(true);
-      await Axios.post("/api/crud/"+tableName, {  
-          headers: { 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          data: record          
-        }).then( 
+      await Axios.post("/api/crud/"+tableName, record).then( 
         (res) => {
-          getRecordData(tableName, pk);
           message.success('Erfolgreich gespeichert.');
+          handleClose();
         }
         ).catch(function (error) {
           setLoading(false);
@@ -83,7 +78,6 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
     // add or update to API
     // TODO: check if all required fields are filled (except fields with increment)
     type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData, pk);
-    handleClose();
   };
 
   const layout = {
@@ -121,7 +115,7 @@ const CRUDModal = ({ tableColumns, handleClose, type, tableName, pk }) => {
   const handleChange =(event) =>{
     const {name, value} = event.target;
     console.log("handleChange - name: " + name + " / value: " + value);
-    setRecordData({...recordData, [name]: value}); // TODO: updating existing fields doesn't work ?!
+    setRecordData({...recordData, [name]: value}); 
   }
 
   return (

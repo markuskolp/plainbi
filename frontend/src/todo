@@ -9,13 +9,17 @@ act.development.js:209 Warning: Each child in a list should have a unique "key" 
 generic CRUD App in "runtime" mode:
   - fetch lookup separately
     - in table view
-  - make PUT work (update) + make POST work (new)
+  - Modal / Form
     - numberinput -> error with handling change
     - field validaten before save !
 
+versioned tables !
+
 homepage -> additional tiles (e.g. list of fairs !)
 
-bundle with python backend API !
+repo / settings page -> make it work with API
+
+compound primary keys !
 
 add security in python backend
   - use JWT (https://flask-jwt-extended.readthedocs.io/en/stable/)
@@ -25,6 +29,8 @@ add security in python backend
 # ------------------------------------------------
 # later
 # ------------------------------------------------
+
+incremental fields ?!
 
 crud ui textarea components
   - json:

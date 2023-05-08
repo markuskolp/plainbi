@@ -39,15 +39,15 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                 {!editable ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookup" ? (
-                  <SelectLookup lookupid={lookup} defaultValue={defaultValue} onChange={handleChange}/>
+                  <SelectLookup name={name} lookupid={lookup} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "hidden" ? (
                   ""
                 ) : ui === "numberinput" ? (
-                  <InputNumber defaultValue={defaultValue} onChange={handleChange}/>
+                  <InputNumber name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea_markdown" ? (
-                  <MarkdownEditor defaultValue={defaultValue} onChange={handleChange}/>
+                  <MarkdownEditor name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea" ? (
-                  <TextArea rows={6} defaultValue={defaultValue} onChange={handleChange}/>
+                  <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea_sql" ? (
                   <div class="monaco-editor-wrapper">
                     <MonacoEditor
@@ -59,6 +59,7 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                     options={options}
                     //onChange={::this.onChange}
                     onChange={handleChange}
+                    name={name}
                     //editorDidMount={::this.editorDidMount}
                     />
                   </div>
@@ -73,22 +74,23 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                     options={options}
                     //onChange={::this.onChange}
                     onChange={handleChange}
+                    name={name}
                     //editorDidMount={::this.editorDidMount}
                     />
                   </div>
                 ) : ui === "password" ? (
-                  <Input.Password defaultValue={defaultValue} onChange={handleChange}/>
+                  <Input.Password name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "email" ? (
-                  <Input defaultValue={defaultValue} onChange={handleChange}/>
+                  <Input name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textinput" ? (
-                  <Input defaultValue={defaultValue} onChange={handleChange}/> 
+                  <Input name={name} defaultValue={defaultValue} onChange={handleChange}/> 
                 ) : ui === "datepicker" ? (
                   defaultValue ?
                   <DatePicker defaultValue={dayjs(defaultValue,{dateFormat})} format={dateFormat} onChange={handleDatePickerChange} /> 
                   :
                   <DatePicker format={dateFormat} onChange={handleDatePickerChange} /> 
                 ) : ui === "switch" ? (
-                  <Switch defaultChecked={defaultValue} onChange={handleChange}/>
+                  <Switch name={name} defaultChecked={defaultValue} onChange={handleChange}/>
                 ) : ui === "label" ? (
                   <Text>{defaultValue}</Text>
                 ) : (

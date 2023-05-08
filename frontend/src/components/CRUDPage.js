@@ -122,6 +122,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions }) 
     // closeModal
     const closeModal = () => {
       setShowModal(false);
+      getTableData(tableName);
     }
     
     // add action buttons to a table record

@@ -7,7 +7,7 @@ const { TextArea } = Input;
 //TODO: set initial value
 //TODO: handle callback (change of value in textarea)
 
-const MarkdownEditor = ({ defaultValue, callback, handleChange }) => {
+const MarkdownEditor = ({ name, defaultValue, callback, handleChange }) => {
 
   const [markdown, setMarkdown] = useState('');
 
@@ -24,6 +24,7 @@ const MarkdownEditor = ({ defaultValue, callback, handleChange }) => {
               onChange={onChange}
               placeholder="Für die Vorschau, bitte einen Txt eingeben."
               defaultValue={defaultValue}
+              name={name}
             />
           </div>
           <div class='markdowncontainer_result'>
