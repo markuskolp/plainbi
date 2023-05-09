@@ -35,6 +35,35 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
   handleChange(emuEvent); 
  }
 
+const handleMonacoEditorChange = (value, e) => {
+  const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+  console.log(emuEvent);
+  handleChange(emuEvent); 
+}
+
+ const options = {
+  autoIndent: 'full',
+  contextmenu: true,
+  //fontFamily: 'monospace',
+  //fontSize: 13,
+  //lineHeight: 24,
+  hideCursorInOverviewRuler: true,
+  matchBrackets: 'always',
+  minimap: {
+    enabled: false,
+  },
+  scrollbar: {
+    horizontalSliderSize: 2,
+    verticalSliderSize: 10,
+  },
+  selectOnLineNumbers: true,
+  roundedSelection: false,
+  readOnly: false,
+  cursorStyle: 'line',
+  automaticLayout: true,
+}; 
+
+
   return (                    
             <React.Fragment>
               <Form.Item
@@ -64,7 +93,7 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                     value={defaultValue}
                     options={options}
                     //onChange={::this.onChange}
-                    onChange={handleChange}
+                    onChange={handleMonacoEditorChange}
                     name={name}
                     //editorDidMount={::this.editorDidMount}
                     />
@@ -79,7 +108,7 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
                     value={defaultValue}
                     options={options}
                     //onChange={::this.onChange}
-                    onChange={handleChange}
+                    onChange={handleMonacoEditorChange}
                     name={name}
                     //editorDidMount={::this.editorDidMount}
                     />

@@ -12,7 +12,8 @@
             "update",
             "delete"
          ],
-         "table":"plainbi_adhoc",
+         "datasource":"repo",
+         "table":"adhoc",
          "table_columns":[
             {
                "column_name":"adhoc_id",

@@ -65,7 +65,7 @@ const CRUDApp = ({ name, pages }) => {
           <Content style={{ background: "#FFF" }}>
 
             {page && 
-            <CRUDPage name={page.name} tableName={page.table} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false}/>
+            <CRUDPage name={page.name} tableName={page.table} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} isRepo={page.datasource === "repo" ? "true" : "false"}/>
             }
 
           </Content>

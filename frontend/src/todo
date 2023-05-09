@@ -2,6 +2,12 @@
 # asap
 # ------------------------------------------------
 
+onchange: textarea, monacoeditor
+edit fehlt bei settings (z.B. lookup) ?
+initiale lookups hinterlegen (systemspezifische wie role, group, etc.)
+lookups müssen auch auf repo tabellen gehen -> oder anders abbilden ?!
+
+
 ## AppRun
 
 act.development.js:209 Warning: Each child in a list should have a unique "key" prop.

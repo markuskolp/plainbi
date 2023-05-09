@@ -12,6 +12,7 @@
             "update",
             "delete"
          ],
+         "datasource":"repo",
          "table":"external_resource",
          "table_columns":[
             {

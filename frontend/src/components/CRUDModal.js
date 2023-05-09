@@ -9,10 +9,12 @@ import {
   message
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, versioned, isRepo }) => {
     
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
+  let api = "/api/crud/";
+  api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
 
   useEffect(() => {
     type == 'edit' ? getRecordData(tableName, pk) : setRecordData(null);
@@ -21,8 +23,9 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   // getRecordData
   const getRecordData = async (tableName) => {
     setRecordData(null);
-    await Axios.get("/api/crud/"+tableName+"/"+pk).then(
-      (res) => {
+    //await Axios.get("/api/crud/"+tableName+"/"+pk).then(
+    await Axios.get(api+tableName+"/"+pk+(versioned ? "?v" : "")).then(
+        (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
         setRecordData(resData);
@@ -46,8 +49,9 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   // updateTableRow
   const updateTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
-      (res) => {
+    //await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
+    await Axios.put(api+tableName+"/"+pk+(versioned ? "?v" : ""), record).then(  
+        (res) => {
         message.success('Erfolgreich gespeichert.');
         handleSave();
       }
@@ -61,8 +65,9 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     // addTableRow
     const addTableRow = async (tableName, record, pk) => {
       setLoading(true);
-      await Axios.post("/api/crud/"+tableName, record).then( 
-        (res) => {
+      //await Axios.post("/api/crud/"+tableName, record).then( 
+      await Axios.post(api+tableName+(versioned ? "?v" : ""), record).then( 
+          (res) => {
           message.success('Erfolgreich gespeichert.');
           handleSave();
         }
@@ -88,28 +93,6 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     labelCol: { span: 6 },
     wrapperCol: { span: 14 }
   };
-
-  const options = {
-    autoIndent: 'full',
-    contextmenu: true,
-    //fontFamily: 'monospace',
-    //fontSize: 13,
-    //lineHeight: 24,
-    hideCursorInOverviewRuler: true,
-    matchBrackets: 'always',
-    minimap: {
-      enabled: false,
-    },
-    scrollbar: {
-      horizontalSliderSize: 2,
-      verticalSliderSize: 10,
-    },
-    selectOnLineNumbers: true,
-    roundedSelection: false,
-    readOnly: false,
-    cursorStyle: 'line',
-    automaticLayout: true,
-  }; 
 
 
   const handleChange =(event) =>{

@@ -80,7 +80,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   // removeTableRow
   const removeTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    await Axios.delete(api+tableName+"/"+(versioned ? "?v&" : "")+pk, {  
+    await Axios.delete(api+tableName+"/"+pk+(versioned ? "?v" : ""), {  
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -211,7 +211,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
             /> 
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK}/>
+            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} versioned={versioned} isRepo={isRepo}/>
             }
 
             </React.Fragment>
