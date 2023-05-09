@@ -95,7 +95,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   };
 
 
-  const handleChange =(event) =>{
+  const handleChange = (event) =>{
     const {name, value} = event.target;
     console.log("handleChange - name: " + name + " / value: " + value);
     setRecordData({...recordData, [name]: value}); 

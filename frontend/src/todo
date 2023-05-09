@@ -2,7 +2,7 @@
 # asap
 # ------------------------------------------------
 
-onchange: textarea, monacoeditor
+external_resource kann nicht gespeichert werden ?!
 edit fehlt bei settings (z.B. lookup) ?
 initiale lookups hinterlegen (systemspezifische wie role, group, etc.)
 lookups müssen auch auf repo tabellen gehen -> oder anders abbilden ?!
@@ -50,6 +50,7 @@ get error from API and show it (e.g. wrong datatype, primary key already exists,
 incremental fields ?!
 
 crud ui textarea components
+  - sql: formatter and validator !
   - json:
     - textarea_json (with formatter and validator)
     - https://sujinleeme.github.io/react-json-editor/ + json schema !

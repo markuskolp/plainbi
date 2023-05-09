@@ -35,6 +35,20 @@ const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultVa
   handleChange(emuEvent); 
  }
 
+ /*
+ const handleMarkdownChange = (value) => {
+  const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+  console.log(emuEvent);
+  handleChange(emuEvent); 
+ }
+
+ const handleTextAreaChange = (value) => {
+  const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+  console.log(emuEvent);
+  handleChange(emuEvent); 
+ }
+ */
+
 const handleMonacoEditorChange = (value, e) => {
   const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
   console.log(emuEvent);
@@ -82,7 +96,7 @@ const handleMonacoEditorChange = (value, e) => {
                 ) : ui === "textarea_markdown" ? (
                   <MarkdownEditor name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textarea" ? (
-                  <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/>
+                  <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/> //((e) => handleTextAreaChange(e.target.value))}/>
                 ) : ui === "textarea_sql" ? (
                   <div class="monaco-editor-wrapper">
                     <MonacoEditor
