@@ -20,7 +20,8 @@
                "column_name":"id",
                "column_label":"ID",
                "datatype":"number",
-               "editable":"false",
+               "ui":"numberinput",
+               "editable":"true",
                "required":"true"
             },
             {

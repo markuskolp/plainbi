@@ -1,4 +1,4 @@
-# save file as .env locally (.env files are not versioned in git!)
+# save file as .env locally in users folder (.env files are not versioned in git!)
 
 # example entries for mssql
 db_server=
@@ -6,3 +6,10 @@ db_database=
 db_username=
 db_password=
 db_engine=mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_database}
+
+repo_server=""
+repo_username=""
+repo_password=""
+repo_engine="sqlite:////Users/<username>/plainbi_repo.db"
+
+# curl --header "Content-Type: application/json" --request POST "localhost:3001/api/repo/init_repo" -w "%{http_code}\n"

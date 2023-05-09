@@ -1134,7 +1134,7 @@ GET /api/repo/adhoc/<id>/data	The data of a adhoc (result of its SQL)
 GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file
 GET /api/repo/lookup/<id>/data
 """
-@app.route(repo_api_prefix+'/lookup/<id>', methods=['GET'])
+@app.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
 def get_lookup(id):
     out={}
     offset = request.args.get('offset')

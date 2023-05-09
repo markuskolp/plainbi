@@ -88,7 +88,7 @@ const handleMonacoEditorChange = (value, e) => {
                 {editable === "false" ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookup" ? (
-                  <SelectLookup name={name} lookupid={lookup} defaultValue={defaultValue} onChange={handleChange}/>
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "hidden" ? (
                   ""
                 ) : ui === "numberinput" ? (

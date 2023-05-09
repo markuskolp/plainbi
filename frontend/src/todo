@@ -2,9 +2,29 @@
 # asap
 # ------------------------------------------------
 
-external_resource kann nicht gespeichert werden ?!
-initiale lookups hinterlegen (systemspezifische wie role, group, etc.)
-  -> alles bei "settings" durchtesten
+mit Joe reden: 
+  - Adhoc + ext. Resource Edit:
+    - geht nicht, da API nicht auf REPO als DB geht !!
+    - ID wird nicht automatisch generiert (aktuell geb ich es ein -> wieder umstellen auf "readonly" !)
+  - Lookup
+    - Lookup auf REPO gehen nicht !!
+    - http://localhost:3001/api/repo/lookup/-100 -> sollte Metadaten liefern, liefert aber schon die Daten des ausgeführten SQL
+    - vs. http://localhost:3001/api/repo/lookup/-100/data -> so sollte der Aufruf lauten, um die Daten zu bekommen
+    - vs. http://localhost:3001/api/repo/lookup/<name> z.B. db_type -> Aufruf hierüber auch ermöglichen - oder mit Filter auf "name"?
+  - Sequence
+    - und eine Sequenz je Tabelle wäre doch sehr cool, weil dann haben die Adhoc/Applikation/etc. jeweils selbst eine fortlaufende Nr.
+  - Versioning
+    - GET must only get current/active version !
+
+AppRuntime.js umstellen auf /api/metadata/tables
+
+homepage
+  - switch to "all" resources (application, adhoc, external_resource) -> api endpoint: /api/repo/resources
+  - test adhoc runtime here (excel/csv export) and under /adhoc/<nr> (html)
+
+settings
+  - check everything here 
+
 lookups müssen auch auf repo tabellen gehen -> oder anders abbilden ?!
 
 
@@ -19,11 +39,13 @@ generic CRUD App in "runtime" mode:
     - numberinput -> error with handling change
     - field validation before save (especially required fields) !
 
-test all field types: lookup, textarea, textarea_sql, textarea_markdown, switch, password, email
+test all field types: lookup, textarea, textarea_sql, switch, password, email
 
 add description to lookup page (in "settings")
 
 versioned tables !
+
+datasource_id -> use it everywhere ?!
 
 homepage -> additional tiles (e.g. list of fairs !)
 
