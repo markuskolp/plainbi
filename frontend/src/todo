@@ -3,8 +3,8 @@
 # ------------------------------------------------
 
 external_resource kann nicht gespeichert werden ?!
-edit fehlt bei settings (z.B. lookup) ?
 initiale lookups hinterlegen (systemspezifische wie role, group, etc.)
+  -> alles bei "settings" durchtesten
 lookups müssen auch auf repo tabellen gehen -> oder anders abbilden ?!
 
 

@@ -13,17 +13,18 @@
             "delete"
          ],
          "datasource":"repo",
+         "pk_columns":["id"],
          "table":"adhoc",
          "table_columns":[
             {
-               "column_name":"adhoc_id",
+               "column_name":"id",
                "column_label":"ID",
                "datatype":"number",
                "editable":"false",
                "required":"true"
             },
             {
-               "column_name":"adhoc_name",
+               "column_name":"name",
                "column_label":"Adhoc Name",
                "datatype":"text",
                "ui":"textinput",

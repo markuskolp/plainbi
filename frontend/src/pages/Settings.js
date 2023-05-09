@@ -39,6 +39,7 @@ const Settings = () => {
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"datasource",
+      pk_columns:["id"],
       table_columns: [
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
@@ -55,6 +56,7 @@ const Settings = () => {
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"lookup",
+      pk_columns:["id"],
       table_columns: [
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
@@ -67,6 +69,7 @@ const Settings = () => {
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"application",
+      pk_columns:["id"],
       table_columns: [
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
@@ -80,6 +83,7 @@ const Settings = () => {
       allowed_actions:[], //"create", "update", "delete"],
       datasource:"repo",
       table:"role",
+      pk_columns:["id"],
       table_columns: [
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
@@ -90,6 +94,7 @@ const Settings = () => {
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"user",
+      pk_columns:["id"],
       table_columns: [
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "username", column_label: "Username", datatype: "text", ui: "textinput", editable: true, required: true },
@@ -104,6 +109,7 @@ const Settings = () => {
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"group",
+      pk_columns:["id"],
       table_columns: [
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
@@ -114,6 +120,7 @@ const Settings = () => {
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"user_to_group",
+      pk_columns:["user_id","group_id"],
       table_columns: [
         { column_name: "user_id", column_label: "User", datatype: "number", ui: "lookup",  lookup: "user", editable: true, required: true },
         { column_name: "group_id", column_label: "Gruppe", datatype: "number", ui: "lookup",  lookup: "group", editable: true, required: true },
@@ -124,6 +131,7 @@ const Settings = () => {
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"application_to_group",
+      pk_columns:["application_id","group_id"],
       table_columns: [
         { column_name: "application_id", column_label: "Applikation", datatype: "number", ui: "lookup",  lookup: "application", editable: true, required: true },
         { column_name: "group_id", column_label: "Gruppe", datatype: "number", ui: "lookup",  lookup: "group", editable: true, required: true },
@@ -136,7 +144,7 @@ const Settings = () => {
     return getItem(obj.name // label
         , obj.id // key
         , null // icon
-        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} allowedActions={obj.allowed_actions} isRepo="true"/> // children
+        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} isRepo="true"/> // children
         , null // type
         );
   })

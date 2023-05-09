@@ -13,6 +13,7 @@
             "update",
             "delete"
           ],
+          "pk_columns":["ID_FAIREVENT"],
           "table":"PAR_MAILING_LIST",
           "table_columns":[
             {

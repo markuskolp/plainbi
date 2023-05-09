@@ -13,6 +13,7 @@
             "delete"
          ],
          "datasource":"repo",
+         "pk_columns":["id"],
          "table":"external_resource",
          "table_columns":[
             {
