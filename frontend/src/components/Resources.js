@@ -31,37 +31,46 @@ const Resources = () => {
   }, []);
 
   const initializeApp = async () => {
-    // get app metadata
-    await Axios.get("/api/repo/resources.json").then(
+    await Axios.get("/api/repo/resources").then(
       (res) => {
-        setData(res.data);
+        //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        setData(resData);
         setLoading(false);
       }
     ).catch(
       function (error) {
         setError(true);
         setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der berechtigten Ressourcen.');
       }
     );
   };
 
+
+
   
-//type, outputformat, name, description, url, dataset, source, target
+//resource_type, resource_type_de, output_format, name, description, url, dataset, source, target
 const columns = [
   {
     title: " ",
-    dataIndex: "outputformat",
-    key: "outputformat",
+    dataIndex: "output_format",
+    key: "output_format",
     width: 50,
     render: (outputformat, record) => (
       
-      (record.type === "Dashboard" ? <DashboardOutlined /> : (
-        outputformat === "XLSX" ? <FileExcelFilled style={{color:'#1D6F42'}}/> : (
-          outputformat === "CSV" ? <FileTextFilled style={{color:'#0055b3'}}/> : (
-            outputformat === "HTML" ? <TableOutlined /> : <FileUnknownOutlined />
-          ) 
+      (record.resource_type === "external_resource" ? <DashboardOutlined /> : (
+        record.resource_type === "application" ? <AppstoreOutlined /> : (
+          outputformat === "XLSX" ? <FileExcelFilled style={{color:'#1D6F42'}}/> : (
+            outputformat === "CSV" ? <FileTextFilled style={{color:'#0055b3'}}/> : (
+              outputformat === "HTML" ? <TableOutlined /> : <FileUnknownOutlined />
+              ) 
+            )
+          )
         )
-      )) 
+      )
+
     )
   },
   {
@@ -87,17 +96,17 @@ const columns = [
     render: (name, record) => (
       <Tag color="blue" style={{textTransform:'uppercase'}}>{record.dataset}</Tag>
     )
-  }/*,    
+  },    
   {
-    title: "Quelle/System",
-    dataIndex: "source",
-    key: "source",
+    title: "Typ",
+    dataIndex: "resource_type_de",
+    key: "resource_type_de",
     width: 100,
     render: (name, record) => (
       <Tag color="blue" style={{textTransform:'uppercase'}}>{record.source}</Tag>
     )
   }
-  */
+  
 ];
 
 

@@ -10,10 +10,13 @@ AppRuntime.js
 - alle Applikationen dort mal reinlegen -> an Joe liefern für init_repo
 - Adhoc + ext. Ressource erweitenr um Zuordnung zu Gruppen (wg. Berechtigungen !)
 
+alle API Aufrufe kapseln !!
+
 Adhoc + ext. Ressource doch in /settings schieben ?
 
 mit Joe reden: 
-  - GET /api/repo/resources
+  - View für /api/repo/resources
+  - Init für Adhoc und ext. Ress. Applikation
   - Excel
     - Sheetname: "daten"
       - Headerzeile: Arial, 9, Border unten, Auto filter, Bold, Left (align)
@@ -21,12 +24,13 @@ mit Joe reden:
     - zusätzliches Sheet "info"
           Erstellt am: <YYYY-MM-DD HH24:MI:SS>
           Quelle: DWH - Adhoc <nr>
-
-get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
+  - Security / Auth-API / JWT Token
+  - swagger-UI
+  - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s))
+    - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
 homepage
   - switch to "all" resources (application, adhoc, external_resource) -> api endpoint: /api/repo/resources
-  - test adhoc runtime here (excel/csv export) and under /adhoc/<nr> (html)
 
 settings
   - check everything here 
