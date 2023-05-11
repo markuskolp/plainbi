@@ -2,6 +2,10 @@
 # asap
 # ------------------------------------------------
 
+warum geht ID 1 und 2 nicht bei Adhoc speichern ?!
+Lookup-Wert wird nicht gespeichert
+
+
 mit Joe reden: 
   - Adhoc + ext. Resource Edit:
     - geht nicht, da API nicht auf REPO als DB geht !!
@@ -15,8 +19,15 @@ mit Joe reden:
     - und eine Sequenz je Tabelle wäre doch sehr cool, weil dann haben die Adhoc/Applikation/etc. jeweils selbst eine fortlaufende Nr.
   - Versioning
     - GET must only get current/active version !
-
-AppRuntime.js umstellen auf /api/metadata/tables
+  - JSON als default output bei Adhoc
+  - Excel
+    - Sheetname: "daten"
+      - Headerzeile: Arial, 9, Border unten, Auto filter, Bold, Left (align)
+      - Datensätze: Arial, 9
+    - zusätzliches Sheet "info"
+          Erstellt am: <YYYY-MM-DD HH24:MI:SS>
+          Quelle: DWH - Adhoc <nr>
+    
 
 homepage
   - switch to "all" resources (application, adhoc, external_resource) -> api endpoint: /api/repo/resources
@@ -27,6 +38,11 @@ settings
 
 lookups müssen auch auf repo tabellen gehen -> oder anders abbilden ?!
 
+dwh.config.tv_veranstaltungsreihe und ...tv_veranstaltung testen !
+dwh.config.tv_mafo_veranstaltung und ...tv_mafo_veranstaltung_land testen !
+  -> mit Lookup auf Veranstaltung und Land/Ländergruppe(Inland, Ausland, Gesamt)
+
+AppRuntime.js umstellen auf /api/repo/application
 
 ## AppRun
 
