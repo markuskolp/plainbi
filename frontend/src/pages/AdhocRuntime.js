@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Table, Button, notification } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
@@ -11,13 +11,30 @@ import Axios from "axios";
 const AdhocRuntime = () => {
 
   let { id } = useParams();
+  const [queryParameters] = useSearchParams()
+  let format = queryParameters.get("format");
   let title = "A_" + id + ": t.b.d.";
+
+  /*
+  // if format is Excel (XLSX) or CSV, then redirect to API call (to download file)
+  const navigate = useNavigate();
+  console.log("format: " + format);
+  if (format === 'XLSX' || format === 'CSV') {
+    console.log("redirecting ...");
+    navigate("/api/repo/adhoc/"+id+"/data?format="+format);
+  };
+  */
 
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    getData();
+      /*if (format === 'XLSX' || format === 'CSV') {
+        console.log("getting data as file ...");
+        getBlobData(format);
+      };
+      */
+      getData();
   }, []);
 
   //TODO: get adhoc metadata to set title !!!
@@ -43,9 +60,43 @@ const AdhocRuntime = () => {
           setLoading(false);
           message.error('Es gab einen Fehler beim Laden der Daten.');
         }
-      );
-  
+      );  
   };
+
+  
+  const getBlobData = async (_format) => {
+    setLoading(true);
+    await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format, {responseType: 'blob'}).then(
+      (res) => {
+        // create file link in browser's memory
+        const href = URL.createObjectURL(res.data);
+    
+        // create "a" HTML element with href to file & click
+        const link = document.createElement('a');
+        link.href = href;
+        link.setAttribute('download', 'Adhoc_'+id+"."+_format.toLowerCase()); //or any other extension
+        document.body.appendChild(link);
+        link.click();
+    
+        // clean up "a" element & remove ObjectURL
+        document.body.removeChild(link);
+        URL.revokeObjectURL(href);
+
+        setLoading(false);
+      }
+      ).catch(
+        function (error) {
+          setLoading(false);
+          message.error('Es gab einen Fehler beim Laden der Daten als ' + _format);
+        }
+      );  
+  };
+
+  const downloadData = (format) => {
+    getBlobData(format);
+  }
+  ;
+
 
     // return a column to be used as metadata for a Table component
     function getColumn(column_label, column_name) {
@@ -57,28 +108,8 @@ const AdhocRuntime = () => {
         //render
       };
     }
-  
 
-  /*
-  const columns = [
-    {
-      title: "Titel",
-      dataIndex: "Title",
-      width: 50
-    },
-    {
-      title: "Inhalt",
-      dataIndex: "Content",
-      width: 150
-    },
-    {
-      title: "Erstellt am",
-      dataIndex: "CreatedAt",
-      width: 50
-    }
-  ];
-  */
-
+    //onClick={downloadData("XLSX")}>
   return (
     <React.Fragment>
       <PageHeader
@@ -86,10 +117,10 @@ const AdhocRuntime = () => {
         title={title}
         subTitle=""
         extra={[
-          <Button key="1" type="primary" icon={<DownloadOutlined />}>
+          <Button key="1" type="primary" icon={<DownloadOutlined />} >
             CSV
           </Button>,
-          <Button key="2" type="primary" icon={<DownloadOutlined />}>
+          <Button key="2" type="primary" icon={<DownloadOutlined />} > 
             Excel
           </Button>
         ]}

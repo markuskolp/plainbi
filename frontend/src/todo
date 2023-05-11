@@ -2,8 +2,10 @@
 # asap
 # ------------------------------------------------
 
-AdhocRuntime !
-  -> auch switch mit format /adhoc/<id>?format=XLSX|CSV
+Adhoc: 
+  - switch mit format /adhoc/<id>?format=XLSX|CSV
+  - auch Buttons (CSV, Excel)
+  - Titel richtig anzeigen
 
 Adhoc + ext. Ressource erweitern um Zuordnung zu Gruppen (wg. Berechtigungen !)
 
