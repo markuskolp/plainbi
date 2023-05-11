@@ -49,6 +49,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   // updateTableRow
   const updateTableRow = async (tableName, record, pk) => {
     setLoading(true);
+    console.log("updateTableRow: " + JSON.stringify(record));
     //await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
     await Axios.put(api+tableName+"/"+pk+(versioned ? "?v" : ""), record).then(  
         (res) => {
@@ -65,6 +66,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     // addTableRow
     const addTableRow = async (tableName, record, pk) => {
       setLoading(true);
+      console.log("addTableRow: " + JSON.stringify(record));
       //await Axios.post("/api/crud/"+tableName, record).then( 
       await Axios.post(api+tableName+(versioned ? "?v" : ""), record).then( 
           (res) => {

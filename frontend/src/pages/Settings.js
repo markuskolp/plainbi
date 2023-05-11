@@ -61,7 +61,7 @@ const Settings = () => {
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
         { column_name: "sql_query", column_label: "SQL", datatype: "text", ui: "textarea_sql", editable: true, required: true, showdetailsonly:true  },
-        //{ column_name: "datasource_id", column_label: "Datenquelle", datatype: "number", ui: "lookup",  lookup: "datasource", editable: true, required: true },
+        { column_name: "datasource_id", column_label: "Datenquelle", datatype: "number", ui: "lookup",  lookup: "datasource", editable: true, required: true },
       ]
     }, 
     {

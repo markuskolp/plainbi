@@ -4,7 +4,7 @@ import Axios from "axios";
 import { Select } from "antd";
 
 
-const SelectLookup = ({ name, lookupid, defaultValue, handleChange }) => {
+const SelectLookup = ({ name, lookupid, defaultValue, onChange }) => {
 
   const [loading, setLoading] = useState(true);
   const [lookupData, setLookupData] = useState([]);
@@ -32,6 +32,13 @@ const SelectLookup = ({ name, lookupid, defaultValue, handleChange }) => {
       }
     );
   };
+
+  const handleChange = (value) => {
+    const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+    console.log("MarkdownEditor - Textarea change: " + JSON.stringify(emuEvent));
+    onChange(emuEvent); 
+  };
+  
 
   return (loading ? (
           <h1>Lädt...</h1>
