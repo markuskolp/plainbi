@@ -90,7 +90,7 @@ import csv
 import pandas as pd
 from io import StringIO
 from plainbi_backend.utils import db_subs_env, is_id
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt
 from plainbi_backend.repo import create_repo_db
 
 class CustomJSONEncoder(JSONEncoder):
@@ -1233,63 +1233,79 @@ def get_adhoc_data(id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
-    result=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
-    if result is None:  # keine Spalten
-        return "adhoc fehler leer", 500
-    else:
-        df = pd.DataFrame(result.fetchall(), columns=result.keys())
-
-        # Save the DataFrame to an Excel file
-        if fmt=="XLSX":
-            log.debug("adhoc excel")
-            tmpfile='mydata.xlsx'
-            output = pd.ExcelWriter(tmpfile)
-            df.to_excel(output, index=False)
-            output.close()
-            # Return the Excel file as a download
-            with open(tmpfile, 'rb') as file:
-                response = Response(
-                    file.read(),
-                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
-                )
-                return response
-        elif fmt=="CSV":
-            log.debug("adhoc csv")
-            tmpfile='mydata.csv'
-            # Prepare the CSV file
-            df.to_csv(tmpfile, index=False)
-            # Return the Excel file as a download
-            with open(tmpfile, 'rb') as file:
-                response = Response(
-                    file.read(),
-                    mimetype='text/csv',
-                    headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                )
-                return response
-        
-        elif fmt=="TXT":
-            log.debug("adhoc csv")
-            tmpfile='mydata.csv'
-            # Prepare the CSV file
-            df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
-            # Return the Excel file as a download
-            with open(tmpfile, 'rb') as file:
-                response = Response(
-                    file.read(),
-                    mimetype='text/csv',
-                    headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                )
-                return response
-        elif fmt=="JSON":
-            out={}
-            out["data"]=df.to_json(orient='records')
-            out["columns"]=df.columns
-            out["total_count"]=len(df)
+    if fmt=="JSON":
+        sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
+        if execute_in_repodb:
+            log.debug("adhoc query execution in repodb")
+            data=repoengine.execute(sql)
+        else:
+            log.debug("adhoc query execution")
+            data=dbengine.execute(sql)
+        out={}
+        offset = request.args.get('offset')
+        limit = request.args.get('limit')
+        order_by = request.args.get('order_by')
+        log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+        items = [dict(row) for row in data]
+        columns = list(data.keys())
+        total_count=len(items)
+        out["data"]=items
+        out["columns"]=columns
+        out["total_count"]=total_count
+        if columns is None:  # keine Spalten
+            return "Fehler beim JSON adhoc", 500
+        else:
             return jsonify(out)
-
-        else: 
-            return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
+    else:
+        result=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
+        if result is None:  # keine Spalten
+            return "adhoc fehler leer", 500
+        else:
+            df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+            # Save the DataFrame to an Excel file
+            if fmt=="XLSX":
+                log.debug("adhoc excel")
+                tmpfile='mydata.xlsx'
+                output = pd.ExcelWriter(tmpfile)
+                df.to_excel(output, index=False)
+                output.close()
+                # Return the Excel file as a download
+                with open(tmpfile, 'rb') as file:
+                    response = Response(
+                        file.read(),
+                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
+                    )
+                    return response
+            elif fmt=="CSV":
+                log.debug("adhoc csv")
+                tmpfile='mydata.csv'
+                # Prepare the CSV file
+                df.to_csv(tmpfile, index=False)
+                # Return the Excel file as a download
+                with open(tmpfile, 'rb') as file:
+                    response = Response(
+                        file.read(),
+                        mimetype='text/csv',
+                        headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                    )
+                    return response
+            elif fmt=="TXT":
+                log.debug("adhoc csv")
+                tmpfile='mydata.csv'
+                # Prepare the CSV file
+                df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
+                # Return the Excel file as a download
+                with open(tmpfile, 'rb') as file:
+                    response = Response(
+                        file.read(),
+                        mimetype='text/csv',
+                        headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                    )
+                    return response
+            else: 
+                return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
 
 if __name__ == '__main__':
 

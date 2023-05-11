@@ -240,6 +240,7 @@ def get_next_seq(dbengine,seq):
         sql=f"UPDATE plainbi_seq SET curval={nextval} WHERE sequence_name='{seq}'"
         log.debug("sql=%s",sql)
         x=dbengine.execute(sql)    
+        out=nextval
     else:
         log.debug("in get_next_seq not sqlite")
         try:
@@ -331,6 +332,29 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
         return None,None,None,str(e)
 
 ## repo lookup adhoc
+def get_repo_adhoc_sql_stmt(repoengine,id):
+    """
+    führt ein sql aus und gibt zurück
+      items .. List von dicts pro zeile
+      columns .. spaltenname
+      total_count .. anzahl der rows in der Tabelle (count*)
+      msg ... ggf error code sonst "ok"
+    """
+    log.debug("++++++++++entering get_repo_adhoc_sql_stmt")
+    log.debug("get_repo_adhoc_sql_stmt: param id is <%s>",str(id))
+    if is_id(id):
+        reposql="select * from plainbi_adhoc where id=?"
+    else:
+        reposql="select * from plainbi_adhoc where name=?"
+    log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
+    lkpq=repoengine.execute(reposql , id)
+    lkp=[dict(r) for r in lkpq]
+    sql=lkp[0]["sql_query"]
+    execute_in_repodb = lkp[0]["datasource_id"]==0
+    return sql, execute_in_repodb
+
+
+## repo lookup adhoc
 def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None):
     """
     führt ein sql aus und gibt zurück
@@ -341,15 +365,7 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
     """
     log.debug("++++++++++entering repo_adhoc_select")
     log.debug("repo_adhoc_select: param id is <%s>",str(id))
-    if is_id(id):
-        reposql="select * from plainbi_adhoc where id=?"
-    else:
-        reposql="select * from plainbi_adhoc where name=?"
-    log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
-    lkpq=repoengine.execute(reposql , id)
-    lkp=[dict(r) for r in lkpq]
-    sql=lkp[0]["sql_query"]
-    execute_in_repodb = lkp[0]["datasource_id"]==0
+    sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
     if execute_in_repodb:
         log.debug("adhoc query execution in repodb")
         data=repoengine.execute(sql)
