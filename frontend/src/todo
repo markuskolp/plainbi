@@ -15,6 +15,8 @@ alle API Aufrufe kapseln !!
 Adhoc + ext. Ressource doch in /settings schieben ?
 
 mit Joe reden: 
+  - analog zu lookup auch bei application suchen nach <id> oder <name> oder <alias> z.B. http://localhost:3001/api/repo/application/adhoc
+    ... oder über ein Filter ?! (z.B. ?filter:alias=adhoc)
   - View für /api/repo/resources
   - Init für Adhoc und ext. Ress. Applikation
   - Excel
@@ -29,16 +31,10 @@ mit Joe reden:
   - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s))
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
-homepage
-  - switch to "all" resources (application, adhoc, external_resource) -> api endpoint: /api/repo/resources
-
-settings
-  - check everything here 
-
 dwh.config.tv_veranstaltungsreihe und ...tv_veranstaltung testen !
-dwh.config.tv_mafo_veranstaltung und ...tv_mafo_veranstaltung_land testen !
+dwh.config.tv_mafo_kennzahlen_veranstaltung und ...tv_mafo_kennzahlen_veranstaltung_land testen !
   -> mit Lookup auf Veranstaltung und Land/Ländergruppe(Inland, Ausland, Gesamt)
-
+  -> weitere Veranstaltung händisch pflegen ?! stage.man_veranstaltung
 
 act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
@@ -52,9 +48,8 @@ test all field types: lookup, textarea, textarea_sql, switch, password, email
 
 add description to lookup page (in "settings")
 
-datasource_id -> use it everywhere ?!
-
 plainbi_datasource -> not used yet in python backend (still in .env file)
+  - datasource_id -> use it everywhere ?!
 
 homepage -> additional tiles (e.g. list of fairs !)
 
@@ -73,8 +68,6 @@ bundle and run first version on DEV server
 # ------------------------------------------------
 # later
 # ------------------------------------------------
-
-incremental fields ?!
 
 crud ui textarea components
   - sql: formatter and validator !
@@ -97,27 +90,9 @@ generic CRUD App in "runtime" mode:
   - add search/filter to table
   - add sorting to table
 
-make everything work :)
-  - add live API to (Flask backend) and make CRUD apps generic (runtime)
-    - try use case: Adhoc Report Execution (CSV, Excel, JSON>HTML)
-    - try use case (generic CRUD): Adhoc Konfig
-    - try use case (generic CRUD): DWH Administration
-
 check width'es on all pages !
 
-Adhoc Application --> should be generated with CRUD Template !
-  - CRUD page: /apps/adhoc
-    - Table with a list of all adhoc + NEW + EDIT + DELETE Buttons
-  - CRUD modal or page: /apps/adhoc/<nr>/edit
-    - Fields: 
-      - Name (text)
-      - Button group to select output format: CSV|Excel|HTML
-      - Query (title)
-      - Query (textbox) with "copy code" button in upper right corner and SQL syntax highlighting
-      - SAVE + DELETE buttons
-
 Home:
-  - table width ?!
   - make both tables look like separate cards (white background, grey surrounding)
 
 Apps create/edit dialog:
@@ -136,15 +111,8 @@ Apps create/edit dialog:
   - Add sorting and filtering
   - Make height 100% with minimum of 500?
 
-Home > Table:
-  - sorting doesn't work
-  - add link to the "name" to /apps/adhoc/<nr>/export?format=<outputformat>
-
 Apps list:
   - add switch from cards to list
-
-zusätzliche Ressourcen auf Homeseite neben den Adhoc's (Cognos, Looker Datastudio, ...)
-  - vorerst in einer Tabelle pflegen, auch mit Berechtigung
 
 Security:
 	- integrated Users and Roles

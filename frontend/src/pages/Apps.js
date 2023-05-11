@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Button, Typography, Card, Col, Row } from "antd";
+import { Button, Typography, Card, Col, Row, message } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import {
   EditOutlined,

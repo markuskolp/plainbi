@@ -5,6 +5,7 @@ import { Table, Button, notification } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
 import { LoadingMessage } from "../components/LoadingMessage";
+import { message } from "antd";
 import Axios from "axios";
 
 const AdhocRuntime = () => {

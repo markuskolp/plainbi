@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import NoPage from "./NoPage";
 import Axios from "axios";
+import { message } from "antd";
 import CRUDApp from "../components/CRUDApp";
 
 // TODO: get metadata from API (id or alias) -> if not found -> show error on whole page ! (setAppNotFound = false)
@@ -38,18 +39,20 @@ const AppRuntime = () => {
 
   const initializeApp = async () => {
     // get app metadata
-    await Axios.get("/api/crud/metadata/"+id+".json").then(
-      (res) => {
-        //console.log(Array.isArray(res.data));
-        //console.log(JSON.stringify(res.data));
-        setAppMetadata(res.data);
-        //console.log(appMetadata);
+    await Axios.get("/api/repo/application/"+id).then(
+        (res) => {
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+        //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        console.log(JSON.parse(resData.spec_json).pages);
+        setAppMetadata(resData);
         setLoading(false);
       }
     ).catch(
       function (error) {
         setAppNotFound(true);
         setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der Applikation.');
       }
     );
   };
@@ -61,7 +64,7 @@ const AppRuntime = () => {
           <h1>Lädt...</h1>
         ) : (
           <React.Fragment>
-            <CRUDApp name={appMetadata.name} pages={appMetadata.pages}/>
+            <CRUDApp name={appMetadata.name} pages={JSON.parse(appMetadata.spec_json).pages}/>
           </React.Fragment>
         )
       )
