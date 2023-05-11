@@ -24,15 +24,19 @@ const Apps = () => {
 
   const initializeApp = async () => {
     // get app metadata
-    await Axios.get("/api/repo/application.json").then(
+    await Axios.get("/api/repo/application").then(
       (res) => {
-        setApps(res.data);
+        //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        setApps(resData);
         setLoading(false);
       }
     ).catch(
       function (error) {
         setError(true);
         setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der Applikationen.');
       }
     );
   };
@@ -62,7 +66,7 @@ const Apps = () => {
           <h1>Es konnten keine Applikationen gefunden werden.</h1> :
           <Row gutter={16}>
             
-            {apps.map((app) => {
+            {apps && apps.map((app) => {
               return (
                 <Col span={6}>
                   <Link href={"/apps/"+app.alias}>
@@ -87,44 +91,3 @@ const Apps = () => {
 };
 //<Meta title="Adhoc Konfiguration" />
 export default Apps;
-
-
-/*
-
-            <Col span={6}>
-              <Link href="/apps/dwh_admin">
-                <Card
-                  style={{ maxWidth: 300, marginTop: 16 }}
-                  bodyStyle={{ display: "none" }}
-                  type="inner"
-                  bordered={true}
-                  hoverable={true}
-                  title="DWH Administration"
-                  />
-                  </Link>
-                </Col>
-                <Col span={6}>
-                  <Link href="/apps/adhoc">
-                    <Card
-                      style={{ maxWidth: 300, marginTop: 16 }}
-                      bodyStyle={{ display: "none" }}
-                      type="inner"
-                      bordered={true}
-                      hoverable={true}
-                      title="Adhoc Konfiguration"
-                    />
-                  </Link>
-                </Col>
-                <Col span={6}>
-                  <Link href="/apps/ext_res">
-                    <Card
-                      style={{ maxWidth: 300, marginTop: 16 }}
-                      bodyStyle={{ display: "none" }}
-                      type="inner"
-                      bordered={true}
-                      hoverable={true}
-                      title="Externe Ressourcen"
-                    />
-                  </Link>
-                </Col>
-*/

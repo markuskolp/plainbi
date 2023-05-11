@@ -8,6 +8,10 @@ import { LoadingMessage } from "../components/LoadingMessage";
 import Axios from "axios";
 
 const AdhocRuntime = () => {
+
+  let { id } = useParams();
+  let title = "A_" + id + ": eloqua - Prüfung Datenübertragung";
+
   const message = (type, message, description) => {
     alert(type + ': ' + message);
     /*
@@ -26,9 +30,15 @@ const AdhocRuntime = () => {
     getData();
   }, []);
 
+  //TODO: get columns data.columns -> and set columns for table
+  //TODO: get data -> and set table data
+  //TODO: make CSV/Excel buttons work
+  //TODO: sorting
+  //TODO: pagination
+
   const getData = async () => {
-    await Axios.get("https://api.fake-rest.refine.dev/samples").then(
-      //await Axios.get("https://jsonplaceholder.typicode.com/comments").then(
+    //await Axios.get("https://api.fake-rest.refine.dev/samples").then(
+    await Axios.get("/api/repo/adhoc/3/data").then(
       (res) => {
         setloading(false);
         setstate(
@@ -63,9 +73,6 @@ const AdhocRuntime = () => {
       width: 50
     }
   ];
-
-  let { id } = useParams();
-  let title = "A_" + id + ": eloqua - Prüfung Datenübertragung";
 
   return (
     <React.Fragment>

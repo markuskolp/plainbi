@@ -14,7 +14,7 @@
             "delete"
           ],
           "pk_columns":["ID_FAIREVENT"],
-          "table":"PAR_MAILING_LIST",
+          "table":"MM_DWH_DEV.DDS.PAR_MAILING_LIST",
           "table_columns":[
             {
                 "column_name":"ID_FAIREVENT",
