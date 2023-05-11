@@ -263,10 +263,12 @@ def get_item(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering get_all_items")
-    log.debug("get_all_items: param tab is <%s>",str(tab))
-    log.debug("get_all_items: param pk/id is <%s>",str(pk))
+    log.debug("++++++++++ entering get_items")
+    log.debug("get_items: param tab is <%s>",str(tab))
+    log.debug("get_items: param pk/id is <%s>",str(pk))
     # check options
+    out={}
+    is_versioned=False
     pkcols=[]
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -274,8 +276,11 @@ def get_item(tab,pk):
             if key=="pk":
                 pkcols=value.split(",")
                 log.debug("pk option %s",pkcols)
+            if key=="v":
+                is_versioned=True
+                log.debug("versions enabled")
     log.debug("tab %s pk %s")
-    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
+    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
