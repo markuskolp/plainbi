@@ -2,24 +2,11 @@
 # asap
 # ------------------------------------------------
 
-warum geht ID 1 und 2 nicht bei Adhoc speichern ?!
 Lookup-Wert wird nicht gespeichert
 
+AppRuntime.js umstellen auf /api/repo/application
 
 mit Joe reden: 
-  - Adhoc + ext. Resource Edit:
-    - geht nicht, da API nicht auf REPO als DB geht !!
-    - ID wird nicht automatisch generiert (aktuell geb ich es ein -> wieder umstellen auf "readonly" !)
-  - Lookup
-    - Lookup auf REPO gehen nicht !!
-    - http://localhost:3001/api/repo/lookup/-100 -> sollte Metadaten liefern, liefert aber schon die Daten des ausgeführten SQL
-    - vs. http://localhost:3001/api/repo/lookup/-100/data -> so sollte der Aufruf lauten, um die Daten zu bekommen
-    - vs. http://localhost:3001/api/repo/lookup/<name> z.B. db_type -> Aufruf hierüber auch ermöglichen - oder mit Filter auf "name"?
-  - Sequence
-    - und eine Sequenz je Tabelle wäre doch sehr cool, weil dann haben die Adhoc/Applikation/etc. jeweils selbst eine fortlaufende Nr.
-  - Versioning
-    - GET must only get current/active version !
-  - JSON als default output bei Adhoc
   - Excel
     - Sheetname: "daten"
       - Headerzeile: Arial, 9, Border unten, Auto filter, Bold, Left (align)
@@ -27,7 +14,10 @@ mit Joe reden:
     - zusätzliches Sheet "info"
           Erstellt am: <YYYY-MM-DD HH24:MI:SS>
           Quelle: DWH - Adhoc <nr>
-    
+
+http://localhost:3001/api/repo/adhoc/0/data -> liefert die Daten noch falsch
+
+get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
 homepage
   - switch to "all" resources (application, adhoc, external_resource) -> api endpoint: /api/repo/resources
@@ -36,13 +26,12 @@ homepage
 settings
   - check everything here 
 
-lookups müssen auch auf repo tabellen gehen -> oder anders abbilden ?!
-
 dwh.config.tv_veranstaltungsreihe und ...tv_veranstaltung testen !
 dwh.config.tv_mafo_veranstaltung und ...tv_mafo_veranstaltung_land testen !
   -> mit Lookup auf Veranstaltung und Land/Ländergruppe(Inland, Ausland, Gesamt)
 
-AppRuntime.js umstellen auf /api/repo/application
+
+
 
 ## AppRun
 
@@ -52,21 +41,17 @@ generic CRUD App in "runtime" mode:
   - fetch lookup separately
     - in table view
   - Modal / Form
-    - numberinput -> error with handling change
     - field validation before save (especially required fields) !
 
 test all field types: lookup, textarea, textarea_sql, switch, password, email
 
 add description to lookup page (in "settings")
 
-versioned tables !
-
 datasource_id -> use it everywhere ?!
 
-homepage -> additional tiles (e.g. list of fairs !)
+plainbi_datasource -> not used yet in python backend (still in .env file)
 
-repo / settings page -> make it work with API
-  - get apps metadata from REPO ! (delete all static files in public/api/...)
+homepage -> additional tiles (e.g. list of fairs !)
 
 compound primary keys !
 
@@ -79,7 +64,6 @@ bundle and run first version on DEV server
   - use flask as webserver ? how to replace "proxy" setting ?
   - make customer CI settings (logo, title, etc.)
 
-get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
 # ------------------------------------------------
 # later

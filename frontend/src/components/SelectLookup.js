@@ -18,11 +18,12 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange }) => {
 
     console.log("getLookupData for id: " + lookupid);
     
-    await Axios.get("/api/data/lookup/"+lookupid+".json").then(
-//      await Axios.get("/api/repo/lookup/"+lookupid).then(
+    //await Axios.get("/api/data/lookup/"+lookupid+".json").then(
+      await Axios.get("/api/repo/lookup/"+lookupid+"/data").then(
       (res) => {
-        const resData = res.data; 
+        //const resData = res.data; 
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         console.log("getLookupData result: " + JSON.stringify(resData));
         setLookupData(resData.map((row) => ({
           value: row.r,
