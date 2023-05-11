@@ -5,20 +5,16 @@
 AdhocRuntime !
   -> auch switch mit format /adhoc/<id>?format=XLSX|CSV
 
-AppRuntime.js 
-- umstellen auf /api/repo/application -> spec_json auslesen !
-- alle Applikationen dort mal reinlegen -> an Joe liefern für init_repo
-- Adhoc + ext. Ressource erweitenr um Zuordnung zu Gruppen (wg. Berechtigungen !)
+Adhoc + ext. Ressource erweitern um Zuordnung zu Gruppen (wg. Berechtigungen !)
 
-alle API Aufrufe kapseln !!
-
-Adhoc + ext. Ressource doch in /settings schieben ?
+CRUD fetch lookup for data in table view
 
 mit Joe reden: 
   - analog zu lookup auch bei application suchen nach <id> oder <name> oder <alias> z.B. http://localhost:3001/api/repo/application/adhoc
     ... oder über ein Filter ?! (z.B. ?filter:alias=adhoc)
-  - View für /api/repo/resources
-  - Init für Adhoc und ext. Ress. Applikation
+    - dann wieder umstellen in "Apps.js"
+  - init_repo: View für /api/repo/resources
+  - init_repo: Adhoc und ext. Ress. Applikation
   - Excel
     - Sheetname: "daten"
       - Headerzeile: Arial, 9, Border unten, Auto filter, Bold, Left (align)
@@ -28,7 +24,7 @@ mit Joe reden:
           Quelle: DWH - Adhoc <nr>
   - Security / Auth-API / JWT Token
   - swagger-UI
-  - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s))
+  - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s)) (https://www.baeldung.com/rest-api-error-handling-best-practices)
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
 dwh.config.tv_veranstaltungsreihe und ...tv_veranstaltung testen !
@@ -38,11 +34,7 @@ dwh.config.tv_mafo_kennzahlen_veranstaltung und ...tv_mafo_kennzahlen_veranstalt
 
 act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
-generic CRUD App in "runtime" mode:
-  - fetch lookup separately
-    - in table view
-  - Modal / Form
-    - field validation before save (especially required fields) !
+CRUD field validation before save (especially required fields) !
 
 test all field types: lookup, textarea, textarea_sql, switch, password, email
 
@@ -63,6 +55,12 @@ add security in python backend
 bundle and run first version on DEV server
   - use flask as webserver ? how to replace "proxy" setting ?
   - make customer CI settings (logo, title, etc.)
+
+Adhoc + ext. Ressource doch in /settings schieben ?
+
+alle API Aufrufe kapseln !!
+
+Adhoc: show total count ?
 
 
 # ------------------------------------------------

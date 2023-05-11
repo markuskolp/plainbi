@@ -69,7 +69,7 @@ const Apps = () => {
             {apps && apps.map((app) => {
               return (
                 <Col span={6}>
-                  <Link href={"/apps/"+app.alias}>
+                  <Link href={"/apps/"+app.id}> 
                     <Card
                       style={{ maxWidth: 300, marginTop: 16 }}
                       bodyStyle={{ display: "none" }}
@@ -91,3 +91,5 @@ const Apps = () => {
 };
 //<Meta title="Adhoc Konfiguration" />
 export default Apps;
+
+// app.alias}>
