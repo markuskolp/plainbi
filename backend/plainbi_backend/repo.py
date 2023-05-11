@@ -37,12 +37,22 @@ import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 
 """
-repoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi_repo2.db")
+repoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi_repo.db")
 """
 
 
 def create_repo_db(engine):
     sql_create_list=[
+"""
+drop table if exists plainbi_seq
+""",
+"""
+create table plainbi_seq (
+  sequence_name text primary key not null  
+ ,curval int not null
+)
+""",
+
 """
 drop table if exists plainbi_role
 """,
@@ -52,6 +62,16 @@ create table plainbi_role (
  ,name text  -- Admin User
 )
 """,
+"""
+INSERT INTO plainbi_role (id,name) VALUES (1,'Admin')
+""",
+"""
+INSERT INTO plainbi_role (id,name) VALUES (2,'User')
+""",
+"""
+insert into plainbi_seq (sequence_name,curval) values ('role',2)
+""",
+
 """
 drop table if exists plainbi_user
 """,
@@ -67,6 +87,10 @@ create table plainbi_user (
 )
 """,
 """
+insert into plainbi_seq (sequence_name,curval) values ('user',0)
+""",
+
+"""
 drop table if exists plainbi_group
 """,
 """
@@ -75,6 +99,10 @@ create table plainbi_group (
  ,name text
 )
 """,
+"""
+insert into plainbi_seq (sequence_name,curval) values ('group',0)
+""",
+
 """
 drop table if exists plainbi_user_to_group
 """,
@@ -87,6 +115,7 @@ create table plainbi_user_to_group (
  ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
 )
 """,
+
 """
 drop table if exists plainbi_datasource
 """,
@@ -103,6 +132,13 @@ create table plainbi_datasource (
 )
 """,
 """
+insert into plainbi_datasource (id,name) values (0,'internal repository')
+""",
+"""
+insert into plainbi_seq (sequence_name,curval) values ('datasource',0)
+""",
+
+"""
 drop table if exists plainbi_application
 """,
 """
@@ -113,6 +149,9 @@ create table plainbi_application(
  ,spec_json text
  ,datasource_id int
 )
+""",
+"""
+insert into plainbi_seq (sequence_name,curval) values ('application',0)
 """,
 """
 drop table if exists plainbi_application_to_group
@@ -138,6 +177,10 @@ create table plainbi_lookup (
 )
 """,
 """
+insert into plainbi_seq (sequence_name,curval) values ('lookup',0)
+""",
+
+"""
 drop table if exists plainbi_external_resource
 """,
 """
@@ -151,6 +194,10 @@ create table plainbi_external_resource (
 )
 """,
 """
+insert into plainbi_seq (sequence_name,curval) values ('external_resource',0)
+""",
+
+"""
 drop table if exists plainbi_external_resource_to_group
 """,
 """
@@ -162,6 +209,7 @@ create table plainbi_external_resource_to_group (
  ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
 )
 """,
+
 """
 drop table if exists plainbi_adhoc
 """,
@@ -176,6 +224,9 @@ create table plainbi_adhoc (
 )
 """,
 """
+insert into plainbi_seq (sequence_name,curval) values ('adhoc',0)
+""",
+"""
 drop table if exists plainbi_adhoc_to_group
 """,
 """
@@ -186,18 +237,6 @@ create table plainbi_adhoc_to_group (
  ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
  ,FOREIGN KEY (adhoc_id) REFERENCES plainbi_adhoc(id)
 )
-""",
-"""
-drop table if exists plainbi_seq
-""",
-"""
-create table plainbi_seq (
-  sequence_name text primary key not null  
- ,curval int not null
-)
-""",
-"""
-insert into plainbi_seq (sequence_name,curval) values ('REPO',0)
 """,
     ]
     for sql in sql_create_list[:]:

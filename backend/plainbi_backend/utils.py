@@ -13,3 +13,10 @@ def db_subs_env(s,d):
         else:
             s=s.replace("{"+k+"}",v)
     return s
+
+def is_id(v):
+      try:
+        f=int(v)
+      except ValueError:
+        return False
+      return True

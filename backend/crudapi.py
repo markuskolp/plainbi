@@ -12,6 +12,7 @@ http://localhost:3001/api/crud/ANALYSIS.guest.testtable/metadata
 http://localhost:3001/testpost
 # GET ALL
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
+curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 # GET
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/1" -w "%{http_code}\n"
 # POST
@@ -44,7 +45,7 @@ curl --header "Content-Type: application/json" --request DELETE "localhost:3002/
 
 # Repo
 curl --header "Content-Type: application/json" --request POST "localhost:3002/api/repo/init_repo" -w "%{http_code}\n"
-
+Latin1_General_100_CS_AS_WS_SC_UTF8
 # new application POST
 curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application"
 curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"app2\"}' "localhost:3002/api/repo/application"
@@ -78,18 +79,36 @@ import logging
 from sys import platform
 import os
 import sys
+from datetime import date,datetime
 import json
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from flask import Flask, jsonify, request, Response
+from flask.json import JSONEncoder
 from dotenv import load_dotenv
 import csv
 import pandas as pd
 from io import StringIO
-from plainbi_backend.utils import db_subs_env
+from plainbi_backend.utils import db_subs_env, is_id
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select
 from plainbi_backend.repo import create_repo_db
 
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        try:
+            if isinstance(obj, datetime):
+                return obj.strftime("%Y-%m-%d %H:%M:%S.%f")
+            elif isinstance(obj, date):
+                return obj.strftime("%Y-%m-%d")
+            iterable = iter(obj)
+        except TypeError:
+            pass
+        else:
+            return list(iterable)
+        return JSONEncoder.default(self, obj)
+
+app = Flask(__name__)
+app.json_encoder = CustomJSONEncoder
 
 home_directory = os.path.expanduser( '~' )
 dotenv_path = os.path.join(home_directory, '.env')
@@ -196,18 +215,31 @@ def get_all_items(tab):
     dict mit den keys "data", "columns", "total_count"
 
     """
+    log.debug("++++++++++ entering get_all_items")
+    log.debug("get_all_items: param tab is <%s>",str(tab))
     out={}
+    is_versioned=False
+    # check options
+    if len(request.args) > 0:
+        for key, value in request.args.items():
+            log.info("arg: %s val: %s",key,value)
+            if key=="v":
+                is_versioned=True
+                log.debug("versions enabled")
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,msg=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True)
+    items,columns,total_count,msg=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned)
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
     if columns is None:  # keine Spalten
+        log.debug("get_all_items: return with error 500 because no columns selected")
         return msg, 500
     else:
+        log.debug("leaving get_all_items and return json result")
+        log.debug("out=%s",str(out))
         return jsonify(out)
 
 # Define routes for CRUD operations
@@ -231,7 +263,9 @@ def get_item(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++get_item")
+    log.debug("++++++++++ entering get_all_items")
+    log.debug("get_all_items: param tab is <%s>",str(tab))
+    log.debug("get_all_items: param pk/id is <%s>",str(pk))
     # check options
     pkcols=[]
     if len(request.args) > 0:
@@ -246,13 +280,16 @@ def get_item(tab,pk):
         if len(out["data"])>0:
             print("out:"+str(out))
             log.debug("out:%s",str(out))
+            log.debug("leaving get_item with success and json result")
             return jsonify(out)
             #return Response(jsonify(out),status=204)
         else:
             log.debug("no record found")
             # return Response(status=204)
+            log.debug("leaving get_item with 204 no record forund")
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
+    log.debug("leaving get_item with error 500 and return json result")
     return (jsonify(out),500)
 
 
@@ -274,7 +311,8 @@ def create_item(tab):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++create_item")
+    log.debug("++++++++++ entering create_item")
+    log.debug("create_item: param tab is <%s>",str(tab))
     out={}
     pkcols=[]
     is_versioned=False
@@ -403,7 +441,9 @@ def update_item(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++update_item")
+    log.debug("++++++++++ entering update_item")
+    log.debug("update_item: param tab is <%s>",str(tab))
+    log.debug("update_item: param pk is <%s>",str(pk))
     out={}
     pkcols=[]
     is_versioned=False
@@ -531,7 +571,9 @@ def delete_item(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++delete_item")
+    log.debug("++++++++++ entering delete_item")
+    log.debug("delete_item: param tab is <%s>",str(tab))
+    log.debug("delete_item: param pk is <%s>",str(pk))
     # check options
     out={}
     pkcols=[]
@@ -620,6 +662,7 @@ def delete_item(tab,pk):
 
 @app.route(api_metadata_prefix+'/tables', methods=['GET'])
 def get_metadata_tables():
+    log.debug("++++++++++ entering get_metadata_tables")
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -648,6 +691,8 @@ def get_metadata_tab_columns(tab):
     -------
 
     """
+    log.debug("++++++++++ entering get_metadata_tab_columns")
+    log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
     pkcols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -684,6 +729,8 @@ def get_all_repos(tab):
     dict mit den keys "data", "columns", "total_count"
 
     """
+    log.debug("++++++++++ entering get_all_repos")
+    log.debug("get_all_repos: param tab is <%s>",str(tab))
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
@@ -719,7 +766,9 @@ def get_repo(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++get_item")
+    log.debug("++++++++++ entering get_repo")
+    log.debug("get_repo: param tab is <%s>",str(tab))
+    log.debug("get_repo: param pk is <%s>",str(pk))
     # check options
     pkcols=[]
     if len(request.args) > 0:
@@ -774,7 +823,8 @@ def create_repo(tab):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++create_repo")
+    log.debug("++++++++++ entering create_repo")
+    log.debug("create_repo: param tab is <%s>",str(tab))
     out={}
     pkcols=[]
     is_versioned=False
@@ -844,11 +894,17 @@ def create_repo(tab):
     else:
         collist=[k for k in item.keys()]
         vallist=[v for v in item.values()]
-    if tab in ["application","role","user","group","lookup"] and "id" not in item.keys():
+    # wenn Repo Tabelle mit Id aber keine id-spalte in data dann id spalte hinzufügen und mit sequence befüllen
+    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"] and "id" not in item.keys():
         # id ist nicht in data list so generate
         collist.append("id")
-        s=get_next_seq(repoengine,def_repo_seq)
+        s=get_next_seq(repoengine,tab)
         vallist.append(s)
+    # wenn Repo Tabelle mit Id aber null für id dann id  mit sequence befüllen
+    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"] and "id" in item.keys():
+        # id ist nicht in data list so generate
+        s=get_next_seq(repoengine,tab)
+        vallist[collist.index("id")]=s
     try:
         qlist=["?" for k in vallist]
         if len(pkcols)==1:
@@ -901,7 +957,9 @@ def update_repo(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++update_item")
+    log.debug("++++++++++ entering update_repo")
+    log.debug("update_repo: param tab is <%s>",str(tab))
+    log.debug("update_repo: param pk is <%s>",str(pk))
     out={}
     pkcols=[]
     is_versioned=False
@@ -1029,7 +1087,9 @@ def delete_repo(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++delete_repo")
+    log.debug("++++++++++ entering delete_repo")
+    log.debug("delete_repo: param tab is <%s>",str(tab))
+    log.debug("delete_repo: param pk is <%s>",str(pk))
     # check options
     out={}
     pkcols=[]
@@ -1117,6 +1177,7 @@ def delete_repo(tab,pk):
 
 @app.route(repo_api_prefix+'/init_repo', methods=['POST'])
 def init_repo():
+    log.debug("++++++++++ entering init_repo")
     with repoengine.connect() as conn:
         pass
     create_repo_db(repoengine)
@@ -1136,11 +1197,13 @@ GET /api/repo/lookup/<id>/data
 """
 @app.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
 def get_lookup(id):
+    log.debug("++++++++++ entering get_lookup")
+    log.debug("get_lookup: param id is <%s>",str(id))
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("lookup pagination offset=%s limit=%s",offset,limit)
+    log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,msg=repo_lookup_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
     out["data"]=items
     out["columns"]=columns
@@ -1152,7 +1215,9 @@ def get_lookup(id):
 
 @app.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
 def get_adhoc_data(id):
-    fmt="CSV"
+    log.debug("++++++++++ entering get_adhoc_data")
+    log.debug("get_adhoc_data: param id is <%s>",str(id))
+    fmt="JSON"
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
@@ -1162,7 +1227,7 @@ def get_adhoc_data(id):
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("adhoc pagination offset=%s limit=%s",offset,limit)
+    log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     result=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
     if result is None:  # keine Spalten
         return "adhoc fehler leer", 500
@@ -1211,8 +1276,15 @@ def get_adhoc_data(id):
                     headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
                 )
                 return response
+        elif fmt=="JSON":
+            out={}
+            out["data"]=df.to_json(orient='records')
+            out["columns"]=df.columns
+            out["total_count"]=len(df)
+            return jsonify(out)
+
         else: 
-            return "adhoc format invalid XLSX/CSV/TXT", 500
+            return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
 
 if __name__ == '__main__':
 
@@ -1251,6 +1323,7 @@ if __name__ == '__main__':
         app_port=3001
         log.info(f"No port number was provided - default {args.port} is used ")
 
+    app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     
     log.info("start server "+__name__)
     app.run(debug=True,host='0.0.0.0', port=app_port,use_reloader=False)

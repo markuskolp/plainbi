@@ -9,6 +9,8 @@ log = logging.getLogger(__name__)
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from urllib.parse import unquote
+from plainbi_backend.utils import is_id
+
 
 """
 import urllib
@@ -54,7 +56,7 @@ def get_db_type(dbengine):
         return "mssql"
 
 
-def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None):
+def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -64,13 +66,19 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     """
     total_count=None
     log.debug("sql_select tab parameter: %s",tab)
+    w=where_clause
     try:
         if len(tab.split(" "))==1:          # nur ein wort
             sql=f'SELECT * FROM {tab}'
         else:                               # ein komplettes select statement expected
             sql=tab
-        if where_clause is not None:
-            sql+=" WHERE "+where_clause
+        if versioned:
+            if w is not None:
+                w="("+w+") AND is_current_and_active = 'Y'"
+            else:
+                w="is_current_and_active = 'Y'"
+        if w is not None:
+            sql+=" WHERE "+w
         if order_by is not None:
             sql+=" ORDER BY "+order_by.replace(":"," ")
         if offset is not None:
@@ -186,10 +194,10 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
         data=dbengine.execute(sql)
         items = [dict(row) for row in data]
         columns = list(data.keys())
-        for r in items:
-            for k,v in r.items():
-                if type(v).__name__=="datetime":
-                    r[k]=v.strftime("%Y-%m-%d %H:%M:%S.%f")
+#        for r in items:
+#            for k,v in r.items():
+#                if type(v).__name__=="datetime":
+#                    r[k]=v.strftime("%Y-%m-%d %H:%M:%S.%f")
         log.debug("columns: %s",columns)
         out["data"]=items
         out["columns"]=columns
@@ -296,12 +304,24 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
       total_count .. anzahl der rows in der Tabelle (count*)
       msg ... ggf error code sonst "ok"
     """
-    log.debug("sql_select tab parameter: %s",id)
-    lkpq=repoengine.execute("select * from plainbi_lookup where id=?" , id)
+    log.debug("++++++++++entering repo_lookup_select")
+    log.debug("repo_lookup_select: param id is <%s>",str(id))
+    if is_id(id):
+        reposql="select * from plainbi_lookup where id=?"
+    else:
+        reposql="select * from plainbi_lookup where name=?"
+    log.debug("repo_lookup_select: repo sql is <%s>",reposql)
+    lkpq=repoengine.execute(reposql , id)
     lkp=[dict(r) for r in lkpq]
     sql=lkp[0]["sql_query"]
+    execute_in_repodb = lkp[0]["datasource_id"]==0
     try:
-        data=dbengine.execute(sql)
+        if execute_in_repodb:
+            log.debug("lookup query execution in repodb")
+            data=repoengine.execute(sql)
+        else:
+            log.debug("lookup query execution")
+            data=dbengine.execute(sql)
         items = [dict(row) for row in data]
         columns = list(data.keys())
         total_count=len(items)
@@ -319,9 +339,21 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
       total_count .. anzahl der rows in der Tabelle (count*)
       msg ... ggf error code sonst "ok"
     """
-    log.debug("sql_select tab parameter: %s",id)
-    lkpq=repoengine.execute("select * from plainbi_adhoc where id=?" , id)
+    log.debug("++++++++++entering repo_adhoc_select")
+    log.debug("repo_adhoc_select: param id is <%s>",str(id))
+    if is_id(id):
+        reposql="select * from plainbi_adhoc where id=?"
+    else:
+        reposql="select * from plainbi_adhoc where name=?"
+    log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
+    lkpq=repoengine.execute(reposql , id)
     lkp=[dict(r) for r in lkpq]
     sql=lkp[0]["sql_query"]
-    data = dbengine.execute(sql)
+    execute_in_repodb = lkp[0]["datasource_id"]==0
+    if execute_in_repodb:
+        log.debug("adhoc query execution in repodb")
+        data=repoengine.execute(sql)
+    else:
+        log.debug("adhoc query execution")
+        data=dbengine.execute(sql)
     return data
