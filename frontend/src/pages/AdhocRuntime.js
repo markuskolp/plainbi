@@ -17,27 +17,33 @@ const AdhocRuntime = () => {
   let format = queryParameters.get("format");
   let title = "A_" + id + ": t.b.d.";
 
-  /*
+  const navigate = useNavigate();
+  
   // if format is Excel (XLSX) or CSV, then redirect to API call (to download file)
+  /*
   const navigate = useNavigate();
   console.log("format: " + format);
   if (format === 'XLSX' || format === 'CSV') {
+    console.log("getting data as file ...");
+    getBlobData(format);
     console.log("redirecting ...");
-    navigate("/api/repo/adhoc/"+id+"/data?format="+format);
-  };
-  */
+    //navigate("/api/repo/adhoc/"+id+"/data?format="+format);
+    navigate("/");
+  };*/ 
 
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    /*if (format === 'XLSX' || format === 'CSV') {
+    if (format === 'XLSX' || format === 'CSV') {
       console.log("getting data as file ...");
       getBlobData(format);
-    };
-    */
-    getData();
+      navigate("/");
+    } else {
+      console.log("loading data ...");
+      getData();
+    }
   }, []);
 
   //TODO: get adhoc metadata to set title !!!
