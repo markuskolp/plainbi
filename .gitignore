@@ -18,6 +18,8 @@ frontend/build
 *.nogit
 *.zip
 *.bat
+*.csv
+*.xlsx
 
 # logs
 logs

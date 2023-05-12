@@ -1,12 +1,14 @@
 import React from "react";
+import Table from "../components/Table";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Table, Button, notification } from "antd";
+import { Button, notification } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
 import { LoadingMessage } from "../components/LoadingMessage";
 import { message } from "antd";
 import Axios from "axios";
+import {Sorter} from "../utils/sorter";
 
 const AdhocRuntime = () => {
 
@@ -28,18 +30,17 @@ const AdhocRuntime = () => {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-      /*if (format === 'XLSX' || format === 'CSV') {
-        console.log("getting data as file ...");
-        getBlobData(format);
-      };
-      */
-      getData();
+    /*if (format === 'XLSX' || format === 'CSV') {
+      console.log("getting data as file ...");
+      getBlobData(format);
+    };
+    */
+    getData();
   }, []);
 
   //TODO: get adhoc metadata to set title !!!
-  //TODO: make CSV/Excel buttons work
-  //TODO: sorting
   //TODO: pagination
 
   const getData = async () => {
@@ -65,7 +66,7 @@ const AdhocRuntime = () => {
 
   
   const getBlobData = async (_format) => {
-    setLoading(true);
+    const dt = new Date().toISOString().substring(0,19);
     await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format, {responseType: 'blob'}).then(
       (res) => {
         // create file link in browser's memory
@@ -74,20 +75,17 @@ const AdhocRuntime = () => {
         // create "a" HTML element with href to file & click
         const link = document.createElement('a');
         link.href = href;
-        link.setAttribute('download', 'Adhoc_'+id+"."+_format.toLowerCase()); //or any other extension
+        link.setAttribute('download', 'Adhoc_'+id+"_"+dt+"."+_format.toLowerCase()); //or any other extension
         document.body.appendChild(link);
         link.click();
     
         // clean up "a" element & remove ObjectURL
         document.body.removeChild(link);
         URL.revokeObjectURL(href);
-
-        setLoading(false);
       }
       ).catch(
         function (error) {
-          setLoading(false);
-          message.error('Es gab einen Fehler beim Laden der Daten als ' + _format);
+            message.error('Es gab einen Fehler beim Laden der Daten als ' + _format);
         }
       );  
   };
@@ -103,13 +101,16 @@ const AdhocRuntime = () => {
       return {
         title: column_label,
         dataIndex: column_name,
+        sorter: {
+          compare: Sorter.DEFAULT,
+          multiple: 3,
+        },
         //key: column_name
         //width: 50,
         //render
       };
     }
 
-    //onClick={downloadData("XLSX")}>
   return (
     <React.Fragment>
       <PageHeader
@@ -117,10 +118,10 @@ const AdhocRuntime = () => {
         title={title}
         subTitle=""
         extra={[
-          <Button key="1" type="primary" icon={<DownloadOutlined />} >
+          <Button key="1" type="primary" icon={<DownloadOutlined />} onClick={() => downloadData("CSV")}> 
             CSV
           </Button>,
-          <Button key="2" type="primary" icon={<DownloadOutlined />} > 
+          <Button key="2" type="primary" icon={<DownloadOutlined />} onClick={() => downloadData("XLSX")}> 
             Excel
           </Button>
         ]}
