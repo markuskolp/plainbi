@@ -15,39 +15,45 @@ const AdhocRuntime = () => {
   let { id } = useParams();
   const [queryParameters] = useSearchParams()
   let format = queryParameters.get("format");
-  let title = "A_" + id + ": t.b.d.";
 
   const navigate = useNavigate();
   
-  // if format is Excel (XLSX) or CSV, then redirect to API call (to download file)
-  /*
-  const navigate = useNavigate();
-  console.log("format: " + format);
-  if (format === 'XLSX' || format === 'CSV') {
-    console.log("getting data as file ...");
-    getBlobData(format);
-    console.log("redirecting ...");
-    //navigate("/api/repo/adhoc/"+id+"/data?format="+format);
-    navigate("/");
-  };*/ 
-
+  const [adhoc, setAdhoc] = useState([]);
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    getAdhoc();
+    // if format is Excel (XLSX) or CSV, then redirect to API call (to download file)
     if (format === 'XLSX' || format === 'CSV') {
       console.log("getting data as file ...");
       getBlobData(format);
       navigate("/");
     } else {
+    // else show the data in the web page
       console.log("loading data ...");
       getData();
     }
   }, []);
 
-  //TODO: get adhoc metadata to set title !!!
   //TODO: pagination
+
+  const getAdhoc = async () => {
+    await Axios.get("/api/repo/adhoc/"+id).then(
+      (res) => {
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+        //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        setAdhoc(resData);
+      }
+      ).catch(
+        function (error) {
+          setLoading(false);
+          message.error('Es gab einen Fehler beim Laden des Adhoc.');
+        }
+      );  
+  };
 
   const getData = async () => {
     setLoading(true);
@@ -117,11 +123,13 @@ const AdhocRuntime = () => {
       };
     }
 
+//    let title = "A_" + id + ": t.b.d.";
+
   return (
     <React.Fragment>
       <PageHeader
         onBack={() => (window.location.href = "/")}
-        title={title}
+        title={adhoc.name}
         subTitle=""
         extra={[
           <Button key="1" type="primary" icon={<DownloadOutlined />} onClick={() => downloadData("CSV")}> 
