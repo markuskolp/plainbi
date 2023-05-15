@@ -399,44 +399,44 @@ drop view if exists plainbi_resources;
 """
 create view plainbi_resources
 as
-select 
-    'application_'||id as id
-    , name
-    , '/apps/'||alias as url
-    , '_self' as target
-    , null as output_format 
-    , null as description
-    , null as source
-    , null as dataset
-    , 'application' as resource_type
-    , 'Applikation' as resource_type_de 
-from plainbi_application pa 
+select
+'application_'||id as id
+, name
+, '/apps/'||alias as url
+, '_self' as target
+, null as output_format
+, null as description
+, null as source
+, null as dataset
+, 'application' as resource_type
+, 'Applikation' as resource_type_de
+from plainbi_application pa
 union all
-select 
-    'adhoc_'||id as id
-    , name
-    , '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
-    , '_self' as target
-    , coalesce(output_format, 'HTML') output_format
-    , null as description
-    , 'Adhoc' as source
-    , null as dataset
-    , 'adhoc' as resource_type
-    , 'Adhoc' as resource_type_de 
-from plainbi_adhoc padh 
+select
+'adhoc_'||id as id
+, name
+, '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
+, '_self' as target
+, coalesce(output_format, 'HTML') output_format
+, null as description
+, 'Adhoc' as source
+, null as dataset
+, 'adhoc' as resource_type
+, 'Adhoc' as resource_type_de
+from plainbi_adhoc padh
 union all
-select 
-    'external_resource_'||id as id
-    , name
-    , url
-    , '_blank' as target
-    , null as output_format 
-    , description
-    , source
-    , dataset
-    , 'external_resource' as resource_type
-    , 'Extern' as resource_type_de 
-from plainbi_external_resource per 
+select
+'external_resource_'||id as id
+, name
+, url
+, '_blank' as target
+, null as output_format
+, description
+, source
+, dataset
+, 'external_resource' as resource_type
+, 'Extern' as resource_type_de
+from plainbi_external_resource per
 """,
     ]
     print("******************************")
