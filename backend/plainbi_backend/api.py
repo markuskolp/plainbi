@@ -11,7 +11,7 @@ http://localhost:3001/api/crud/ANALYSIS.guest.testtable/1
 http://localhost:3001/api/crud/ANALYSIS.guest.testtable/metadata
 http://localhost:3001/testpost
 # GET ALL
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
+curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 # GET
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/1" -w "%{http_code}\n"
@@ -58,6 +58,7 @@ curl --header "Content-Type: application/json" --request GET "localhost:3002/api
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/5" -w "%{http_code}\n"
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application_to_group/(application_id:1:group_id:7)" -w "%{http_code}\n"
 
+
 # PUT
 curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"app3\"}' localhost:3002/api/repo/application/3
 curl --header "Content-Type: application/json" --request PUT --data '{\"id\":\"3\",\"name\":\"app3\"}' localhost:3002/api/repo/application/3
@@ -73,10 +74,8 @@ curl --header "Content-Type: application/json" --request GET "localhost:3002/api
 """
 
 
-import argparse
 import urllib
 import logging
-from sys import platform
 import os
 import sys
 from datetime import date,datetime
@@ -88,10 +87,14 @@ from flask.json import JSONEncoder
 from dotenv import load_dotenv
 import csv
 import pandas as pd
-from io import StringIO
-from plainbi_backend.utils import db_subs_env, is_id
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt
 from plainbi_backend.repo import create_repo_db
+
+from flask import Blueprint
+
+api = Blueprint('api', __name__)
+
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -107,16 +110,15 @@ class CustomJSONEncoder(JSONEncoder):
             return list(iterable)
         return JSONEncoder.default(self, obj)
 
-app = Flask(__name__)
-app.json_encoder = CustomJSONEncoder
-
 home_directory = os.path.expanduser( '~' )
 dotenv_path = os.path.join(home_directory, '.env')
 load_dotenv(dotenv_path)
 
-app = Flask(__name__)
-log=app.logger
-log.setLevel(logging.DEBUG)
+#app = Flask(__name__)
+#app.json_encoder = CustomJSONEncoder
+
+#log=app.logger
+#logging.setLevel(logging.DEBUG)
 
 pbi_env={}
 pbi_env["db_server"] = os.environ.get("db_server")
@@ -135,7 +137,7 @@ pbi_env["db_engine"] = os.environ.get("db_engine")
 pbi_env["db_engine"] = db_subs_env(pbi_env["db_engine"],pbi_env) 
 
 if "db_engine" not in pbi_env.keys():
-    log.error("db_engine must be defined")
+    logging.error("db_engine must be defined")
     sys.exit(1)
 
 if "db_params" in pbi_env.keys():
@@ -145,7 +147,7 @@ if "db_params" in pbi_env.keys():
     dbengine = sqlalchemy.create_engine(pbi_env["db_engine"] % params)
 else:
     dbengine = sqlalchemy.create_engine(pbi_env["db_engine"])
-log.info("dbengine %s",dbengine.url)
+logging.info("dbengine %s",dbengine.url)
 
 
 # repo connection
@@ -164,7 +166,7 @@ pbi_env["repo_engine"] = os.environ.get("repo_engine")
 pbi_env["repo_engine"] = db_subs_env(pbi_env["repo_engine"],pbi_env) 
 
 if "repo_engine" not in pbi_env.keys():
-    log.error("repo_engine must be defined")
+    logging.error("repo_engine must be defined")
     sys.exit(1)
 
 if "repo_params" in pbi_env.keys():
@@ -174,7 +176,7 @@ if "repo_params" in pbi_env.keys():
     repoengine = sqlalchemy.create_engine(pbi_env["repo_engine"] % params)
 else:
     repoengine = sqlalchemy.create_engine(pbi_env["repo_engine"])
-log.info("repoengine %s",repoengine.url)
+logging.info("repoengine %s",repoengine.url)
 repo_table_prefix="plainbi_"
 
 api_root="/api"
@@ -193,6 +195,11 @@ FROM sys.tables t
 ORDER BY database_name, schema_name, table_name
 """
 
+#
+@api.route(api_root+'/version', methods=['GET'])
+def get_version():
+    return "0.1 15.05.2023"
+
 ###########################
 ##
 ## CRUD
@@ -201,7 +208,7 @@ ORDER BY database_name, schema_name, table_name
 
 
 # Define routes for CRUD operations
-@app.route(api_prefix+'/<tab>', methods=['GET'])
+@api.route(api_prefix+'/<tab>', methods=['GET'])
 def get_all_items(tab):
     """
     Hole (mehrere) Datensätze aus einer Tabelle
@@ -215,37 +222,37 @@ def get_all_items(tab):
     dict mit den keys "data", "columns", "total_count"
 
     """
-    log.debug("++++++++++ entering get_all_items")
-    log.debug("get_all_items: param tab is <%s>",str(tab))
+    logging.debug("++++++++++ entering get_all_items")
+    logging.debug("get_all_items: param tab is <%s>",str(tab))
     out={}
     is_versioned=False
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
+                logging.debug("versions enabled")
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("pagination offset=%s limit=%s",offset,limit)
+    logging.debug("pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,msg=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned)
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
     if columns is None:  # keine Spalten
-        log.debug("get_all_items: return with error 500 because no columns selected")
+        logging.debug("get_all_items: return with error 500 because no columns selected")
         return msg, 500
     else:
-        log.debug("leaving get_all_items and return json result")
-        log.debug("out=%s",str(out))
+        logging.debug("leaving get_all_items and return json result")
+        logging.debug("out=%s",str(out))
         return jsonify(out)
 
 # Define routes for CRUD operations
 
 
-@app.route(api_prefix+'/<tab>/<pk>', methods=['GET'])
+@api.route(api_prefix+'/<tab>/<pk>', methods=['GET'])
 def get_item(tab,pk):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle
@@ -263,42 +270,45 @@ def get_item(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering get_items")
-    log.debug("get_items: param tab is <%s>",str(tab))
-    log.debug("get_items: param pk/id is <%s>",str(pk))
+    logging.debug("++++++++++ entering get_items")
+    logging.debug("get_items: param tab is <%s>",str(tab))
+    logging.debug("get_items: param pk/id is <%s>",str(pk))
     # check options
     out={}
     is_versioned=False
     pkcols=[]
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                logging.debug("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("tab %s pk %s")
+                logging.debug("versions enabled")
+    logging.debug("tab %s pk %s")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
     out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
-            log.debug("out:%s",str(out))
-            log.debug("leaving get_item with success and json result")
+            logging.debug("out:%s",str(out))
+            logging.debug("leaving get_item with success and json result")
             return jsonify(out)
             #return Response(jsonify(out),status=204)
         else:
-            log.debug("no record found")
+            logging.debug("no record found")
             # return Response(status=204)
-            log.debug("leaving get_item with 204 no record forund")
+            logging.debug("leaving get_item with 204 no record forund")
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
-    log.debug("leaving get_item with error 500 and return json result")
+    logging.debug("leaving get_item with error 500 and return json result")
     return (jsonify(out),500)
 
 
-@app.route(api_prefix+'/<tab>', methods=['POST'])
+@api.route(api_prefix+'/<tab>', methods=['POST'])
 def create_item(tab):
     """
     einen neuen Datensatz in einer Tabelle anlegen
@@ -316,8 +326,8 @@ def create_item(tab):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering create_item")
-    log.debug("create_item: param tab is <%s>",str(tab))
+    logging.debug("++++++++++ entering create_item")
+    logging.debug("create_item: param tab is <%s>",str(tab))
     out={}
     pkcols=[]
     is_versioned=False
@@ -325,32 +335,32 @@ def create_item(tab):
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                logging.debug("pk option %s",pkcols)
             if key=="seq":
                 seq=value
-                log.debug("pk sequence %s",seq)
+                logging.debug("pk sequence %s",seq)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("create_item tab %s pkcols %s seq %s",tab,pkcols,seq)
+                logging.debug("versions enabled")
+    logging.debug("create_item tab %s pkcols %s seq %s",tab,pkcols,seq)
     metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    log.debug("create_item %s pkcols2 %s",tab,pkcols)
-    log.debug("in create_item (pos)")
+        logging.warning("implicit pk first column")
+    logging.debug("create_item %s pkcols2 %s",tab,pkcols)
+    logging.debug("in create_item (pos)")
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    logging.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    logging.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
+    logging.debug("item %s",item)
     s=None
     if is_versioned:
         ts=get_current_timestamp(dbengine)
@@ -397,15 +407,15 @@ def create_item(tab):
                 out["errors"]="mehr als eine PK Spalte bei angegeben sequence nicht erlaubt"
                 return (jsonify(out),500)
             s=get_next_seq(dbengine,seq)
-            log.debug("got seq %d ",s)
+            logging.debug("got seq %d ",s)
             vallist[collist.index(pkcols[0])]=s
-            log.debug("seqence %s inserted",seq)
+            logging.debug("seqence %s inserted",seq)
         else:
             s=vallist[collist.index(pkcols[0])]
         q_str=",".join(qlist)
         collist_str=",".join(collist)
         sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
+        logging.debug("create item: %s",sql)
         dbengine.execute(sql,tuple(vallist))
         #cursor = cnxn.cursor()
         #cursor.execute(sql,val_tuple)
@@ -428,7 +438,7 @@ def create_item(tab):
     return jsonify(out)
 
 
-@app.route(api_prefix+'/<tab>/<pk>', methods=['PUT'])
+@api.route(api_prefix+'/<tab>/<pk>', methods=['PUT'])
 def update_item(tab,pk):
     """
     einen bestimmten Datensatz aktualisieren
@@ -446,40 +456,39 @@ def update_item(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering update_item")
-    log.debug("update_item: param tab is <%s>",str(tab))
-    log.debug("update_item: param pk is <%s>",str(pk))
+    logging.debug("++++++++++ entering update_item")
+    logging.debug("update_item: param tab is <%s>",str(tab))
+    logging.debug("update_item: param pk is <%s>",str(pk))
     out={}
     pkcols=[]
     is_versioned=False
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                logging.debug("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("update_item tab %s pk %s pkcols %s",tab,pk,pkcols)
+                logging.debug("versions enabled")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    logging.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    logging.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
-    log.debug("item-keys %s",item.keys())
+    logging.debug("item %s",item)
+    logging.debug("item-keys %s",item.keys())
     metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
+        logging.warning("implicit pk first column")
 
     if pkcols[0] not in item.keys():
         out["errors"]="PK Spalte muss beim Update (PUT) in den request daten sein"
@@ -494,14 +503,11 @@ def update_item(tab,pk):
         out["errors"]="PK check nicht erfolgreich"
         return (jsonify(out),500)
 
-    if len(pkcols)==1:
-        pkwhere=pkcols[0]+"=?"
-    else:
-        pkexp=[k+"=?" for k in pkcols]
-        pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
+    pkexp=[k+"=?" for k in pkcols]
+    pkwhere=" AND ".join(pkexp)
+    logging.debug("pkwhere %s",pkwhere)
 
-    log.debug("pk_columns %s",pkcols)
+    logging.debug("pk_columns %s",pkcols)
     if is_versioned:
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
@@ -523,10 +529,10 @@ def update_item(tab,pk):
         vallist=[v for v in rec.values()]
         # überschreibe mit neuen werten
         for k,v in item.items():
-            log.debug("-> %s %s",k,v)
+            logging.debug("-> %s %s",k,v)
             pos=collist.index(k)
             if pos>=0:
-                log.debug("overwrite: %s %s",k,v)
+                logging.debug("overwrite: %s %s",k,v)
                 vallist[pos]=v
         vallist[collist.index("valid_from_dt")]=ts
         vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
@@ -537,12 +543,12 @@ def update_item(tab,pk):
         q_str=",".join(qlist)
         collist_str=",".join(collist)
         sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
+        logging.debug("create item: %s",sql)
         dbengine.execute(sql,tuple(vallist))
     else:
         # nicht versionierter Standardfall
         othercols=[col for col in item.keys() if col not in pkcols]
-        log.debug("othercols %s",othercols)
+        logging.debug("othercols %s",othercols)
         osetexp=[k+"=?" for k in othercols]
         osetexp_str=",".join(osetexp)
     
@@ -551,14 +557,14 @@ def update_item(tab,pk):
         val_tuple=tuple(vallist)
         
         sql=f"UPDATE {tab} SET {osetexp_str} WHERE {pkwhere}"
-        log.debug("update item sql %s",sql)
+        logging.debug("update item sql %s",sql)
         dbengine.execute(sql,val_tuple)
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
     out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     #return 'Item updated successfully', 200
     return jsonify(out)
 
-@app.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
+@api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
 def delete_item(tab,pk):
     """
     einen bestimmten Datensatz löschen
@@ -576,41 +582,33 @@ def delete_item(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering delete_item")
-    log.debug("delete_item: param tab is <%s>",str(tab))
-    log.debug("delete_item: param pk is <%s>",str(pk))
+    logging.debug("++++++++++ entering delete_item")
+    logging.debug("delete_item: param tab is <%s>",str(tab))
+    logging.debug("delete_item: param pk is <%s>",str(pk))
     # check options
     out={}
     pkcols=[]
     is_versioned=False
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                logging.debug("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("delete_item tab %s pk %s pkcols %s",tab,pk,pkcols)
+                logging.debug("versions enabled")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
+    logging.debug("delete_item tab %s pk %s pkcols %s",tab,pk,pkcols)
     metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
+        logging.warning("implicit pk first column")
 
-    log.debug("in delete_item")
-    metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=(metadata["columns"])[0]
-        log.warning("implicit pk first column")
-        
     chkout=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
@@ -620,13 +618,13 @@ def delete_item(tab,pk):
         out["errors"]="PK check nicht erfolgreich"
         return (jsonify(out),500)
         
-    log.debug("delete_item pk_columns %s",pkcols)
+    logging.debug("delete_item pk_columns %s",pkcols)
     if len(pkcols)==1:
         pkwhere=pkcols[0]+"=?"
     else:
         pkexp=[k+"=?" for k in pkcols]
         pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
+    logging.debug("pkwhere %s",pkwhere)
     if is_versioned:
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
@@ -655,19 +653,19 @@ def delete_item(tab,pk):
         q_str=",".join(qlist)
         collist_str=",".join(collist)
         sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
+        logging.debug("create item: %s",sql)
         dbengine.execute(sql,tuple(vallist))
     else:
         sql=f"DELETE FROM {tab} WHERE {pkwhere}"
-        log.debug("delete_item sql %s",sql)
+        logging.debug("delete_item sql %s",sql)
         dbengine.execute(sql,pk)
     return 'Item deleted successfully', 200
     #return jsonify(out)
 
 
-@app.route(api_metadata_prefix+'/tables', methods=['GET'])
+@api.route(api_metadata_prefix+'/tables', methods=['GET'])
 def get_metadata_tables():
-    log.debug("++++++++++ entering get_metadata_tables")
+    logging.debug("++++++++++ entering get_metadata_tables")
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -681,7 +679,7 @@ def get_metadata_tables():
     else:
         return jsonify(out)
 
-@app.route(api_metadata_prefix+'/table/<tab>', methods=['GET'])
+@api.route(api_metadata_prefix+'/table/<tab>', methods=['GET'])
 def get_metadata_tab_columns(tab):
     """
     Metadaten einer Tabelle holen
@@ -696,16 +694,16 @@ def get_metadata_tab_columns(tab):
     -------
 
     """
-    log.debug("++++++++++ entering get_metadata_tab_columns")
-    log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
+    logging.debug("++++++++++ entering get_metadata_tab_columns")
+    logging.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
     pkcols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
-    log.debug('get_metadata_tab_columns: for %s',tab)
+                logging.debug("pk option %s",pkcols)
+    logging.debug('get_metadata_tab_columns: for %s',tab)
     metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     return jsonify(metadata)
 
@@ -720,7 +718,7 @@ def get_metadata_tab_columns(tab):
 
 
 # Define routes for CRUD operations
-@app.route(repo_api_prefix+'/<tab>', methods=['GET'])
+@api.route(repo_api_prefix+'/<tab>', methods=['GET'])
 def get_all_repos(tab):
     """
     Hole (mehrere) Datensätze aus dem Repository
@@ -734,13 +732,13 @@ def get_all_repos(tab):
     dict mit den keys "data", "columns", "total_count"
 
     """
-    log.debug("++++++++++ entering get_all_repos")
-    log.debug("get_all_repos: param tab is <%s>",str(tab))
+    logging.debug("++++++++++ entering get_all_repos")
+    logging.debug("get_all_repos: param tab is <%s>",str(tab))
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("pagination offset=%s limit=%s",offset,limit)
+    logging.debug("pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,msg=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,with_total_count=True)
     out["data"]=items
     out["columns"]=columns
@@ -753,7 +751,7 @@ def get_all_repos(tab):
 # Define routes for CRUD operations
 
 
-@app.route(repo_api_prefix+'/<tab>/<pk>', methods=['GET'])
+@api.route(repo_api_prefix+'/<tab>/<pk>', methods=['GET'])
 def get_repo(tab,pk):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle
@@ -771,46 +769,40 @@ def get_repo(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering get_repo")
-    log.debug("get_repo: param tab is <%s>",str(tab))
-    log.debug("get_repo: param pk is <%s>",str(pk))
+    logging.debug("++++++++++ entering get_repo")
+    logging.debug("get_repo: param tab is <%s>",str(tab))
+    logging.debug("get_repo: param pk is <%s>",str(pk))
     # check options
     pkcols=[]
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
-    log.debug("tab %s pk %s")
+                logging.debug("pk option %s",pkcols)
     # check if pk is compound
-    if ":" in pk:
-        pk=pk.strip("(")
-        pk=pk.strip(")")
-        pkl=pk.split(":")
-        i=0
-        pkd={}
-        while i < len(pkl):
-            pkd[pkl[i]]=pkl[i+1]
-            i+=2
-        pk=pkd
-        log.debug("compound key:%s",str(pk))
-    out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
+    pk=prep_pk_from_url(pk)
+    if tab=="application" and (not is_id(pk)):
+        # use alias
+        pk="adhoc"
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"])
+    else:    
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
-            log.debug("out:%s",str(out))
+            logging.debug("out:%s",str(out))
             return jsonify(out)
             #return Response(jsonify(out),status=204)
         else:
-            log.debug("no record found")
+            logging.debug("no record found")
             # return Response(status=204)
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
     return (jsonify(out),500)
 
 
-@app.route(repo_api_prefix+'/<tab>', methods=['POST'])
+@api.route(repo_api_prefix+'/<tab>', methods=['POST'])
 def create_repo(tab):
     """
     einen neuen Datensatz in einer Tabelle anlegen
@@ -828,38 +820,37 @@ def create_repo(tab):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering create_repo")
-    log.debug("create_repo: param tab is <%s>",str(tab))
+    logging.debug("++++++++++ entering create_repo")
+    logging.debug("create_repo: param tab is <%s>",str(tab))
     out={}
     pkcols=[]
     is_versioned=False
-    def_repo_seq="REPO"
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                logging.debug("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("create_repo tab %s pkcols %s",tab,pkcols)
+                logging.debug("versions enabled")
+    logging.debug("create_repo tab %s pkcols %s",tab,pkcols)
     metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    log.debug("create_item %s pkcols2 %s",tab,pkcols)
-    log.debug("in create_item (pos)")
+        logging.warning("implicit pk first column")
+    logging.debug("create_item %s pkcols2 %s",tab,pkcols)
+    logging.debug("in create_item (pos)")
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    logging.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    logging.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
+    logging.debug("item %s",item)
     s=None
     if is_versioned:
         ts=get_current_timestamp(repoengine)
@@ -921,7 +912,7 @@ def create_repo(tab):
         q_str=",".join(qlist)
         collist_str=",".join(collist)
         sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create repo: %s",sql)
+        logging.debug("create repo: %s",sql)
         repoengine.execute(sql,tuple(vallist))
         #cursor = cnxn.cursor()
         #cursor.execute(sql,val_tuple)
@@ -944,7 +935,7 @@ def create_repo(tab):
     return jsonify(out)
 
 
-@app.route(repo_api_prefix+'/<tab>/<pk>', methods=['PUT'])
+@api.route(repo_api_prefix+'/<tab>/<pk>', methods=['PUT'])
 def update_repo(tab,pk):
     """
     einen bestimmten Datensatz aktualisieren
@@ -962,45 +953,40 @@ def update_repo(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering update_repo")
-    log.debug("update_repo: param tab is <%s>",str(tab))
-    log.debug("update_repo: param pk is <%s>",str(pk))
+    logging.debug("++++++++++ entering update_repo")
+    logging.debug("update_repo: param tab is <%s>",str(tab))
+    logging.debug("update_repo: param pk is <%s>",str(pk))
     out={}
     pkcols=[]
     is_versioned=False
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                logging.debug("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("update_repo tab %s pk %s pkcols %s",tab,pk,pkcols)
+                logging.debug("versions enabled")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    logging.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    logging.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
-    log.debug("item-keys %s",item.keys())
+    logging.debug("item %s",item)
+    logging.debug("item-keys %s",item.keys())
     metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
+        logging.warning("implicit pk first column")
 
-    if pkcols[0] not in item.keys():
-        out["errors"]="PK Spalte muss beim Update (PUT) in den request daten sein"
-        return (jsonify(out),500)
-
+    # get old record
     chkout=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
@@ -1010,14 +996,11 @@ def update_repo(tab,pk):
         out["errors"]="PK check nicht erfolgreich"
         return (jsonify(out),500)
 
-    if len(pkcols)==1:
-        pkwhere=pkcols[0]+"=?"
-    else:
-        pkexp=[k+"=?" for k in pkcols]
-        pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
+    pkexp=[k+"=?" for k in pkcols]
+    pkwhere=" AND ".join(pkexp)
+    logging.debug("pkwhere %s",pkwhere)
 
-    log.debug("pk_columns %s",pkcols)
+    logging.debug("pk_columns %s",pkcols)
     if is_versioned:
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
@@ -1039,10 +1022,10 @@ def update_repo(tab,pk):
         vallist=[v for v in rec.values()]
         # überschreibe mit neuen werten
         for k,v in item.items():
-            log.debug("-> %s %s",k,v)
+            logging.debug("-> %s %s",k,v)
             pos=collist.index(k)
             if pos>=0:
-                log.debug("overwrite: %s %s",k,v)
+                logging.debug("overwrite: %s %s",k,v)
                 vallist[pos]=v
         vallist[collist.index("valid_from_dt")]=ts
         vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
@@ -1053,12 +1036,12 @@ def update_repo(tab,pk):
         q_str=",".join(qlist)
         collist_str=",".join(collist)
         sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
+        logging.debug("create item: %s",sql)
         repoengine.execute(sql,tuple(vallist))
     else:
         # nicht versionierter Standardfall
         othercols=[col for col in item.keys() if col not in pkcols]
-        log.debug("othercols %s",othercols)
+        logging.debug("othercols %s",othercols)
         osetexp=[k+"=?" for k in othercols]
         osetexp_str=",".join(osetexp)
     
@@ -1067,14 +1050,14 @@ def update_repo(tab,pk):
         val_tuple=tuple(vallist)
         
         sql=f"UPDATE {repo_table_prefix}{tab} SET {osetexp_str} WHERE {pkwhere}"
-        log.debug("update item sql %s",sql)
+        logging.debug("update item sql %s",sql)
         repoengine.execute(sql,val_tuple)
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
     out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     #return 'Item updated successfully', 200
     return jsonify(out)
 
-@app.route(repo_api_prefix+'/<tab>/<pk>', methods=['DELETE'])
+@api.route(repo_api_prefix+'/<tab>/<pk>', methods=['DELETE'])
 def delete_repo(tab,pk):
     """
     einen bestimmten Datensatz löschen
@@ -1092,40 +1075,31 @@ def delete_repo(tab,pk):
     dict mit den keys "data"  
 
     """
-    log.debug("++++++++++ entering delete_repo")
-    log.debug("delete_repo: param tab is <%s>",str(tab))
-    log.debug("delete_repo: param pk is <%s>",str(pk))
+    logging.debug("++++++++++ entering delete_repo")
+    logging.debug("delete_repo: param tab is <%s>",str(tab))
+    logging.debug("delete_repo: param pk is <%s>",str(pk))
     # check options
     out={}
     pkcols=[]
     is_versioned=False
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                logging.debug("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("delete_item tab %s pk %s pkcols %s",tab,pk,pkcols)
-    metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
-
-    log.debug("in delete_item")
+                logging.debug("versions enabled")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
     metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
         pkcols=(metadata["columns"])[0]
-        log.warning("implicit pk first column")
+        logging.warning("implicit pk first column")
         
     chkout=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
@@ -1136,13 +1110,10 @@ def delete_repo(tab,pk):
         out["errors"]="PK check nicht erfolgreich"
         return (jsonify(out),500)
         
-    log.debug("delete_item pk_columns %s",pkcols)
-    if len(pkcols)==1:
-        pkwhere=pkcols[0]+"=?"
-    else:
-        pkexp=[k+"=?" for k in pkcols]
-        pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
+    logging.debug("delete_repo pk_columns %s",pkcols)
+    pkexp=[k+"=?" for k in pkcols]
+    pkwhere=" AND ".join(pkexp)
+    logging.debug("pkwhere %s",pkwhere)
     if is_versioned:
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
@@ -1171,18 +1142,18 @@ def delete_repo(tab,pk):
         q_str=",".join(qlist)
         collist_str=",".join(collist)
         sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
+        logging.debug("create item: %s",sql)
         repoengine.execute(sql,tuple(vallist))
     else:
         sql=f"DELETE FROM {repo_table_prefix}{tab} WHERE {pkwhere}"
-        log.debug("delete_item sql %s",sql)
+        logging.debug("delete_item sql %s",sql)
         repoengine.execute(sql,pk)
     return 'Repo deleted successfully', 200
     #return jsonify(out)
 
-@app.route(repo_api_prefix+'/init_repo', methods=['POST'])
+@api.route(repo_api_prefix+'/init_repo', methods=['POST'])
 def init_repo():
-    log.debug("++++++++++ entering init_repo")
+    logging.debug("++++++++++ entering init_repo")
     with repoengine.connect() as conn:
         pass
     create_repo_db(repoengine)
@@ -1200,15 +1171,15 @@ GET /api/repo/adhoc/<id>/data	The data of a adhoc (result of its SQL)
 GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file
 GET /api/repo/lookup/<id>/data
 """
-@app.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
+@api.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
 def get_lookup(id):
-    log.debug("++++++++++ entering get_lookup")
-    log.debug("get_lookup: param id is <%s>",str(id))
+    logging.debug("++++++++++ entering get_lookup")
+    logging.debug("get_lookup: param id is <%s>",str(id))
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
+    logging.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,msg=repo_lookup_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
     out["data"]=items
     out["columns"]=columns
@@ -1218,34 +1189,38 @@ def get_lookup(id):
     else:
         return jsonify(out)
 
-@app.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
+@api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
 def get_adhoc_data(id):
-    log.debug("++++++++++ entering get_adhoc_data")
-    log.debug("get_adhoc_data: param id is <%s>",str(id))
+    logging.debug("++++++++++ entering get_adhoc_data")
+    logging.debug("get_adhoc_data: param id is <%s>",str(id))
     fmt="JSON"
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            logging.info("arg: %s val: %s",key,value)
             if key=="format":
                 fmt=value
-                log.debug("adhoc format %s",fmt)
+                logging.debug("adhoc format %s",fmt)
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+    logging.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     if fmt=="JSON":
         sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
+        if sql is None:
+            msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
+            logging.error(msg)
+            return msg, 500
         if execute_in_repodb:
-            log.debug("adhoc query execution in repodb")
+            logging.debug("adhoc query execution in repodb")
             data=repoengine.execute(sql)
         else:
-            log.debug("adhoc query execution")
+            logging.debug("adhoc query execution")
             data=dbengine.execute(sql)
         out={}
         offset = request.args.get('offset')
         limit = request.args.get('limit')
         order_by = request.args.get('order_by')
-        log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+        logging.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
         items = [dict(row) for row in data]
         columns = list(data.keys())
         total_count=len(items)
@@ -1265,7 +1240,7 @@ def get_adhoc_data(id):
     
             # Save the DataFrame to an Excel file
             if fmt=="XLSX":
-                log.debug("adhoc excel")
+                logging.debug("adhoc excel")
                 tmpfile='mydata.xlsx'
                 output = pd.ExcelWriter(tmpfile)
                 df.to_excel(output, index=False)
@@ -1279,7 +1254,7 @@ def get_adhoc_data(id):
                     )
                     return response
             elif fmt=="CSV":
-                log.debug("adhoc csv")
+                logging.debug("adhoc csv")
                 tmpfile='mydata.csv'
                 # Prepare the CSV file
                 df.to_csv(tmpfile, index=False)
@@ -1292,7 +1267,7 @@ def get_adhoc_data(id):
                     )
                     return response
             elif fmt=="TXT":
-                log.debug("adhoc csv")
+                logging.debug("adhoc csv")
                 tmpfile='mydata.csv'
                 # Prepare the CSV file
                 df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
@@ -1307,45 +1282,20 @@ def get_adhoc_data(id):
             else: 
                 return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
 
-if __name__ == '__main__':
-
-    # Create a new ArgumentParser object
-    parser = argparse.ArgumentParser(description='PlainBI CRUD Application Backend')
-    # Define the command-line arguments
-    parser.add_argument('-P', '--port', type=int, help='The port number to use (default 3001)')
-    #parser.add_argument('-h', '--help', action='help', help='Show this help message and exit')
-    parser.add_argument('-u', '--username', type=str, help='The username for the database connection')
-    parser.add_argument('-p', '--password', type=str, help='The password for the database connection')
-    parser.add_argument('-d', '--database', type=str, help='The database connection description')
-    parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode (debug=True)')
-    # Parse the arguments
-    args = parser.parse_args()
-
-    # Access the argument values
-    if args.username:
-        log.info(f"The username is {args.username}")
-    else:
-        log.info("No username was provided")
-    
-    if args.password:
-        log.info(f"The password is {args.password}")
-    else:
-        log.info("No password was provided")
-    
-    if args.database:
-        log.info(f"The database connection description is {args.database}")
-    else:
-        log.info("No database connection description was provided")
-    
-    if args.port:
-        app_port=args.port
-        log.info(f"The port number is {args.port}")
-    else:
-        app_port=3001
-        log.info(f"No port number was provided - default {args.port} is used ")
-
+def create_app(config_filename):
+    global app
+    app = Flask(__name__)
+    #app.config.from_pyfile(config_filename)
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
-    
-    log.info("start server "+__name__)
-    app.run(debug=True,host='0.0.0.0', port=app_port,use_reloader=False)
+    app.register_blueprint(api)
+
+    #from yourapplication.model import db
+    #db.init_app(app)
+
+    #from yourapplication.views.admin import admin
+    #from yourapplication.views.frontend import frontend
+    #app.register_blueprint(admin)
+    #app.register_blueprint(frontend)
+
+    return app
 
