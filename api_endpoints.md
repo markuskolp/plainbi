@@ -14,6 +14,9 @@ A **authentication** API is necessary to retrieve a JWT token for accessing all 
 |/api/crud|CRUD Applications|
 |/api/metadata|Datasource metadata (e.g. of tables)|
 
+## Authentication /api/auth
+
+**to be done**
 
 ## Repository /api/repo
 
@@ -46,6 +49,8 @@ Just replace \<type\> which one of the repository objects above:
 |POST /api/repo/\<type\>|add a \<type\>|
 |DELETE /api/repo/\<type\>/\<id\>|delete a \<type\>|
 
+If querying for an **application**: Instead of \<id\> you can also use the **alias** of the application to find it.
+
 Additionally, following endpoint delivers all repository objects with the category **resource** (application, adhoc, external_resource)
 
 |URL|Description|
@@ -58,7 +63,7 @@ Additionally, following repository objects can deliver data, as they have a sql 
 |-|-|
 |GET /api/repo/adhoc/\<id\>/data|The data of a adhoc (result of its SQL)|
 |GET /api/repo/adhoc/\<id\>/data?format=XLSX\|CSV|The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file|
-|GET /api/repo/lookup/\<id\>/data|The data of a lookup (result of its SQL)|
+|GET /api/repo/lookup/\<id\>/data|The data of a lookup (result of its SQL). Instead of \<id\> you can also use the **name** of the lookup to find it.|
 
 ### to be discussed 
 
@@ -91,14 +96,27 @@ The versioned table MUST have following columns:
 - is_latest_period
 - is_deleted
 - is_current_and_active
+- last_changed_by
 
 The backend will take care of versioning each change (PUT, POST, DELETE) the right way.
+
 And the GET method only retrieves the current and active versions.
+
+**last_changed_by** will be filled with the username.
 
 ### additional URL parameters
 
-- POST ?pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
-- GET ?order_by=name&offset=3
+|Parameter  |Description|
+|-|-|
+|pk|when inserting/update data (POST/PUT): primary key to use, otherwise the API will look for the primary key in the metadata of the database table. if this has no result, then the first column is used as primary key|
+|seq|when inserting data (POST): you can specify a sequence to be used, if it exists in the database|
+|order_by|when fetching data (GET): the result order can be specified|
+|offset|when fetching data (GET): an offset can be set|
+
+Examples:
+
+- POST ...?pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
+- GET ...?order_by=name&offset=3
 
 ### to be discussed
 

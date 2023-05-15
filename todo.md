@@ -1,25 +1,23 @@
 # Prio
 
 Prio 1
-- Adhoc API
-- CRUD API
-- Repo API
+- Adhoc API und UI
+- CRUD API und UI
+- Repo API und UI
 
 Prio 2
 - versionierte Tabellen
 - Security (Login/Logout) -> changed_by füllen !
 
-
-## backend
-
-- env auslagern (server, database, username, password)
-- plainbi repository: sqlite -> auch versionierte tabellen?
-	-> datenmodell !
-- versionierung (mit parameter angeben /v) --> evtl. muster: "%tv_%"
-- date/timestamp
+Prio 3
+- versionierte Tabellen im plainbi repository
 - unit tests
 - datenbankunabhängig: mssql, postgre, sqlite
-- adhoc:
-	- sql ausführen und daten zurückliefern als JSON
-	- wenn format=XLSX, dann Excel zurückliefern
-- security (login/logout) - session handling in flask - user erstmal in plainbi repository anlegen (später gegen AD/LDAP und SSO)
+
+Prio 4
+- Security mit AD/LDAP
+- Security mit SSO
+
+Prio 5
+- UI zum Editieren der Applikation (bisher muss JSON Spezifikation abgelegt werden)
+

@@ -10,6 +10,7 @@ Adhoc + ext. Ressource erweitern um Zuordnung zu Gruppen (wg. Berechtigungen !)
 CRUD fetch lookup for data in table view
 
 mit Joe reden: 
+  - last_changed_by !
   - analog zu lookup auch bei application suchen nach <id> oder <name> oder <alias> z.B. http://localhost:3001/api/repo/application/adhoc
     ... oder über ein Filter ?! (z.B. ?filter:alias=adhoc)
     - dann wieder umstellen in "Apps.js"
