@@ -97,6 +97,7 @@ drop table if exists plainbi_group
 create table plainbi_group (
   id int primary key not null
  ,name text
+ ,alias text
 )
 """,
 """
@@ -123,6 +124,7 @@ drop table if exists plainbi_datasource
 create table plainbi_datasource (
   id int primary key not null
  ,name text
+ ,alias text
  ,db_type text  -- db_types enum mssql,postgres,mysql,oracle,sqllite
  ,db_host text 
  ,db_port text 
@@ -132,7 +134,7 @@ create table plainbi_datasource (
 )
 """,
 """
-insert into plainbi_datasource (id,name) values (0,'internal repository')
+insert into plainbi_datasource (id,alias,name) values (0,'repo','internal repository')
 """,
 """
 insert into plainbi_seq (sequence_name,curval) values ('datasource',0)
@@ -171,6 +173,7 @@ drop table if exists plainbi_lookup
 create table plainbi_lookup (
   id int primary key not null
  ,name text
+ ,alias text
  ,sql_query text
  ,datasource_id int
  ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
@@ -187,6 +190,7 @@ drop table if exists plainbi_external_resource
 create table plainbi_external_resource (
   id int primary key not null
  ,name text
+ ,alias text
  ,url text
  ,description text
  ,source text
@@ -217,6 +221,7 @@ drop table if exists plainbi_adhoc
 create table plainbi_adhoc (
   id int primary key not null
  ,name varchar
+ ,alias text
  ,sql_query varchar
  ,output_format text -- enum outputformats -- HTML Excel CSV
  ,datasource_id int
@@ -362,61 +367,76 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
 }',0);
 """,
 """
-insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-100, 'output_format', 'select ''HTML'' as d, ''HTML'' as r union select ''Excel'' as d, ''XLSX'' as r union select ''CSV'' as d, ''CSV'' as r', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-100, 'output_format', 'select ''HTML'' as d, ''HTML'' as r union select ''Excel'' as d, ''XLSX'' as r union select ''CSV'' as d, ''CSV'' as r', 0);
 """,
 """
-insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-101, 'datasource', 'select name as d, id as r from plainbi_datasource', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-101, 'datasource', 'select name as d, id as r from plainbi_datasource', 0);
 """,
 """
-insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-102, 'db_type', 'select ''SQLite'' as d, ''sqlite'' as r union select ''MS SQL Server'' as d, ''mssql'' as r', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-102, 'db_type', 'select ''SQLite'' as d, ''sqlite'' as r union select ''MS SQL Server'' as d, ''mssql'' as r', 0);
 """,
 """
-insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-103, 'user', 'select fullname as d, id as r from plainbi_user', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select fullname as d, id as r from plainbi_user', 0);
 """,
 """
-insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-104, 'group', 'select name as d, id as r from plainbi_group', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-104, 'group', 'select name as d, id as r from plainbi_group', 0);
 """,
 """
-insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-105, 'application', 'select name as d, id as r from plainbi_application', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-105, 'application', 'select name as d, id as r from plainbi_application', 0);
+""",
+"""
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-106, 'role', 'select name as d, id as r from plainbi_role', 0);
+""",
+"""
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-107, 'adhoc', 'select name as d, id as r from plainbi_adhoc', 0);
+""",
+"""
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-108, 'external_resource', 'select name as d, id as r from plainbi_external_resource', 0);
+""",
+"""
+drop view if exists plainbi_resources;
 """,
 """
 create view plainbi_resources
 as
-select 
-      id, name
-      , '/apps/'||alias as url
-      , '_self' as target
-      , null as output_format 
-      , null as description
-      , null as source
-      , null as dataset
-      , 'application' as resource_type
-      , 'Applikation' as resource_type_de 
-from plainbi_application pa 
+select 
+    'application_'||id as id
+    , name
+    , '/apps/'||alias as url
+    , '_self' as target
+    , null as output_format 
+    , null as description
+    , null as source
+    , null as dataset
+    , 'application' as resource_type
+    , 'Applikation' as resource_type_de 
+from plainbi_application pa 
 union all
-select 
-      id, name
-      , '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
-      , '_self' as target
-      , coalesce(output_format, 'HTML') output_format
-      , null as description
-      , 'Adhoc' as source
-      , null as dataset
-      , 'adhoc' as resource_type
-      , 'Adhoc' as resource_type_de 
-from plainbi_adhoc padh 
+select 
+    'adhoc_'||id as id
+    , name
+    , '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
+    , '_self' as target
+    , coalesce(output_format, 'HTML') output_format
+    , null as description
+    , 'Adhoc' as source
+    , null as dataset
+    , 'adhoc' as resource_type
+    , 'Adhoc' as resource_type_de 
+from plainbi_adhoc padh 
 union all
-select 
-      id, name
-      , url
-      , '_blank' as target
-      , null as output_format 
-      , description
-      , source
-      , dataset
-      , 'external_resource' as resource_type
-      , 'Extern' as resource_type_de 
-from plainbi_external_resource per 
+select 
+    'external_resource_'||id as id
+    , name
+    , url
+    , '_blank' as target
+    , null as output_format 
+    , description
+    , source
+    , dataset
+    , 'external_resource' as resource_type
+    , 'Extern' as resource_type_de 
+from plainbi_external_resource per 
 """,
     ]
     print("******************************")

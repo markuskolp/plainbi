@@ -87,7 +87,7 @@ from flask.json import JSONEncoder
 from dotenv import load_dotenv
 import csv
 import pandas as pd
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt
 from plainbi_backend.repo import create_repo_db
 
@@ -782,7 +782,12 @@ def get_repo(tab,pk):
                 logging.debug("pk option %s",pkcols)
     # check if pk is compound
     pk=prep_pk_from_url(pk)
-    out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
+    if tab=="application" and (not is_id(pk)):
+        # use alias
+        pk="adhoc"
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"])
+    else:    
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))

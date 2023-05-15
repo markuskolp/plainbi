@@ -173,6 +173,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
     print("get_item_raw: pk_columns",str(pkcols))
     try:
         #cursor = cnxn.cursor()
+        vallist=[]
         if isinstance(pk, dict):
             pkstr1=pkcols[0]
             sql=f'SELECT * FROM {tab}'
@@ -183,15 +184,17 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
                     sql+=" WHERE "
                 else:
                     sql+=" AND "
-                sql+=c+"="+v
+                sql+=c+"=?"
+                vallist.append(v)
         else:
             pkstr1=pkcols[0]
-            sql=f'SELECT * FROM {tab} where {pkstr1}={pk}'
+            sql=f'SELECT * FROM {tab} where {pkstr1}=?'
+            vallist=[pk]
         if versioned:
            #sql+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
            sql+=" AND is_current_and_active = 'Y'" 
         log.debug("sql=%s",sql)
-        data=dbengine.execute(sql)
+        data=dbengine.execute(sql,tuple(vallist))
         items = [dict(row) for row in data]
         columns = list(data.keys())
 #        for r in items:
@@ -310,7 +313,7 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
     if is_id(id):
         reposql="select * from plainbi_lookup where id=?"
     else:
-        reposql="select * from plainbi_lookup where name=?"
+        reposql="select * from plainbi_lookup where alias=?"
     log.debug("repo_lookup_select: repo sql is <%s>",reposql)
     lkpq=repoengine.execute(reposql , id)
     lkp=[dict(r) for r in lkpq]
@@ -353,7 +356,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     if is_id(id):
         reposql="select * from plainbi_adhoc where id=?"
     else:
-        reposql="select * from plainbi_adhoc where name=?"
+        reposql="select * from plainbi_adhoc where alias=?"
     log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
     lkpq=repoengine.execute(reposql , id)
     lkp=[dict(r) for r in lkpq]

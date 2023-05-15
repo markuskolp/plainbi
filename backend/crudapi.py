@@ -58,6 +58,7 @@ curl --header "Content-Type: application/json" --request GET "localhost:3002/api
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/5" -w "%{http_code}\n"
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application_to_group/(application_id:1:group_id:7)" -w "%{http_code}\n"
 
+
 # PUT
 curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"app3\"}' localhost:3002/api/repo/application/3
 curl --header "Content-Type: application/json" --request PUT --data '{\"id\":\"3\",\"name\":\"app3\"}' localhost:3002/api/repo/application/3
@@ -89,7 +90,7 @@ from dotenv import load_dotenv
 import csv
 import pandas as pd
 from io import StringIO
-from plainbi_backend.utils import db_subs_env, is_id
+from plainbi_backend.utils import db_subs_env, is_id,prep_pk_from_url
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt
 from plainbi_backend.repo import create_repo_db
 
@@ -107,14 +108,13 @@ class CustomJSONEncoder(JSONEncoder):
             return list(iterable)
         return JSONEncoder.default(self, obj)
 
-app = Flask(__name__)
-app.json_encoder = CustomJSONEncoder
-
 home_directory = os.path.expanduser( '~' )
 dotenv_path = os.path.join(home_directory, '.env')
 load_dotenv(dotenv_path)
 
 app = Flask(__name__)
+app.json_encoder = CustomJSONEncoder
+
 log=app.logger
 log.setLevel(logging.DEBUG)
 
@@ -280,6 +280,9 @@ def get_item(tab,pk):
                 is_versioned=True
                 log.debug("versions enabled")
     log.debug("tab %s pk %s")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
     out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     if "data" in out.keys():
         if len(out["data"])>0:
@@ -462,7 +465,9 @@ def update_item(tab,pk):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
-    log.debug("update_item tab %s pk %s pkcols %s",tab,pk,pkcols)
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
     data_bytes = request.get_data()
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
@@ -477,9 +482,6 @@ def update_item(tab,pk):
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
         log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
 
     if pkcols[0] not in item.keys():
         out["errors"]="PK Spalte muss beim Update (PUT) in den request daten sein"
@@ -494,11 +496,8 @@ def update_item(tab,pk):
         out["errors"]="PK check nicht erfolgreich"
         return (jsonify(out),500)
 
-    if len(pkcols)==1:
-        pkwhere=pkcols[0]+"=?"
-    else:
-        pkexp=[k+"=?" for k in pkcols]
-        pkwhere=" AND ".join(pkexp)
+    pkexp=[k+"=?" for k in pkcols]
+    pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
 
     log.debug("pk_columns %s",pkcols)
@@ -592,6 +591,9 @@ def delete_item(tab,pk):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
     log.debug("delete_item tab %s pk %s pkcols %s",tab,pk,pkcols)
     metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
@@ -599,18 +601,7 @@ def delete_item(tab,pk):
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
         log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
 
-    log.debug("in delete_item")
-    metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=(metadata["columns"])[0]
-        log.warning("implicit pk first column")
-        
     chkout=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
@@ -782,19 +773,8 @@ def get_repo(tab,pk):
             if key=="pk":
                 pkcols=value.split(",")
                 log.debug("pk option %s",pkcols)
-    log.debug("tab %s pk %s")
     # check if pk is compound
-    if ":" in pk:
-        pk=pk.strip("(")
-        pk=pk.strip(")")
-        pkl=pk.split(":")
-        i=0
-        pkd={}
-        while i < len(pkl):
-            pkd[pkl[i]]=pkl[i+1]
-            i+=2
-        pk=pkd
-        log.debug("compound key:%s",str(pk))
+    pk=prep_pk_from_url(pk)
     out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "data" in out.keys():
         if len(out["data"])>0:
@@ -978,7 +958,8 @@ def update_repo(tab,pk):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
-    log.debug("update_repo tab %s pk %s pkcols %s",tab,pk,pkcols)
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
     data_bytes = request.get_data()
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
@@ -993,14 +974,8 @@ def update_repo(tab,pk):
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
         log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
 
-    if pkcols[0] not in item.keys():
-        out["errors"]="PK Spalte muss beim Update (PUT) in den request daten sein"
-        return (jsonify(out),500)
-
+    # get old record
     chkout=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
@@ -1010,11 +985,8 @@ def update_repo(tab,pk):
         out["errors"]="PK check nicht erfolgreich"
         return (jsonify(out),500)
 
-    if len(pkcols)==1:
-        pkwhere=pkcols[0]+"=?"
-    else:
-        pkexp=[k+"=?" for k in pkcols]
-        pkwhere=" AND ".join(pkexp)
+    pkexp=[k+"=?" for k in pkcols]
+    pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
 
     log.debug("pk_columns %s",pkcols)
@@ -1108,18 +1080,9 @@ def delete_repo(tab,pk):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
-    log.debug("delete_item tab %s pk %s pkcols %s",tab,pk,pkcols)
-    metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    if len(pkcols) > 1:
-        out["errors"]="PK mit mehr als einer Spalte ist nicht implementiert"
-        return (jsonify(out),500)
-
-    log.debug("in delete_item")
+    # check if pk is compound
+    pk=prep_pk_from_url(pk)
+    #
     metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
@@ -1136,12 +1099,9 @@ def delete_repo(tab,pk):
         out["errors"]="PK check nicht erfolgreich"
         return (jsonify(out),500)
         
-    log.debug("delete_item pk_columns %s",pkcols)
-    if len(pkcols)==1:
-        pkwhere=pkcols[0]+"=?"
-    else:
-        pkexp=[k+"=?" for k in pkcols]
-        pkwhere=" AND ".join(pkexp)
+    log.debug("delete_repo pk_columns %s",pkcols)
+    pkexp=[k+"=?" for k in pkcols]
+    pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
     if is_versioned:
         # aktuellen Datensatz abschließen
@@ -1235,6 +1195,10 @@ def get_adhoc_data(id):
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     if fmt=="JSON":
         sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
+        if sql is None:
+            msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
+            log.error(msg)
+            return msg, 500
         if execute_in_repodb:
             log.debug("adhoc query execution in repodb")
             data=repoengine.execute(sql)
@@ -1306,6 +1270,20 @@ def get_adhoc_data(id):
                     return response
             else: 
                 return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
+
+def create_app(config_filename):
+    app = Flask(__name__)
+    app.config.from_pyfile(config_filename)
+
+    from yourapplication.model import db
+    db.init_app(app)
+
+    from yourapplication.views.admin import admin
+    from yourapplication.views.frontend import frontend
+    app.register_blueprint(admin)
+    app.register_blueprint(frontend)
+
+    return app
 
 if __name__ == '__main__':
 
