@@ -1,8 +1,18 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { Form, Input, Button, Checkbox,Image, Space  } from 'antd';
 import Icon from '@ant-design/icons';
 
 const LoginPage = () => {
+
+  const userInput = useRef(null);
+
+  useEffect(() => {
+    if (userInput.current) {
+      // or, if Input component in your ref, then use input property like:
+      // userInput.current.input.focus();
+      userInput.current.focus();
+    }
+  }, [userInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -12,6 +22,7 @@ const LoginPage = () => {
       }
     });
   };
+
 
   return (
       <div className="login">
@@ -30,6 +41,7 @@ const LoginPage = () => {
             <Input
               prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />}
               placeholder="Username"
+              ref={userInput}
             />
           </Form.Item>
           <Form.Item

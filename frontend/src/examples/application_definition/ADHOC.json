@@ -50,6 +50,39 @@
                "required":"true"
             }
          ]
+      },
+      {
+         "id":"2",
+         "name":"Berechtigung",
+         "alias":"rights",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["adhoc_id,group_id"],
+         "table":"adhoc_to_group",
+         "table_columns":[
+            {
+               "column_name":"adhoc_id",
+               "column_label":"Adhoc",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"adhoc",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"group_id",
+               "column_label":"Gruppe",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"group",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
       }
    ]
 }

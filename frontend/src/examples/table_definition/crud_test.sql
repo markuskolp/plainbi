@@ -1,9 +1,11 @@
 
-DROP TABLE IF EXISTS  dwh.analysis.crud_api_testtable;
+DROP TABLE IF EXISTS dwh.analysis.crud_api_testtable;
 CREATE TABLE dwh.analysis.crud_api_testtable (
     nr int NOT NULL
   , name varchar(200)
   , dat date
+  , ist_konfiguriert char(1)
+  , ist_konfiguriert_as_bit bit
   , PRIMARY KEY (nr)
 );
 

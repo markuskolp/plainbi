@@ -94,7 +94,7 @@ const columns = [
     key: "dataset",
     width: 100,
     render: (name, record) => (
-      <Tag color="blue" style={{textTransform:'uppercase'}}>{record.dataset}</Tag>
+      record.dataset && <Tag color="blue" style={{textTransform:'uppercase'}}>{record.dataset}</Tag>
     )
   },    
   {
@@ -103,7 +103,7 @@ const columns = [
     key: "resource_type_de",
     width: 100,
     render: (name, record) => (
-      <Tag color="blue" style={{textTransform:'uppercase'}}>{record.source}</Tag>
+      record.resource_type_de && <Tag color="blue" style={{textTransform:'uppercase'}}>{record.resource_type_de}</Tag>
     )
   }
   

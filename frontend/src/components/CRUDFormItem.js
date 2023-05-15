@@ -18,7 +18,7 @@ const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 
-const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, handleChange }) => {
+const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, handleChange, tooltip }) => {
 
   const dateFormat = 'YYYY-MM-DD';
 
@@ -55,6 +55,12 @@ const handleMonacoEditorChange = (value, e) => {
   handleChange(emuEvent); 
 }
 
+const handleSwitchChange = (checked, e) => {
+  const emuEvent = { "target": { "name": name, "value": checked}} // emulate event.target.name/.value object
+  console.log(emuEvent);
+  handleChange(emuEvent); 
+}
+
  const options = {
   autoIndent: 'full',
   contextmenu: true,
@@ -84,6 +90,7 @@ const handleMonacoEditorChange = (value, e) => {
                 name={name}
                 label={label}
                 rules={[{ required: (required === "true" ? true : false) }]}
+                tooltip={tooltip}
               >
                 {editable === "false" ? (
                   <Text>{defaultValue}</Text>
@@ -139,7 +146,7 @@ const handleMonacoEditorChange = (value, e) => {
                   :
                   <DatePicker format={dateFormat} onChange={handleDatePickerChange} /> 
                 ) : ui === "switch" ? (
-                  <Switch name={name} defaultChecked={defaultValue} onChange={handleChange}/>
+                  <Switch name={name} defaultChecked={defaultValue} onChange={handleSwitchChange}/>
                 ) : ui === "label" ? (
                   <Text>{defaultValue}</Text>
                 ) : (

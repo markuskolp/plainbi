@@ -33,6 +33,17 @@ const Settings = () => {
   Applikationen zu Gruppen (Zuordnung)
   */
 
+  
+  const lookupSqlDescription = (
+    <React.Fragment>
+    <p>Das hinterlegte SQL muss genau 2 Spalten zurückliefern:</p>
+    <ul><li>d: display</li><li>r: return</li></ul>
+    <p>'display' wird zur <b>Anzeige</b> und 'return' wird zur <b>Speicherung</b> verwendet.</p>
+    <span>Beispiel: </span><br/><b>select product_id as r, product_name as d from d_product;</b>
+    </React.Fragment>
+  )
+  ;
+
   const crudDefinitions = [
     {
       id:"1", name:"Datenquellen", alias:"datasources",
@@ -60,7 +71,7 @@ const Settings = () => {
       table_columns: [
         { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false },
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
-        { column_name: "sql_query", column_label: "SQL", datatype: "text", ui: "textarea_sql", editable: true, required: true, showdetailsonly:true  },
+        { column_name: "sql_query", column_label: "SQL", datatype: "text", ui: "textarea_sql", editable: true, required: true, showdetailsonly:true, tooltip:lookupSqlDescription  },
         { column_name: "datasource_id", column_label: "Datenquelle", datatype: "number", ui: "lookup",  lookup: "datasource", editable: true, required: true },
       ]
     }, 
@@ -161,21 +172,6 @@ const Settings = () => {
   }
 
 
-/*
-  const descriptionSQL = (
-    <React.Fragment>
-    <p>Das hinterlegte SQL muss genau 2 Spalten zurückliefern:</p>
-    <ul><li>d: display</li><li>r: return</li></ul>
-    <p>'display' wird zur <b>Anzeige</b> und 'return' wird zur <b>Speicherung</b> verwendet.</p>
-    <span>Beispiel: </span><Text keyboard>select product_id as r, product_name as d from d_product;</Text>
-    </React.Fragment>
-  )
-  <Alert
-      description={descriptionSQL}
-      type="info"
-      showIcon
-    />
-*/
 
   return (
     <React.Fragment>

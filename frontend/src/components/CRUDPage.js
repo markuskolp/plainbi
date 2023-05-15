@@ -16,8 +16,6 @@ import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import CRUDModal from "./CRUDModal";
 const { Link } = Typography;
 
-//TODO: Modal for create and update
-//TODO: lookupData
 /*
 Enum datatype {
   text

@@ -5,9 +5,16 @@
 Table:
   - Datum anzeigen ohne Uhrzeit und Millisekunden -> Format angeben in Spezifikation ?
 
-Adhoc + ext. Ressource erweitern um Zuordnung zu Gruppen (wg. Berechtigungen !)
-
 CRUD fetch lookup for data in table view
+CRUD field validation before save (especially required fields) !
+
+
+alle API Aufrufe kapseln !!
+
+Home:
+  - additional tiles (e.g. list of fairs !) -> aber wie einbinden ?!
+  - make both tables look like separate cards (white background, grey surrounding)
+
 
 mit Joe reden: 
   - composite keys !
@@ -16,7 +23,10 @@ mit Joe reden:
     ... oder über ein Filter ?! (z.B. ?filter:alias=adhoc)
     - dann wieder umstellen in "Apps.js"
   - init_repo: View für /api/repo/resources
-    - fehlt noch: insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-106, 'role', 'select name as d, id as r from plainbi_role', 0);
+    - fehlt noch: 
+        insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-106, 'role', 'select name as d, id as r from plainbi_role', 0);
+        insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-107, 'adhoc', 'select name as d, id as r from plainbi_adhoc', 0);
+        insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-108, 'external_resource', 'select name as d, id as r from plainbi_external_resource', 0);
   - init_repo: Adhoc und ext. Ress. Applikation
   - Excel
     - Sheetname: "daten"
@@ -37,16 +47,6 @@ dwh.config.tv_mafo_kennzahlen_veranstaltung und ...tv_mafo_kennzahlen_veranstalt
 
 act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
 
-CRUD field validation before save (especially required fields) !
-
-test all field types: lookup, textarea, textarea_sql, switch, password, email
-
-add description to lookup page (in "settings")
-
-homepage -> additional tiles (e.g. list of fairs !)
-
-compound primary keys !
-
 add security in python backend
   - use JWT (https://flask-jwt-extended.readthedocs.io/en/stable/)
   - combine with login.js frontend 
@@ -56,16 +56,6 @@ bundle and run first version on DEV server
   - use flask as webserver ? how to replace "proxy" setting ?
   - make customer CI settings (logo, title, etc.)
 
-Adhoc + ext. Ressource doch in /settings schieben ?
-
-alle API Aufrufe kapseln !!
-
-Adhoc: show total count ?
-
-
-# ------------------------------------------------
-# later
-# ------------------------------------------------
 
 crud ui textarea components
   - sql: formatter and validator !
@@ -80,20 +70,8 @@ finish dark mode switch
 - make 3 options: yes / no / browser default
 - save setting in repository (table: user_preference)
 
-add message/notification overall (see AppRun.js) 
-  - catch all errors, especially with API calls
-
 plainbi_datasource -> not used yet in python backend (still in .env file)
   - datasource_id -> use it everywhere ?!
-
-generic CRUD App in "runtime" mode:
-  - add pagination
-  - add search/filter to table
-
-check width'es on all pages !
-
-Home:
-  - make both tables look like separate cards (white background, grey surrounding)
 
 Apps create/edit dialog:
   - "copy to clipboard" not working ?!
@@ -104,16 +82,6 @@ Apps create/edit dialog:
   - "editing of columns" is missing right now
   - redesign the page UI
 
-
-/apps/adhoc/<nr>
-  - Loading Component throws error ?!
-  - Table: make pagination dynamic
-  - Add sorting and filtering
-  - Make height 100% with minimum of 500?
-
-Apps list:
-  - add switch from cards to list
-
 Security:
 	- integrated Users and Roles
     - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
@@ -122,14 +90,30 @@ Security:
   - SSO
   - API securen mit JWT, ...?
 
-Portal: 
-- add search bar
-
 Links:
 - Navbar:   https://medium.com/zestgeek/ant-design-navbar-with-responsive-drawer-a8d718e471e0
 
-Backlog:
+
+# ------------------------------------------------
+# Backlog
+# ------------------------------------------------
+
+- Swagger UI:
+  - https://sean-bradley.medium.com/add-swagger-ui-to-your-python-flask-api-683bfbb32b36
+  - https://towardsdatascience.com/working-with-apis-using-flask-flask-restplus-and-swagger-ui-7cf447deda7f
+- Datentyp "bit" kann angelegt/editiert werden, aber in der "Table" wird nichts angezeigt (hier kann wohl der Wert true/false nicht interpretiert werden)
+- Formitem "email" aktuell identisch zu Textinput -> erweitern um E-mail Validierung
+- Tables: Sorting
+- Tables: Filtering
+- Tables: Search
+- Tables: Pagination
+- Apps: Switch einbauen von "Cards" zu "List"
+- Home: übergreifende Suche (search bar)
+- Home: Filter switchen zwischen "Daten", "Typ"
+- Gesamtanzahl Datensätze bei Adhoc anzeigen
 - bei Applikations-Spezifikation eine Hilfe einbauen (z.B. Infobutton oder Doku), auch eine Verifiziuerng der Spezifikation, ob sie valide ist.
 - bei Modal die Höhe/Breite besser ausnutzen, vor allem bei Textarea's (SQL/JSON/...)
 - schöne Spaltennamen bei Adhoc's erlauben?
 - "Typ" bei externen Ressourcen vorgeben ? (damit Icon dann auch immer passt)
+- Adhoc + ext. Ressource doch in /settings schieben ?
+- Fehlerhandling übergreifend konzipieren und umsetzen

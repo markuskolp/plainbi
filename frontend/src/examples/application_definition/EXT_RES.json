@@ -65,6 +65,39 @@
                "required":"true"
             }
          ]
+      },
+      {
+         "id":"2",
+         "name":"Berechtigung",
+         "alias":"rights",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["external_resource_id,group_id"],
+         "table":"external_resource_to_group",
+         "table_columns":[
+            {
+               "column_name":"external_resource_id",
+               "column_label":"Ext. Ressource",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"external_resource",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"group_id",
+               "column_label":"Gruppe",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"group",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
       }
    ]
 }

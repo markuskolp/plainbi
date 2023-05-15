@@ -38,6 +38,22 @@
                "ui":"datepicker",
                "editable":"true",
                "required":"false"
+            },
+            {
+               "column_name":"ist_konfiguriert",
+               "column_label":"Konfiguriert",
+               "datatype":"boolean",
+               "ui":"switch",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"ist_konfiguriert_as_bit",
+               "column_label":"Konfiguriert (Bit)",
+               "datatype":"boolean",
+               "ui":"switch",
+               "editable":"true",
+               "required":"false"
             }
          ]
       },

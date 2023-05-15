@@ -135,7 +135,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
                   return (
                     (type == 'new' || recordData ) ? // only show if type is "new" or the data record could be retrieved (for "editing")
-                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} handleChange={handleChange}/>
+                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} handleChange={handleChange} tooltip={column.tooltip}/>
                     : ""
                   )
 
