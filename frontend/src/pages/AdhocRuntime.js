@@ -157,6 +157,7 @@ const AdhocRuntime = () => {
             pagination={{ pageSize: 50 }}
             scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
             loading={loading}
+            rowKey="id"
           />
         )}
       </div>

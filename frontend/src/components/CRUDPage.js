@@ -14,7 +14,7 @@ import {
 import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import CRUDModal from "./CRUDModal";
-const { Link } = Typography;
+const { Link, Text } = Typography;
 
 /*
 Enum datatype {
@@ -40,7 +40,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, versioned, isRepo }) => {
+const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, versioned, isRepo, lookups }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
@@ -50,9 +50,14 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [modalMode, setModalMode] = useState("new"); // new/edit
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
+  
+  const [lookupData, setLookupData] = useState([]);
+
+  console.log("lookups: " + lookups);
 
   useEffect(() => {
     getTableData(tableName);
+    lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
     setPkColumn(pkColumns); // set first column from pk list // TODO: take all pk columns if composite key
   }, [tableName]);
 
@@ -160,6 +165,103 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     };
   }
 
+  // getLookupData
+  /*
+  const getLookupData = async () => {
+
+    for(var i = 0; i< lookups.length; i++) {
+
+      //console.log("getLookupData for id: " + lookups[i]);
+      
+        await Axios.get("/api/repo/lookup/"+lookups[i]+"/data").then(
+        (res) => {
+          //const resData = res.data; 
+          //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+          const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+          //console.log("getLookupData result: " + JSON.stringify(resData));          
+   
+          return resData.map((row) => ({
+            value: row.r,
+            label: row.d
+          }));
+
+          // add fetched lookup data to the array of fetched lookups
+          /*
+          setLookupData([...lookupData, {pos: i, values: resData.map((row) => ({
+                value: row.r,
+                label: row.d
+              }))
+            }
+          ]
+          );
+          */
+          /*
+          setLookupData([...lookupData, {
+              lookup: lookups[i],
+              values: resData.map((row) => ({
+                  value: row.r,
+                  label: row.d
+                }))
+              }
+            ]
+          );
+          *//*
+        }
+      );
+    }
+  };
+  */
+
+  const getLookupData = (lookupid) => Axios.get("/api/repo/lookup/"+lookupid+"/data").then(
+      (res) => {
+        return {lookup: lookupid, lookupdata: (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data)}
+      }
+  );
+
+  const getLookupDataAll = () => {
+    Promise.all(lookups.map(getLookupData)).then( (data) => {
+      console.log("data length: " + data.length);
+      console.log("data: " + JSON.stringify(data));
+      /*
+      var tmpArray = [];
+      for(var i = 0; i< data.length; i++) {
+        const resData = data[i];
+        console.log("resData: " + JSON.stringify(resData));
+        tmpArray.push(resData);
+      }
+      console.log("tmpArray: " + JSON.stringify(tmpArray));
+      */
+      setLookupData(data);
+    });
+  }
+
+
+  function getLookupValue(lookupreturnid, lookupid, column_name) {
+    let displayValue = "";
+    try {
+    //getLookupData(lookupid);
+    //console.log("getLookupValue for column: " + column_name + " / lookupreturnid: " + lookupreturnid + " / lookupid: " + lookupid);
+    console.log("lookupData length: " + lookupData.length);   
+    console.log("lookupData: " + JSON.stringify(lookupData));   
+    //var relevantLookupData = lookupData; //[0].values; //.filter((row) => row.lookup == lookupid).values;   //
+    var relevantLookupData = lookupData.filter((row) => row.lookup == lookupid)[0]; //.values;   //
+    console.log("relevantLookup: " + JSON.stringify(relevantLookupData));   
+    console.log("relevantLookupData data length: " + relevantLookupData.lookupdata);   
+    for (var i = 0; i < relevantLookupData.lookupdata.length; i++) {
+      console.log("r: " + relevantLookupData.lookupdata[i].r + " / d: " + relevantLookupData.lookupdata[i].d);
+      if (relevantLookupData.lookupdata[i].r == lookupreturnid) {
+        console.log("found - label:" + relevantLookupData.lookupdata[i].d);
+        displayValue = relevantLookupData.lookupdata[i].d;
+        break;
+      }
+    }
+  } catch (error) {
+    console.log("error in getLookupValue");
+  }
+    //return "lookupreturnid: " + lookupreturnid + " / lookupid: " + lookupid;
+    return displayValue ? displayValue : lookupreturnid; // find displayValue otherwise return the delivered returnValue (id) of a lookup
+  }
+
   // return a column to be used as metadata for a Table component
   function getColumn(column_label, column_name) {
     return {
@@ -167,9 +269,22 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       dataIndex: column_name,
       //key: column_name
       //width: 50,
-      //render
     };
   }
+
+    // return a column to be used as metadata for a Table component
+    // this is from the type "lookup"
+    const getLookupColumn = (column_label, column_name, lookupid) => {
+      return {
+        title: column_label,
+        dataIndex: column_name,
+        //key: column_name
+        //width: 50,
+        render: (text, record, column_name) => (
+          <Text>{getLookupValue(text, lookupid, column_name)}</Text>
+        )
+      };
+    }
 
     return (
       <React.Fragment>
@@ -191,11 +306,11 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                 
               ]}
             />
-                <Table
+                {lookupData && <Table
                   size="small"
                   columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
                     .map((column) => {
-                      return getColumn(column.column_label, column.column_name);
+                      return (column.ui === "lookup" ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name));
                     })
                     .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
 
@@ -206,7 +321,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                   //scroll={{ y: 500 }}
                   //scroll={{ x: 300 }}
                   loading={loading}
-            /> 
+            /> }
             
             {showModal &&
             <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} versioned={versioned} isRepo={isRepo}/>

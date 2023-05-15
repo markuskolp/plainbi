@@ -124,9 +124,9 @@ const onTableChange = (pagination, filters, sorter, extra) => {
             size="middle" 
             columns={columns}
             dataSource={data} 
-            onChange={onTableChange}>
-              
-      </Table>
+            onChange={onTableChange}
+            rowKey="id"
+            />
     </React.Fragment>
   );
 };

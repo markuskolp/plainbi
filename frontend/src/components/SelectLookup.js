@@ -13,7 +13,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange }) => {
     getLookupData(lookupid);
   }, [lookupid]);
 
-  // getTableData
+  // getLookupData
   const getLookupData = async (lookupid) => {
 
     console.log("getLookupData for id: " + lookupid);

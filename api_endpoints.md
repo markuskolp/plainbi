@@ -49,7 +49,7 @@ Just replace \<type\> which one of the repository objects above:
 |POST /api/repo/\<type\>|add a \<type\>|
 |DELETE /api/repo/\<type\>/\<id\>|delete a \<type\>|
 
-If querying for an **application**: Instead of \<id\> you can also use the **alias** of the application to find it.
+If querying for an **application** or **adhoc**: Instead of \<id\> you can also use the **alias** of the application to find it.
 
 Additionally, following endpoint delivers all repository objects with the category **resource** (application, adhoc, external_resource)
 
@@ -63,7 +63,7 @@ Additionally, following repository objects can deliver data, as they have a sql 
 |-|-|
 |GET /api/repo/adhoc/\<id\>/data|The data of a adhoc (result of its SQL)|
 |GET /api/repo/adhoc/\<id\>/data?format=XLSX\|CSV|The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file|
-|GET /api/repo/lookup/\<id\>/data|The data of a lookup (result of its SQL). Instead of \<id\> you can also use the **name** of the lookup to find it.|
+|GET /api/repo/lookup/\<id\>/data|The data of a lookup (result of its SQL). Instead of \<id\> you can also use the **alias** of the lookup to find it.|
 
 ### to be discussed 
 
