@@ -5,7 +5,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, notification } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
-import { LoadingMessage } from "../components/LoadingMessage";
+import LoadingMessage from "../components/LoadingMessage";
 import { message } from "antd";
 import Axios from "axios";
 import {Sorter} from "../utils/sorter";
@@ -143,9 +143,9 @@ const AdhocRuntime = () => {
       <br />
       <div>
         {loading ? (
-          <h1>Lädt...</h1>
+          <LoadingMessage />
         ) : ( data && columns && 
-          //<LoadingMessage />
+          
           <Table 
             size="small"
             //columns={columns}

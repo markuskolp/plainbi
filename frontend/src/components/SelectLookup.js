@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
 import { Select } from "antd";
-
+import LoadingMessage from "./LoadingMessage";
 
 const SelectLookup = ({ name, lookupid, defaultValue, onChange }) => {
 
@@ -42,7 +42,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange }) => {
   
 
   return (loading ? (
-          <h1>Lädt...</h1>
+          <LoadingMessage />
         ) : (
         <React.Fragment>
           <Select

@@ -5,7 +5,7 @@ const LoadingMessage = () => {
   return (
     <React.Fragment>
       <Space>
-        <Spin tip="Wird geladen ..." size="large">
+        <Spin size="small">
           <div className="content" />
         </Spin>
       </Space>

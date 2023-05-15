@@ -12,7 +12,7 @@
             "update",
             "delete"
          ],
-         "table":"DWH.CONFIG.crud_api_testtable",
+         "table":"DWH.analysis.crud_api_testtable",
          "pk_columns":["nr"],
          "table_columns":[
             {
@@ -51,7 +51,7 @@
             "update",
             "delete"
          ],
-         "table":"DWH.CONFIG.crud_api_tv_testtable",
+         "table":"DWH.analysis.crud_api_tv_testtable",
          "pk_columns":["nr"],
          "table_columns":[
             {

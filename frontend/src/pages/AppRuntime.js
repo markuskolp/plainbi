@@ -5,6 +5,7 @@ import NoPage from "./NoPage";
 import Axios from "axios";
 import { message } from "antd";
 import CRUDApp from "../components/CRUDApp";
+import LoadingMessage from "../components/LoadingMessage";
 
 // TODO: get metadata from API (id or alias) -> if not found -> show error on whole page ! (setAppNotFound = false)
 
@@ -61,7 +62,7 @@ const AppRuntime = () => {
   return appNotFound === true ? (
         <NoPage />
       ) : (loading ? (
-          <h1>Lädt...</h1>
+          <LoadingMessage />
         ) : (
           <React.Fragment>
             <CRUDApp name={appMetadata.name} pages={JSON.parse(appMetadata.spec_json).pages}/>

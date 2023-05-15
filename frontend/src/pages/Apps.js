@@ -9,6 +9,7 @@ import {
   SaveOutlined,
   PlusOutlined
 } from "@ant-design/icons";
+import LoadingMessage from "../components/LoadingMessage";
 const { Meta } = Card;
 const { Title, Link } = Typography;
 
@@ -61,7 +62,8 @@ const Apps = () => {
       />
       <br />
       {loading ? 
-        <h1>Lädt...</h1> : 
+        
+        <LoadingMessage /> :
         (error ? 
           <h1>Es konnten keine Applikationen gefunden werden.</h1> :
           <Row gutter={16}>
