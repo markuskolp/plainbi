@@ -96,6 +96,9 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
             item_total_count=[dict(r) for r in data_total_count]
             total_count=(item_total_count[0])['total_count']
         return items,columns,total_count,"ok"
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("sqlalchemy exception in sql_select: %s",str(e_sqlalchemy))
+        return None,None,None,e_sqlalchemy
     except Exception as e:
         log.error("exception in sql_select: %s",str(e))
         return None,None,None,str(e)
@@ -127,9 +130,11 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
             out["columns"]=columns
             log.debug("get_metadata_raw: pkcols []")
             #out["metadata"]=mitems
-        except SQLAlchemyError as e:
-            error = str(e.__dict__['orig'])
-            out["errors"]="get_metadata_raw/sqlalchemy:"+error
+        except SQLAlchemyError as e_sqlalchemy:
+            log.error("sqlalchemy exception in get_metadata: %s",str(e_sqlalchemy))
+            out["error"]=e_sqlalchemy.__dict__['code']
+            out["message"]=e_sqlalchemy.__dict__['orig']
+            out["detail"]=None
         except Exception as e:
             log.debug("get_metadata_raw: error")
             if "message" in e:

@@ -9,7 +9,6 @@ import argparse
 import logging
 
 from plainbi_backend.api import create_app
-from plainbi_backend.api import api
 
 if __name__ == '__main__':
 
@@ -48,9 +47,8 @@ if __name__ == '__main__':
         app_port=3001
         logging.info(f"No port number was provided - default {args.port} is used ")
 
-    
+    #logging.setLevel(logging.DEBUG)
     logging.info("start server "+__name__)
     app=create_app(None)  # no config file yet
-    app.register_blueprint(api)
     app.run(debug=True,host='0.0.0.0', port=app_port,use_reloader=False)
 
