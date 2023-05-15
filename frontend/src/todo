@@ -2,22 +2,51 @@
 # asap
 # ------------------------------------------------
 
-Table:
-  - Datum anzeigen ohne Uhrzeit und Millisekunden -> Format angeben in Spezifikation ?
+
+"alias" Spalten aufnehmen (adhoc, lookup, application, group, external_resource)
+
+composite keys ! <pk> = (feld1:wert1,feld2:wert2,...)
 
 CRUD fetch lookup for data in table view
+
 CRUD field validation before save (especially required fields) !
 
-
 alle API Aufrufe kapseln !!
+
+dwh.config.tv_veranstaltungsreihe und ...tv_veranstaltung testen !
+
+dwh.config.tv_mafo_kennzahlen_veranstaltung und ...tv_mafo_kennzahlen_veranstaltung_land testen !
+  -> mit Lookup auf Veranstaltung und Land/Ländergruppe(Inland, Ausland, Gesamt)
+  -> weitere Veranstaltung händisch pflegen ?! stage.man_veranstaltung
 
 Home:
   - additional tiles (e.g. list of fairs !) -> aber wie einbinden ?!
   - make both tables look like separate cards (white background, grey surrounding)
 
+crud ui textarea components
+  - sql: formatter and validator !
+  - json:
+    - textarea_json (with formatter and validator)
+    - https://sujinleeme.github.io/react-json-editor/ + json schema !
+  - monaco-editor evtl. switchen auf https://wangchujiang.com/react-monacoeditor/ ?
+  - markdown: erweitern um "remark-gfm"
 
-mit Joe reden: 
-  - composite keys !
+finish dark mode switch
+- put it in user profile page or as menu option when clicking on avatar in upper right corner
+- make 3 options: yes / no / browser default
+- save setting in repository (table: user_preference)
+
+
+auf "errors" im body reagieren !
+
+
+
+# ------------------------------------------------
+# wait for backend
+# ------------------------------------------------
+
+API enhancements:
+  - composite keys ! <pk> = (feld1:wert1,feld2:wert2,...)
   - last_changed_by !
   - analog zu lookup auch bei application suchen nach <id> oder <name> oder <alias> z.B. http://localhost:3001/api/repo/application/adhoc
     ... oder über ein Filter ?! (z.B. ?filter:alias=adhoc)
@@ -36,74 +65,38 @@ mit Joe reden:
           Erstellt am: <YYYY-MM-DD HH24:MI:SS>
           Quelle: DWH - Adhoc <nr>
   - Security / Auth-API / JWT Token
+    - use JWT (JWT Extended or Praetorian)
+    - combine with login.js frontend 
+    - if possible get JWT in session -> test this with Cube.js :)
+    - integrated Users and Roles
+      - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
+      - User
   - swagger-UI
   - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s)) (https://www.baeldung.com/rest-api-error-handling-best-practices)
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
-dwh.config.tv_veranstaltungsreihe und ...tv_veranstaltung testen !
-dwh.config.tv_mafo_kennzahlen_veranstaltung und ...tv_mafo_kennzahlen_veranstaltung_land testen !
-  -> mit Lookup auf Veranstaltung und Land/Ländergruppe(Inland, Ausland, Gesamt)
-  -> weitere Veranstaltung händisch pflegen ?! stage.man_veranstaltung
-
-act.development.js:209 Warning: Each child in a list should have a unique "key" prop.
-
-add security in python backend
-  - use JWT (https://flask-jwt-extended.readthedocs.io/en/stable/)
-  - combine with login.js frontend 
-  - if possible get JWT in session -> test this with Cube.js :)
 
 bundle and run first version on DEV server
   - use flask as webserver ? how to replace "proxy" setting ?
   - make customer CI settings (logo, title, etc.)
 
 
-crud ui textarea components
-  - sql: formatter and validator !
-  - json:
-    - textarea_json (with formatter and validator)
-    - https://sujinleeme.github.io/react-json-editor/ + json schema !
-  - monaco-editor evtl. switchen auf https://wangchujiang.com/react-monacoeditor/ ?
-  - markdown: erweitern um "remark-gfm"
-
-finish dark mode switch
-- put it in user profile page or as menu option when clicking on avatar in upper right corner
-- make 3 options: yes / no / browser default
-- save setting in repository (table: user_preference)
-
-plainbi_datasource -> not used yet in python backend (still in .env file)
-  - datasource_id -> use it everywhere ?!
-
-Apps create/edit dialog:
-  - "copy to clipboard" not working ?!
-  - add rule to "url": no blanks, no special characters
-  - if param "id" is missing -> then mode=create, else mode=edit
-      mode=create: no "delete" button
-      mode=edit: get metadata of app and fill the form
-  - "editing of columns" is missing right now
-  - redesign the page UI
-
-Security:
-	- integrated Users and Roles
-    - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
-	  - User
-  - external Users / Anbindung an AD !
-  - SSO
-  - API securen mit JWT, ...?
-
-Links:
-- Navbar:   https://medium.com/zestgeek/ant-design-navbar-with-responsive-drawer-a8d718e471e0
-
 
 # ------------------------------------------------
 # Backlog
 # ------------------------------------------------
 
+- Warning: Each child in a list should have a unique "key" prop.
+- Security:
+  - external Users / Anbindung an AD !
+  - SSO
 - Swagger UI:
   - https://sean-bradley.medium.com/add-swagger-ui-to-your-python-flask-api-683bfbb32b36
   - https://towardsdatascience.com/working-with-apis-using-flask-flask-restplus-and-swagger-ui-7cf447deda7f
 - Datentyp "bit" kann angelegt/editiert werden, aber in der "Table" wird nichts angezeigt (hier kann wohl der Wert true/false nicht interpretiert werden)
 - Formitem "email" aktuell identisch zu Textinput -> erweitern um E-mail Validierung
-- Tables: Sorting
+- Tables: Data formats: "datetime" anzeigen ohne Uhrzeit und Millisekunden ?! -> Format angeben in Spezifikation ?
+- Tables: Sorting -> show sorted fields with closable tags with icon (asc./desc.) (e.g. "Sortiert nach <Tag1 (auf.)> <Tag2 (ab.)>" - also add "x" button to delete all sorters
 - Tables: Filtering
 - Tables: Search
 - Tables: Pagination
@@ -117,3 +110,19 @@ Links:
 - "Typ" bei externen Ressourcen vorgeben ? (damit Icon dann auch immer passt)
 - Adhoc + ext. Ressource doch in /settings schieben ?
 - Fehlerhandling übergreifend konzipieren und umsetzen
+- Navbar:   https://medium.com/zestgeek/ant-design-navbar-with-responsive-drawer-a8d718e471e0
+- Datenquellenattribut (plainbi_datasource) not used yet in python backend (still in .env file) - datasource_id -> use it everywhere ?!
+
+
+# ------------------------------------------------
+# Backlog (priority low)
+# ------------------------------------------------
+
+Apps create/edit dialog:
+  - "copy to clipboard" not working ?!
+  - add rule to "url": no blanks, no special characters
+  - if param "id" is missing -> then mode=create, else mode=edit
+      mode=create: no "delete" button
+      mode=edit: get metadata of app and fill the form
+  - "editing of columns" is missing right now
+  - redesign the page UI

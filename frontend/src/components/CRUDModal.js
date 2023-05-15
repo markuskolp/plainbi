@@ -111,7 +111,10 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
             onOk={handleOk}
             onCancel={handleCancel}
             centered
-            width={1000}
+            width="80vw"
+            style={{
+              maxWidth:"1500px"
+            }}
             footer={[
               /*deleteAllowed && <Button
                 key="1"

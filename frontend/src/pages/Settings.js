@@ -151,11 +151,22 @@ const Settings = () => {
   ]
   ;
 
+  
+  function getLookups(table_columns) {
+    const lookups = table_columns.filter((column) => column.ui === "lookup").map((column) => ( 
+        column.lookup
+      )
+    );
+    console.log("getLookups: " + lookups);
+    return lookups;
+  };
+
+
   const items = crudDefinitions.map((obj) => {
     return getItem(obj.name // label
         , obj.id // key
         , null // icon
-        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} isRepo="true"/> // children
+        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} isRepo="true" lookups={getLookups(obj.table_columns)}/>
         , null // type
         );
   })
@@ -170,8 +181,6 @@ const Settings = () => {
       type
     };
   }
-
-
 
   return (
     <React.Fragment>
