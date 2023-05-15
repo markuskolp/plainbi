@@ -238,7 +238,188 @@ create table plainbi_adhoc_to_group (
  ,FOREIGN KEY (adhoc_id) REFERENCES plainbi_adhoc(id)
 )
 """,
+"""
+-- application: adhoc, external_resource
+INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
+       (-100,'Adhoc Konfiguration','adhoc','{
+   "pages":[
+      {
+         "id":"1",
+         "name":"Adhocs",
+         "alias":"all",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["id"],
+         "table":"adhoc",
+         "table_columns":[
+            {
+               "column_name":"id",
+               "column_label":"ID",
+               "datatype":"number",
+               "editable":"false",
+               "required":"true"
+            },
+            {
+               "column_name":"name",
+               "column_label":"Adhoc Name",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"sql_query",
+               "column_label":"SQL Abfrage",
+               "datatype":"text",
+               "ui":"textarea_sql",
+               "editable":"true",
+               "required":"true",
+               "showdetailsonly":"true"
+            },
+            {
+               "column_name":"output_format",
+               "column_label":"Ausgabeformat",
+               "ui":"lookup",
+               "lookup":"output_format",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      }
+   ]
+}',0),
+       (-101,'externe Ressourcen','ext_res','{
+   "pages":[
+      {
+         "id":"1",
+         "name":"externe Ressourcen",
+         "alias":"all",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["id"],
+         "table":"external_resource",
+         "table_columns":[
+            {
+               "column_name":"id",
+               "column_label":"ID",
+               "datatype":"number",
+               "editable":"false",
+               "required":"true"
+            },
+            {
+               "column_name":"name",
+               "column_label":"Name",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"url",
+               "column_label":"Aufruf URL",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true",
+               "showdetailsonly":"true"
+            },
+            {
+               "column_name":"description",
+               "column_label":"Beschreibung",
+               "ui":"textarea_markdown",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"source",
+               "column_label":"Quelle / System",
+               "ui":"textinput",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"dataset",
+               "column_label":"Datensatz",
+               "ui":"textinput",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      }
+   ]
+}',0);
+""",
+"""
+insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-100, 'output_format', 'select ''HTML'' as d, ''HTML'' as r union select ''Excel'' as d, ''XLSX'' as r union select ''CSV'' as d, ''CSV'' as r', 0);
+""",
+"""
+insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-101, 'datasource', 'select name as d, id as r from plainbi_datasource', 0);
+""",
+"""
+insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-102, 'db_type', 'select ''SQLite'' as d, ''sqlite'' as r union select ''MS SQL Server'' as d, ''mssql'' as r', 0);
+""",
+"""
+insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-103, 'user', 'select fullname as d, id as r from plainbi_user', 0);
+""",
+"""
+insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-104, 'group', 'select name as d, id as r from plainbi_group', 0);
+""",
+"""
+insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-105, 'application', 'select name as d, id as r from plainbi_application', 0);
+""",
+"""
+create view plainbi_resources
+as
+select 
+      id, name
+      , '/apps/'||alias as url
+      , '_self' as target
+      , null as output_format 
+      , null as description
+      , null as source
+      , null as dataset
+      , 'application' as resource_type
+      , 'Applikation' as resource_type_de 
+from plainbi_application pa 
+union all
+select 
+      id, name
+      , '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
+      , '_self' as target
+      , coalesce(output_format, 'HTML') output_format
+      , null as description
+      , 'Adhoc' as source
+      , null as dataset
+      , 'adhoc' as resource_type
+      , 'Adhoc' as resource_type_de 
+from plainbi_adhoc padh 
+union all
+select 
+      id, name
+      , url
+      , '_blank' as target
+      , null as output_format 
+      , description
+      , source
+      , dataset
+      , 'external_resource' as resource_type
+      , 'Extern' as resource_type_de 
+from plainbi_external_resource per 
+""",
     ]
+    print("******************************")
     for sql in sql_create_list[:]:
        print(sql)
        engine.execute(sql)

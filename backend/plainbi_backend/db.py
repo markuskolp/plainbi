@@ -314,8 +314,16 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
     log.debug("repo_lookup_select: repo sql is <%s>",reposql)
     lkpq=repoengine.execute(reposql , id)
     lkp=[dict(r) for r in lkpq]
-    sql=lkp[0]["sql_query"]
-    execute_in_repodb = lkp[0]["datasource_id"]==0
+    sql=None
+    execute_in_repodb=None
+    if isinstance(lkp,dict):
+        if len(lkp.keys())==1:
+            sql=lkp[0]["sql_query"]
+            execute_in_repodb = lkp[0]["datasource_id"]==0
+    if sql is None:
+        msg="no sql in repo_lookup_select"
+        log.error(msg)
+        return None,None,None,msg
     try:
         if execute_in_repodb:
             log.debug("lookup query execution in repodb")
@@ -349,8 +357,12 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
     lkpq=repoengine.execute(reposql , id)
     lkp=[dict(r) for r in lkpq]
-    sql=lkp[0]["sql_query"]
-    execute_in_repodb = lkp[0]["datasource_id"]==0
+    sql=None
+    execute_in_repodb=None
+    if isinstance(lkp,dict):
+        if len(lkp.keys())==1:
+            sql=lkp[0]["sql_query"]
+            execute_in_repodb = lkp[0]["datasource_id"]==0
     return sql, execute_in_repodb
 
 
