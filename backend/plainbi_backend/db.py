@@ -6,6 +6,8 @@ Created on Thu May  4 08:11:27 2023
 """
 import logging
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from urllib.parse import unquote
@@ -88,7 +90,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         log.debug("sql_select: %s",sql)
         data=dbengine.execute(sql)
         items = [dict(row) for row in data]
-        print("sql_select: anz rows=%d",len(items))
+        log.debug("sql_select: anz rows=%d",len(items))
         columns = list(data.keys())
         if with_total_count:
             sql_total_count=f'SELECT COUNT(*) AS total_count FROM {tab}'
@@ -101,7 +103,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         return None,None,None,e_sqlalchemy
     except Exception as e:
         log.error("exception in sql_select: %s",str(e))
-        return None,None,None,str(e)
+        return None,None,None,e
 
 def get_metadata_raw(dbengine,tab,pk_column_list):
     """
@@ -112,14 +114,30 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
     log.debug("----------get_metadata_raw ------ %s ----------",tab)
     out={}
     dbtype=get_db_type(dbengine)
-    items,columns,total_count,msg=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
+    items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
+    log.debug("sql_select in get_metadata_raw %s",str(e))
+    if isinstance(e, SQLAlchemyError):
+        out["error"]=e.__dict__['code']
+        out["message"]=e.__dict__['orig']
+        out["detail"]=None
+        return out
+    if isinstance(e,Exception):
+        out["error"]=1
+        out["message"]=e.__class__
+        out["detail"]=None
+        return out
+    #    
+    log.debug("sql_select in get_metadata_raw 1")
+    log.debug("sql_select in get_metadata_raw 1 item=%s",str(items))
     if items is not None and len(items)>0:
+        log.debug("sql_select in get_metadata_raw 2")
         # es gibt etwas in den sqlserver metadaten
         out["columns"]=columns
         pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
         log.debug("get_metadata_raw1: pkcols %s",str(pkcols))
         out["column_data"]=items
     else:
+        log.debug("sql_select in get_metadata_raw 3")
         # nicht in metadaten gefunden
         pkcols=[]  # default leer (1ste spalte regel in den crud operations)
         try:
@@ -144,10 +162,15 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
                estruc={ "message" : "Es ist ein Fehler aufgetreten", "details" : str(e)}    
                log.debug("get_metadata_raw2: estruc2 %s",estruc)
             out["errors"]="get_metadata_raw/exception:"+estruc
+    log.debug("sql_select in get_metadata_raw 4")
+    out["pk_columns"]=pkcols
     if pk_column_list is not None:
-        out["pk_columns"]=pk_column_list
+        if isinstance(pk_column_list, list):
+            if len(pk_column_list) > 0:
+                out["pk_columns"]=pk_column_list
+                log.debug("get_metadata_raw returns parameter pk_column_list")
     else:
-        out["pk_columns"]=pkcols
+        log.debug("get_metadata_raw returns computedd column_list")
     log.debug("get_metadata_raw: %s pk:%s",tab,out["pk_columns"])
     return out
 
@@ -170,6 +193,8 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
     out={}
     log.debug("in get_item raw")
     metadata=get_metadata_raw(dbengine,tab,pk_column_list)
+    if "error" in metadata.keys():
+        return metadata        
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
@@ -210,16 +235,17 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
         out["data"]=items
         out["columns"]=columns
         out["total_count"]=len(items)
-    except SQLAlchemyError as e:
-        error = str(e.__dict__['orig'])
-        out["errors"]="get_item_raw:sqlalchemy:"+error
-        out["error_sql"]=sql
+    except SQLAlchemyError as e_sqlalchemy:
+        out["error"]=e_sqlalchemy.__dict__['code']
+        out["message"]=e_sqlalchemy.__dict__['orig']
+        out["detail"]=str(e_sqlalchemy)
+        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
     except Exception as e:
-        if "message" in e:
-           estruc={ "message" : e.message}    
-        else:
-           estruc={ "message" : "Es ist ein Fehler aufgetreten", "details" : str(e)}    
-        out["errors"]="get_item_raw:exception:"+estruc
+        out["error"]=1
+        out["message"]=e.__class__
+        out["detail"]=str(e)
+        if hasattr(e, "__dict__"):
+             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
     return out
 
 def get_next_seq(dbengine,seq):
@@ -259,15 +285,17 @@ def get_next_seq(dbengine,seq):
             for row in data:
                 out=row[0]
             log.debug("got sequence value %d",out)    
-        except SQLAlchemyError as e:
-            error = str(e.__dict__['orig'])
-            out["errors"]="get_next_seq:sqlalchemy:"+error
+        except SQLAlchemyError as e_sqlalchemy:
+            out["error"]=e_sqlalchemy.__dict__['code']
+            out["message"]=e_sqlalchemy.__dict__['orig']
+            out["detail"]=str(e_sqlalchemy)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
         except Exception as e:
-            if "message" in e:
-               estruc={ "message" : e.message}    
-            else:
-               estruc={ "message" : "Es ist ein Fehler bei der Sequence aufgetreten", "details" : str(e)}    
-            out["errors"]="get_next_seq:exception:"+estruc
+            out["error"]=1
+            out["message"]=e.__class__
+            out["detail"]=str(e)
+            if hasattr(e, "__dict__"):
+                 if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
     return out
 
 def get_current_timestamp(dbengine):
@@ -293,15 +321,17 @@ def get_current_timestamp(dbengine):
         for row in data:
             out=row[0]
         log.debug("got timestamp value %s",out)    
-    except SQLAlchemyError as e:
-        error = str(e.__dict__['orig'])
-        out["errors"]="get_current_timestamp:sqlalchemy:"+error
+    except SQLAlchemyError as e_sqlalchemy:
+        out["error"]=e_sqlalchemy.__dict__['code']
+        out["message"]=e_sqlalchemy.__dict__['orig']
+        out["detail"]=str(e_sqlalchemy)
+        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
     except Exception as e:
-        if "message" in e:
-           estruc={ "message" : e.message}    
-        else:
-           estruc={ "message" : "Es ist ein Fehler Timestamp aufgetreten", "details" : str(e)}    
-        out["errors"]="get_current_timestamp:exception:"+estruc
+        out["error"]=1
+        out["message"]=e.__class__
+        out["detail"]=str(e)
+        if hasattr(e, "__dict__"):
+             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
     return out
 
 ## repo lookup adhoc
@@ -322,12 +352,19 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
     log.debug("repo_lookup_select: repo sql is <%s>",reposql)
     lkpq=repoengine.execute(reposql , id)
     lkp=[dict(r) for r in lkpq]
+    log.debug("lkp=%s",str(lkp))
     sql=None
     execute_in_repodb=None
-    if isinstance(lkp,dict):
-        if len(lkp.keys())==1:
-            sql=lkp[0]["sql_query"]
-            execute_in_repodb = lkp[0]["datasource_id"]==0
+    if isinstance(lkp,list):
+        if len(lkp)==1:
+            if isinstance(lkp[0],dict):
+                sql=lkp[0]["sql_query"]
+                execute_in_repodb = lkp[0]["datasource_id"]==0
+        else:
+            log.debug("lkp list len is not 1")
+    else:
+        log.debug("lkp is not a dict, it is a %s",str(lkp.__class__))
+        
     if sql is None:
         msg="no sql in repo_lookup_select"
         log.error(msg)
@@ -343,9 +380,12 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
         columns = list(data.keys())
         total_count=len(items)
         return items,columns,total_count,"ok"
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("sqlalchemy exception in sql_select: %s",str(e_sqlalchemy))
+        return None,None,None,e_sqlalchemy
     except Exception as e:
         log.error("exception in sql_select: %s",str(e))
-        return None,None,None,str(e)
+        return None,None,None,e
 
 ## repo lookup adhoc
 def get_repo_adhoc_sql_stmt(repoengine,id):
@@ -367,10 +407,15 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     lkp=[dict(r) for r in lkpq]
     sql=None
     execute_in_repodb=None
-    if isinstance(lkp,dict):
-        if len(lkp.keys())==1:
-            sql=lkp[0]["sql_query"]
-            execute_in_repodb = lkp[0]["datasource_id"]==0
+    if isinstance(lkp,list):
+        if len(lkp)==1:
+            if isinstance(lkp[0],dict):
+                sql=lkp[0]["sql_query"]
+                execute_in_repodb = lkp[0]["datasource_id"]==0
+        else:
+            log.debug("lkp list len is not 1")
+    else:
+        log.debug("lkp is not a dict, it is a %s",str(lkp.__class__))
     return sql, execute_in_repodb
 
 
@@ -386,10 +431,17 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
     log.debug("++++++++++entering repo_adhoc_select")
     log.debug("repo_adhoc_select: param id is <%s>",str(id))
     sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
-    if execute_in_repodb:
-        log.debug("adhoc query execution in repodb")
-        data=repoengine.execute(sql)
-    else:
-        log.debug("adhoc query execution")
-        data=dbengine.execute(sql)
+    try:
+        if execute_in_repodb:
+            log.debug("adhoc query execution in repodb")
+            data=repoengine.execute(sql)
+        else:
+            log.debug("adhoc query execution")
+            data=dbengine.execute(sql)
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("sqlalchemy exception in repo_adhoc_select: %s",str(e_sqlalchemy))
+        return e_sqlalchemy
+    except Exception as e:
+        log.error("exception in repo_adhoc_select: %s",str(e))
+        return e
     return data

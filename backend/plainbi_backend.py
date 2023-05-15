@@ -47,8 +47,16 @@ if __name__ == '__main__':
         app_port=3001
         logging.info(f"No port number was provided - default {args.port} is used ")
 
+    if args.verbose:
+        dbg=True
+    else:
+        dbg=False
+
     #logging.setLevel(logging.DEBUG)
     logging.info("start server "+__name__)
     app=create_app(None)  # no config file yet
-    app.run(debug=True,host='0.0.0.0', port=app_port,use_reloader=False)
+    if dbg: 
+        app.logger.setLevel(logging.DEBUG)
+        print("debug mode")
+    app.run(debug=dbg,host='0.0.0.0', port=app_port,use_reloader=False)
 
