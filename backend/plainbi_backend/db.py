@@ -11,7 +11,7 @@ log.setLevel(logging.DEBUG)
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from urllib.parse import unquote
-from plainbi_backend.utils import is_id
+from plainbi_backend.utils import is_id, last_stmt_has_errors
 
 
 """
@@ -114,21 +114,15 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
     log.debug("----------get_metadata_raw ------ %s ----------",tab)
     out={}
     dbtype=get_db_type(dbengine)
-    items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
-    log.debug("sql_select in get_metadata_raw %s",str(e))
-    if isinstance(e, SQLAlchemyError):
-        out["error"]=e.__dict__['code']
-        out["message"]=e.__dict__['orig']
-        out["detail"]=None
-        return out
-    if isinstance(e,Exception):
-        out["error"]=1
-        out["message"]=e.__class__
-        out["detail"]=None
-        return out
-    #    
-    log.debug("sql_select in get_metadata_raw 1")
-    log.debug("sql_select in get_metadata_raw 1 item=%s",str(items))
+    items = None
+    if dbtype == "mssql":
+        items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
+        log.debug("sql_select in get_metadata_raw %s",str(e))
+        if last_stmt_has_errors(e, out):
+            return out
+        #    
+        log.debug("sql_select in get_metadata_raw 1")
+        log.debug("sql_select in get_metadata_raw 1 item=%s",str(items))
     if items is not None and len(items)>0:
         log.debug("sql_select in get_metadata_raw 2")
         # es gibt etwas in den sqlserver metadaten
@@ -149,19 +143,13 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
             log.debug("get_metadata_raw: pkcols []")
             #out["metadata"]=mitems
         except SQLAlchemyError as e_sqlalchemy:
-            log.error("sqlalchemy exception in get_metadata: %s",str(e_sqlalchemy))
-            out["error"]=e_sqlalchemy.__dict__['code']
-            out["message"]=e_sqlalchemy.__dict__['orig']
-            out["detail"]=None
+            log.error("sqlalchemy exception in get_metadata:raw: %s",str(e_sqlalchemy))
+            last_stmt_has_errors(e_sqlalchemy, out)
+            return out
         except Exception as e:
-            log.debug("get_metadata_raw: error")
-            if "message" in e:
-               estruc={ "message" : e.message}    
-               log.debug("get_metadata_raw: estruc1 %s",estruc)
-            else:
-               estruc={ "message" : "Es ist ein Fehler aufgetreten", "details" : str(e)}    
-               log.debug("get_metadata_raw2: estruc2 %s",estruc)
-            out["errors"]="get_metadata_raw/exception:"+estruc
+            log.debug("exceotuib ub get_metadata_raw: error")
+            last_stmt_has_errors(e, out)
+            return out
     log.debug("sql_select in get_metadata_raw 4")
     out["pk_columns"]=pkcols
     if pk_column_list is not None:
@@ -201,51 +189,47 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
         pkcols=[(metadata["columns"])[0]]
         log.warning("implicit pk first column")
     print("get_item_raw: pk_columns",str(pkcols))
+    vallist=[]
+    if isinstance(pk, dict):
+        pkstr1=pkcols[0]
+        sql=f'SELECT * FROM {tab}'
+        i=0
+        for c,v in pk.items():
+            i+=1
+            if i==1:
+                sql+=" WHERE "
+            else:
+                sql+=" AND "
+            sql+=c+"=?"
+            vallist.append(v)
+    else:
+        pkstr1=pkcols[0]
+        sql=f'SELECT * FROM {tab} where {pkstr1}=?'
+        vallist=[pk]
+    if versioned:
+       #sql+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
+       sql+=" AND is_current_and_active = 'Y'" 
+    log.debug("sql=%s",sql)
     try:
-        #cursor = cnxn.cursor()
-        vallist=[]
-        if isinstance(pk, dict):
-            pkstr1=pkcols[0]
-            sql=f'SELECT * FROM {tab}'
-            i=0
-            for c,v in pk.items():
-                i+=1
-                if i==1:
-                    sql+=" WHERE "
-                else:
-                    sql+=" AND "
-                sql+=c+"=?"
-                vallist.append(v)
-        else:
-            pkstr1=pkcols[0]
-            sql=f'SELECT * FROM {tab} where {pkstr1}=?'
-            vallist=[pk]
-        if versioned:
-           #sql+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
-           sql+=" AND is_current_and_active = 'Y'" 
-        log.debug("sql=%s",sql)
         data=dbengine.execute(sql,tuple(vallist))
-        items = [dict(row) for row in data]
-        columns = list(data.keys())
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("sqlalchemy exception in get_item_raw: %s",str(e_sqlalchemy))
+        last_stmt_has_errors(e_sqlalchemy, out)
+        return out
+    except Exception as e:
+        log.debug("exception in get_item_raw: %s ",str(e))
+        last_stmt_has_errors(e, out)
+        return out
+    items = [dict(row) for row in data]
+    columns = list(data.keys())
 #        for r in items:
 #            for k,v in r.items():
 #                if type(v).__name__=="datetime":
 #                    r[k]=v.strftime("%Y-%m-%d %H:%M:%S.%f")
-        log.debug("columns: %s",columns)
-        out["data"]=items
-        out["columns"]=columns
-        out["total_count"]=len(items)
-    except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-    except Exception as e:
-        out["error"]=1
-        out["message"]=e.__class__
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
+    log.debug("columns: %s",columns)
+    out["data"]=items
+    out["columns"]=columns
+    out["total_count"]=len(items)
     return out
 
 def get_next_seq(dbengine,seq):
@@ -261,7 +245,7 @@ def get_next_seq(dbengine,seq):
     sequence wert als int
 
     """
-    out=None
+    out={}
     log.debug("in get_next_seq")
     if get_db_type(dbengine)=="sqlite":
         log.debug("in get_next_seq repo sqlite")
@@ -273,29 +257,36 @@ def get_next_seq(dbengine,seq):
         nextval=out+1
         sql=f"UPDATE plainbi_seq SET curval={nextval} WHERE sequence_name='{seq}'"
         log.debug("sql=%s",sql)
-        x=dbengine.execute(sql)    
+        try:
+            _=dbengine.execute(sql)    
+        except SQLAlchemyError as e_sqlalchemy:
+            log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
+            last_stmt_has_errors(e_sqlalchemy, out)
+            return out
+        except Exception as e:
+            log.debug("exception in get_next_seq: %s ",str(e))
+            last_stmt_has_errors(e, out)
+            return out
         out=nextval
     else:
         log.debug("in get_next_seq not sqlite")
+        sql=f'SELECT NEXT VALUE FOR {seq}'
+        log.debug("sql=%s",sql)
         try:
             #cursor = cnxn.cursor()
-            sql=f'SELECT NEXT VALUE FOR {seq}'
-            log.debug("sql=%s",sql)
             data=dbengine.execute(sql)
-            for row in data:
-                out=row[0]
-            log.debug("got sequence value %d",out)    
         except SQLAlchemyError as e_sqlalchemy:
-            out["error"]=e_sqlalchemy.__dict__['code']
-            out["message"]=e_sqlalchemy.__dict__['orig']
-            out["detail"]=str(e_sqlalchemy)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
+            last_stmt_has_errors(e_sqlalchemy, out)
+            return out
         except Exception as e:
-            out["error"]=1
-            out["message"]=e.__class__
-            out["detail"]=str(e)
-            if hasattr(e, "__dict__"):
-                 if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
+            log.debug("exception in get_next_seq: %s ",str(e))
+            last_stmt_has_errors(e, out)
+            return out
+
+        for row in data:
+            out=row[0]
+        log.debug("got sequence value %d",out)    
     return out
 
 def get_current_timestamp(dbengine):
@@ -311,27 +302,24 @@ def get_current_timestamp(dbengine):
     sequence wert als int
 
     """
-    out=None
+    out={}
     log.debug("in get_current_timestamp")
+    sql='SELECT GETDATE()'
+    log.debug("sql=%s",sql)
     try:
         #cursor = cnxn.cursor()
-        sql='SELECT GETDATE()'
-        log.debug("sql=%s",sql)
         data=dbengine.execute(sql)
-        for row in data:
-            out=row[0]
-        log.debug("got timestamp value %s",out)    
     except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+        log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
+        last_stmt_has_errors(e_sqlalchemy, out)
+        return out
     except Exception as e:
-        out["error"]=1
-        out["message"]=e.__class__
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
+        log.debug("exception in get_next_seq: %s ",str(e))
+        last_stmt_has_errors(e, out)
+        return out
+    for row in data:
+        out=row[0]
+    log.debug("got timestamp value %s",out)    
     return out
 
 ## repo lookup adhoc
@@ -396,6 +384,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
       total_count .. anzahl der rows in der Tabelle (count*)
       msg ... ggf error code sonst "ok"
     """
+    out={}
     log.debug("++++++++++entering get_repo_adhoc_sql_stmt")
     log.debug("get_repo_adhoc_sql_stmt: param id is <%s>",str(id))
     if is_id(id):
@@ -403,7 +392,16 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     else:
         reposql="select * from plainbi_adhoc where alias=?"
     log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
-    lkpq=repoengine.execute(reposql , id)
+    try:
+        lkpq=repoengine.execute(reposql , id)
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
+        last_stmt_has_errors(e_sqlalchemy, out)
+        return out
+    except Exception as e:
+        log.debug("exception in get_next_seq: %s ",str(e))
+        last_stmt_has_errors(e, out)
+        return out
     lkp=[dict(r) for r in lkpq]
     sql=None
     execute_in_repodb=None

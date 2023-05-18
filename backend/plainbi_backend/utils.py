@@ -4,6 +4,9 @@ Created on Thu May  4 07:43:34 2023
 
 @author: kribbel
 """
+
+from sqlalchemy.exc import SQLAlchemyError
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -49,3 +52,49 @@ def prep_pk_from_url(pk):
         return pkd
     else:
         return pk        
+
+def last_stmt_has_errors(e,out):
+    """
+    check error exception
+
+    Parameters
+    ----------
+    e : TYPE
+        DESCRIPTION.
+    out : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    True if there were errors, else False
+
+    """
+    if isinstance(e, SQLAlchemyError):
+        log.error(str(SQLAlchemyError))
+        if hasattr(e, 'code'):
+            out["error"]=e.code
+        else:
+            out["error"]="error"
+        if hasattr(e,"__dict__"):
+            if isinstance(e.__dict__,dict):
+                if "orig" in e.__dict__.keys():
+                    out["message"]=e.__dict__['orig']
+                else:
+                    out["message"]=str(e)
+                if "sql" in e.__dict__.keys():
+                    out["error_sql"]=e.__dict__['sql']
+            else:
+                out["message"]=str(e)
+        else:
+            out["message"]=str(e)
+        out["detail"]=None
+        return True
+    if isinstance(e,Exception):
+        log.error(str(e))
+        out["error"]=1
+        out["message"]=str(e.__class__)
+        out["detail"]=None
+        if hasattr(e, "__dict__"):
+             if "message" in e.__dict__.keys(): out["message"]=str(e.__dict__['message'])
+        return True
+    return False    

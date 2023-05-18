@@ -47,7 +47,7 @@ curl --header "Content-Type: application/json" --request DELETE "localhost:3002/
 curl --header "Content-Type: application/json" --request POST "localhost:3002/api/repo/init_repo" -w "%{http_code}\n"
 Latin1_General_100_CS_AS_WS_SC_UTF8
 # new application POST
-curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application"
+curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"
 curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"app2\"}' "localhost:3002/api/repo/application"
 curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"group1\"}' "localhost:3002/api/repo/group"
 curl --header "Content-Type: application/json" --request POST --data '{\"application_id\":\"1\",\"group_id\":\"7\"}' "localhost:3002/api/repo/application_to_group?pk=application_id,group_id"
@@ -88,7 +88,7 @@ from flask.json import JSONEncoder
 from dotenv import load_dotenv
 import csv
 import pandas as pd
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt
 from plainbi_backend.repo import create_repo_db
 
@@ -99,8 +99,6 @@ log.setLevel(logging.DEBUG)
 
 api = Blueprint('api', __name__)
 
-
-
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
         try:
@@ -109,7 +107,7 @@ class CustomJSONEncoder(JSONEncoder):
             elif isinstance(obj, date):
                 return obj.strftime("%Y-%m-%d")
             elif isinstance(obj, Exception):
-                return "Fehler"
+                return str(obj)
             iterable = iter(obj)
         except TypeError:
             pass
@@ -205,7 +203,7 @@ ORDER BY database_name, schema_name, table_name
 #
 @api.route(api_root+'/version', methods=['GET'])
 def get_version():
-    return "0.1 15.05.2023"
+    return "0.2 18.05.2023"
 
 ###########################
 ##
@@ -246,29 +244,14 @@ def get_all_items(tab):
     log.debug("pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned)
     log.debug("get_all_items sql_select error %s",str(e))
-    if isinstance(e, SQLAlchemyError):
-        out["error"]=e.__dict__['code']
-        out["message"]=e.__dict__['orig']
-        out["detail"]=None
-        return jsonify(out),500
-    if isinstance(e,Exception):
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=None
+    if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
-    if columns is None:  # keine Spalten
-        log.debug("get_all_items: return with error 500 because no columns selected")
-        out["error"]=2
-        out["message"]="no columns selected"
-        out["detail"]=None
-        return jsonify(out),500
-    else:
-        log.debug("leaving get_all_items and return json result")
-        log.debug("out=%s",str(out))
-        return jsonify(out)
+    log.debug("leaving get_all_items and return json result")
+    log.debug("out=%s",str(out))
+    return jsonify(out)
 
 # Define routes for CRUD operations
 
@@ -326,7 +309,7 @@ def get_item(tab,pk):
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
     log.debug("leaving get_item with error 500 and return json result")
-    return (jsonify(out),500)
+    return jsonify(out),500
 
 
 @api.route(api_prefix+'/<tab>', methods=['POST'])
@@ -392,6 +375,7 @@ def create_item(tab):
     log.debug("item %s",item)
     s=None
     if is_versioned:
+        log.debug("create_item: versioned mode" )
         ts=get_current_timestamp(dbengine)
         print(ts)
         collist=[k for k in item.keys()]
@@ -427,43 +411,49 @@ def create_item(tab):
         else:
             vallist[collist.index("is_current_and_active")]="Y"
     else:
+        log.debug("create_item: non versioned mode" )
         collist=[k for k in item.keys()]
         vallist=[v for v in item.values()]
+    log.debug("create_item: prepare sql" )
+
+    for pkcol in pkcols:
+        if pkcol not in item.keys():
+            # id ist nicht in data list so generate
+            log.debug("create_item: pk column %s is not in data list so generate",pkcol)
+            collist.append(pkcol)
+            vallist.append(None)
+    qlist=["?" for k in vallist]
+    if seq is not None:
+        log.debug("create_item: get a sequence" )
+        if len(pkcols)>1:
+            out["error"]="mehr als eine PK Spalte bei angegeben sequence nicht erlaubt"
+            return jsonify(out),500
+        s=get_next_seq(dbengine,seq)
+        log.debug("got seq %d ",s)
+        vallist[collist.index(pkcols[0])]=s
+        log.debug("seqence %s inserted",seq)
+    else:
+        s=vallist[collist.index(pkcols[0])]
+    log.debug("create_item: construct sql" )
+    q_str=",".join(qlist)
+    collist_str=",".join(collist)
+    sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
+    log.debug("create_item sql: %s",sql)
     try:
-        qlist=["?" for k in vallist]
-        if seq is not None:
-            if len(pkcols)>1:
-                out["errors"]="mehr als eine PK Spalte bei angegeben sequence nicht erlaubt"
-                return (jsonify(out),500)
-            s=get_next_seq(dbengine,seq)
-            log.debug("got seq %d ",s)
-            vallist[collist.index(pkcols[0])]=s
-            log.debug("seqence %s inserted",seq)
-        else:
-            s=vallist[collist.index(pkcols[0])]
-        q_str=",".join(qlist)
-        collist_str=",".join(collist)
-        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
         dbengine.execute(sql,tuple(vallist))
         #cursor = cnxn.cursor()
         #cursor.execute(sql,val_tuple)
         #cnxn.commit()
-        out["status"]="ok"
         #return 'Item created successfully', 201
     except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
+        print("sqlalchemy",str(e_sqlalchemy))
+        last_stmt_has_errors(e_sqlalchemy, out)
         if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        return (jsonify(out),500)
+        return jsonify(out),500
     except Exception as e:
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=str(e.__dict__['message'])
-        return (jsonify(out),500)
+        print("excp",str(e))
+        last_stmt_has_errors(e, out)
+        return jsonify(out),500
     # read new record from database and send it back
     out=get_item_raw(dbengine,tab,s,pk_column_list=pkcols)
     return jsonify(out)
@@ -524,88 +514,90 @@ def update_item(tab,pk):
         log.warning("update_item implicit pk first column")
 
     if pkcols[0] not in item.keys():
-        out["errors"]="PK Spalte muss beim Update (PUT) in den request daten sein"
-        return (jsonify(out),500)
+        out["error"]="PK Spalte muss beim Update (PUT) in den request daten sein"
+        return jsonify(out),500
 
     chkout=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
-            out["errors"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
-            return (jsonify(out),500)
+            out["error"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+            return jsonify(out),500
     else:
-        out["errors"]="PK check nicht erfolgreich"
-        return (jsonify(out),500)
-
+        out["error"]="PK check nicht erfolgreich"
+        return jsonify(out),500
+    
     pkexp=[k+"=?" for k in pkcols]
     pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
 
     log.debug("pk_columns %s",pkcols)
-    try:
-        if is_versioned:
-            # aktuellen Datensatz abschließen
-            # neuen Datensatz anlegen
-            ts=get_current_timestamp(dbengine)
-            # hole then alten Datensatz aus der DB mit dem angegebenen pk
-            cur_row=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
-            vallist=[]
-            vallist.append(ts)
-            vallist.append(ts)
-            vallist.append(pk)
-            val_tuple=tuple(vallist)
-            sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-            dbengine.execute(sql,val_tuple)
-            # neuen datensatz anlegen
-            # die alten werte mit ggf den neuen überschreiben
-            reclist=cur_row["data"]
-            rec=reclist[0]
-            collist=[k for k in rec.keys()]
-            vallist=[v for v in rec.values()]
-            # überschreibe mit neuen werten
-            for k,v in item.items():
-                log.debug("-> %s %s",k,v)
-                pos=collist.index(k)
-                if pos>=0:
-                    log.debug("overwrite: %s %s",k,v)
-                    vallist[pos]=v
-            vallist[collist.index("valid_from_dt")]=ts
-            vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-            vallist[collist.index("last_changed_dt")]=ts
-            vallist[collist.index("is_latest_period")]='Y'
-            vallist[collist.index("is_current_and_active")]='Y'
-            qlist=["?" for k in rec.keys()]
-            q_str=",".join(qlist)
-            collist_str=",".join(collist)
-            sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-            log.debug("create item: %s",sql)
+    if is_versioned:
+        # aktuellen Datensatz abschließen
+        # neuen Datensatz anlegen
+        ts=get_current_timestamp(dbengine)
+        # hole then alten Datensatz aus der DB mit dem angegebenen pk
+        cur_row=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+        vallist=[]
+        vallist.append(ts)
+        vallist.append(ts)
+        vallist.append(pk)
+        val_tuple=tuple(vallist)
+        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
+        dbengine.execute(sql,val_tuple)
+        # neuen datensatz anlegen
+        # die alten werte mit ggf den neuen überschreiben
+        reclist=cur_row["data"]
+        rec=reclist[0]
+        collist=[k for k in rec.keys()]
+        vallist=[v for v in rec.values()]
+        # überschreibe mit neuen werten
+        for k,v in item.items():
+            log.debug("-> %s %s",k,v)
+            pos=collist.index(k)
+            if pos>=0:
+                log.debug("overwrite: %s %s",k,v)
+                vallist[pos]=v
+        vallist[collist.index("valid_from_dt")]=ts
+        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
+        vallist[collist.index("last_changed_dt")]=ts
+        vallist[collist.index("is_latest_period")]='Y'
+        vallist[collist.index("is_current_and_active")]='Y'
+        qlist=["?" for k in rec.keys()]
+        q_str=",".join(qlist)
+        collist_str=",".join(collist)
+        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
+        log.debug("create item: %s",sql)
+        try:
             dbengine.execute(sql,tuple(vallist))
-        else:
-            # nicht versionierter Standardfall
-            othercols=[col for col in item.keys() if col not in pkcols]
-            log.debug("othercols %s",othercols)
-            osetexp=[k+"=?" for k in othercols]
-            osetexp_str=",".join(osetexp)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
+    else:
+        # nicht versionierter Standardfall
+        othercols=[col for col in item.keys() if col not in pkcols]
+        log.debug("othercols %s",othercols)
+        osetexp=[k+"=?" for k in othercols]
+        osetexp_str=",".join(osetexp)
+    
+        vallist=[item[col] for col in item.keys() if col not in pkcols]
+        vallist.append(pk)
+        val_tuple=tuple(vallist)
         
-            vallist=[item[col] for col in item.keys() if col not in pkcols]
-            vallist.append(pk)
-            val_tuple=tuple(vallist)
-            
-            sql=f"UPDATE {tab} SET {osetexp_str} WHERE {pkwhere}"
-            log.debug("update item sql %s",sql)
+        sql=f"UPDATE {tab} SET {osetexp_str} WHERE {pkwhere}"
+        log.debug("update item sql %s",sql)
+        try:
             dbengine.execute(sql,val_tuple)
-    except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        return (jsonify(out),500)
-    except Exception as e:
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
-        return (jsonify(out),500)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
     out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     #return 'Item updated successfully', 200
@@ -661,11 +653,11 @@ def delete_item(tab,pk):
     chkout=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
-            out["errors"]="PK ist nicht vorhanden"
-            return (jsonify(out),500)
+            out["error"]="PK ist nicht vorhanden"
+            return jsonify(out),500
     else:
-        out["errors"]="PK check nicht erfolgreich"
-        return (jsonify(out),500)
+        out["error"]="PK check nicht erfolgreich"
+        return jsonify(out),500
         
     log.debug("delete_item pk_columns %s",pkcols)
     if len(pkcols)==1:
@@ -674,54 +666,57 @@ def delete_item(tab,pk):
         pkexp=[k+"=?" for k in pkcols]
         pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
-    try:
-        if is_versioned:
-            # aktuellen Datensatz abschließen
-            # neuen Datensatz anlegen
-            ts=get_current_timestamp(dbengine)
-            cur_row=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
-            vallist=[]
-            vallist.append(ts)
-            vallist.append(ts)
-            vallist.append(pk)
-            val_tuple=tuple(vallist)
-            sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere}  AND invalid_from_dt='9999-12-31 00:00:00'"
-            dbengine.execute(sql,val_tuple)
-            # neuen datensatz anlegen
-            # die alten werte mit ggf den neuen überschreiben
-            reclist=cur_row["data"]
-            rec=reclist[0]
-            collist=[k for k in rec.keys()]
-            vallist=[v for v in rec.values()]
-            vallist[collist.index("valid_from_dt")]=ts
-            vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-            vallist[collist.index("last_changed_dt")]=ts
-            vallist[collist.index("is_latest_period")]='Y'
-            vallist[collist.index("is_current_and_active")]='N'
-            vallist[collist.index("is_deleted")]='Y'
-            qlist=["?" for k in rec.keys()]
-            q_str=",".join(qlist)
-            collist_str=",".join(collist)
-            sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-            log.debug("create item: %s",sql)
+    if is_versioned:
+        # aktuellen Datensatz abschließen
+        # neuen Datensatz anlegen
+        ts=get_current_timestamp(dbengine)
+        cur_row=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
+        vallist=[]
+        vallist.append(ts)
+        vallist.append(ts)
+        vallist.append(pk)
+        val_tuple=tuple(vallist)
+        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere}  AND invalid_from_dt='9999-12-31 00:00:00'"
+        dbengine.execute(sql,val_tuple)
+        # neuen datensatz anlegen
+        # die alten werte mit ggf den neuen überschreiben
+        reclist=cur_row["data"]
+        rec=reclist[0]
+        collist=[k for k in rec.keys()]
+        vallist=[v for v in rec.values()]
+        vallist[collist.index("valid_from_dt")]=ts
+        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
+        vallist[collist.index("last_changed_dt")]=ts
+        vallist[collist.index("is_latest_period")]='Y'
+        vallist[collist.index("is_current_and_active")]='N'
+        vallist[collist.index("is_deleted")]='Y'
+        qlist=["?" for k in rec.keys()]
+        q_str=",".join(qlist)
+        collist_str=",".join(collist)
+        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
+        log.debug("create item: %s",sql)
+        try:
             dbengine.execute(sql,tuple(vallist))
-        else:
-            sql=f"DELETE FROM {tab} WHERE {pkwhere}"
-            log.debug("delete_item sql %s",sql)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
+            
+    else:
+        sql=f"DELETE FROM {tab} WHERE {pkwhere}"
+        log.debug("delete_item sql %s",sql)
+        try:
             dbengine.execute(sql,pk)
-    except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        return (jsonify(out),500)
-    except Exception as e:
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
-        return (jsonify(out),500)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out,500)
     return 'Item deleted successfully', 200
     #return jsonify(out)
 
@@ -735,25 +730,12 @@ def get_metadata_tables():
     out={}
     items,columns,total_count,e=sql_select(dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
     log.debug("get_metadata_tables sql_select error %s",str(e))
-    if isinstance(e, SQLAlchemyError):
-        out["error"]=e.__dict__['code']
-        out["message"]=e.__dict__['orig']
-        out["detail"]=None
+    if last_stmt_has_errors(e,out):
         return jsonify(out),500
-    if isinstance(e,Exception):
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=None
-        return jsonify(out),500
-    
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
-    if columns is None:  # keine Spalten
-        out["message"]="no columns"
-        return jsonify(out),500
-    else:
-        return jsonify(out)
+    return jsonify(out)
 
 @api.route(api_metadata_prefix+'/table/<tab>', methods=['GET'])
 def get_metadata_tab_columns(tab):
@@ -770,6 +752,7 @@ def get_metadata_tab_columns(tab):
     -------
 
     """
+    out={}
     log.debug("++++++++++ entering get_metadata_tab_columns")
     log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
     pkcols=None
@@ -780,7 +763,15 @@ def get_metadata_tab_columns(tab):
                 pkcols=value.split(",")
                 log.debug("pk option %s",pkcols)
     log.debug('get_metadata_tab_columns: for %s',tab)
-    metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
+    try:
+        metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
+    except SQLAlchemyError as e_sqlalchemy:
+        last_stmt_has_errors(e_sqlalchemy, out)
+        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+        return jsonify(out),500
+    except Exception as e:
+        last_stmt_has_errors(e, out)
+        return jsonify(out),500
     return jsonify(metadata)
 
 """
@@ -817,24 +808,12 @@ def get_all_repos(tab):
     log.debug("pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,with_total_count=True)
     log.debug("get_all_repos sql_select error %s",str(e))
-    if isinstance(e, SQLAlchemyError):
-        out["error"]=e.__dict__['code']
-        out["message"]=e.__dict__['orig']
-        out["detail"]=None
-        return jsonify(out),500
-    if isinstance(e,Exception):
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=None
+    if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
-    if columns is None:  # keine Spalten
-        out["message"]="no columns"
-        return jsonify(out),500
-    else:
-        return jsonify(out)
+    return jsonify(out)
 
 # Define routes for CRUD operations
 
@@ -886,7 +865,7 @@ def get_repo(tab,pk):
             # return Response(status=204)
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
-    return (jsonify(out),500)
+    return jsonify(out),500
 
 
 @api.route(repo_api_prefix+'/<tab>', methods=['POST'])
@@ -913,6 +892,7 @@ def create_repo(tab):
     pkcols=[]
     is_versioned=False
     # check options
+    log.debug("create_repo: check url params")
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
@@ -923,6 +903,7 @@ def create_repo(tab):
                 is_versioned=True
                 log.debug("versions enabled")
     log.debug("create_repo tab %s pkcols %s",tab,pkcols)
+    log.debug("create_repo: get metadata_raw")
     metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
     log.debug("create_item after get_metadata_raw %s",str(metadata))
     if "error" in metadata.keys():
@@ -934,7 +915,7 @@ def create_repo(tab):
         pkcols=[(metadata["columns"])[0]]
         log.warning("create_repo implicit pk first column %s",str(pkcols))
     log.debug("create_item %s pkcols2 %s",tab,pkcols)
-    log.debug("in create_item (pos)")
+    log.debug("create_repo: prepare data")
     data_bytes = request.get_data()
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
@@ -944,6 +925,7 @@ def create_repo(tab):
     log.debug("item %s",item)
     s=None
     if is_versioned:
+        log.debug("create_repo: versioned mode")
         ts=get_current_timestamp(repoengine)
         print(ts)
         collist=[k for k in item.keys()]
@@ -979,50 +961,44 @@ def create_repo(tab):
         else:
             vallist[collist.index("is_current_and_active")]="Y"
     else:
+        log.debug("create_repo: not versioned mode")
         collist=[k for k in item.keys()]
         vallist=[v for v in item.values()]
     # wenn Repo Tabelle mit Id aber keine id-spalte in data dann id spalte hinzufügen und mit sequence befüllen
+    log.debug("create_repo: check if id seq table")
     if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"] and "id" not in item.keys():
         # id ist nicht in data list so generate
+        log.debug("create_repo: id ist nicht in data list so generate")
         collist.append("id")
         s=get_next_seq(repoengine,tab)
         vallist.append(s)
     # wenn Repo Tabelle mit Id aber null für id dann id  mit sequence befüllen
     if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"] and "id" in item.keys():
         # id ist nicht in data list so generate
-        s=get_next_seq(repoengine,tab)
-        vallist[collist.index("id")]=s
+        log.debug("create_repo: id is in data list")
+        if vallist[collist.index("id")] is None:
+            log.debug("create_repo: id is in data list but None/Null")
+            s=get_next_seq(repoengine,tab)
+            vallist[collist.index("id")]=s
+    qlist=["?" for k in vallist]
+    if len(pkcols)==1:
+        s=vallist[collist.index(pkcols[0])]
+    else:
+        s={}
+        for c in pkcols:
+            s[c]=vallist[collist.index(c)]
+    q_str=",".join(qlist)
+    collist_str=",".join(collist)
+    sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
+    log.debug("create repo: %s",sql)
     try:
-        qlist=["?" for k in vallist]
-        if len(pkcols)==1:
-            s=vallist[collist.index(pkcols[0])]
-        else:
-            s={}
-            for c in pkcols:
-                s[c]=vallist[collist.index(c)]
-        q_str=",".join(qlist)
-        collist_str=",".join(collist)
-        sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create repo: %s",sql)
         repoengine.execute(sql,tuple(vallist))
-        #cursor = cnxn.cursor()
-        #cursor.execute(sql,val_tuple)
-        #cnxn.commit()
-        out["status"]="ok"
-        #return 'Item created successfully', 201
     except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        return (jsonify(out),500)
+        last_stmt_has_errors(e_sqlalchemy, out)
+        return jsonify(out),500
     except Exception as e:
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
-        return (jsonify(out),500)
+        last_stmt_has_errors(e, out)
+        return jsonify(out),500
     # read new record from database and send it back
     out=get_item_raw(repoengine,repo_table_prefix+tab,s,pk_column_list=pkcols)
     return jsonify(out)
@@ -1086,82 +1062,84 @@ def update_repo(tab,pk):
     chkout=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
-            out["errors"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
-            return (jsonify(out),500)
+            out["error"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+            return jsonify(out),500
     else:
-        out["errors"]="PK check nicht erfolgreich"
-        return (jsonify(out),500)
+        out["error"]="PK check nicht erfolgreich"
+        return jsonify(out),500
 
     pkexp=[k+"=?" for k in pkcols]
     pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
 
     log.debug("pk_columns %s",pkcols)
-    try:
-        if is_versioned:
-            # aktuellen Datensatz abschließen
-            # neuen Datensatz anlegen
-            ts=get_current_timestamp(repoengine)
-            # hole then alten Datensatz aus der DB mit dem angegebenen pk
-            cur_row=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,versioned=is_versioned)
-            vallist=[]
-            vallist.append(ts)
-            vallist.append(ts)
-            vallist.append(pk)
-            val_tuple=tuple(vallist)
-            sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-            repoengine.execute(sql,val_tuple)
-            # neuen datensatz anlegen
-            # die alten werte mit ggf den neuen überschreiben
-            reclist=cur_row["data"]
-            rec=reclist[0]
-            collist=[k for k in rec.keys()]
-            vallist=[v for v in rec.values()]
-            # überschreibe mit neuen werten
-            for k,v in item.items():
-                log.debug("-> %s %s",k,v)
-                pos=collist.index(k)
-                if pos>=0:
-                    log.debug("overwrite: %s %s",k,v)
-                    vallist[pos]=v
-            vallist[collist.index("valid_from_dt")]=ts
-            vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-            vallist[collist.index("last_changed_dt")]=ts
-            vallist[collist.index("is_latest_period")]='Y'
-            vallist[collist.index("is_current_and_active")]='Y'
-            qlist=["?" for k in rec.keys()]
-            q_str=",".join(qlist)
-            collist_str=",".join(collist)
-            sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-            log.debug("create item: %s",sql)
+    if is_versioned:
+        # aktuellen Datensatz abschließen
+        # neuen Datensatz anlegen
+        ts=get_current_timestamp(repoengine)
+        # hole then alten Datensatz aus der DB mit dem angegebenen pk
+        cur_row=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+        vallist=[]
+        vallist.append(ts)
+        vallist.append(ts)
+        vallist.append(pk)
+        val_tuple=tuple(vallist)
+        sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
+        repoengine.execute(sql,val_tuple)
+        # neuen datensatz anlegen
+        # die alten werte mit ggf den neuen überschreiben
+        reclist=cur_row["data"]
+        rec=reclist[0]
+        collist=[k for k in rec.keys()]
+        vallist=[v for v in rec.values()]
+        # überschreibe mit neuen werten
+        for k,v in item.items():
+            log.debug("-> %s %s",k,v)
+            pos=collist.index(k)
+            if pos>=0:
+                log.debug("overwrite: %s %s",k,v)
+                vallist[pos]=v
+        vallist[collist.index("valid_from_dt")]=ts
+        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
+        vallist[collist.index("last_changed_dt")]=ts
+        vallist[collist.index("is_latest_period")]='Y'
+        vallist[collist.index("is_current_and_active")]='Y'
+        qlist=["?" for k in rec.keys()]
+        q_str=",".join(qlist)
+        collist_str=",".join(collist)
+        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
+        log.debug("create item: %s",sql)
+        try:
             repoengine.execute(sql,tuple(vallist))
-        else:
-            # nicht versionierter Standardfall
-            othercols=[col for col in item.keys() if col not in pkcols]
-            log.debug("othercols %s",othercols)
-            osetexp=[k+"=?" for k in othercols]
-            osetexp_str=",".join(osetexp)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
+    else:
+        # nicht versionierter Standardfall
+        othercols=[col for col in item.keys() if col not in pkcols]
+        log.debug("othercols %s",othercols)
+        osetexp=[k+"=?" for k in othercols]
+        osetexp_str=",".join(osetexp)
+    
+        vallist=[item[col] for col in item.keys() if col not in pkcols]
+        vallist.append(pk)
+        val_tuple=tuple(vallist)
         
-            vallist=[item[col] for col in item.keys() if col not in pkcols]
-            vallist.append(pk)
-            val_tuple=tuple(vallist)
-            
-            sql=f"UPDATE {repo_table_prefix}{tab} SET {osetexp_str} WHERE {pkwhere}"
-            log.debug("update item sql %s",sql)
+        sql=f"UPDATE {repo_table_prefix}{tab} SET {osetexp_str} WHERE {pkwhere}"
+        log.debug("update item sql %s",sql)
+        try:
             repoengine.execute(sql,val_tuple)
-    except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        return (jsonify(out),500)
-    except Exception as e:
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
-        return (jsonify(out),500)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
     out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     #return 'Item updated successfully', 200
@@ -1210,71 +1188,72 @@ def delete_repo(tab,pk):
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
-        pkcols=(metadata["columns"])[0]
+        pkcols=(metadata["columns"])[:1]
         log.warning("delete_repo implicit pk first column")
         
     chkout=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
-            out["errors"]="PK ist nicht vorhanden"
-            return (jsonify(out),500)
+            out["error"]="PK ist nicht vorhanden"
+            return jsonify(out),500
     else:
-        out["errors"]="PK check nicht erfolgreich"
-        return (jsonify(out),500)
+        out["error"]="PK check nicht erfolgreich"
+        return jsonify(out),500
         
     log.debug("delete_repo pk_columns %s",pkcols)
     pkexp=[k+"=?" for k in pkcols]
     pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
-    try:
-        if is_versioned:
-            # aktuellen Datensatz abschließen
-            # neuen Datensatz anlegen
-            ts=get_current_timestamp(repoengine)
-            cur_row=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
-            vallist=[]
-            vallist.append(ts)
-            vallist.append(ts)
-            vallist.append(pk)
-            val_tuple=tuple(vallist)
-            sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere}  AND invalid_from_dt='9999-12-31 00:00:00'"
-            repoengine.execute(sql,val_tuple)
-            # neuen datensatz anlegen
-            # die alten werte mit ggf den neuen überschreiben
-            reclist=cur_row["data"]
-            rec=reclist[0]
-            collist=[k for k in rec.keys()]
-            vallist=[v for v in rec.values()]
-            vallist[collist.index("valid_from_dt")]=ts
-            vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-            vallist[collist.index("last_changed_dt")]=ts
-            vallist[collist.index("is_latest_period")]='Y'
-            vallist[collist.index("is_current_and_active")]='N'
-            vallist[collist.index("is_deleted")]='Y'
-            qlist=["?" for k in rec.keys()]
-            q_str=",".join(qlist)
-            collist_str=",".join(collist)
-            sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
-            log.debug("create item: %s",sql)
+    if is_versioned:
+        # aktuellen Datensatz abschließen
+        # neuen Datensatz anlegen
+        ts=get_current_timestamp(repoengine)
+        cur_row=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
+        vallist=[]
+        vallist.append(ts)
+        vallist.append(ts)
+        vallist.append(pk)
+        val_tuple=tuple(vallist)
+        sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere}  AND invalid_from_dt='9999-12-31 00:00:00'"
+        repoengine.execute(sql,val_tuple)
+        # neuen datensatz anlegen
+        # die alten werte mit ggf den neuen überschreiben
+        reclist=cur_row["data"]
+        rec=reclist[0]
+        collist=[k for k in rec.keys()]
+        vallist=[v for v in rec.values()]
+        vallist[collist.index("valid_from_dt")]=ts
+        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
+        vallist[collist.index("last_changed_dt")]=ts
+        vallist[collist.index("is_latest_period")]='Y'
+        vallist[collist.index("is_current_and_active")]='N'
+        vallist[collist.index("is_deleted")]='Y'
+        qlist=["?" for k in rec.keys()]
+        q_str=",".join(qlist)
+        collist_str=",".join(collist)
+        sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
+        log.debug("create item: %s",sql)
+        try:
             repoengine.execute(sql,tuple(vallist))
-        else:
-            sql=f"DELETE FROM {repo_table_prefix}{tab} WHERE {pkwhere}"
-            log.debug("delete_item sql %s",sql)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
+    else:
+        sql=f"DELETE FROM {repo_table_prefix}{tab} WHERE {pkwhere}"
+        log.debug("delete_repo sql %s",sql)
+        try:
             repoengine.execute(sql,pk)
-    except SQLAlchemyError as e_sqlalchemy:
-        out["error"]=e_sqlalchemy.__dict__['code']
-        out["message"]=e_sqlalchemy.__dict__['orig']
-        out["detail"]=str(e_sqlalchemy)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        return (jsonify(out),500)
-    except Exception as e:
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=str(e)
-        if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=e.__dict__['message']
-        return (jsonify(out),500)
-    return 'Repo deleted successfully', 200
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
+    return 'Repo Record deleted successfully', 200
     #return jsonify(out)
 
 @api.route(repo_api_prefix+'/init_repo', methods=['POST'])
@@ -1308,24 +1287,12 @@ def get_lookup(id):
     log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,e=repo_lookup_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
     log.debug("get_lookup sql_select error %s",str(e))
-    if isinstance(e, SQLAlchemyError):
-        out["error"]=e.__dict__['code']
-        out["message"]=e.__dict__['orig']
-        out["detail"]=None
-        return jsonify(out),500
-    if isinstance(e,Exception):
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=None
+    if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
-    if columns is None:  # keine Spalten
-        out["message"]="no columns"
-        return jsonify(out), 500
-    else:
-        return jsonify(out)
+    return jsonify(out)
 
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
 def get_adhoc_data(id):
@@ -1349,13 +1316,20 @@ def get_adhoc_data(id):
             msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
             log.error(msg)
             return msg, 500
-        if execute_in_repodb:
-            log.debug("adhoc query execution in repodb")
-            data=repoengine.execute(sql)
-        else:
-            log.debug("adhoc query execution")
-            data=dbengine.execute(sql)
-        out={}
+        try:
+            if execute_in_repodb:
+                log.debug("adhoc query execution in repodb")
+                data=repoengine.execute(sql)
+            else:
+                log.debug("adhoc query execution")
+                data=dbengine.execute(sql)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            return jsonify(out),500
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            return jsonify(out),500
         offset = request.args.get('offset')
         limit = request.args.get('limit')
         order_by = request.args.get('order_by')
@@ -1366,24 +1340,14 @@ def get_adhoc_data(id):
         out["data"]=items
         out["columns"]=columns
         out["total_count"]=total_count
-        if columns is None:  # keine Spalten
-            return "Fehler beim JSON adhoc", 500
-        else:
-            return jsonify(out)
+        return jsonify(out)
     else:
         result=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
-        if isinstance(result, SQLAlchemyError):
-            out["error"]=result.__dict__['code']
-            out["message"]=result.__dict__['orig']
-            out["detail"]=None
-            return out
-        if isinstance(result,Exception):
-            out["error"]=1
-            out["message"]=result.__class__
-            out["detail"]=None
-            return out
+        if last_stmt_has_errors(result, out):
+            return jsonify(out),500
         if result is None:  # keine Spalten
-            return "adhoc fehler leer", 500
+            out["message"] = "adhoc fehler leer"
+            return jsonify(out),500
         else:
             df = pd.DataFrame(result.fetchall(), columns=result.keys())
     

@@ -452,3 +452,55 @@ import sqlalchemy
 #2.-Turn on database engine
 repoEngine=sqlalchemy.create_engine('sqlite:////Users/kribbel/plainbi_repo.db.db') # ensure this is the correct path for the sqlite file. 
 """
+
+def create_pytest_tables(engine):
+    t="dwh.analysis.pytest_api_testtable"
+    tv="dwh.analysis.pytest_tv_api_testtable"
+    sq="analysis.pytest_seq"
+    s="dwh."+sq
+    sql_create_list=[
+
+f"""
+use dwh;
+""",
+f"""
+drop sequence if exists {sq};
+""",
+f"""
+create sequence {sq} start with 0;
+""",
+f"""
+DROP TABLE IF EXISTS {t}
+""",
+f"""
+CREATE TABLE {t} (
+    nr int NOT NULL
+  , name varchar(200)
+  , dat date
+  , PRIMARY KEY (nr)
+);
+""",
+f"""
+drop table if exists {tv}
+""",
+f"""
+CREATE TABLE {tv} (
+    nr int NOT NULL
+  , name varchar(200)
+  , dat date
+  , valid_from_dt datetime NOT NULL
+  , invalid_from_dt datetime NOT NULL
+  , last_changed_dt datetime NOT NULL
+  , is_deleted char(1) NOT NULL
+  , is_latest_period char(1) NOT NULL
+  , is_current_and_active char(1) NOT NULL
+  , last_changed_by varchar(120)
+  , PRIMARY KEY (nr, invalid_from_dt)
+);
+""",
+    ]
+    print("******************************")
+    for sql in sql_create_list[:]:
+       print(sql)
+       engine.execute(sql)
+    return t,tv,s
