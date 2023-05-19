@@ -9,10 +9,12 @@
          "alias":"all",
          "versioned": true,
          "allowed_actions":[
-            "update"
+            "create",
+            "update",
+            "delete"
          ],
          "pk_columns":["veranstaltung_nr"],
-         "table":"DWH.config.tv_kfg_veranstaltung",
+         "table":"DWH.config.tv_messe_statistik_veranstaltung",
          "table_columns":[
             {
                "column_name":"veranstaltung_nr",
@@ -20,61 +22,90 @@
                "datatype":"text",
                "ui":"lookup",
                "lookup":"veranstaltung",
-               "editable":"false",
-               "required":"false"
-            },
-            {
-               "column_name":"code",
-               "column_label":"Code",
-               "datatype":"text",
-               "ui":"textinput",
                "editable":"true",
                "required":"false"
             },
             {
-               "column_name":"url",
-               "column_label":"Webseite (URL)",
+               "column_name":"status",
+               "column_label":"Status",
+               "datatype":"text",
+               "ui":"lookup",
+               "lookup":"pruefstatus",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"besucher_anzahl_laender",
+               "column_label":"Besucher - Anzahl Länder",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"besucher_fachbesucher_anteil",
+               "column_label":"Fachbesucher (Anteil in %)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"aussteller_anzahl_laender",
+               "column_label":"Aussteller - Anzahl Länder",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"zusaetzlich_vertretene_firmen_inland",
+               "column_label":"zus. vertretene Firmen (Inland)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"zusaetzlich_vertretene_firmen_ausland",
+               "column_label":"zus. vertretene Firmen (Ausland)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"zusaetzlich_vertretene_firmen_sonst",
+               "column_label":"zus. vertretene Firmen (sonst)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"flaeche_netto_gesamt",
+               "column_label":"Nettofläche (gesamt)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"flaeche_brutto_gesamt",
+               "column_label":"Bruttofläche (gesamt)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"kommentar",
+               "column_label":"Kommentar",
                "datatype":"text",
                "ui":"textinput",
                "editable":"true",
                "required":"false",
                "showdetailsonly":"true"
-            },
-            {
-               "column_name":"veranstalter_nr",
-               "column_label":"Veranstalter",
-               "datatype":"text",
-               "ui":"lookup",
-               "lookup":"veranstalter",
-               "editable":"true",
-               "required":"false"
-            },
-            {
-               "column_name":"ist_terminal",
-               "column_label":"Ist Terminal?",
-               "datatype":"text",
-               "ui":"lookup",
-               "lookup":"JN",
-               "editable":"true",
-               "required":"true"
-            },
-            {
-               "column_name":"relevante_vorveranstaltung_nr",
-               "column_label":"relevante Vorveranstaltung",
-               "datatype":"text",
-               "ui":"lookup",
-               "lookup":"veranstaltung",
-               "editable":"true",
-               "required":"false"
-            },
-            {
-               "column_name":"ist_konfiguriert",
-               "column_label":"Ist konfiguriert?",
-               "datatype":"text",
-               "ui":"lookup",
-               "lookup":"JN",
-               "editable":"true",
-               "required":"true"
             },
             {
                "column_name":"last_changed_dt",
@@ -96,83 +127,83 @@
       },
       {
          "id":"2",
-         "name":"Veranstaltungsreihen",
-         "alias":"reihen",
+         "name":"Veranstaltungen je Land",
+         "alias":"va_land",
          "versioned": true,
          "allowed_actions":[
-            "update"
+            "create",
+            "update",
+            "delete"
          ],
-         "pk_columns":["veranstaltungsreihe_nr"],
-         "table":"DWH.config.tv_kfg_veranstaltungsreihe",
+         "pk_columns":["veranstaltung_nr","land_iso2"],
+         "table":"DWH.config.tv_messe_statistik_veranstaltung_land",
          "table_columns":[
             {
-               "column_name":"veranstaltungsreihe_nr",
+               "column_name":"veranstaltung_nr",
                "column_label":"Nr",
                "datatype":"text",
                "ui":"lookup",
-               "lookup":"veranstaltungsreihe",
-               "editable":"false",
-               "required":"false"
-            },
-            {
-               "column_name":"code",
-               "column_label":"Code",
-               "datatype":"text",
-               "ui":"textinput",
+               "lookup":"veranstaltung",
                "editable":"true",
                "required":"false"
             },
             {
-               "column_name":"url",
-               "column_label":"Webseite (URL)",
+               "column_name":"land_iso2",
+               "column_label":"Land",
+               "datatype":"text",
+               "ui":"lookup",
+               "lookup":"land",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"besucher_anzahl",
+               "column_label":"Anzahl Besucher",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"aussteller_anzahl",
+               "column_label":"Anzahl Aussteller",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"flaeche_freigelaende",
+               "column_label":"Ausstellerstandfläche (Freigelände)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"flaeche_halle",
+               "column_label":"Ausstellerstandfläche (Halle)",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"flaeche_sonderschau",
+               "column_label":"Sonderschaufläche",
+               "datatype":"number",
+               "ui":"numberinput",
+               "editable":"true",
+               "required":"false"
+            },
+            {
+               "column_name":"kommentar",
+               "column_label":"Kommentar",
                "datatype":"text",
                "ui":"textinput",
                "editable":"true",
                "required":"false",
                "showdetailsonly":"true"
-            },
-            {
-               "column_name":"logo",
-               "column_label":"Logo",
-               "datatype":"text",
-               "ui":"textinput",
-               "editable":"true",
-               "required":"true",
-               "showdetailsonly":"true"
-            },
-            {
-               "column_name":"geschaeftsbereich",
-               "column_label":"Geschäftsbereich",
-               "datatype":"text",
-               "ui":"textinput",
-               "editable":"true",
-               "required":"false"
-            },
-            {
-               "column_name":"projektgruppe",
-               "column_label":"Projektgruppe",
-               "datatype":"text",
-               "ui":"textinput",
-               "editable":"true",
-               "required":"false"
-            },
-            {
-               "column_name":"kategorie",
-               "column_label":"Kategorie",
-               "datatype":"text",
-               "ui":"lookup",
-               "lookup":"veranstaltungskategorie",
-               "editable":"true",
-               "required":"false"
-            },
-            {
-               "column_name":"ist_konfiguriert",
-               "column_label":"Ist konfiguriert?",
-               "datatype":"text",
-               "ui":"lookup",
-               "lookup":"JN",
-               "editable":"true",
-               "required":"true"
             },
             {
                "column_name":"last_changed_dt",

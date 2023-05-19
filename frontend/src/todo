@@ -2,42 +2,12 @@
 # asap
 # ------------------------------------------------
 
-Alec:
-- "Veranstalter" als Entität
-- was machen wir mit manuell gelieferten Veranstaltungen (Market Intelligence)
-- logo Spalte: auch 8000 ist zu klein -> doch auf binary ändern? oder nur als URL hinterlegen ? wo die Bilder dann hinterlegen (hochladen hier direkt oder doch in die "file" Entität und per API anbieten /api/repo/file/<id>/data) ?
-- ich benötigte "Länder" als Entität -> einmal per Init befüllen ! (kommt ursprünglich aus T_DWH_SAP_COUNTRIES und beladen in DIM_COUNTRY)
-
-    select 
-      case when id_country = '-' then -1 else ROW_NUMBER() OVER(order by id_country asc)-1 end as land_id
-      , case when id_country = '-' then '99' else id_country end as land_iso2
-      , coalesce(id_country_iso3,'999')  as land_iso3
-      , case when id_country = '-' then '(n/a)' else country_de end as land
-      , continent_de as land_gruppe
-      , case 
-      when id_country  = 'DE' then country_de 			
-      when id_country  <> 'DE' and continent_de = 'EU-Länder' then continent_de + ' ohne Deutschland'
-      else continent_de 
-      end as land_gruppe_2
-      , case when id_country = '-' then '(n/a)' else country_group1_de end  as in_ausland
-    into dwh.stage.man_land
-    from mm_dwh_dev.dds.dim_country dc 
-    where 1=1
-    and active = 1
-    and id_country <> '99' -- RoW rausnehmen
-    order by 1 asc
-
-
 Joe:
 - compound key -> DELETE und UPDATE (PUT) geht nicht ?
 - verisonierte Tabelle: anlegen eines früher bestehenden PK geht nicht z.B. nr 3 bei crud test
   - compound key hier auch noch testen
 
 CRUD field validation before save (especially required fields) !
-
-dwh.config.tv_mafo_kennzahlen_veranstaltung und ...tv_mafo_kennzahlen_veranstaltung_land testen !
-  -> mit Lookup auf Veranstaltung und Land/Ländergruppe(Inland, Ausland, Gesamt)
-  -> weitere Veranstaltung händisch pflegen ?! stage.man_veranstaltung
 
 Home:
   - additional tiles (e.g. list of fairs !) -> aber wie einbinden ?!
@@ -66,8 +36,6 @@ auf "errors" im body reagieren !
 # ------------------------------------------------
 
 API enhancements:
-  - composite keys ! <pk> = (feld1:wert1,feld2:wert2,...)
-  - last_changed_by !
   - Excel
     - Sheetname: "daten"
       - Headerzeile: Arial, 9, Border unten, Auto filter, Bold, Left (align)
@@ -82,6 +50,7 @@ API enhancements:
     - integrated Users and Roles
       - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
       - User
+    - fill last_changed_by !
   - swagger-UI
   - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s)) (https://www.baeldung.com/rest-api-error-handling-best-practices)
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
