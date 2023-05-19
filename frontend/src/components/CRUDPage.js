@@ -2,7 +2,6 @@ import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
 import {
-  Table,
   Button,
   Typography,
   Layout,
@@ -11,6 +10,8 @@ import {
   Popconfirm,
   message
 } from "antd";
+import Table from "./Table";
+import {Sorter} from "../utils/sorter";
 import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import CRUDModal from "./CRUDModal";
@@ -243,6 +244,10 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     return {
       title: column_label,
       dataIndex: column_name,
+      sorter: {
+        compare: Sorter.DEFAULT,
+        multiple: 3,
+      },
       //key: column_name
       //width: 50,
     };
@@ -254,6 +259,10 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       return {
         title: column_label,
         dataIndex: column_name,
+        sorter: {
+          compare: Sorter.DEFAULT,
+          multiple: 3,
+        },
         //key: column_name
         //width: 50,
         render: (text, record, column_name) => (

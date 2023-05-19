@@ -100,7 +100,10 @@ const handleSwitchChange = (checked, e) => {
                 rules={[{ required: (required === "true" ? true : false) }]}
                 tooltip={tooltip}
               >
-                {editable === "false" ? (
+                {
+                  (editable === "false" && ui === "lookup") ? (
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true"/>
+                ) : editable === "false" ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookup" ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange}/>

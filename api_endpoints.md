@@ -20,6 +20,12 @@ A **authentication** API is necessary to retrieve a JWT token for accessing all 
 
 ## Repository /api/repo
 
+### /api/repo/init_repo
+
+To initially setup the repository (internal sqlite database) with all necessary tables and some initial entries (for roles, lookups, etc.) call following command from your terminal
+
+    curl --header "Content-Type: application/json" --request POST "localhost:3001/api/repo/init_repo" -w "%{http_code}\n"
+
 ### /api/repo/\<type\>
 
 Following types of repository objects exist:
