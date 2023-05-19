@@ -53,6 +53,40 @@ def prep_pk_from_url(pk):
     else:
         return pk        
 
+def make_pk_where_clause(pk,pkcols,versioned=False):
+    """
+      pk ... werte für primary key whereclause 
+      pk ... pk column names
+      returns  where_clause,vallist
+    """
+    log.debug("++++++++++ entering make_pk_where_clause")
+    log.debug("make_pk_where_clause: param pk is <%s>",str(pk))
+    log.debug("make_pk_where_clause: param pkcols is <%s>",str(pkcols))
+    w=""
+    vallist=[]
+    if isinstance(pk, dict):
+        pkstr1=pkcols[0]
+        i=0
+        for c,v in pk.items():
+            i+=1
+            if i==1:
+                w+=" WHERE "
+            else:
+                w+=" AND "
+            w+=c+"=?"
+            vallist.append(v)
+    else:
+        if len(pkcols)>1:
+            log.error("number of pkcols and pk values do not match")
+        pkstr1=pkcols[0]
+        w=f'WHERE {pkstr1}=?'
+        vallist=[pk]
+    if versioned:
+       #sql+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
+       w+=" AND is_current_and_active = 'Y'" 
+    log.debug("make_pk_where_clause: return whereclause=%s , vallist=%s",w,vallist)
+    return w, tuple(vallist)
+
 def last_stmt_has_errors(e,out):
     """
     check error exception
@@ -69,6 +103,9 @@ def last_stmt_has_errors(e,out):
     True if there were errors, else False
 
     """
+    log.debug("++++++++++ entering last_stmt_has_errors")
+    log.debug("last_stmt_has_errors: param e is <%s>",str(e))
+    log.debug("last_stmt_has_errors: param out is <%s>",str(out))
     if isinstance(e, SQLAlchemyError):
         log.error(str(SQLAlchemyError))
         if hasattr(e, 'code'):

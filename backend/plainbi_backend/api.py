@@ -88,7 +88,7 @@ from flask.json import JSONEncoder
 from dotenv import load_dotenv
 import csv
 import pandas as pd
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt
 from plainbi_backend.repo import create_repo_db
 
@@ -415,13 +415,14 @@ def create_item(tab):
         collist=[k for k in item.keys()]
         vallist=[v for v in item.values()]
     log.debug("create_item: prepare sql" )
-
+    log.debug("add missing pk columns ")
     for pkcol in pkcols:
         if pkcol not in item.keys():
             # id ist nicht in data list so generate
             log.debug("create_item: pk column %s is not in data list so generate",pkcol)
-            collist.append(pkcol)
-            vallist.append(None)
+            if pkcol not in collist:
+                collist.append(pkcol)
+                vallist.append(None)
     qlist=["?" for k in vallist]
     if seq is not None:
         log.debug("create_item: get a sequence" )
@@ -526,9 +527,12 @@ def update_item(tab,pk):
         out["error"]="PK check nicht erfolgreich"
         return jsonify(out),500
     
-    pkexp=[k+"=?" for k in pkcols]
-    pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
+    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
+    log.debug("update_item: pkwhere %s",pkwhere)
+
+    #pkexp=[k+"=?" for k in pkcols]
+    #pkwhere=" AND ".join(pkexp)
+    #log.debug("pkwhere %s",pkwhere)
 
     log.debug("pk_columns %s",pkcols)
     if is_versioned:
@@ -542,8 +546,8 @@ def update_item(tab,pk):
         vallist.append(ts)
         vallist.append(pk)
         val_tuple=tuple(vallist)
-        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-        dbengine.execute(sql,val_tuple)
+        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
+        dbengine.execute(sql,pkwhere_val)
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
@@ -584,11 +588,13 @@ def update_item(tab,pk):
         osetexp_str=",".join(osetexp)
     
         vallist=[item[col] for col in item.keys() if col not in pkcols]
-        vallist.append(pk)
+        # where clause pk dinger hinzufügen
+        vallist.extend(list(pkwhere_val))
         val_tuple=tuple(vallist)
         
-        sql=f"UPDATE {tab} SET {osetexp_str} WHERE {pkwhere}"
+        sql=f"UPDATE {tab} SET {osetexp_str} {pkwhere}"
         log.debug("update item sql %s",sql)
+        log.debug("update item valtuple %s",str(val_tuple))
         try:
             dbengine.execute(sql,val_tuple)
         except SQLAlchemyError as e_sqlalchemy:
@@ -658,14 +664,17 @@ def delete_item(tab,pk):
     else:
         out["error"]="PK check nicht erfolgreich"
         return jsonify(out),500
+
+    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
+    log.debug("delete_item: pkwhere %s",pkwhere)
         
-    log.debug("delete_item pk_columns %s",pkcols)
-    if len(pkcols)==1:
-        pkwhere=pkcols[0]+"=?"
-    else:
-        pkexp=[k+"=?" for k in pkcols]
-        pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
+    #log.debug("delete_item pk_columns %s",pkcols)
+    #if len(pkcols)==1:
+    #    pkwhere=pkcols[0]+"=?"
+    #else:
+    #    pkexp=[k+"=?" for k in pkcols]
+    #    pkwhere=" AND ".join(pkexp)
+    #log.debug("pkwhere %s",pkwhere)
     if is_versioned:
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
@@ -706,7 +715,7 @@ def delete_item(tab,pk):
             return jsonify(out),500
             
     else:
-        sql=f"DELETE FROM {tab} WHERE {pkwhere}"
+        sql=f"DELETE FROM {tab} {pkwhere}"
         log.debug("delete_item sql %s",sql)
         try:
             dbengine.execute(sql,pk)
@@ -1068,9 +1077,12 @@ def update_repo(tab,pk):
         out["error"]="PK check nicht erfolgreich"
         return jsonify(out),500
 
-    pkexp=[k+"=?" for k in pkcols]
-    pkwhere=" AND ".join(pkexp)
+    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
+    #pkexp=[k+"=?" for k in pkcols]
+    #pkwhere=" AND ".join(pkexp)
     log.debug("pkwhere %s",pkwhere)
+    #pkexp=[k+"=?" for k in pkcols]
+    #pkwhere=" AND ".join(pkexp)
 
     log.debug("pk_columns %s",pkcols)
     if is_versioned:
@@ -1084,8 +1096,8 @@ def update_repo(tab,pk):
         vallist.append(ts)
         vallist.append(pk)
         val_tuple=tuple(vallist)
-        sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-        repoengine.execute(sql,val_tuple)
+        sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere}'" #AND invalid_from_dt='9999-12-31 00:00:00
+        repoengine.execute(sql,pkwhere_val)
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
@@ -1126,10 +1138,10 @@ def update_repo(tab,pk):
         osetexp_str=",".join(osetexp)
     
         vallist=[item[col] for col in item.keys() if col not in pkcols]
-        vallist.append(pk)
+        vallist.extend(list(pkwhere_val))
         val_tuple=tuple(vallist)
         
-        sql=f"UPDATE {repo_table_prefix}{tab} SET {osetexp_str} WHERE {pkwhere}"
+        sql=f"UPDATE {repo_table_prefix}{tab} SET {osetexp_str} {pkwhere}"
         log.debug("update item sql %s",sql)
         try:
             repoengine.execute(sql,val_tuple)
@@ -1201,9 +1213,10 @@ def delete_repo(tab,pk):
         return jsonify(out),500
         
     log.debug("delete_repo pk_columns %s",pkcols)
-    pkexp=[k+"=?" for k in pkcols]
-    pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
+    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
+    log.debug("delete_repo: pkwhere %s",pkwhere)
+    #pkexp=[k+"=?" for k in pkcols]
+    #pkwhere=" AND ".join(pkexp)
     if is_versioned:
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
@@ -1242,10 +1255,10 @@ def delete_repo(tab,pk):
             last_stmt_has_errors(e, out)
             return jsonify(out),500
     else:
-        sql=f"DELETE FROM {repo_table_prefix}{tab} WHERE {pkwhere}"
+        sql=f"DELETE FROM {repo_table_prefix}{tab} {pkwhere}"
         log.debug("delete_repo sql %s",sql)
         try:
-            repoengine.execute(sql,pk)
+            repoengine.execute(sql, pkwhere_val)
         except SQLAlchemyError as e_sqlalchemy:
             last_stmt_has_errors(e_sqlalchemy, out)
             if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']

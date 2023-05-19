@@ -2,6 +2,9 @@
 """
 Created on Mon May 15 10:02:36 2023
 
+run:
+    python -m pytest tests\test_version.py
+
 @author: kribbel
 """
 import sys
@@ -58,6 +61,10 @@ def test_000_version(test_client):
     assert b"0.2" in response.data
 
 
+##############################################################
+# REPO tests
+##############################################################
+
 def test_1000_repo_ins_app(test_client):
     """
     GIVEN a Flask application configured for testing
@@ -73,13 +80,28 @@ def test_1000_repo_ins_app(test_client):
     row1=(json_out["data"])[0]
     assert row1["name"]==appnam
 
+def test_1001_repo_ins_group(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #
+    appnam='testgroup'
+    response = test_client.post('/api/repo/group', json= { "name" : appnam, "id" : -3 })
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==appnam
+
 def test_1010_repo_ins_app2(test_client):
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
     THEN check that the response is valid
     """
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\",\"id\":\"-9\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"
     appnam='testapp'
     response = test_client.post('/api/repo/application', json= { "name" : appnam, "id" : -9 })
     assert response.status_code == 200
@@ -95,7 +117,7 @@ def test_1020_repo_upd_app(test_client):
     WHEN the '/' page is requested (GET)
     THEN check that the response is valid
     """
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"testappx\"}' "localhost:3002/api/repo/application/-9" -w "%{http_code}\n"    
     appid=-9
     appnam2='testapp2'
     response = test_client.put('/api/repo/application/'+str(appid), json= { "name" : appnam2 })
@@ -129,7 +151,7 @@ def test_1040_repo_del_app(test_client):
     WHEN the '/' page is requested (GET)
     THEN check that the response is valid
     """
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request DELETE  "localhost:3002/api/repo/application" -w "%{http_code}\n"    
     appid=-9
     response = test_client.delete('/api/repo/application/'+str(appid))
     assert response.status_code == 200
@@ -146,6 +168,60 @@ def test_1050_repo_get_app(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     assert response.status_code == 204
+
+# test mit compound keys
+def test_1100_repo_ins_app_to_grp(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    response = test_client.post('/api/repo/application_to_group', json= { "application_id" : -9, "group_id": -3 })
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["group_id"]==-3
+
+def test_1101_repo_compound_get(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #
+    response = test_client.get('/api/repo/application_to_group/(application_id:-9:group_id:-3)')
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["group_id"]==-3
+
+def test_1105_repo_compound_del(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request DELETE  "localhost:3002/api/repo/application_to_group/(application_id:-9:group_id:-3)?pk=application_id,group_id" -w "%{http_code}\n"
+    response = test_client.delete('/api/repo/application_to_group/(application_id:-9:group_id:-3)?pk=application_id,group_id')
+    assert response.status_code == 200
+
+def test_1106_repo_get(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #
+    response = test_client.get('/api/repo/application_to_group/(application_id:-9:group_id:-3)')
+    assert response.status_code == 204
+
+
+##############################################################
+# normal table crud tests
+##############################################################
 
 def test_2000_tab_ins(test_client):
     """
@@ -231,7 +307,27 @@ def test_2040_del(test_client):
     WHEN the '/' page is requested (GET)
     THEN check that the response is valid
     """
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/application" -w "%{http_code}\n"    
     id=-8
     response = test_client.delete('/api/crud/'+t+'/'+str(id))
     assert response.status_code == 200
+
+
+##############################################################
+# versioned table crud tests
+##############################################################
+def test_3000_tab_ins(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    nam="item1"
+    id=-8
+    response = test_client.post('/api/crud/'+tv+"?v", json= { "name" : nam, "nr" : id })
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam
