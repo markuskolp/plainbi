@@ -18,47 +18,55 @@ const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 
-const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, handleChange, tooltip }) => {
+const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, onChange, tooltip }) => {
 
   const dateFormat = 'YYYY-MM-DD';
 
-  const handleDatePickerChange = (date, dateString) => {
+  const handleChange = (e) => {
+    //const emuEvent = { "target": { "key": e.target.name, "value": e.target.value}} // emulate event.target.name/.value object
+    //console.log(emuEvent);
+    //onChange("name", "aa"); 
+    onChange(e.target.name, e.target.value); 
+   }
+
+   const handleDatePickerChange = (date, dateString) => {
     //console.log("handleDatePickerChange - name: " + name + " / value: " + dateString);
-    const emuEvent = { "target": { "name": name, "value": dateString}} // emulate event.target.name/.value object
-    console.log(emuEvent);
-    handleChange(emuEvent); 
+    //const emuEvent = { "target": { "name": name, "value": dateString}} // emulate event.target.name/.value object
+    //console.log(emuEvent);
+    onChange(name, dateString); 
  }
 
  const handleNumberInputChange = (value) => {
-  const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
-  console.log(emuEvent);
-  handleChange(emuEvent); 
+  //const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+  //console.log(emuEvent);
+  onChange(name, value); 
  }
 
  /*
  const handleMarkdownChange = (value) => {
   const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
   console.log(emuEvent);
-  handleChange(emuEvent); 
+  onChange(emuEvent); 
  }
 
  const handleTextAreaChange = (value) => {
   const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
   console.log(emuEvent);
-  handleChange(emuEvent); 
+  onChange(emuEvent); 
  }
  */
 
-const handleMonacoEditorChange = (value, e) => {
-  const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
-  console.log(emuEvent);
-  handleChange(emuEvent); 
+const handleMonacoEditorChange = (value,e) => {
+  //const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+  //console.log(emuEvent);
+  //onChange("sql_query", "ss"); 
+  onChange(name, value); 
 }
 
 const handleSwitchChange = (checked, e) => {
-  const emuEvent = { "target": { "name": name, "value": checked}} // emulate event.target.name/.value object
-  console.log(emuEvent);
-  handleChange(emuEvent); 
+  //const emuEvent = { "target": { "name": name, "value": checked}} // emulate event.target.name/.value object
+  //console.log(emuEvent);
+  onChange(name, checked); 
 }
 
  const options = {
@@ -105,7 +113,7 @@ const handleSwitchChange = (checked, e) => {
                 ) : ui === "textarea" ? (
                   <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/> //((e) => handleTextAreaChange(e.target.value))}/>
                 ) : ui === "textarea_sql" ? (
-                  <div class="monaco-editor-wrapper">
+                  <div className="monaco-editor-wrapper">
                     <MonacoEditor
                     //width="800"
                     height="300"
@@ -120,7 +128,7 @@ const handleSwitchChange = (checked, e) => {
                     />
                   </div>
                 ) : ui === "textarea_json" ? (
-                  <div class="monaco-editor-wrapper">
+                  <div className="monaco-editor-wrapper">
                     <MonacoEditor
                     //width="800"
                     height="300"

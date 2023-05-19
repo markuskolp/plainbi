@@ -71,7 +71,7 @@ const Apps = () => {
             {apps && apps.map((app) => {
               return (
                 <Col span={6}>
-                  <Link href={"/apps/"+app.id}> 
+                  <Link href={"/apps/"+app.alias}> 
                     <Card
                       style={{ maxWidth: 300, marginTop: 16 }}
                       bodyStyle={{ display: "none" }}

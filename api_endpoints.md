@@ -83,7 +83,7 @@ The CRUD API delivers data for a given table and also allows to edit/update, del
 |POST /api/crud/\<tablename\>|add a table row|
 |DELETE /api/crud/\<tablename\>/\<pk\>|delete a table row, identified by the pk (primary key)|
 
-For PUT and DELETE the primary key can also be given in the request body as attributes. This is especially necessary, if the table has a composite primary key. This would be difficult as URL parameter \<pk\>.
+If the primary key is a composite / compound key (more than 1 field), then it has to be given like this **(key1:value:key2:value:...)** e.g. **(user_id:1:group:id:2)**
 
 ### Versioned tables
 
@@ -121,7 +121,6 @@ Examples:
 ### to be discussed
 
 - last_changed_by field (to set the user who changed/inserted/deleted the table row) ?
-- composite primary key ?
 - POST and primary key ? 
   - if no pk is given, backend tries to insert and look for success (e.g. if pk column is autoincrement)
   - sequence: give it as URL parameter or does backend look itself in metadata?

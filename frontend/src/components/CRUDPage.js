@@ -58,13 +58,12 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   useEffect(() => {
     getTableData(tableName);
     lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
-    setPkColumn(pkColumns); // set first column from pk list // TODO: take all pk columns if composite key
+    setPkColumn(pkColumns); 
   }, [tableName]);
 
   // getTableData
   const getTableData = async (tableName) => {
     setTableData(null);
-    //await Axios.get("/api/data/table/"+tableName).then(
     await Axios.get(api+tableName+(versioned ? "?v" : "")).then(
       (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
@@ -103,12 +102,34 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       )
   };
 
+  const getPKForURL = (record, _pkColumn) => {
+    var pkforurl = "";
+    if (_pkColumn.length <= 1) {
+      console.log("only 1 pk");
+      // if only 1 pk take it directly
+      pkforurl = record[_pkColumn[0]];
+    } else {
+      console.log("composite pk");
+      // if composite key, then build url-specific pk string "(key=value:key=value:...)"
+      pkforurl = "(";
+      for (var i = 0; i < _pkColumn.length; i++) {
+        pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]];
+        pkforurl += ":";
+      }
+      pkforurl = pkforurl.replace(/^:+|:+$/g, ''); // trim ":" at beginning and end of string
+      pkforurl += ")";
+    }
+    console.log("getPKForURL: " + pkforurl);
+    return pkforurl;
+  }
+
     // deleteConfirm
     const deleteConfirm = (record) => {
       console.log("deleteConfirm for table: " + tableName);
       console.log(record);
-      pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
-      removeTableRow(tableName, record, record[pkColumn[0]]);
+      //pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
+      //removeTableRow(tableName, record, record[pkColumn[0]]);
+      removeTableRow(tableName, record, getPKForURL(record, pkColumn));
     };
 
     // showModal
@@ -117,7 +138,8 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       console.log(record);
       pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
       setModalMode("edit");
-      setCurrentPK(record[pkColumn[0]]);
+      //setCurrentPK(record[pkColumn[0]]);
+      setCurrentPK(getPKForURL(record, pkColumn));
       setShowModal(true);
     };
     const showCreateModal = () => {
@@ -166,52 +188,6 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   }
 
   // getLookupData
-  /*
-  const getLookupData = async () => {
-
-    for(var i = 0; i< lookups.length; i++) {
-
-      //console.log("getLookupData for id: " + lookups[i]);
-      
-        await Axios.get("/api/repo/lookup/"+lookups[i]+"/data").then(
-        (res) => {
-          //const resData = res.data; 
-          //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
-          const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
-          //console.log("getLookupData result: " + JSON.stringify(resData));          
-   
-          return resData.map((row) => ({
-            value: row.r,
-            label: row.d
-          }));
-
-          // add fetched lookup data to the array of fetched lookups
-          /*
-          setLookupData([...lookupData, {pos: i, values: resData.map((row) => ({
-                value: row.r,
-                label: row.d
-              }))
-            }
-          ]
-          );
-          */
-          /*
-          setLookupData([...lookupData, {
-              lookup: lookups[i],
-              values: resData.map((row) => ({
-                  value: row.r,
-                  label: row.d
-                }))
-              }
-            ]
-          );
-          *//*
-        }
-      );
-    }
-  };
-  */
-
   const getLookupData = (lookupid) => Axios.get("/api/repo/lookup/"+lookupid+"/data").then(
       (res) => {
         return {lookup: lookupid, lookupdata: (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data)}
