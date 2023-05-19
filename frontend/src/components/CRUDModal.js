@@ -13,11 +13,12 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
+  console.log("Rendering with: ", recordData);
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
 
   useEffect(() => {
-    type == 'edit' ? getRecordData(tableName, pk) : setRecordData(null);
+    type == 'edit' ? getRecordData(tableName, pk) : setRecordData([]);
   }, [type, tableName, pk]);
 
   // getRecordData
@@ -76,6 +77,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         ).catch(function (error) {
           setLoading(false);
           message.error('Es gab einen Fehler beim Speichern.');
+          message.error(res.data);
         }
         )
     };
@@ -97,10 +99,13 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   };
 
 
-  const handleChange = (event) =>{
-    const {name, value} = event.target;
-    console.log("handleChange - name: " + name + " / value: " + value);
-    setRecordData({...recordData, [name]: value}); 
+  const handleChange = (key, value) =>{
+    //console.log("event: " + JSON.stringify(event));
+    console.log("recordData: " + JSON.stringify(recordData));
+    //const {name, value} = event.target;
+    console.log("handleChange - key: " + key + " / value: " + value);
+    
+    setRecordData({...recordData, [key]: value}); 
   }
 
   return (
@@ -138,7 +143,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
                   return (
                     (type == 'new' || recordData ) ? // only show if type is "new" or the data record could be retrieved (for "editing")
-                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} handleChange={handleChange} tooltip={column.tooltip}/>
+                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip}/>
                     : ""
                   )
 

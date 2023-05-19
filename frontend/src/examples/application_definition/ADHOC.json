@@ -35,7 +35,7 @@
                "column_name":"sql_query",
                "column_label":"SQL Abfrage",
                "datatype":"text",
-               "ui":"textarea_sql",
+               "ui":"textarea",
                "editable":"true",
                "required":"true",
                "showdetailsonly":"true"
@@ -61,7 +61,7 @@
             "delete"
          ],
          "datasource":"repo",
-         "pk_columns":["adhoc_id,group_id"],
+         "pk_columns":["adhoc_id","group_id"],
          "table":"adhoc_to_group",
          "table_columns":[
             {

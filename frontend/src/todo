@@ -2,28 +2,19 @@
 # asap
 # ------------------------------------------------
 
-
-"alias" Spalten aufnehmen (adhoc, lookup, application, group, external_resource)
-
-composite keys ! <pk> = (feld1:wert1,feld2:wert2,...)
-
-CRUD fetch lookup for data in table view
+Joe:
+- compound key -> DELETE und UPDATE (PUT) geht nicht ?
+- verisonierte Tabelle: anlegen eines früher bestehenden PK geht nicht z.B. nr 3 bei crud test
+  - compound key hier auch noch testen
 
 CRUD field validation before save (especially required fields) !
-
-alle API Aufrufe kapseln !!
-
-dwh.config.tv_veranstaltungsreihe und ...tv_veranstaltung testen !
-
-dwh.config.tv_mafo_kennzahlen_veranstaltung und ...tv_mafo_kennzahlen_veranstaltung_land testen !
-  -> mit Lookup auf Veranstaltung und Land/Ländergruppe(Inland, Ausland, Gesamt)
-  -> weitere Veranstaltung händisch pflegen ?! stage.man_veranstaltung
 
 Home:
   - additional tiles (e.g. list of fairs !) -> aber wie einbinden ?!
   - make both tables look like separate cards (white background, grey surrounding)
 
 crud ui textarea components
+  - Settings.js -> switch back to textarea_sql (lookup) and textarea_json (application) -> state gets lost ?!
   - sql: formatter and validator !
   - json:
     - textarea_json (with formatter and validator)
@@ -36,7 +27,6 @@ finish dark mode switch
 - make 3 options: yes / no / browser default
 - save setting in repository (table: user_preference)
 
-
 auf "errors" im body reagieren !
 
 
@@ -46,17 +36,6 @@ auf "errors" im body reagieren !
 # ------------------------------------------------
 
 API enhancements:
-  - composite keys ! <pk> = (feld1:wert1,feld2:wert2,...)
-  - last_changed_by !
-  - analog zu lookup auch bei application suchen nach <id> oder <name> oder <alias> z.B. http://localhost:3001/api/repo/application/adhoc
-    ... oder über ein Filter ?! (z.B. ?filter:alias=adhoc)
-    - dann wieder umstellen in "Apps.js"
-  - init_repo: View für /api/repo/resources
-    - fehlt noch: 
-        insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-106, 'role', 'select name as d, id as r from plainbi_role', 0);
-        insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-107, 'adhoc', 'select name as d, id as r from plainbi_adhoc', 0);
-        insert into plainbi_lookup (id, name, sql_query , datasource_id ) values (-108, 'external_resource', 'select name as d, id as r from plainbi_external_resource', 0);
-  - init_repo: Adhoc und ext. Ress. Applikation
   - Excel
     - Sheetname: "daten"
       - Headerzeile: Arial, 9, Border unten, Auto filter, Bold, Left (align)
@@ -71,6 +50,7 @@ API enhancements:
     - integrated Users and Roles
       - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
       - User
+    - fill last_changed_by !
   - swagger-UI
   - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s)) (https://www.baeldung.com/rest-api-error-handling-best-practices)
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
@@ -86,6 +66,14 @@ bundle and run first version on DEV server
 # Backlog
 # ------------------------------------------------
 
+- getLookups() in CRUDApp.js werden nicht refreshed bei Page-Switch / Dialog-Schliessung / etc.
+- AppRuntime: auch pagination einbauen, sowie Suche/Filter
+- add "page" and "file" as resource for documentation, blog, etc.
+  page: id, name, alias, parent_page_id, content_as_markdown
+  file: id, name, mime_type, content_as_binary
+- then add UI for pages and file management (list, update, delete, add)
+- Applikationsmetadaten werden bei Repo Init nicht geladen (Fehler) - Adhoc + ext. Ressourcen
+- alle API Aufrufe kapseln !! (vor allem das getLookup... Konstrukt zum Austauschen von Lookup-IDs mit Werten in Tables nochmal schöner schreiben)
 - Warning: Each child in a list should have a unique "key" prop.
 - Security:
   - external Users / Anbindung an AD !

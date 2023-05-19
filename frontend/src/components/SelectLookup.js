@@ -4,7 +4,7 @@ import Axios from "axios";
 import { Select } from "antd";
 import LoadingMessage from "./LoadingMessage";
 
-const SelectLookup = ({ name, lookupid, defaultValue, onChange }) => {
+const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled }) => {
 
   const [loading, setLoading] = useState(true);
   const [lookupData, setLookupData] = useState([]);
@@ -49,6 +49,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange }) => {
             placeholder="bitte auswählen ..."
             allowClear
             showSearch
+            disabled={disabled}
             options={lookupData}
             defaultValue={defaultValue}
             onChange={handleChange}

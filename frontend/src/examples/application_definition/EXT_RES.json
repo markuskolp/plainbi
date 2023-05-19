@@ -76,7 +76,7 @@
             "delete"
          ],
          "datasource":"repo",
-         "pk_columns":["external_resource_id,group_id"],
+         "pk_columns":["external_resource_id","group_id"],
          "table":"external_resource_to_group",
          "table_columns":[
             {
