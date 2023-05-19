@@ -11,7 +11,7 @@ log.setLevel(logging.DEBUG)
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from urllib.parse import unquote
-from plainbi_backend.utils import is_id, last_stmt_has_errors
+from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause
 
 
 """
@@ -89,6 +89,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
             sql+=" FETCH NEXT "+limit+" ROWS ONLY"
         log.debug("sql_select: %s",sql)
         data=dbengine.execute(sql)
+        #data.fetchall()
         items = [dict(row) for row in data]
         log.debug("sql_select: anz rows=%d",len(items))
         columns = list(data.keys())
@@ -111,43 +112,48 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
     überschreibe die PK spezifikation wenn pk_column_list befüllit ist
     retunrs dict mit keys "pk_columns", "error"
     """
-    log.debug("----------get_metadata_raw ------ %s ----------",tab)
+    log.debug("++++++++++ entering get_metadata_raw")
+    log.debug("get_metadata_raw: param tab is <%s>",str(tab))
+    log.debug("get_metadata_raw: param pk_column_list (override) is <%s>",str(pk_column_list))
     out={}
     dbtype=get_db_type(dbengine)
+    pkcols=[]
     items = None
     if dbtype == "mssql":
+        # for mssql try metadata search
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
-        log.debug("sql_select in get_metadata_raw %s",str(e))
+        log.debug("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
             return out
         #    
-        log.debug("sql_select in get_metadata_raw 1")
-        log.debug("sql_select in get_metadata_raw 1 item=%s",str(items))
-    if items is not None and len(items)>0:
-        log.debug("sql_select in get_metadata_raw 2")
-        # es gibt etwas in den sqlserver metadaten
-        out["columns"]=columns
-        pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
-        log.debug("get_metadata_raw1: pkcols %s",str(pkcols))
-        out["column_data"]=items
-    else:
-        log.debug("sql_select in get_metadata_raw 3")
+        log.debug("get_metadata_raw: 1")
+        log.debug("get_metadata_raw: 1 items=%s",str(items))
+        if items is not None and len(items)>0:
+            # got some metadata
+            log.debug("get_metadata_raw: got some metadata from mssql")
+            # es gibt etwas in den sqlserver metadaten
+            pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
+            log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+            log.debug("get_metadata_raw from mssql: columns %s",str(columns))
+            out["columns"]=columns
+            out["column_data"]=items
+    if "columns" not in out.keys():
+        # nothing in metadata - get columns from query
+        log.debug("get_metadata_raw: nothing in metadata - get columns from query")
         # nicht in metadaten gefunden
-        pkcols=[]  # default leer (1ste spalte regel in den crud operations)
         try:
             sql=f'SELECT * FROM {tab} WHERE 1=0'
-            log.debug("get_metadata_raw sql=%s",sql)
+            log.debug("get_metadata_raw: sql=%s",sql)
             data=dbengine.execute(sql)
             columns = list(data.keys())
             out["columns"]=columns
-            log.debug("get_metadata_raw: pkcols []")
             #out["metadata"]=mitems
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_metadata:raw: %s",str(e_sqlalchemy))
             last_stmt_has_errors(e_sqlalchemy, out)
             return out
         except Exception as e:
-            log.debug("exceotuib ub get_metadata_raw: error")
+            log.debug("exception in get_metadata_raw: error %s",str(e))
             last_stmt_has_errors(e, out)
             return out
     log.debug("sql_select in get_metadata_raw 4")
@@ -159,7 +165,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
                 log.debug("get_metadata_raw returns parameter pk_column_list")
     else:
         log.debug("get_metadata_raw returns computedd column_list")
-    log.debug("get_metadata_raw: %s pk:%s",tab,out["pk_columns"])
+    log.debug("get_metadata_raw: returning for %s data %s",tab,out)
     return out
 
 def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
@@ -189,29 +195,11 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
         pkcols=[(metadata["columns"])[0]]
         log.warning("implicit pk first column")
     print("get_item_raw: pk_columns",str(pkcols))
-    vallist=[]
-    if isinstance(pk, dict):
-        pkstr1=pkcols[0]
-        sql=f'SELECT * FROM {tab}'
-        i=0
-        for c,v in pk.items():
-            i+=1
-            if i==1:
-                sql+=" WHERE "
-            else:
-                sql+=" AND "
-            sql+=c+"=?"
-            vallist.append(v)
-    else:
-        pkstr1=pkcols[0]
-        sql=f'SELECT * FROM {tab} where {pkstr1}=?'
-        vallist=[pk]
-    if versioned:
-       #sql+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
-       sql+=" AND is_current_and_active = 'Y'" 
+    pkwhere, pkwhere_val = make_pk_where_clause(pk, pkcols, versioned)
+    sql=f'SELECT * FROM {tab} {pkwhere}'
     log.debug("sql=%s",sql)
     try:
-        data=dbengine.execute(sql,tuple(vallist))
+        data=dbengine.execute(sql,pkwhere_val)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in get_item_raw: %s",str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
