@@ -54,6 +54,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled }) => {
             defaultValue={defaultValue}
             onChange={handleChange}
             name={name}
+            optionFilterProp="label" // filter by label (not by value/key)
           />
         </React.Fragment>
       )

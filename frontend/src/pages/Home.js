@@ -1,6 +1,7 @@
 import React from "react";
 import { Row, Col } from "antd";
 import Resources from "../components/Resources";
+import TileVA from "../components/TileVA";
 
 const Home = () => {
 
@@ -11,6 +12,7 @@ const Home = () => {
               <Resources />
             </Col>
             <Col span={12}> 
+              <TileVA />
             </Col>
           </Row>
       </React.Fragment>

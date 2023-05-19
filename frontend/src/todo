@@ -2,6 +2,14 @@
 # asap
 # ------------------------------------------------
 
+datetime ohne millisekunden anzeigen
+
+VA-Liste
+- alle Logo's holen und pflegen -> dann auch in Init-Skript schieben !
+- View später mal ablösen (doch die irrelevanten auch markieren?)
+- oben noch Filter für Jahr einbauen (Default = akt. Jahr) + Status switchen von Alle|beendet|aktiv|geplant + Kategorie switchen von EV|GV|AV
+- make both tables look like separate cards (white background, grey surrounding)
+
 Joe:
 - compound key -> DELETE und UPDATE (PUT) geht nicht ?
 - verisonierte Tabelle: anlegen eines früher bestehenden PK geht nicht z.B. nr 3 bei crud test
@@ -9,9 +17,36 @@ Joe:
 
 CRUD field validation before save (especially required fields) !
 
-Home:
-  - additional tiles (e.g. list of fairs !) -> aber wie einbinden ?!
-  - make both tables look like separate cards (white background, grey surrounding)
+/api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt
+
+        use dwh;
+
+        drop view if exists config.v_portal_veranstaltung;
+        create view config.v_portal_veranstaltung
+        as
+        select 
+                vv.veranstaltung_nr 
+                , vv.name 
+                , vv.status
+                , coalesce(vv.url, vr.url) as url
+                , vv.jahr
+                , vv.beginn_dt 
+                , vv.ende_dt 
+                , cast(DATEPART(dd, vv.beginn_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.beginn_dt) as varchar(2))
+              + ' - ' +
+              cast(DATEPART(dd, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(yyyy, vv.ende_dt) as varchar(4))
+              as zeitraum
+            , vr.logo as logo_url
+          from dwh.core.vv_veranstaltung vv 
+              left outer join dwh.core.vv_veranstaltungsreihe vr on vv.veranstaltungsreihe_id = vr.veranstaltungsreihe_id 
+          where 1=1
+          and vv.jahr = 2023
+          and vv.veranstaltung_nr not like '%9999%'
+          and lower(vv.name) not like '%complimentary%'
+          and lower(vv.name) not like '%servicepartner%'
+          and vv.ist_terminal = 'N'
+          ;
+
 
 crud ui textarea components
   - Settings.js -> switch back to textarea_sql (lookup) and textarea_json (application) -> state gets lost ?!
