@@ -4,11 +4,12 @@ Created on Mon May 15 10:02:36 2023
 
 @author: kribbel
 """
-
+import os
 import argparse
 import logging
 
 from plainbi_backend.api import create_app
+from plainbi_backend.config import config
 
 if __name__ == '__main__':
 
