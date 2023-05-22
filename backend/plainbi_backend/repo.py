@@ -248,6 +248,11 @@ create table plainbi_adhoc_to_group (
 INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
        (-100,'Adhoc Konfiguration','adhoc','{
    "pages":[
+{
+   "id":"2",
+   "name":"Adhoc Konfiguration",
+   "alias":"adhoc",
+   "pages":[
       {
          "id":"1",
          "name":"Adhocs",
@@ -280,7 +285,7 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                "column_name":"sql_query",
                "column_label":"SQL Abfrage",
                "datatype":"text",
-               "ui":"textarea_sql",
+               "ui":"textarea",
                "editable":"true",
                "required":"true",
                "showdetailsonly":"true"
@@ -295,8 +300,42 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                "required":"true"
             }
          ]
+      },
+      {
+         "id":"2",
+         "name":"Berechtigung",
+         "alias":"rights",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["adhoc_id","group_id"],
+         "table":"adhoc_to_group",
+         "table_columns":[
+            {
+               "column_name":"adhoc_id",
+               "column_label":"Adhoc",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"adhoc",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"group_id",
+               "column_label":"Gruppe",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"group",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
       }
    ]
+}   ]
 }',0),
        (-101,'externe Ressourcen','ext_res','{
    "pages":[

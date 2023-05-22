@@ -88,7 +88,11 @@ def test_1001_repo_ins_group(test_client):
     """
     #
     appnam='testgroup'
-    response = test_client.post('/api/repo/group', json= { "name" : appnam, "id" : -3 })
+    url='/api/repo/group'
+    print(url)
+    curl="curl --header \"Content-Type: application/json\" --request POST --data '{\\\"id\\\":\\\""+str(-3)+"\\\",\\\"name\\\":\\\""+appnam+"\\\"}' \"localhost:3002"+url+"\" -w \"%{http_code}\n\""
+    print("curl: ",curl)
+    response = test_client.post(url, json= { "name" : appnam, "id" : -3 })
     assert response.status_code == 200
     json_out = response.get_json()
     print("got=",json_out)
@@ -232,6 +236,11 @@ def test_2000_tab_ins(test_client):
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable" -w "%{http_code}\n"
     nam="item1"
     id=-8
+    url='/api/crud/'+t
+    print(url)
+    curl="curl --header \"Content-Type: application/json\" --request POST --data '{\\\"nr\\\":\\\""+str(id)+"\\\",\\\"name\\\":\\\""+nam+"\\\",\\\"dat\\\":\\\"2023-04-27\\\"}' \"localhost:3002"+url+"\" -w \"%{http_code}\n\""
+    print("curl: ",curl)
+
     response = test_client.post('/api/crud/'+t, json= { "name" : nam, "nr" : id })
     assert response.status_code == 200
     json_out = response.get_json()
@@ -307,16 +316,17 @@ def test_2040_del(test_client):
     WHEN the '/' page is requested (GET)
     THEN check that the response is valid
     """
-    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/application" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
     id=-8
     response = test_client.delete('/api/crud/'+t+'/'+str(id))
     assert response.status_code == 200
 
 
+
 ##############################################################
 # versioned table crud tests
 ##############################################################
-def test_3000_tab_ins(test_client):
+def test_3000_vtab_ins(test_client):
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
@@ -325,7 +335,98 @@ def test_3000_tab_ins(test_client):
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="item1"
     id=-8
-    response = test_client.post('/api/crud/'+tv+"?v", json= { "name" : nam, "nr" : id })
+    url='/api/crud/'+tv+"?v"
+    print(url)
+    response = test_client.post(url, json= { "name" : nam, "nr" : id })
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam
+
+def test_3010_vtab_upd(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    nam="item2"
+    id=-8
+    url='/api/crud/'+tv+"/"+str(id)+"?v&pk=nr"
+    print("url:", url)
+    curl="curl --header \"Content-Type: application/json\" --request PUT --data '{\\\"nr\\\":\\\""+str(id)+"\\\",\\\"name\\\":\\\""+nam+"\\\",\\\"dat\\\":\\\"2023-04-27\\\"}' \"localhost:3002"+url+"\" -w \"%{http_code}\n\""
+    print("curl: ",curl)
+    response = test_client.put(url, json= { "name" : nam, "nr" : -8 })
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam
+    assert row1["nr"]==id
+
+def test_3030_vget(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #
+    id=-8
+    url='/api/crud/'+tv+'/'+str(id)+"?v&pk=nr"
+    print(url)
+    response = test_client.get(url)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]=="item2"
+    assert row1["nr"]==id
+
+def test_3031_vgetall(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #
+    url='/api/crud/'+tv+"?v"
+    print(url)
+    response = test_client.get(url)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==2
+
+def test_3040_vdel(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
+    id=-8
+    url='/api/crud/'+tv+'/'+str(id)+"?v"
+    print(url)
+   
+    response = test_client.delete(url)
+    assert response.status_code == 200
+
+def test_3050_vtab_reins(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    nam="item1"
+    id=-8
+    url='/api/crud/'+tv+"?v"
+    print(url)
+    curl="curl --header \"Content-Type: application/json\" --request POST --data '{\\\"nr\\\":\\\""+str(id)+"\\\",\\\"name\\\":\\\""+nam+"\\\",\\\"dat\\\":\\\"2023-04-27\\\"}' \"localhost:3002"+url+"\" -w \"%{http_code}\n\""
+    print("curl: ",curl)
+    response = test_client.post(url, json= { "name" : nam, "nr" : id })
     assert response.status_code == 200
     json_out = response.get_json()
     print("got=",json_out)

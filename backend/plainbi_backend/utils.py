@@ -53,7 +53,7 @@ def prep_pk_from_url(pk):
     else:
         return pk        
 
-def make_pk_where_clause(pk,pkcols,versioned=False):
+def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
     """
       pk ... werte für primary key whereclause 
       pk ... pk column names
@@ -82,8 +82,11 @@ def make_pk_where_clause(pk,pkcols,versioned=False):
         w=f'WHERE {pkstr1}=?'
         vallist=[pk]
     if versioned:
-       #sql+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
-       w+=" AND is_current_and_active = 'Y'" 
+       if version_deleted:
+           # get also last deleted version
+           w+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
+       else:
+           w+=" AND is_current_and_active = 'Y'" 
     log.debug("make_pk_where_clause: return whereclause=%s , vallist=%s",w,vallist)
     return w, tuple(vallist)
 

@@ -89,7 +89,7 @@ from dotenv import load_dotenv
 import csv
 import pandas as pd
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del
 from plainbi_backend.repo import create_repo_db
 
 from flask import Blueprint
@@ -350,113 +350,15 @@ def create_item(tab):
                 is_versioned=True
                 log.debug("versions enabled")
     log.debug("create_item tab %s pkcols %s seq %s",tab,pkcols,seq)
-    metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
-    log.info("create_item after get_metadata_raw %s",str(metadata))
-    if "error" in metadata.keys():
-        log.info("create_item after get_metadata_raw has error")
-    if "error" in metadata.keys():
-        return jsonify(metadata),500
-    pkcols=metadata["pk_columns"]
-    log.info("create_item after get_metadata_raw 5 pkols=%s",str(pkcols))
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=[(metadata["columns"])[0]]
-        log.warning("create_item implicit pk first column")
-    log.info("create_item 6")
-    log.debug("create_item %s pkcols2 %s",tab,pkcols)
-    log.info("in create_item (pos)")
+
     data_bytes = request.get_data()
     log.debug("create_item 7")
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
-    #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
-    s=None
-    if is_versioned:
-        log.debug("create_item: versioned mode" )
-        ts=get_current_timestamp(dbengine)
-        print(ts)
-        collist=[k for k in item.keys()]
-        vallist=[v for v in item.values()]
-        if "valid_from_dt" not in collist:
-            collist.append("valid_from_dt")
-            vallist.append(ts)
-        else:
-            vallist[collist.index("valid_from_dt")]=ts
-        if "invalid_from_dt" not in collist:
-            collist.append("invalid_from_dt")
-            vallist.append("9999-12-31 00:00:00")
-        else:
-            vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-        if "last_changed_dt" not in collist:
-            collist.append("last_changed_dt")
-            vallist.append(ts)
-        else:
-            vallist[collist.index("last_changed_dt")]=ts
-        if "is_latest_period" not in collist:
-            collist.append("is_latest_period")
-            vallist.append("Y")
-        else:
-            vallist[collist.index("is_latest_period")]="Y"
-        if "is_deleted" not in collist:
-            collist.append("is_deleted")
-            vallist.append("N")
-        else:
-            vallist[collist.index("is_deleted")]="N"
-        if "is_current_and_active" not in collist:
-            collist.append("is_current_and_active")
-            vallist.append("Y")
-        else:
-            vallist[collist.index("is_current_and_active")]="Y"
-    else:
-        log.debug("create_item: non versioned mode" )
-        collist=[k for k in item.keys()]
-        vallist=[v for v in item.values()]
-    log.debug("create_item: prepare sql" )
-    log.debug("add missing pk columns ")
-    for pkcol in pkcols:
-        if pkcol not in item.keys():
-            # id ist nicht in data list so generate
-            log.debug("create_item: pk column %s is not in data list so generate",pkcol)
-            if pkcol not in collist:
-                collist.append(pkcol)
-                vallist.append(None)
-    qlist=["?" for k in vallist]
-    if seq is not None:
-        log.debug("create_item: get a sequence" )
-        if len(pkcols)>1:
-            out["error"]="mehr als eine PK Spalte bei angegeben sequence nicht erlaubt"
-            return jsonify(out),500
-        s=get_next_seq(dbengine,seq)
-        log.debug("got seq %d ",s)
-        vallist[collist.index(pkcols[0])]=s
-        log.debug("seqence %s inserted",seq)
-    else:
-        s=vallist[collist.index(pkcols[0])]
-    log.debug("create_item: construct sql" )
-    q_str=",".join(qlist)
-    collist_str=",".join(collist)
-    sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-    log.debug("create_item sql: %s",sql)
-    try:
-        dbengine.execute(sql,tuple(vallist))
-        #cursor = cnxn.cursor()
-        #cursor.execute(sql,val_tuple)
-        #cnxn.commit()
-        #return 'Item created successfully', 201
-    except SQLAlchemyError as e_sqlalchemy:
-        print("sqlalchemy",str(e_sqlalchemy))
-        last_stmt_has_errors(e_sqlalchemy, out)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        return jsonify(out),500
-    except Exception as e:
-        print("excp",str(e))
-        last_stmt_has_errors(e, out)
-        return jsonify(out),500
-    # read new record from database and send it back
-    out=get_item_raw(dbengine,tab,s,pk_column_list=pkcols)
+
+    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq)
     return jsonify(out)
 
 
@@ -536,6 +438,7 @@ def update_item(tab,pk):
 
     log.debug("pk_columns %s",pkcols)
     if is_versioned:
+        log.debug("update_item: 1")
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
         ts=get_current_timestamp(dbengine)
@@ -544,10 +447,13 @@ def update_item(tab,pk):
         vallist=[]
         vallist.append(ts)
         vallist.append(ts)
-        vallist.append(pk)
+        vallist.extend(list(pkwhere_val))
+        log.debug("marker values length is %d",len(vallist))
         val_tuple=tuple(vallist)
+        log.debug("update_item: 2")
         sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-        dbengine.execute(sql,pkwhere_val)
+        dbengine.execute(sql,val_tuple)
+        log.debug("update_item: 3")
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
@@ -569,10 +475,12 @@ def update_item(tab,pk):
         qlist=["?" for k in rec.keys()]
         q_str=",".join(qlist)
         collist_str=",".join(collist)
+        log.debug("update_item: 4")
         sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
         log.debug("create item: %s",sql)
         try:
             dbengine.execute(sql,tuple(vallist))
+            log.debug("update_item: 5")
         except SQLAlchemyError as e_sqlalchemy:
             last_stmt_has_errors(e_sqlalchemy, out)
             if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
@@ -685,7 +593,7 @@ def delete_item(tab,pk):
         vallist.append(ts)
         vallist.append(pk)
         val_tuple=tuple(vallist)
-        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere}  AND invalid_from_dt='9999-12-31 00:00:00'"
+        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
         dbengine.execute(sql,val_tuple)
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
@@ -912,6 +820,21 @@ def create_repo(tab):
                 is_versioned=True
                 log.debug("versions enabled")
     log.debug("create_repo tab %s pkcols %s",tab,pkcols)
+
+    data_bytes = request.get_data()
+    log.debug("databytes: %s",data_bytes)
+    data_string = data_bytes.decode('utf-8')
+    log.debug("datastring: %s",data_string)
+    item = json.loads(data_string.strip("'"))
+    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"]:
+        seq=tab
+    else:
+        seq=None
+    out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq)
+    return jsonify(out)
+
+    
+"""
     log.debug("create_repo: get metadata_raw")
     metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
     log.debug("create_item after get_metadata_raw %s",str(metadata))
@@ -1011,7 +934,7 @@ def create_repo(tab):
     # read new record from database and send it back
     out=get_item_raw(repoengine,repo_table_prefix+tab,s,pk_column_list=pkcols)
     return jsonify(out)
-
+"""
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['PUT'])
 def update_repo(tab,pk):
@@ -1094,10 +1017,11 @@ def update_repo(tab,pk):
         vallist=[]
         vallist.append(ts)
         vallist.append(ts)
-        vallist.append(pk)
+        vallist.extend(list(pkwhere_val))
+        log.debug("marker values length is %d",len(vallist))
         val_tuple=tuple(vallist)
         sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere}'" #AND invalid_from_dt='9999-12-31 00:00:00
-        repoengine.execute(sql,pkwhere_val)
+        repoengine.execute(sql,val_tuple)
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
