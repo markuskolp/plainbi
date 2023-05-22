@@ -165,10 +165,10 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
                 log.debug("get_metadata_raw returns parameter pk_column_list")
     else:
         log.debug("get_metadata_raw returns computedd column_list")
-    log.debug("get_metadata_raw: returning for %s data %s",tab,out)
+    log.debug("++++++++++ leavng get_metadata_raw returning for %s data %s",tab,out)
     return out
 
-def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
+def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle ub der Datenbank
 
@@ -177,6 +177,8 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
     tab : Name der Tabelle
     pk : Wert des Datensatz Identifier (Primary Key)
     pk_column_list : Wert des Datensatz Identifier (Primary Key)
+    version : table is versioned
+    version_deleted : return also delete item
     
 
     Returns
@@ -184,6 +186,12 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
     dict mit den keys "data" ggf "errors"
 
     """
+    log.debug("++++++++++ entering get_item_raw")
+    log.debug("get_item_raw: param tab is <%s>",str(tab))
+    log.debug("get_item_raw: param pk is <%s>",str(pk))
+    log.debug("get_item_raw: param pk_column_list is <%s>",str(pk_column_list))
+    log.debug("get_item_raw: param versioned is <%s>",str(versioned))
+    log.debug("get_item_raw: param version_deleted is <%s>",str(version_deleted))
     out={}
     log.debug("in get_item raw")
     metadata=get_metadata_raw(dbengine,tab,pk_column_list)
@@ -195,7 +203,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
         pkcols=[(metadata["columns"])[0]]
         log.warning("implicit pk first column")
     print("get_item_raw: pk_columns",str(pkcols))
-    pkwhere, pkwhere_val = make_pk_where_clause(pk, pkcols, versioned)
+    pkwhere, pkwhere_val = make_pk_where_clause(pk, pkcols, versioned, version_deleted)
     sql=f'SELECT * FROM {tab} {pkwhere}'
     log.debug("sql=%s",sql)
     try:
@@ -218,6 +226,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False):
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=len(items)
+    log.debug("++++++++++ leaving get_item_raw returning %s",str(out))
     return out
 
 def get_next_seq(dbengine,seq):
@@ -431,3 +440,152 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
         log.error("exception in repo_adhoc_select: %s",str(e))
         return e
     return data
+
+## crud ops
+def db_ins(dbeng,tab,item,pkcols,is_versioned,seq):
+    """ 
+    insert record
+    """
+    log.debug("++++++++++ entering db_ins")
+    log.debug("db_ins: param tab is <%s>",str(tab))
+    log.debug("db_ins: param item is <%s>",str(item))
+    log.debug("db_ins: param pkcols is <%s>",str(pkcols))
+    log.debug("db_ins: param is_versioned is <%s>",str(is_versioned))
+    log.debug("db_ins: param seq is <%s>",str(seq))
+    out={}
+    metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols)
+    log.info("create_item after get_metadata_raw %s",str(metadata))
+    if "error" in metadata.keys():
+        log.debug("db_ins: error in get_metadata_raw returned")
+        return metadata
+    pkcols=metadata["pk_columns"]
+    log.info("db_ins: now pkols=%s",str(pkcols))
+    if len(pkcols)==0:
+        # kein PK default erste spalte
+        pkcols=[(metadata["columns"])[0]]
+        log.warning("db_ins: implicit pk first column")
+    s=None
+    if is_versioned:
+        log.debug("db_ins: versioned mode" )
+        ts=get_current_timestamp(dbeng)
+        log.debug("db_ins: ts=%s",ts)
+        collist=[k for k in item.keys()]
+        vallist=[v for v in item.values()]
+        if "valid_from_dt" not in collist:
+            collist.append("valid_from_dt")
+            vallist.append(ts)
+        else:
+            vallist[collist.index("valid_from_dt")]=ts
+        if "invalid_from_dt" not in collist:
+            collist.append("invalid_from_dt")
+            vallist.append("9999-12-31 00:00:00")
+        else:
+            vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
+        if "last_changed_dt" not in collist:
+            collist.append("last_changed_dt")
+            vallist.append(ts)
+        else:
+            vallist[collist.index("last_changed_dt")]=ts
+        if "is_latest_period" not in collist:
+            collist.append("is_latest_period")
+            vallist.append("Y")
+        else:
+            vallist[collist.index("is_latest_period")]="Y"
+        if "is_deleted" not in collist:
+            collist.append("is_deleted")
+            vallist.append("N")
+        else:
+            vallist[collist.index("is_deleted")]="N"
+        if "is_current_and_active" not in collist:
+            collist.append("is_current_and_active")
+            vallist.append("Y")
+        else:
+            vallist[collist.index("is_current_and_active")]="Y"
+    else:
+        log.debug("db_ins: non versioned mode" )
+        collist=[k for k in item.keys()]
+        vallist=[v for v in item.values()]
+    log.debug("db_ins: prepare sql" )
+    log.debug("add missing pk columns ")
+    # add missing primary key columns
+    for pkcol in pkcols:
+        if pkcol not in item.keys():
+            # id ist nicht in data list so generate
+            log.debug("db_ins: pk column %s is not in data list so generate",pkcol)
+            if pkcol not in collist:
+                collist.append(pkcol)
+                vallist.append(None)
+    # check if sequence should be applied
+    pkout={}
+    for pkcol in pkcols:
+        if vallist[collist.index(pkcol)] is None:
+            if seq is not None:
+                # override none valued sequence pk column with seq 
+                if len(pkcols)>1:
+                    out["error"]="sequences are only allowed for single column primary keys"
+                    return out
+                s=get_next_seq(dbeng,seq)
+                log.debug("db_ins: got seq %d",s)
+                vallist[collist.index(pkcol)]=s
+                pkout[pkcol]=s
+                log.debug("db_ins: seqence %s inserted",seq)
+        else:
+            pkout[pkcol]=vallist[collist.index(pkcol)]
+
+    # we have to check if there is an deleted record for this pk
+    if is_versioned:
+        delrec=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned,version_deleted=True)
+        if "total_count" in delrec.keys():
+            if delrec["total_count"]>0:
+                # there is an existing record -> terminate id
+                pkwhere, pkwhere_val = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)
+                dvallist=[]
+                dvallist.append(ts)
+                dvallist.append(ts)
+                dvallist.extend(list(pkwhere_val))
+                log.debug("marker values length is %d",len(dvallist))
+                dval_tuple=tuple(dvallist)
+                log.debug("db_ins: terminate deleted record")
+                dsql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
+                log.debug("db_ins: terminate rec sql %s",dsql)
+                try:
+                    dbeng.execute(dsql,dval_tuple)
+                    log.debug("dbins: deleted record terminated")
+                except SQLAlchemyError as e_sqlalchemy:
+                    print("sqlalchemy deleted record terminated",str(e_sqlalchemy))
+                    last_stmt_has_errors(e_sqlalchemy, out)
+                    if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+                    return out
+                except Exception as e:
+                    print("excp deleted record terminated",str(e))
+                    last_stmt_has_errors(e, out)
+                    return out
+               
+    qlist=["?" for k in vallist]
+    log.debug("db_ins: construct sql" )
+    q_str=",".join(qlist)
+    collist_str=",".join(collist)
+    sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
+    log.debug("db_ins sql: %s",sql)
+    try:
+        dbeng.execute(sql,tuple(vallist))
+    except SQLAlchemyError as e_sqlalchemy:
+        print("sqlalchemy",str(e_sqlalchemy))
+        last_stmt_has_errors(e_sqlalchemy, out)
+        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+        return out
+    except Exception as e:
+        print("excp",str(e))
+        last_stmt_has_errors(e, out)
+        return out
+    # read new record from database and send it back
+    out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols)
+    log.debug("++++++++++ leaving db_ins returning %s", str(out))
+    return out
+
+## crud ops
+def db_upd(dbeng,tab,pk,pkcols):
+    pass
+
+def db_del(dbeng,tab,pk,pkcols):
+    pass
