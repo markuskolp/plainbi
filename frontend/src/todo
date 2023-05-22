@@ -11,8 +11,7 @@ VA-Liste
 - make both tables look like separate cards (white background, grey surrounding)
 
 Joe:
-- compound key -> DELETE und UPDATE (PUT) geht nicht ?
-- verisonierte Tabelle: anlegen eines früher bestehenden PK geht nicht z.B. nr 3 bei crud test
+- versionierte Tabelle: anlegen eines früher bestehenden PK geht nicht z.B. nr 3 bei crud test
   - compound key hier auch noch testen
 
 CRUD field validation before save (especially required fields) !
@@ -47,6 +46,7 @@ CRUD field validation before save (especially required fields) !
           and vv.ist_terminal = 'N'
           ;
 
+auf "errors" im body reagieren !
 
 crud ui textarea components
   - Settings.js -> switch back to textarea_sql (lookup) and textarea_json (application) -> state gets lost ?!
@@ -62,7 +62,6 @@ finish dark mode switch
 - make 3 options: yes / no / browser default
 - save setting in repository (table: user_preference)
 
-auf "errors" im body reagieren !
 
 
 
