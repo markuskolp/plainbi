@@ -14,6 +14,7 @@ import {
 } from "@ant-design/icons";
 import {  Avatar, Breadcrumb,  Layout, Menu, theme } from "antd";
 import { Typography } from 'antd';
+import { PageHeader } from "@ant-design/pro-layout";
 const { Meta } = Card;
 const { Title, Link, Text } = Typography;
 const { Header, Content, Footer } = Layout;
@@ -117,14 +118,17 @@ const onTableChange = (pagination, filters, sorter, extra) => {
 
   return (
     <React.Fragment>
-      <h1>Berechtigte Inhalte</h1>
-      <br />
+      <PageHeader
+        title="Berechtigte Inhalte"
+        subTitle=""
+      />
       <Table 
             pagination={false} 
             size="middle" 
             columns={columns}
             dataSource={data} 
             onChange={onTableChange}
+            loading={loading}
             rowKey="id"
             />
     </React.Fragment>

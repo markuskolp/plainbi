@@ -61,7 +61,7 @@ const ThemeLayout = () => {
           <Header>
             <Space size={"middle"}>
               <Link href="/">
-                <Image id="logo" src="/logo" preview={false} />
+                <Image id="header_logo" src="/logo" preview={false} />
               </Link>
               <Link href="/">
                 <Title>{header_title ? header_title : ' '}</Title>
