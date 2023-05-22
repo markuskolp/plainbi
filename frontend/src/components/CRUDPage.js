@@ -240,7 +240,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   }
 
   // return a column to be used as metadata for a Table component
-  function getColumn(column_label, column_name) {
+  function getColumn(column_label, column_name, datatype) {
     return {
       title: column_label,
       dataIndex: column_name,
@@ -248,6 +248,9 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
         compare: Sorter.DEFAULT,
         multiple: 3,
       },
+      render: (text, record) => (
+        (datatype === "datetime") ? text.substring(0,19) : text // trim milliseconds
+      )
       //key: column_name
       //width: 50,
     };
@@ -295,7 +298,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                   size="small"
                   columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
                     .map((column) => {
-                      return (column.ui === "lookup" ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name));
+                      return (column.ui === "lookup" ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype));
                     })
                     .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
 

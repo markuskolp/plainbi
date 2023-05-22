@@ -1,8 +1,9 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Image, Table, Tag, message } from "antd";
+import { Radio, Select, Space, Image, Table, Tag, message } from "antd";
 import { Typography } from 'antd';
+import { PageHeader } from "@ant-design/pro-layout";
 const { Title, Link, Text } = Typography;
 
 
@@ -11,8 +12,14 @@ const TileVA = () => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]); 
+  const [selectedYear, setSelectedYear] = useState(); 
+  const [selectedCategory, setSelectedCategory] = useState(); 
+  const [availableYears, setAvailableYears] = useState(); 
+  const [availableCategories, setAvailableCategories] = useState(); 
 
   useEffect(() => {
+    setSelectedYear(new Date().getFullYear()); // set current year as initially selected year
+    setSelectedCategory("Eigenveranstaltung");
     initializeApp();
   }, []);
 
@@ -23,7 +30,23 @@ const TileVA = () => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
         setData(resData);
-        setLoading(false);
+        // get distinct years from all fair events
+        setAvailableYears(
+            getUniqueYears(resData).map((row) => ({
+                value: row,
+                label: row
+              })
+            )
+        );
+        // get distinct years from all fair events
+        setAvailableCategories(
+          getUniqueCategories(resData).map((row) => ({
+              value: row,
+              label: row
+            })
+          )
+      );
+      setLoading(false);
       }
     ).catch(
       function (error) {
@@ -35,6 +58,41 @@ const TileVA = () => {
   };
 
 
+  const getUniqueYears = (arr) =>  {
+    // extract all years
+    let tmpArr = arr.map((row) => ({ value: row.jahr}));
+    //console.log("tmpArr-1: " + JSON.stringify(tmpArr));
+    // get distinct years
+    tmpArr = [...new Set(tmpArr.map(item => item.value))]
+    //console.log("tmpArr-2: " + JSON.stringify(tmpArr));
+    // sort
+    tmpArr = tmpArr.sort((a, b) => a.value - b.value);
+    return tmpArr;
+  };
+
+  const getUniqueCategories = (arr) =>  {
+    // extract all categories
+    let tmpArr = arr.map((row) => ({ value: row.kategorie}));
+    //console.log("tmpArr-1: " + JSON.stringify(tmpArr));
+    // get distinct categories
+    tmpArr = [...new Set(tmpArr.map(item => item.value))]
+    //console.log("tmpArr-2: " + JSON.stringify(tmpArr));
+    // sort
+    tmpArr = tmpArr.sort((a, b) => {
+      let nameA = a.toUpperCase(); // ignore upper and lowercase
+      let nameB = b.toUpperCase(); // ignore upper and lowercase
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+    
+      // names must be equal
+      return 0;
+    });
+    return tmpArr;
+  };
   
   const columns = [
     {
@@ -50,7 +108,7 @@ const TileVA = () => {
       key: "logo_url",
       //width: 140,
       //minwidth: 200,
-      render: (logo_url) => (<Image preview={false} height={40} maxWidth={80} src={logo_url} />)
+      render: (logo_url) => (<Image preview={false} height={30} maxWidth={80} src={logo_url} />)
     },
     {
       title: "Messe",
@@ -79,16 +137,50 @@ const onTableChange = (pagination, filters, sorter, extra) => {
 };
 
 
+const handleYearChange = (value) => {
+  console.log('handleYearChange: ' + value);
+  setSelectedYear(value);
+};
+
+const handleCategoryChange = (e) => {
+  console.log('handleCategoryChange: ' + e.target.value);
+  setSelectedCategory(e.target.value);
+};
+
   return (
     <React.Fragment>
-      <h1>Veranstaltungen</h1>
-      <br />
+      <PageHeader
+              //onBack={() => window.history.back()}
+              title="Veranstaltungen"
+              subTitle=""
+              extra={[
+                <React.Fragment>
+                  <Select 
+                    defaultValue="2023"
+                    style={{
+                      width: 120,
+                    }}
+                    onChange={handleYearChange}
+                    options={availableYears}
+                  />
+                  <Radio.Group 
+                    defaultValue="Eigenveranstaltung" 
+                    options={availableCategories}
+                    onChange={handleCategoryChange}
+                    optionType="button"
+                  />
+                </React.Fragment>
+              ]}
+            />
+      
       <Table 
             pagination={false} 
             size="middle" 
             columns={columns}
-            dataSource={data} 
+            //dataSource={data} 
+            dataSource={data && selectedYear && selectedCategory && data.filter((row) => (row.jahr == selectedYear && row.kategorie == selectedCategory))} // show fair events belonging to selected year
             onChange={onTableChange}
+            loading={loading}
             rowKey="id"
             />
     </React.Fragment>
@@ -96,3 +188,24 @@ const onTableChange = (pagination, filters, sorter, extra) => {
 };
 
 export default TileVA;
+
+/*
+<h1>Veranstaltungen</h1>
+      <br />
+      <Space size="large">
+        <Select 
+          defaultValue="2023"
+          style={{
+            width: 120,
+          }}
+          onChange={handleYearChange}
+          options={availableYears}
+        />
+        <Radio.Group 
+          defaultValue="Eigenveranstaltung" 
+          options={availableCategories}
+          onChange={handleCategoryChange}
+          optionType="button"
+        />
+      </Space>
+*/

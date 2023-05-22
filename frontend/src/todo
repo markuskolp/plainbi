@@ -2,8 +2,6 @@
 # asap
 # ------------------------------------------------
 
-datetime ohne millisekunden anzeigen
-
 VA-Liste
 - alle Logo's holen und pflegen -> dann auch in Init-Skript schieben !
 - View später mal ablösen (doch die irrelevanten auch markieren?)
@@ -13,6 +11,8 @@ VA-Liste
 Joe:
 - versionierte Tabelle: anlegen eines früher bestehenden PK geht nicht z.B. nr 3 bei crud test
   - compound key hier auch noch testen
+
+Filter !
 
 CRUD field validation before save (especially required fields) !
 
@@ -36,13 +36,27 @@ CRUD field validation before save (especially required fields) !
               cast(DATEPART(dd, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(yyyy, vv.ende_dt) as varchar(4))
               as zeitraum
             , vr.logo as logo_url
+            , case             	
+	            when vr.kategorie  = 'EV' then 'Eigenveranstaltung'
+	            when vr.kategorie  = 'AV' then 'Auslandsveranstaltung'
+	            when vr.kategorie  = 'GV' then 'Gastveranstaltung'
+	            when vr.kategorie  = 'CO' then 'Kooperation'
+	            else coalesce(vr.kategorie, '(n/a)')
+	            end as kategorie
           from dwh.core.vv_veranstaltung vv 
               left outer join dwh.core.vv_veranstaltungsreihe vr on vv.veranstaltungsreihe_id = vr.veranstaltungsreihe_id 
           where 1=1
-          and vv.jahr = 2023
+          and vv.jahr <= year(getdate() ) + 1 -- max. 1 Jahr in die Zukunft schauen
           and vv.veranstaltung_nr not like '%9999%'
           and lower(vv.name) not like '%complimentary%'
           and lower(vv.name) not like '%servicepartner%'
+          and lower(vv.name) not like '%ticketshop%'
+          and lower(vv.name) not like '%onlineportal%mitarbeiter%'
+          and lower(vv.name) not like '%testveranstaltung%'
+          and lower(vv.name) not like '%impfzentrum%'
+          and lower(vv.name) not like '%cross_check%'
+          and lower(vv.name) not like '%fkm_zertifiz%'
+          and lower(vv.name) not like '%service_ausweis%'
           and vv.ist_terminal = 'N'
           ;
 
@@ -89,6 +103,7 @@ API enhancements:
   - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s)) (https://www.baeldung.com/rest-api-error-handling-best-practices)
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
+SSL Zertifikat für nginx ?
 
 bundle and run first version on DEV server
   - use flask as webserver ? how to replace "proxy" setting ?
@@ -100,6 +115,7 @@ bundle and run first version on DEV server
 # Backlog
 # ------------------------------------------------
 
+- textinput_url -> with Link to Target :) (in table and edit dialog)
 - getLookups() in CRUDApp.js werden nicht refreshed bei Page-Switch / Dialog-Schliessung / etc.
 - AppRuntime: auch pagination einbauen, sowie Suche/Filter
 - add "page" and "file" as resource for documentation, blog, etc.
