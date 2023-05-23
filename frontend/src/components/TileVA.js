@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Radio, Select, Space, Image, Table, Tag, message } from "antd";
+import { Segmented, Select, Image, Table, Tag, message } from "antd";
 import { Typography } from 'antd';
 import { PageHeader } from "@ant-design/pro-layout";
 const { Title, Link, Text } = Typography;
@@ -142,9 +142,9 @@ const handleYearChange = (value) => {
   setSelectedYear(value);
 };
 
-const handleCategoryChange = (e) => {
-  console.log('handleCategoryChange: ' + e.target.value);
-  setSelectedCategory(e.target.value);
+const handleCategoryChange = (value) => {
+  console.log('handleCategoryChange: ' + value);
+  setSelectedCategory(value);
 };
 
   return (
@@ -163,11 +163,10 @@ const handleCategoryChange = (e) => {
                     onChange={handleYearChange}
                     options={availableYears}
                   />
-                  <Radio.Group 
+                  <Segmented 
                     defaultValue="Eigenveranstaltung" 
                     options={availableCategories}
                     onChange={handleCategoryChange}
-                    optionType="button"
                   />
                 </React.Fragment>
               ]}
