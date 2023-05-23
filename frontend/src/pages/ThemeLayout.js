@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ConfigProvider, Tooltip, Image, Space } from "antd";
 import { Layout, theme, Button } from "antd";
 import { Typography } from "antd";
+import axios from "axios";
 import {
   AppstoreOutlined,
   SettingOutlined,
@@ -30,7 +31,7 @@ const font_size = window.THEME_FONT_SIZE;
 document.title = app_title ? app_title : 'plainbi';
 
 
-const ThemeLayout = () => {
+const ThemeLayout = (props) => {
   const {
     token: { colorBgContainer }
   } = theme.useToken();
@@ -42,6 +43,23 @@ const ThemeLayout = () => {
   const handleDarkModeSwitch = () => {
     setIsDarkMode((previousValue) => !previousValue);
    };
+
+   
+  const logMeOut = () => {
+    axios({
+      method: "POST",
+      url:"/logout",
+    })
+    .then((response) => {
+       props.token()
+    }).catch((error) => {
+      if (error.response) {
+        console.log(error.response)
+        console.log(error.response.status)
+        console.log(error.response.headers)
+        }
+    })
+  };
 
   return (
     <React.Fragment>
@@ -83,6 +101,9 @@ const ThemeLayout = () => {
                   <UserOutlined />
                 </Tooltip>
               </Link>
+              <Button onClick={logMeOut}> 
+                Abmelden
+              </Button>
             </Space>
           </Header>
           <Content style={{ padding: "0 50px" }}>

@@ -13,11 +13,13 @@ import LoadingMessage from "../components/LoadingMessage";
 const { Meta } = Card;
 const { Title, Link } = Typography;
 
-const Apps = () => {
+const Apps = (props) => {
 
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState([]); // metadata of all apps
+
+  console.log("apps / token: " + props.token);
 
   useEffect(() => {
     initializeApp();
@@ -25,7 +27,7 @@ const Apps = () => {
 
   const initializeApp = async () => {
     // get app metadata
-    await Axios.get("/api/repo/application").then(
+    await Axios.get("/api/repo/application", {headers: {Authorization: props.token}}).then(
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response

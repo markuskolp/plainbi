@@ -1,70 +1,66 @@
-import React, { useRef, useEffect } from "react";
-import { Form, Input, Button, Checkbox,Image, Space  } from 'antd';
-import Icon from '@ant-design/icons';
+import { useState } from 'react';
+import axios from "axios";
 
-const LoginPage = () => {
+function Login(props) {
 
-  const userInput = useRef(null);
+    const [loginForm, setloginForm] = useState({
+      username: "",
+      password: ""
+    })
 
-  useEffect(() => {
-    if (userInput.current) {
-      // or, if Input component in your ref, then use input property like:
-      // userInput.current.input.focus();
-      userInput.current.focus();
+    function logMeIn(event) {
+      axios({
+        method: "POST",
+        url:"/login",
+        data:{
+          username: loginForm.username,
+          password: loginForm.password
+         }
+      })
+      .then((response) => {
+        props.setToken(response.data.access_token)
+      }).catch((error) => {
+        if (error.response) {
+          console.log(error.response)
+          console.log(error.response.status)
+          console.log(error.response.headers)
+          }
+      })
+
+      setloginForm(({
+        username: "",
+        password: ""}))
+
+      event.preventDefault()
     }
-  }, [userInput]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    this.props.form.validateFields((err, values) => {
-      if (!err) {
-        console.log('Received values of form: ', values);
-      }
-    });
-  };
+    function handleChange(event) { 
+      const {value, name} = event.target
+      setloginForm(prevNote => ({
+          ...prevNote, [name]: value})
+      )}
 
+    return (
+      <div>
+        <h1>Bitte anmelden ...</h1>
+          <form className="login">
+            <input onChange={handleChange} 
+                  type="text"
+                  text={loginForm.username} 
+                  name="username" 
+                  placeholder="username" 
+                  value={loginForm.username} />
+            <input onChange={handleChange} 
+                  type="password"
+                  text={loginForm.password} 
+                  name="password" 
+                  placeholder="Password" 
+                  value={loginForm.password} />
 
-  return (
-      <div className="login">
-        <div>
-          <Image id="logo" src="/logo" preview={false} />
-          </div>
-          <div>
-          <br/>
-          <h1>Bitte anmelden ...</h1>
-          <br />
-          </div>
-        <Form layout="horizontal">
-          <Form.Item
-            rules={[{ required: true, message: 'Bitte Username eingeben.' }]}
-          >
-            <Input
-              prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />}
-              placeholder="Username"
-              ref={userInput}
-            />
-          </Form.Item>
-          <Form.Item
-            rules={[{ required: true, message: 'Bitte Passwort eingeben.' }]}
-          >
-            <Input
-              prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />}
-              type="password"
-              placeholder="Passwort"
-            />
-          </Form.Item>
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="login-form-button"
-            >
-              Login
-            </Button>
-          </Form.Item>
-        </Form>
+          <button onClick={logMeIn}>Login</button>
+        </form>
       </div>
-  );
-};
+    );
+}
 
-export default LoginPage;
+export default Login;

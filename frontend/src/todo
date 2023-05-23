@@ -9,8 +9,28 @@ VA-Liste
 - make both tables look like separate cards (white background, grey surrounding)
 
 Joe:
-- versionierte Tabelle: anlegen eines früher bestehenden PK geht nicht z.B. nr 3 bei crud test
-  - compound key hier auch noch testen
+- versionierte Tabelle: compound geht nicht
+- /logout endpoint -> dann "ThemeLayout.js" fertigmachen (Logout Knopf - diesen auch unter dem Avatar als Submenü: Benutzerprofil | Abmelden)
+- username und gruppen in JWT Token reinbringen? oder über /profile endpoint beziehen ? -> dann Benutzerprofil-Seite mal ergänzen
+- anhand des Token wirklich den User bei versionierten Tabellen (sqdv_changed_by) mitschreiben
+- abhängig vom Token die Endpunkte schützen
+  - Admin bekommt immer alle Inhalte + hat Änderungsrechte (PUT/POST/DELETE) auf /api/repo
+  - User bekommt nur berechtigte Inhalte + /api/crud + GET Rechte auf /api/repo
+- wie lange ist Token gültig? sonst immer folgendes einbauen nach jedem Axios request:
+  res.access_token && props.setToken(res.access_token)
+- warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
+- User: passwort wird über endpoint noch nicht gehashed?
+
+
+
+https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
+
+headers: {Authorization: 'Bearer ' + props.token}
+headers: {Authorization: + props.token}
+
+curl --header "Content-Type: application/json" --request POST --data '{\"username\":\"admin\",\"password\":\"plainbi\"}' "localhost:3001/login" -w "%{http_code}\n"
+set tok=
+curl --header "Content-Type: application/json" --request GET -H "Authorization: %tok%" "localhost:3001/api/repo/application" -w "%{http_code}\n"
 
 Filter !
 

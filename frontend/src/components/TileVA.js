@@ -7,7 +7,7 @@ import { PageHeader } from "@ant-design/pro-layout";
 const { Title, Link, Text } = Typography;
 
 
-const TileVA = () => {
+const TileVA = (props) => {
 
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ const TileVA = () => {
   }, []);
 
   const initializeApp = async () => {
-    await Axios.get("/api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt").then(
+    await Axios.get("/api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt", {headers: {Authorization: props.token}}).then(
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response

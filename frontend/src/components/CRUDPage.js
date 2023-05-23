@@ -41,7 +41,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, versioned, isRepo, lookups }) => {
+const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, versioned, isRepo, lookups, token }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
@@ -65,7 +65,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   // getTableData
   const getTableData = async (tableName) => {
     setTableData(null);
-    await Axios.get(api+tableName+(versioned ? "?v" : "")).then(
+    await Axios.get(api+tableName+(versioned ? "?v" : ""), {headers: {Authorization: token}}).then(
       (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
@@ -83,15 +83,18 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   // removeTableRow
   const removeTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    await Axios.delete(api+tableName+"/"+pk+(versioned ? "?v" : ""), {  
+    await Axios.delete(api+tableName+"/"+pk+(versioned ? "?v" : "")
+    , {  
         headers: { 
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token
         },
         data: {
           record
         }
-      }).then( 
+      }
+      ).then( 
       (res) => {
         getTableData(tableName);
         message.success('Erfolgreich gelöscht.');
@@ -189,7 +192,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   }
 
   // getLookupData
-  const getLookupData = (lookupid) => Axios.get("/api/repo/lookup/"+lookupid+"/data").then(
+  const getLookupData = (lookupid) => Axios.get("/api/repo/lookup/"+lookupid+"/data", {headers: {Authorization: token}}).then(
       (res) => {
         return {lookup: lookupid, lookupdata: (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data)}
       }
@@ -312,7 +315,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
             /> }
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} versioned={versioned} isRepo={isRepo}/>
+            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} versioned={versioned} isRepo={isRepo} token={token}/>
             }
 
             </React.Fragment>

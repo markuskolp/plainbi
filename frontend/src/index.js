@@ -10,27 +10,35 @@ import AdhocRuntime from "./pages/AdhocRuntime";
 import NoPage from "./pages/NoPage";
 import Settings from "./pages/Settings";
 import UserProfile from "./pages/UserProfile";
+import useToken from "./components/useToken";
 import "antd/dist/reset.css";
 import "./css/index.css";
-import LoginPage from "./pages/Login";
+import Login from "./pages/Login";
 
 const App = () => {
+  const { token, removeToken, setToken } = useToken();
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<ThemeLayoutNoHeader />}>
-          <Route path="login" element={<LoginPage />} />
-        </Route>
-        <Route path="/" element={<ThemeLayout />}>
-          <Route index element={<Home />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="profile" element={<UserProfile />} />
-          <Route path="adhoc/:id" element={<AdhocRuntime />} />
-          <Route path="apps" element={<Apps />} />
-          <Route path="apps/:id" element={<AppRuntime />} />
-          <Route path="*" element={<NoPage />} />
-        </Route>
-      </Routes>
+    {!token && token!=="" &&token!== undefined ?  
+      (
+        
+        <Login setToken={setToken} />
+      ) :
+      (
+        <Routes>
+          <Route path="/" element={<ThemeLayout />}>
+            <Route index element={<Home token={token} setToken={setToken} />} />
+            <Route path="settings" element={<Settings token={token} setToken={setToken} />} />
+            <Route path="profile" element={<UserProfile token={token} setToken={setToken} />} />
+            <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} />} />
+            <Route path="apps" element={<Apps token={token} setToken={setToken} />} />
+            <Route path="apps/:id" element={<AppRuntime token={token} setToken={setToken} />} />
+            <Route path="*" element={<NoPage />} />
+          </Route>
+        </Routes>
+      )
+    }
     </BrowserRouter>
   );
 };
@@ -41,3 +49,10 @@ root.render(<App />);
 //<Route path="apps/edit" element={<AppEdit />} />
 //<Route path="apps/edit/:id" element={<AppEdit />} />
 //import AppEdit from "./pages/apps/edit";
+
+// <LoginPage setToken={setToken} /> 
+/*
+<Route path="/" element={<ThemeLayoutNoHeader />}>
+          <Route path="login" element={<LoginPage setToken={setToken} />} />
+        </Route>
+        */

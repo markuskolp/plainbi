@@ -4,7 +4,7 @@ import Axios from "axios";
 import { Select } from "antd";
 import LoadingMessage from "./LoadingMessage";
 
-const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled }) => {
+const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token }) => {
 
   const [loading, setLoading] = useState(true);
   const [lookupData, setLookupData] = useState([]);
@@ -19,7 +19,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled }) => {
     console.log("getLookupData for id: " + lookupid);
     
     //await Axios.get("/api/data/lookup/"+lookupid+".json").then(
-      await Axios.get("/api/repo/lookup/"+lookupid+"/data").then(
+      await Axios.get("/api/repo/lookup/"+lookupid+"/data", {headers: {Authorization: token}}).then(
       (res) => {
         //const resData = res.data; 
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response

@@ -10,7 +10,7 @@ const { Text, Link } = Typography;
 const { Meta } = Card;
 const { TextArea } = Input;
 
-const Settings = () => {
+const Settings = (props) => {
 
   const [form] = Form.useForm();
 
@@ -169,7 +169,7 @@ const Settings = () => {
     return getItem(obj.name // label
         , obj.id // key
         , null // icon
-        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} isRepo="true" lookups={getLookups(obj.table_columns)}/>
+        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} isRepo="true" lookups={getLookups(obj.table_columns)} token={props.token}/>
         , null // type
         );
   })

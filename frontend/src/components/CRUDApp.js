@@ -6,7 +6,7 @@ import CRUDPage from "./CRUDPage";
 
 // TODO: make page switch work !
 
-const CRUDApp = ({ name, pages }) => {
+const CRUDApp = ({ name, pages, token }) => {
   
     const [selectedPage, setSelectedPage] = useState(1); // nr of selected page
     const [page, setPage] = useState(); // page metadata
@@ -74,7 +74,7 @@ const CRUDApp = ({ name, pages }) => {
           <Content style={{ background: "#FFF" }}>
 
             {page && 
-            <CRUDPage name={page.name} tableName={page.table} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} isRepo={page.datasource === "repo" ? "true" : "false"} lookups={getLookups(page.table_columns)}/>
+            <CRUDPage name={page.name} tableName={page.table} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} isRepo={page.datasource === "repo" ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token}/>
             }
 
           </Content>
