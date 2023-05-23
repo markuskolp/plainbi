@@ -8,10 +8,12 @@ import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+import base64
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from urllib.parse import unquote
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause
+import bcrypt
 
 
 """
@@ -442,7 +444,7 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
     return data
 
 ## crud ops
-def db_ins(dbeng,tab,item,pkcols,is_versioned,seq):
+def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None):
     """ 
     insert record
     """
@@ -579,7 +581,7 @@ def db_ins(dbeng,tab,item,pkcols,is_versioned,seq):
         last_stmt_has_errors(e, out)
         return out
     # read new record from database and send it back
-    out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols)
+    out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned)
     log.debug("++++++++++ leaving db_ins returning %s", str(out))
     return out
 
@@ -587,5 +589,125 @@ def db_ins(dbeng,tab,item,pkcols,is_versioned,seq):
 def db_upd(dbeng,tab,pk,pkcols):
     pass
 
-def db_del(dbeng,tab,pk,pkcols):
-    pass
+def db_del(dbeng,tab,pk,pkcols,is_versioned=False):
+    log.debug("++++++++++ entering db_del")
+    log.debug("db_del: param tab is <%s>",str(tab))
+    log.debug("db_del: param pk is <%s>",str(pk))
+    log.debug("db_del: pkcols tab is <%s>",str(pkcols))
+    log.debug("db_del: param is_versioned is <%s>",str(is_versioned))
+    # check options
+    out={}
+    metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols)
+    if "error" in metadata.keys():
+        log.debug("++++++++++ leaving db_del returning %s", str(metadata))
+        return metadata
+    pkcols=metadata["pk_columns"]
+    if len(pkcols)==0:
+        # kein PK default erste spalte
+        pkcols=[(metadata["columns"])[0]]
+        log.warning("db_del implicit pk first column")
+
+    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+    if "total_count" in chkout.keys():
+        if chkout["total_count"]==0:
+            out["error"]="PK ist nicht vorhanden"
+            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            return out
+    else:
+        out["error"]="PK check nicht erfolgreich"
+        log.debug("++++++++++ leaving db_del returning %s", str(out))
+        return out
+
+    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
+    log.debug("db_del: pkwhere %s",pkwhere)
+        
+    #log.debug("delete_item pk_columns %s",pkcols)
+    #if len(pkcols)==1:
+    #    pkwhere=pkcols[0]+"=?"
+    #else:
+    #    pkexp=[k+"=?" for k in pkcols]
+    #    pkwhere=" AND ".join(pkexp)
+    #log.debug("pkwhere %s",pkwhere)
+    if is_versioned:
+        # aktuellen Datensatz abschließen
+        # neuen Datensatz anlegen
+        ts=get_current_timestamp(dbeng)
+        cur_row=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+        vallist=[]
+        vallist.append(ts)
+        vallist.append(ts)
+        vallist.extend(list(pkwhere_val))
+        log.debug("marker values length is %d",len(vallist))
+        val_tuple=tuple(vallist)
+        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
+        dbeng.execute(sql,val_tuple)
+        # neuen datensatz anlegen
+        # die alten werte mit ggf den neuen überschreiben
+        reclist=cur_row["data"]
+        rec=reclist[0]
+        collist=[k for k in rec.keys()]
+        vallist=[v for v in rec.values()]
+        vallist[collist.index("valid_from_dt")]=ts
+        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
+        vallist[collist.index("last_changed_dt")]=ts
+        vallist[collist.index("is_latest_period")]='Y'
+        vallist[collist.index("is_current_and_active")]='N'
+        vallist[collist.index("is_deleted")]='Y'
+        qlist=["?" for k in rec.keys()]
+        q_str=",".join(qlist)
+        collist_str=",".join(collist)
+        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
+        log.debug("db_del: %s",sql)
+        try:
+            dbeng.execute(sql,tuple(vallist))
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            return out
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            return out
+    else:
+        sql=f"DELETE FROM {tab} {pkwhere}"
+        log.debug("db_del sql %s",sql)
+        log.debug("db_del marker values length is %d",len(pkwhere_val))
+        try:
+            dbeng.execute(sql,pkwhere_val)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            return out
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            return out
+    log.debug("++++++++++ leaving db_del returning %s", str(out))
+    return out
+
+    
+def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None):
+    """
+    ,username text
+    ,email text
+    ,fullname text
+    ,password_hash text
+    ,role_id int
+    
+    example: db_adduser(repoengine,"joe",fullname="Johannes Kribbel",pwd="joe123")
+    """
+    item = { "id":None, "username":usr,"fullname":fullname}
+    if email is not None:
+        item["email"]=email
+    if pwd is not None:
+        p=bcrypt.hashpw(pwd.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+        item["password_hash"]=p.decode()
+    x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq="user")
+    return x
+
+
+b = base64.b64encode(bytes('your string', 'utf-8')) # bytes
+base64_str = b.decode('utf-8') # convert bytes to string
+    

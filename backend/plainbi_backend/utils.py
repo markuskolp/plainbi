@@ -137,4 +137,4 @@ def last_stmt_has_errors(e,out):
         if hasattr(e, "__dict__"):
              if "message" in e.__dict__.keys(): out["message"]=str(e.__dict__['message'])
         return True
-    return False    
+    return False

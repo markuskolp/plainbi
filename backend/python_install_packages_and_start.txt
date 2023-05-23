@@ -6,13 +6,27 @@ C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe -m pip install 
 C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe -m pip install flask
 C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe -m pip install python-dotenv
 
-C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe crudapi.py
+C:\Users\kolp\AppData\Local\Programs\Python\Python311\python.exe plainbi_backend.py
+
+
+# python alternative
+
+cd C:\Projects\plainbi\plainbi\backend
+C:\Projects\python\Scripts\pip.exe install pandas
+C:\Projects\python\Scripts\pip.exe install sqlalchemy
+C:\Projects\python\Scripts\pip.exe install flask
+C:\Projects\python\Scripts\pip.exe install python-dotenv
+C:\Projects\python\Scripts\pip.exe install bcrypt
+C:\Projects\python\Scripts\pip.exe install jwt
+C:\Projects\python\python.exe plainbi_backend.py
+
 
 # anaconda
 
 open anaconda prompt
 
 conda config --set ssl_verify false
+conda install pandas
 conda install sqlalchemy
 conda install flask
 conda install python-dotenv

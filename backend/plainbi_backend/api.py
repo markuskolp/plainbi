@@ -10,6 +10,9 @@ http://172.27.10.165:3001/api/crud/mm_dwh_dev.dds.par_mailing_list
 http://localhost:3001/api/crud/ANALYSIS.guest.testtable/1
 http://localhost:3001/api/crud/ANALYSIS.guest.testtable/metadata
 http://localhost:3001/testpost
+# login
+curl --header "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe124\"}' "localhost:3002/login" -w "%{http_code}\n"
+
 # GET ALL
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
@@ -72,6 +75,9 @@ curl --header "Content-Type: application/json" --request GET "localhost:3002/api
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data?format=XLSX" -w "%{http_code}\n" -o hugo.xlsx
 curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data" -w "%{http_code}\n" -o hugo.csv
 
+
+curl --header "Content-Type: application/json" --request POST -H "Authorization: %tok%" --data '{\"nr\":\"-8\",\"typ\":\"-2\",\"name\":\"xx\"}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable_2pk?v" -w "%{http_code}\n"
+
 """
 
 
@@ -83,16 +89,28 @@ from datetime import date,datetime
 import json
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from flask import Flask, jsonify, request, Response
-from flask.json import JSONEncoder
 from dotenv import load_dotenv
 import csv
 import pandas as pd
+import bcrypt
+
+from functools import wraps
+
+
+from flask import Flask, jsonify, request, Response, Blueprint
+from flask.json import JSONEncoder
+
+import jwt
+
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del
 from plainbi_backend.repo import create_repo_db
 
-from flask import Blueprint
+from plainbi_backend.config import config
+
+
+
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -114,6 +132,30 @@ class CustomJSONEncoder(JSONEncoder):
         else:
             return list(iterable)
         return JSONEncoder.default(self, obj)
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        log.debug("token req")
+        token = request.headers.get('Authorization')
+        log.debug("data=%s",str(token))
+
+        if not token:
+            return jsonify({'message': 'Token is missing'}), 401
+
+        try:
+            data = jwt.decode(token, config.SECRET_KEY, algorithms=['HS256'])
+            log.debug("data2=%s",str(data))
+            current_user = data['username']
+            log.debug("cur user=%s",str(current_user))
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Invalid token x'}), 401
+
+        return f(*args, **kwargs)
+
+    return decorated
 
 home_directory = os.path.expanduser( '~' )
 dotenv_path = os.path.join(home_directory, '.env')
@@ -203,7 +245,7 @@ ORDER BY database_name, schema_name, table_name
 #
 @api.route(api_root+'/version', methods=['GET'])
 def get_version():
-    return "0.2 18.05.2023"
+    return config.version
 
 ###########################
 ##
@@ -214,6 +256,7 @@ def get_version():
 
 # Define routes for CRUD operations
 @api.route(api_prefix+'/<tab>', methods=['GET'])
+@token_required
 def get_all_items(tab):
     """
     Hole (mehrere) Datensätze aus einer Tabelle
@@ -257,6 +300,7 @@ def get_all_items(tab):
 
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['GET'])
+@token_required
 def get_item(tab,pk):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle
@@ -313,6 +357,7 @@ def get_item(tab,pk):
 
 
 @api.route(api_prefix+'/<tab>', methods=['POST'])
+@token_required
 def create_item(tab):
     """
     einen neuen Datensatz in einer Tabelle anlegen
@@ -363,6 +408,7 @@ def create_item(tab):
 
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['PUT'])
+@token_required
 def update_item(tab,pk):
     """
     einen bestimmten Datensatz aktualisieren
@@ -518,6 +564,7 @@ def update_item(tab,pk):
     return jsonify(out)
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
+@token_required
 def delete_item(tab,pk):
     """
     einen bestimmten Datensatz löschen
@@ -538,6 +585,32 @@ def delete_item(tab,pk):
     log.debug("++++++++++ entering delete_item")
     log.debug("delete_item: param tab is <%s>",str(tab))
     log.debug("delete_item: param pk is <%s>",str(pk))
+    out={}
+    pkcols=[]
+    is_versioned=False
+    seq=None
+    # check options
+    if len(request.args) > 0:
+        for key, value in request.args.items():
+            log.info("arg: %s val: %s",key,value)
+            if key=="pk":
+                pkcols=value.split(",")
+                log.debug("pk option %s",pkcols)
+            if key=="v":
+                is_versioned=True
+                log.debug("versions enabled")
+    log.debug("delete_item tab %s pkcols %s ",tab,pkcols)
+
+    pk=prep_pk_from_url(pk)
+    log.debug("delete_item tab %s pk %s",tab,pk)
+
+    out = db_del(dbengine,tab,pk,pkcols,is_versioned)
+    if isinstance(out,dict):
+        if "error" not in out.keys():
+            return 'Record deleted successfully', 200
+    return jsonify(out)
+
+"""
     # check options
     out={}
     pkcols=[]
@@ -636,9 +709,11 @@ def delete_item(tab,pk):
             return jsonify(out,500)
     return 'Item deleted successfully', 200
     #return jsonify(out)
+"""
 
 
 @api.route(api_metadata_prefix+'/tables', methods=['GET'])
+@token_required
 def get_metadata_tables():
     log.debug("++++++++++ entering get_metadata_tables")
     offset = request.args.get('offset')
@@ -655,6 +730,7 @@ def get_metadata_tables():
     return jsonify(out)
 
 @api.route(api_metadata_prefix+'/table/<tab>', methods=['GET'])
+@token_required
 def get_metadata_tab_columns(tab):
     """
     Metadaten einer Tabelle holen
@@ -703,6 +779,7 @@ def get_metadata_tab_columns(tab):
 
 # Define routes for CRUD operations
 @api.route(repo_api_prefix+'/<tab>', methods=['GET'])
+@token_required
 def get_all_repos(tab):
     """
     Hole (mehrere) Datensätze aus dem Repository
@@ -736,6 +813,7 @@ def get_all_repos(tab):
 
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['GET'])
+@token_required
 def get_repo(tab,pk):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle
@@ -786,6 +864,7 @@ def get_repo(tab,pk):
 
 
 @api.route(repo_api_prefix+'/<tab>', methods=['POST'])
+@token_required
 def create_repo(tab):
     """
     einen neuen Datensatz in einer Tabelle anlegen
@@ -833,110 +912,9 @@ def create_repo(tab):
     out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq)
     return jsonify(out)
 
-    
-"""
-    log.debug("create_repo: get metadata_raw")
-    metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
-    log.debug("create_item after get_metadata_raw %s",str(metadata))
-    if "error" in metadata.keys():
-        log.debug("create_item after get_metadata_raw has error")
-        return jsonify(metadata),500
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=[(metadata["columns"])[0]]
-        log.warning("create_repo implicit pk first column %s",str(pkcols))
-    log.debug("create_item %s pkcols2 %s",tab,pkcols)
-    log.debug("create_repo: prepare data")
-    data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
-    data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
-    item = json.loads(data_string.strip("'"))
-    #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
-    s=None
-    if is_versioned:
-        log.debug("create_repo: versioned mode")
-        ts=get_current_timestamp(repoengine)
-        print(ts)
-        collist=[k for k in item.keys()]
-        vallist=[v for v in item.values()]
-        if "valid_from_dt" not in collist:
-            collist.append("valid_from_dt")
-            vallist.append(ts)
-        else:
-            vallist[collist.index("valid_from_dt")]=ts
-        if "invalid_from_dt" not in collist:
-            collist.append("invalid_from_dt")
-            vallist.append("9999-12-31 00:00:00")
-        else:
-            vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-        if "last_changed_dt" not in collist:
-            collist.append("last_changed_dt")
-            vallist.append(ts)
-        else:
-            vallist[collist.index("last_changed_dt")]=ts
-        if "is_latest_period" not in collist:
-            collist.append("is_latest_period")
-            vallist.append("Y")
-        else:
-            vallist[collist.index("is_latest_period")]="Y"
-        if "is_deleted" not in collist:
-            collist.append("is_deleted")
-            vallist.append("N")
-        else:
-            vallist[collist.index("is_deleted")]="N"
-        if "is_current_and_active" not in collist:
-            collist.append("is_current_and_active")
-            vallist.append("Y")
-        else:
-            vallist[collist.index("is_current_and_active")]="Y"
-    else:
-        log.debug("create_repo: not versioned mode")
-        collist=[k for k in item.keys()]
-        vallist=[v for v in item.values()]
-    # wenn Repo Tabelle mit Id aber keine id-spalte in data dann id spalte hinzufügen und mit sequence befüllen
-    log.debug("create_repo: check if id seq table")
-    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"] and "id" not in item.keys():
-        # id ist nicht in data list so generate
-        log.debug("create_repo: id ist nicht in data list so generate")
-        collist.append("id")
-        s=get_next_seq(repoengine,tab)
-        vallist.append(s)
-    # wenn Repo Tabelle mit Id aber null für id dann id  mit sequence befüllen
-    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"] and "id" in item.keys():
-        # id ist nicht in data list so generate
-        log.debug("create_repo: id is in data list")
-        if vallist[collist.index("id")] is None:
-            log.debug("create_repo: id is in data list but None/Null")
-            s=get_next_seq(repoengine,tab)
-            vallist[collist.index("id")]=s
-    qlist=["?" for k in vallist]
-    if len(pkcols)==1:
-        s=vallist[collist.index(pkcols[0])]
-    else:
-        s={}
-        for c in pkcols:
-            s[c]=vallist[collist.index(c)]
-    q_str=",".join(qlist)
-    collist_str=",".join(collist)
-    sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
-    log.debug("create repo: %s",sql)
-    try:
-        repoengine.execute(sql,tuple(vallist))
-    except SQLAlchemyError as e_sqlalchemy:
-        last_stmt_has_errors(e_sqlalchemy, out)
-        return jsonify(out),500
-    except Exception as e:
-        last_stmt_has_errors(e, out)
-        return jsonify(out),500
-    # read new record from database and send it back
-    out=get_item_raw(repoengine,repo_table_prefix+tab,s,pk_column_list=pkcols)
-    return jsonify(out)
-"""
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['PUT'])
+@token_required
 def update_repo(tab,pk):
     """
     einen bestimmten Datensatz aktualisieren
@@ -1082,6 +1060,7 @@ def update_repo(tab,pk):
     return jsonify(out)
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['DELETE'])
+@token_required
 def delete_repo(tab,pk):
     """
     einen bestimmten Datensatz löschen
@@ -1102,10 +1081,10 @@ def delete_repo(tab,pk):
     log.debug("++++++++++ entering delete_repo")
     log.debug("delete_repo: param tab is <%s>",str(tab))
     log.debug("delete_repo: param pk is <%s>",str(pk))
-    # check options
     out={}
     pkcols=[]
     is_versioned=False
+    # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
@@ -1115,8 +1094,20 @@ def delete_repo(tab,pk):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
-    # check if pk is compound
+    log.debug("delete_item tab %s pkcols %s ",tab,pkcols)
+
     pk=prep_pk_from_url(pk)
+    log.debug("delete_repo tab %s pk %s",tab,pk)
+
+    out = db_del(repoengine,repo_table_prefix+tab,pk,pkcols,is_versioned)
+    if isinstance(out,dict):
+        if "error" not in out.keys():
+            return 'Repo Record deleted successfully', 200
+    return jsonify(out)
+
+
+"""
+    # check if pk is compound
     #
     metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
     if "error" in metadata.keys():
@@ -1192,8 +1183,10 @@ def delete_repo(tab,pk):
             return jsonify(out),500
     return 'Repo Record deleted successfully', 200
     #return jsonify(out)
+"""
 
 @api.route(repo_api_prefix+'/init_repo', methods=['POST'])
+@token_required
 def init_repo():
     log.debug("++++++++++ entering init_repo")
     with repoengine.connect() as conn:
@@ -1214,6 +1207,7 @@ GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its
 GET /api/repo/lookup/<id>/data
 """
 @api.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
+@token_required
 def get_lookup(id):
     log.debug("++++++++++ entering get_lookup")
     log.debug("get_lookup: param id is <%s>",str(id))
@@ -1232,6 +1226,7 @@ def get_lookup(id):
     return jsonify(out)
 
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
+@token_required
 def get_adhoc_data(id):
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
@@ -1332,6 +1327,55 @@ def get_adhoc_data(id):
             else: 
                 return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
 
+
+
+@api.route('/login', methods=['POST'])
+def login():
+    out={}
+    log.debug("login")
+    data_bytes = request.get_data()
+    log.debug("create_item 7")
+    log.debug("databytes: %s",data_bytes)
+    data_string = data_bytes.decode('utf-8')
+    log.debug("datastring: %s",data_string)
+    item = json.loads(data_string.strip("'"))
+    print("login items ",str(item))
+
+    username = item['username']
+    log.debug("login: username=%s",username)
+    password = item['password']
+    log.debug("login: password=%s",password)
+
+    plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
+    if last_stmt_has_errors(e,out):
+        return jsonify({'error': 'Invalid User collecting'}), 500
+    users = {u["username"]: u["password_hash"] for u in plainbi_users}
+    print(str(users))
+
+    if not username or not password:
+        log.debug("invalid cred")
+        return jsonify({'message': 'Invalid credentials'}), 400
+
+
+    p=bcrypt.hashpw(password.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+    pwd_hashed=p.decode()
+    print(pwd_hashed)
+    if username in users.keys():
+        if users[username] == pwd_hashed:
+            log.debug("pwd ok")
+            token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
+            return jsonify({'access_token': token}), 200
+
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+
+@api.route('/protected', methods=['GET'])
+@token_required
+def protected(current_user):
+    log.debug("current user=%s",current_user)
+    return jsonify({'message': f'Hello, {current_user}! You are authenticated.'}), 200
+
+
 def create_app(config_filename):
     global app
     app = Flask(__name__)
@@ -1346,6 +1390,9 @@ def create_app(config_filename):
     #from yourapplication.views.frontend import frontend
     #app.register_blueprint(admin)
     #app.register_blueprint(frontend)
+
+    app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
+    #jwt = JWTManager(app)
 
     return app
 
