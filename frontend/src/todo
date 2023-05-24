@@ -21,6 +21,7 @@ Joe:
 - warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
 - User: passwort wird über endpoint noch nicht gehashed?
 
+- Token verliert aktuell keine Gültigkeit ?! auch gegen /logout von API gehen !
 
 
 https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7

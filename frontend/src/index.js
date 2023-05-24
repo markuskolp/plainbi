@@ -27,7 +27,7 @@ const App = () => {
       ) :
       (
         <Routes>
-          <Route path="/" element={<ThemeLayout />}>
+          <Route path="/" element={<ThemeLayout removeToken={removeToken}/>}>
             <Route index element={<Home token={token} setToken={setToken} />} />
             <Route path="settings" element={<Settings token={token} setToken={setToken} />} />
             <Route path="profile" element={<UserProfile token={token} setToken={setToken} />} />

@@ -7,7 +7,8 @@ import axios from "axios";
 import {
   AppstoreOutlined,
   SettingOutlined,
-  UserOutlined
+  UserOutlined,
+  LogoutOutlined 
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import "../css/index.css";
@@ -61,6 +62,10 @@ const ThemeLayout = (props) => {
     })
   };
 
+  const logout = () => {
+    props.removeToken();
+  }
+
   return (
     <React.Fragment>
       <ConfigProvider
@@ -101,9 +106,11 @@ const ThemeLayout = (props) => {
                   <UserOutlined />
                 </Tooltip>
               </Link>
-              <Button onClick={logMeOut}> 
-                Abmelden
-              </Button>
+              <Link href="" onClick={logout}>
+                <Tooltip  title="Abmelden">
+                  <LogoutOutlined />
+                </Tooltip>
+              </Link>
             </Space>
           </Header>
           <Content style={{ padding: "0 50px" }}>
