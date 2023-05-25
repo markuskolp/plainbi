@@ -9,7 +9,7 @@ import {
   message
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, versioned, isRepo }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, versioned, isRepo, token }) => {
     
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
@@ -25,7 +25,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   const getRecordData = async (tableName) => {
     setRecordData(null);
     //await Axios.get("/api/crud/"+tableName+"/"+pk).then(
-    await Axios.get(api+tableName+"/"+pk+(versioned ? "?v" : "")).then(
+    await Axios.get(api+tableName+"/"+pk+(versioned ? "?v" : ""), {headers: {Authorization: token}}).then(
         (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
@@ -52,7 +52,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     setLoading(true);
     console.log("updateTableRow: " + JSON.stringify(record));
     //await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
-    await Axios.put(api+tableName+"/"+pk+(versioned ? "?v" : ""), record).then(  
+    await Axios.put(api+tableName+"/"+pk+(versioned ? "?v" : ""), record, {headers: {Authorization: token}}).then(  
         (res) => {
         message.success('Erfolgreich gespeichert.');
         handleSave();
@@ -69,7 +69,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       setLoading(true);
       console.log("addTableRow: " + JSON.stringify(record));
       //await Axios.post("/api/crud/"+tableName, record).then( 
-      await Axios.post(api+tableName+(versioned ? "?v" : ""), record).then( 
+      await Axios.post(api+tableName+(versioned ? "?v" : ""), record, {headers: {Authorization: token}}).then( 
           (res) => {
           message.success('Erfolgreich gespeichert.');
           handleSave();
@@ -143,7 +143,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
                   return (
                     (type == 'new' || recordData ) ? // only show if type is "new" or the data record could be retrieved (for "editing")
-                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip}/>
+                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} token={token}/>
                     : ""
                   )
 

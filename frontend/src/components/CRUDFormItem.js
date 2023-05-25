@@ -18,7 +18,7 @@ const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 
-const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, onChange, tooltip }) => {
+const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, onChange, tooltip, token }) => {
 
   const dateFormat = 'YYYY-MM-DD';
 
@@ -102,11 +102,11 @@ const handleSwitchChange = (checked, e) => {
               >
                 {
                   (editable === "false" && ui === "lookup") ? (
-                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true"/>
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token}/>
                 ) : editable === "false" ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookup" ? (
-                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange}/>
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token}/>
                 ) : ui === "hidden" ? (
                   ""
                 ) : ui === "numberinput" ? (

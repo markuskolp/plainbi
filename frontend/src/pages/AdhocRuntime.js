@@ -10,7 +10,7 @@ import { message } from "antd";
 import Axios from "axios";
 import {Sorter} from "../utils/sorter";
 
-const AdhocRuntime = () => {
+const AdhocRuntime = (props) => {
 
   let { id } = useParams();
   const [queryParameters] = useSearchParams()
@@ -40,7 +40,7 @@ const AdhocRuntime = () => {
   //TODO: pagination
 
   const getAdhoc = async () => {
-    await Axios.get("/api/repo/adhoc/"+id).then(
+    await Axios.get("/api/repo/adhoc/"+id, {headers: {Authorization: props.token}}).then(
       (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
@@ -57,7 +57,7 @@ const AdhocRuntime = () => {
 
   const getData = async () => {
     setLoading(true);
-    await Axios.get("/api/repo/adhoc/"+id+"/data").then(
+    await Axios.get("/api/repo/adhoc/"+id+"/data", {headers: {Authorization: props.token}}).then(
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
@@ -79,7 +79,7 @@ const AdhocRuntime = () => {
   
   const getBlobData = async (_format) => {
     const dt = new Date().toISOString().substring(0,19);
-    await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format, {responseType: 'blob'}).then(
+    await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format, {responseType: 'blob', headers: {Authorization: props.token}}).then(
       (res) => {
         // create file link in browser's memory
         const href = URL.createObjectURL(res.data);

@@ -20,7 +20,7 @@ const { Title, Link, Text } = Typography;
 const { Header, Content, Footer } = Layout;
 
 
-const Resources = () => {
+const Resources = (props) => {
 
 
   const [error, setError] = useState(false);
@@ -32,7 +32,7 @@ const Resources = () => {
   }, []);
 
   const initializeApp = async () => {
-    await Axios.get("/api/repo/resources").then(
+    await Axios.get("/api/repo/resources", {headers: {Authorization: props.token}}).then(
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response

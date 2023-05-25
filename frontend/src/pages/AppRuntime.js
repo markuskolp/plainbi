@@ -9,7 +9,7 @@ import LoadingMessage from "../components/LoadingMessage";
 
 // TODO: get metadata from API (id or alias) -> if not found -> show error on whole page ! (setAppNotFound = false)
 
-const AppRuntime = () => {
+const AppRuntime = (props) => {
 
   let { id } = useParams(); // get URL parameters - here the "id" of a app
   let id_type = Number.isNaN(id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" of the app or its "alias"
@@ -40,7 +40,7 @@ const AppRuntime = () => {
 
   const initializeApp = async () => {
     // get app metadata
-    await Axios.get("/api/repo/application/"+id).then(
+    await Axios.get("/api/repo/application/"+id, {headers: {Authorization: props.token}}).then(
         (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
@@ -65,7 +65,7 @@ const AppRuntime = () => {
           <LoadingMessage />
         ) : (
           <React.Fragment>
-            <CRUDApp name={appMetadata.name} pages={JSON.parse(appMetadata.spec_json).pages}/>
+            <CRUDApp name={appMetadata.name} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token}/>
           </React.Fragment>
         )
       )

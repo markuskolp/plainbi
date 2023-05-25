@@ -1,13 +1,13 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Radio, Select, Space, Image, Table, Tag, message } from "antd";
+import { Segmented, Select, Image, Table, Tag, message } from "antd";
 import { Typography } from 'antd';
 import { PageHeader } from "@ant-design/pro-layout";
 const { Title, Link, Text } = Typography;
 
 
-const TileVA = () => {
+const TileVA = (props) => {
 
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ const TileVA = () => {
   }, []);
 
   const initializeApp = async () => {
-    await Axios.get("/api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt").then(
+    await Axios.get("/api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt", {headers: {Authorization: props.token}}).then(
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
@@ -142,9 +142,9 @@ const handleYearChange = (value) => {
   setSelectedYear(value);
 };
 
-const handleCategoryChange = (e) => {
-  console.log('handleCategoryChange: ' + e.target.value);
-  setSelectedCategory(e.target.value);
+const handleCategoryChange = (value) => {
+  console.log('handleCategoryChange: ' + value);
+  setSelectedCategory(value);
 };
 
   return (
@@ -163,11 +163,10 @@ const handleCategoryChange = (e) => {
                     onChange={handleYearChange}
                     options={availableYears}
                   />
-                  <Radio.Group 
+                  <Segmented 
                     defaultValue="Eigenveranstaltung" 
                     options={availableCategories}
                     onChange={handleCategoryChange}
-                    optionType="button"
                   />
                 </React.Fragment>
               ]}

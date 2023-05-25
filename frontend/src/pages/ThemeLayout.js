@@ -3,10 +3,12 @@ import { useState } from "react";
 import { ConfigProvider, Tooltip, Image, Space } from "antd";
 import { Layout, theme, Button } from "antd";
 import { Typography } from "antd";
+import axios from "axios";
 import {
   AppstoreOutlined,
   SettingOutlined,
-  UserOutlined
+  UserOutlined,
+  LogoutOutlined 
 } from "@ant-design/icons";
 import "antd/dist/reset.css";
 import "../css/index.css";
@@ -30,7 +32,7 @@ const font_size = window.THEME_FONT_SIZE;
 document.title = app_title ? app_title : 'plainbi';
 
 
-const ThemeLayout = () => {
+const ThemeLayout = (props) => {
   const {
     token: { colorBgContainer }
   } = theme.useToken();
@@ -42,6 +44,27 @@ const ThemeLayout = () => {
   const handleDarkModeSwitch = () => {
     setIsDarkMode((previousValue) => !previousValue);
    };
+
+   
+  const logMeOut = () => {
+    axios({
+      method: "POST",
+      url:"/logout",
+    })
+    .then((response) => {
+       props.token()
+    }).catch((error) => {
+      if (error.response) {
+        console.log(error.response)
+        console.log(error.response.status)
+        console.log(error.response.headers)
+        }
+    })
+  };
+
+  const logout = () => {
+    props.removeToken();
+  }
 
   return (
     <React.Fragment>
@@ -81,6 +104,11 @@ const ThemeLayout = () => {
               <Link href="/profile">
                 <Tooltip title="Benutzerprofil">
                   <UserOutlined />
+                </Tooltip>
+              </Link>
+              <Link href="" onClick={logout}>
+                <Tooltip  title="Abmelden">
+                  <LogoutOutlined />
                 </Tooltip>
               </Link>
             </Space>
