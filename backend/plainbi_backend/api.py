@@ -4,79 +4,77 @@ Created on Thu Mar  9 11:19:08 2023
 
 @author: kribbel
 
-http://localhost:3001/api/crud/ANALYSIS.guest.testtable
-http://localhost:3001/api/crud/mm_dwh_dev.dds.par_mailing_list
-http://172.27.10.165:3001/api/crud/mm_dwh_dev.dds.par_mailing_list
-http://localhost:3001/api/crud/ANALYSIS.guest.testtable/1
-http://localhost:3001/api/crud/ANALYSIS.guest.testtable/metadata
-http://localhost:3001/testpost
+
 # login
-curl --header "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe124\"}' "localhost:3002/login" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe123\"}' "localhost:3002/login" -w "%{http_code}\n"
+windows comman cmd set tok=ldkasaölsfjaölsdkf
+
+python -m pytest tests\test_version.py
 
 # GET ALL
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
+curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/crud/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 # GET
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/1" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/1" -w "%{http_code}\n"
 # POST
-curl --header "Content-Type: application/json" --request POST --data '{\"nr\":\"1\",\"name\":\"name1\",\"dat\":\"2023-04-24\"}' localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable
-curl --header "Content-Type: application/json" --request POST --data '{\"nr\":\"2\",\"name\":\"name2\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable?pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
-curl --header "Content-Type: application/json" --request POST --data '{\"nr\":\"23\",\"name\":\"wert22\",\"dat\":\"2023-04-20\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable"
+curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"1\",\"name\":\"name1\",\"dat\":\"2023-04-24\"}' localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable
+curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"2\",\"name\":\"name2\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable?pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
+curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"23\",\"name\":\"wert22\",\"dat\":\"2023-04-20\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable"
 # PUT
-curl --header "Content-Type: application/json" --request PUT --data '{\"nr\":\"24\",\"name\":\"wert24\",\"dat\":\"2023.04-20\"}' localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/4
+curl -H "Content-Type: application/json" --request PUT --data '{\"nr\":\"24\",\"name\":\"wert24\",\"dat\":\"2023.04-20\"}' localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/4
 # DELETE
-curl --header "Content-Type: application/json" --request DELETE localhost:3001/api/crud/DWH.CONFIG.crud_api_testtable/6 -w "%{http_code}\n"
-curl --header "Content-Type: application/json" --request DELETE localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/9?pk=nr -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request DELETE localhost:3001/api/crud/DWH.CONFIG.crud_api_testtable/6 -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request DELETE localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/9?pk=nr -w "%{http_code}\n"
 
 # METADATA tables
-curl --header "Content-Type: application/json" --request GET localhost:3002/api/metadata/tables -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET localhost:3002/api/metadata/tables -w "%{http_code}\n"
 
 # METADATA
-curl --header "Content-Type: application/json" --request GET localhost:3002/api/metadata/table/DWH.CONFIG.crud_api_testtable -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET localhost:3002/api/metadata/table/DWH.CONFIG.crud_api_testtable -w "%{http_code}\n"
 
 #versioned 
 # GET
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1" -w "%{http_code}\n"
 # POST
-curl --header "Content-Type: application/json" --request POST --data '{\"nr\":\"1\",\"name\":\"name1\",\"dat\":\"2023-04-24\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?v&pk=nr"
-curl --header "Content-Type: application/json" --request POST --data '{\"nr\":\"2\",\"name\":\"name2\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?v&pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
+curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"1\",\"name\":\"name1\",\"dat\":\"2023-04-24\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?v&pk=nr"
+curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"2\",\"name\":\"name2\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?v&pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
 # PUT
-curl --header "Content-Type: application/json" --request PUT --data '{\"nr\":\"1\",\"name\":\"wert1_v2\",\"dat\":\"2023-04-27\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr"
-curl --header "Content-Type: application/json" --request PUT --data '{\"nr\":\"1\",\"name\":\"wert1_v3\",\"dat\":\"2023-04-27\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr"
+curl -H "Content-Type: application/json" --request PUT --data '{\"nr\":\"1\",\"name\":\"wert1_v2\",\"dat\":\"2023-04-27\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr"
+curl -H "Content-Type: application/json" --request PUT --data '{\"nr\":\"1\",\"name\":\"wert1_v3\",\"dat\":\"2023-04-27\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr"
 # DELETE
-curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr" -w "%{http_code}\n"
 
 # Repo
-curl --header "Content-Type: application/json" --request POST "localhost:3002/api/repo/init_repo" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request POST "localhost:3002/api/repo/init_repo" -w "%{http_code}\n"
 Latin1_General_100_CS_AS_WS_SC_UTF8
 # new application POST
-curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"
-curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"app2\"}' "localhost:3002/api/repo/application"
-curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"group1\"}' "localhost:3002/api/repo/group"
-curl --header "Content-Type: application/json" --request POST --data '{\"application_id\":\"1\",\"group_id\":\"7\"}' "localhost:3002/api/repo/application_to_group?pk=application_id,group_id"
+curl -H "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request POST --data '{\"name\":\"app2\"}' "localhost:3002/api/repo/application"
+curl -H "Content-Type: application/json" --request POST --data '{\"name\":\"group1\"}' "localhost:3002/api/repo/group"
+curl -H "Content-Type: application/json" --request POST --data '{\"application_id\":\"1\",\"group_id\":\"7\"}' "localhost:3002/api/repo/application_to_group?pk=application_id,group_id"
 
 # GET ALL
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application?order_by=name&offset=1" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application?order_by=name&offset=1" -w "%{http_code}\n"
 # GET
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/5" -w "%{http_code}\n"
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/adhoc" -w "%{http_code}\n"
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/application_to_group/(application_id:1:group_id:7)" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/5" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/adhoc" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application_to_group/(application_id:1:group_id:7)" -w "%{http_code}\n"
 
 
 # PUT
-curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"app3\"}' localhost:3002/api/repo/application/3
-curl --header "Content-Type: application/json" --request PUT --data '{\"id\":\"3\",\"name\":\"app3\"}' localhost:3002/api/repo/application/3
+curl -H "Content-Type: application/json" --request PUT --data '{\"name\":\"app3\"}' localhost:3002/api/repo/application/3
+curl -H "Content-Type: application/json" --request PUT --data '{\"id\":\"3\",\"name\":\"app3\"}' localhost:3002/api/repo/application/3
 # DELETE
-curl --header "Content-Type: application/json" --request DELETE localhost:3002/api/repo/application/5 -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request DELETE localhost:3002/api/repo/application/5 -w "%{http_code}\n"
 
 # lookup
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/lookup/1" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/lookup/1" -w "%{http_code}\n"
 #adhoc
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data?format=XLSX" -w "%{http_code}\n" -o hugo.xlsx
-curl --header "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data" -w "%{http_code}\n" -o hugo.csv
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data?format=XLSX" -w "%{http_code}\n" -o hugo.xlsx
+curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data" -w "%{http_code}\n" -o hugo.csv
 
 
-curl --header "Content-Type: application/json" --request POST -H "Authorization: %tok%" --data '{\"nr\":\"-8\",\"typ\":\"-2\",\"name\":\"xx\"}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable_2pk?v" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request POST -H "Authorization: %tok%" --data '{\"nr\":\"-8\",\"typ\":\"-2\",\"name\":\"xx\"}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable_2pk?v" -w "%{http_code}\n"
 
 """
 
@@ -108,10 +106,6 @@ from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config
 
-
-
-
-
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -138,22 +132,22 @@ def token_required(f):
     def decorated(*args, **kwargs):
         log.debug("token req")
         token = request.headers.get('Authorization')
-        log.debug("data=%s",str(token))
+        log.debug("token=%s",str(token))
 
         if not token:
             return jsonify({'message': 'Token is missing'}), 401
 
         try:
-            data = jwt.decode(token, config.SECRET_KEY, algorithms=['HS256'])
-            log.debug("data2=%s",str(data))
-            current_user = data['username']
-            log.debug("cur user=%s",str(current_user))
+            tokdata = jwt.decode(token, config.SECRET_KEY, algorithms=['HS256'])
+            log.debug("data2=%s",str(tokdata))
+            #config.current_user=tokdata['username']
+            #log.debug("cur user=%s",str(config.current_user))
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token has expired'}), 401
         except jwt.InvalidTokenError:
             return jsonify({'message': 'Invalid token x'}), 401
 
-        return f(*args, **kwargs)
+        return f(tokdata, *args, **kwargs)
 
     return decorated
 
@@ -257,7 +251,7 @@ def get_version():
 # Define routes for CRUD operations
 @api.route(api_prefix+'/<tab>', methods=['GET'])
 @token_required
-def get_all_items(tab):
+def get_all_items(tokdata,tab):
     """
     Hole (mehrere) Datensätze aus einer Tabelle
 
@@ -301,7 +295,7 @@ def get_all_items(tab):
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['GET'])
 @token_required
-def get_item(tab,pk):
+def get_item(tokdata,tab,pk):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle
 
@@ -358,7 +352,7 @@ def get_item(tab,pk):
 
 @api.route(api_prefix+'/<tab>', methods=['POST'])
 @token_required
-def create_item(tab):
+def create_item(tokdata,tab):
     """
     einen neuen Datensatz in einer Tabelle anlegen
 
@@ -403,13 +397,13 @@ def create_item(tab):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
-    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq)
+    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'])
     return jsonify(out)
 
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['PUT'])
 @token_required
-def update_item(tab,pk):
+def update_item(tokdata,tab,pk):
     """
     einen bestimmten Datensatz aktualisieren
 
@@ -452,120 +446,15 @@ def update_item(tab,pk):
     item = json.loads(data_string.strip("'"))
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
-    log.debug("item-keys %s",item.keys())
-    metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
-    if "error" in metadata.keys():
-        return jsonify(metadata),500
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=[(metadata["columns"])[0]]
-        log.warning("update_item implicit pk first column")
-
-    if pkcols[0] not in item.keys():
-        out["error"]="PK Spalte muss beim Update (PUT) in den request daten sein"
-        return jsonify(out),500
-
-    chkout=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
-    if "total_count" in chkout.keys():
-        if chkout["total_count"]==0:
-            out["error"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
-            return jsonify(out),500
-    else:
-        out["error"]="PK check nicht erfolgreich"
-        return jsonify(out),500
     
-    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
-    log.debug("update_item: pkwhere %s",pkwhere)
+    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'])
 
-    #pkexp=[k+"=?" for k in pkcols]
-    #pkwhere=" AND ".join(pkexp)
-    #log.debug("pkwhere %s",pkwhere)
-
-    log.debug("pk_columns %s",pkcols)
-    if is_versioned:
-        log.debug("update_item: 1")
-        # aktuellen Datensatz abschließen
-        # neuen Datensatz anlegen
-        ts=get_current_timestamp(dbengine)
-        # hole then alten Datensatz aus der DB mit dem angegebenen pk
-        cur_row=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
-        vallist=[]
-        vallist.append(ts)
-        vallist.append(ts)
-        vallist.extend(list(pkwhere_val))
-        log.debug("marker values length is %d",len(vallist))
-        val_tuple=tuple(vallist)
-        log.debug("update_item: 2")
-        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-        dbengine.execute(sql,val_tuple)
-        log.debug("update_item: 3")
-        # neuen datensatz anlegen
-        # die alten werte mit ggf den neuen überschreiben
-        reclist=cur_row["data"]
-        rec=reclist[0]
-        collist=[k for k in rec.keys()]
-        vallist=[v for v in rec.values()]
-        # überschreibe mit neuen werten
-        for k,v in item.items():
-            log.debug("-> %s %s",k,v)
-            pos=collist.index(k)
-            if pos>=0:
-                log.debug("overwrite: %s %s",k,v)
-                vallist[pos]=v
-        vallist[collist.index("valid_from_dt")]=ts
-        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-        vallist[collist.index("last_changed_dt")]=ts
-        vallist[collist.index("is_latest_period")]='Y'
-        vallist[collist.index("is_current_and_active")]='Y'
-        qlist=["?" for k in rec.keys()]
-        q_str=",".join(qlist)
-        collist_str=",".join(collist)
-        log.debug("update_item: 4")
-        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
-        try:
-            dbengine.execute(sql,tuple(vallist))
-            log.debug("update_item: 5")
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
-    else:
-        # nicht versionierter Standardfall
-        othercols=[col for col in item.keys() if col not in pkcols]
-        log.debug("othercols %s",othercols)
-        osetexp=[k+"=?" for k in othercols]
-        osetexp_str=",".join(osetexp)
-    
-        vallist=[item[col] for col in item.keys() if col not in pkcols]
-        # where clause pk dinger hinzufügen
-        vallist.extend(list(pkwhere_val))
-        val_tuple=tuple(vallist)
-        
-        sql=f"UPDATE {tab} SET {osetexp_str} {pkwhere}"
-        log.debug("update item sql %s",sql)
-        log.debug("update item valtuple %s",str(val_tuple))
-        try:
-            dbengine.execute(sql,val_tuple)
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
-    # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
-    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     #return 'Item updated successfully', 200
     return jsonify(out)
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
 @token_required
-def delete_item(tab,pk):
+def delete_item(tokdata,tab,pk):
     """
     einen bestimmten Datensatz löschen
 
@@ -588,7 +477,6 @@ def delete_item(tab,pk):
     out={}
     pkcols=[]
     is_versioned=False
-    seq=None
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -604,7 +492,7 @@ def delete_item(tab,pk):
     pk=prep_pk_from_url(pk)
     log.debug("delete_item tab %s pk %s",tab,pk)
 
-    out = db_del(dbengine,tab,pk,pkcols,is_versioned)
+    out = db_del(dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
@@ -714,7 +602,7 @@ def delete_item(tab,pk):
 
 @api.route(api_metadata_prefix+'/tables', methods=['GET'])
 @token_required
-def get_metadata_tables():
+def get_metadata_tables(tokdata):
     log.debug("++++++++++ entering get_metadata_tables")
     offset = request.args.get('offset')
     limit = request.args.get('limit')
@@ -731,7 +619,7 @@ def get_metadata_tables():
 
 @api.route(api_metadata_prefix+'/table/<tab>', methods=['GET'])
 @token_required
-def get_metadata_tab_columns(tab):
+def get_metadata_tab_columns(tokdata,tab):
     """
     Metadaten einer Tabelle holen
 
@@ -780,7 +668,7 @@ def get_metadata_tab_columns(tab):
 # Define routes for CRUD operations
 @api.route(repo_api_prefix+'/<tab>', methods=['GET'])
 @token_required
-def get_all_repos(tab):
+def get_all_repos(tokdata,tab):
     """
     Hole (mehrere) Datensätze aus dem Repository
 
@@ -814,7 +702,7 @@ def get_all_repos(tab):
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['GET'])
 @token_required
-def get_repo(tab,pk):
+def get_repo(tokdata,tab,pk):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle
 
@@ -865,7 +753,7 @@ def get_repo(tab,pk):
 
 @api.route(repo_api_prefix+'/<tab>', methods=['POST'])
 @token_required
-def create_repo(tab):
+def create_repo(tokdata,tab):
     """
     einen neuen Datensatz in einer Tabelle anlegen
 
@@ -909,13 +797,13 @@ def create_repo(tab):
         seq=tab
     else:
         seq=None
-    out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq)
+    out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True)
     return jsonify(out)
 
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['PUT'])
 @token_required
-def update_repo(tab,pk):
+def update_repo(tokdata,tab,pk):
     """
     einen bestimmten Datensatz aktualisieren
 
@@ -945,9 +833,6 @@ def update_repo(tab,pk):
             if key=="pk":
                 pkcols=value.split(",")
                 log.debug("pk option %s",pkcols)
-            if key=="v":
-                is_versioned=True
-                log.debug("versions enabled")
     # check if pk is compound
     pk=prep_pk_from_url(pk)
     data_bytes = request.get_data()
@@ -955,6 +840,11 @@ def update_repo(tab,pk):
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
+
+    out = db_upd(repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True)
+    return jsonify(out)
+
+"""
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
     log.debug("item-keys %s",item.keys())
@@ -1057,11 +947,11 @@ def update_repo(tab,pk):
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
     out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,versioned=is_versioned)
     #return 'Item updated successfully', 200
-    return jsonify(out)
+"""
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['DELETE'])
 @token_required
-def delete_repo(tab,pk):
+def delete_repo(tokdata,tab,pk):
     """
     einen bestimmten Datensatz löschen
 
@@ -1099,7 +989,7 @@ def delete_repo(tab,pk):
     pk=prep_pk_from_url(pk)
     log.debug("delete_repo tab %s pk %s",tab,pk)
 
-    out = db_del(repoengine,repo_table_prefix+tab,pk,pkcols,is_versioned)
+    out = db_del(repoengine,repo_table_prefix+tab,pk,pkcols,is_versioned,is_repo=True)
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Repo Record deleted successfully', 200
@@ -1187,7 +1077,7 @@ def delete_repo(tab,pk):
 
 @api.route(repo_api_prefix+'/init_repo', methods=['POST'])
 @token_required
-def init_repo():
+def init_repo(tokdata):
     log.debug("++++++++++ entering init_repo")
     with repoengine.connect() as conn:
         pass
@@ -1208,7 +1098,7 @@ GET /api/repo/lookup/<id>/data
 """
 @api.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
 @token_required
-def get_lookup(id):
+def get_lookup(tokdata,id):
     log.debug("++++++++++ entering get_lookup")
     log.debug("get_lookup: param id is <%s>",str(id))
     out={}
@@ -1227,7 +1117,7 @@ def get_lookup(id):
 
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
 @token_required
-def get_adhoc_data(id):
+def get_adhoc_data(tokdata,id):
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
     out={}
@@ -1371,9 +1261,14 @@ def login():
 
 @api.route('/protected', methods=['GET'])
 @token_required
-def protected(current_user):
-    log.debug("current user=%s",current_user)
-    return jsonify({'message': f'Hello, {current_user}! You are authenticated.'}), 200
+def protected(tokdata):
+    log.debug("current user=%s",tokdata['username'])
+    return jsonify({'message': f'Hello, {config.current_user}! You are authenticated.'}), 200
+
+@api.route('/logout', methods=['GET'])
+def logout(tokdata):
+    log.debug("logout")
+    return jsonify({'message': 'logged out'})
 
 
 def create_app(config_filename):

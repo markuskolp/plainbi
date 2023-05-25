@@ -18,7 +18,9 @@ params = urllib.parse.quote_plus("DSN=DWH_DEV_PORTAL;UID=portal;PWD=s7haPsjrnl3"
 dbengine = sqlalchemy.create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
 
 token=None
+testuser_token=None
 headers=None
+testuser_headers=None
 
 import pytest
 from plainbi_backend.api import create_app
@@ -60,7 +62,7 @@ def test_000_init_repo(setup_and_teardown_for_stuff):
 def test_000_login(test_client):
     #
     # login with testuser
-    global headers
+    global token,headers
     response = test_client.post('/login', json= { "username" : "joe", "password":"joe123" })
     assert response.status_code == 200
     json_out = response.get_json()
@@ -101,7 +103,8 @@ def test_1000_repo_ins_app(test_client):
     row1=(json_out["data"])[0]
     assert row1["name"]==appnam
 
-def test_1001_repo_ins_group(test_client):
+
+def test_1003_repo_ins_group(test_client):
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
@@ -135,6 +138,40 @@ def test_1010_repo_ins_app2(test_client):
     row1=(json_out["data"])[0]
     assert row1["name"]==appnam
     assert row1["id"]==-9
+
+def test_1011_repo_ins_testapp(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    appnam='testuser_app'
+    response = test_client.post('/api/repo/application', json= { "name" : appnam, "id" : -10 }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==appnam
+    assert row1["id"]==-10
+
+def test_1012_repo_ins_testnoapp(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    appnam='testuser_noapp'
+    response = test_client.post('/api/repo/application', json= { "name" : appnam, "id" : -11 }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==appnam
+    assert row1["id"]==-11
 
 def test_1020_repo_upd_app(test_client):
     """
@@ -418,7 +455,7 @@ def test_3031_vgetall(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     #row1=(json_out["data"])[0]
-    assert json_out["total_count"]==2
+    assert json_out["total_count"]==1
 
 def test_3040_vdel(test_client):
     """
@@ -433,6 +470,22 @@ def test_3040_vdel(test_client):
    
     response = test_client.delete(url, headers=headers)
     assert response.status_code == 200
+
+def test_3041_vgetall(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #
+    url='/api/crud/'+tv+"?v"
+    print(url)
+    response = test_client.get(url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==0
 
 def test_3050_vtab_reins(test_client):
     """
@@ -453,6 +506,22 @@ def test_3050_vtab_reins(test_client):
     print("got=",json_out)
     row1=(json_out["data"])[0]
     assert row1["name"]==nam
+
+def test_3051_vgetall(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #
+    url='/api/crud/'+tv+"?v"
+    print(url)
+    response = test_client.get(url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==1
 
 ##############################################################
 # versioned table crud tests with compound pk
@@ -476,6 +545,50 @@ def test_4000_vtab_ins(test_client):
     row1=(json_out["data"])[0]
     assert row1["name"]==nam
 
+
+def test_4001_vtab_ins_pk1_pk_a(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    id=-10
+    typid=-2
+    nam="item-"+str(id)+"-"+str(typid)+"_ins"
+    url='/api/crud/'+tvc+"?v&pk=nr,typ"
+    print(url)
+    response = test_client.post(url, json= { "name" : nam, "nr" : id, "typ" : typid }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam
+    assert row1["nr"]==id
+    assert row1["typ"]==typid
+
+def test_4002_vtab_ins_pk1_pk_b(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    id=-10
+    typid=-3
+    nam="item-"+str(id)+"-"+str(typid)+"_ins"
+    url='/api/crud/'+tvc+"?v&pk=nr,typ"
+    print(url)
+    response = test_client.post(url, json= { "name" : nam, "nr" : id, "typ" : typid }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam
+    assert row1["nr"]==id
+    assert row1["typ"]==typid
+
+
 def test_4010_vtab_upd(test_client):
     """
     GIVEN a Flask application configured for testing
@@ -483,9 +596,9 @@ def test_4010_vtab_upd(test_client):
     THEN check that the response is valid
     """
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
-    nam="item2"
     id=-8
     typid=-2
+    nam="item2"
     url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
     print("url:", url)
     curl="curl --header \"Content-Type: application/json\" --request PUT --data '{\\\"nr\\\":\\\""+str(id)+"\\\",\\\"name\\\":\\\""+nam+"\\\",\\\"dat\\\":\\\"2023-04-27\\\"}' \"localhost:3002"+url+"\" -w \"%{http_code}\n\""
@@ -497,6 +610,51 @@ def test_4010_vtab_upd(test_client):
     row1=(json_out["data"])[0]
     assert row1["name"]==nam
     assert row1["nr"]==id
+
+def test_4011_vtab_upd(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    id=-10
+    typid=-2
+    nam="item-"+str(id)+"-"+str(typid)+"_upd"
+    url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
+    print("url:", url)
+    curl="curl --header \"Content-Type: application/json\" --request PUT --data '{\\\"nr\\\":\\\""+str(id)+"\\\",\\\"name\\\":\\\""+nam+"\\\",\\\"dat\\\":\\\"2023-04-27\\\"}' \"localhost:3002"+url+"\" -w \"%{http_code}\n\""
+    print("curl: ",curl)
+    response = test_client.put(url, json= { "name" : nam }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam
+    assert row1["nr"]==id
+
+def test_4012_vtab_upd(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    nam="item-10-3_upd"
+    id=-10
+    typid=-3
+    url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
+    print("url:", url)
+    curl="curl --header \"Content-Type: application/json\" --request PUT --data '{\\\"nr\\\":\\\""+str(id)+"\\\",\\\"name\\\":\\\""+nam+"\\\",\\\"dat\\\":\\\"2023-04-27\\\"}' \"localhost:3002"+url+"\" -w \"%{http_code}\n\""
+    print("curl: ",curl)
+    response = test_client.put(url, json= { "name" : nam }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam
+    assert row1["nr"]==id
+
 
 def test_4030_vget(test_client):
     """
@@ -531,7 +689,7 @@ def test_4031_vgetall(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     #row1=(json_out["data"])[0]
-    assert json_out["total_count"]==2
+    assert json_out["total_count"]==3
 
 def test_4040_vdel(test_client):
     """
@@ -568,3 +726,46 @@ def test_4050_vtab_reins(test_client):
     print("got=",json_out)
     row1=(json_out["data"])[0]
     assert row1["name"]==nam
+
+### auth testing
+
+def test_5000_repo_ins_user(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    appnam='testapp'
+    response = test_client.post('/api/repo/user', json= { "username" : "testuser", "password_hash" : "testuser123", "role_id" : 2 }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["username"]=="testuser"
+
+def test_5001_testuser_login(test_client):
+    #
+    # login with testuser
+    global testuser_token, testuser_headers
+    response = test_client.post('/login', json= { "username" : "testuser", "password":"testuser123" })
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    testuser_token=json_out["access_token"]
+    print("Testuser token=",testuser_token)
+    testuser_headers = { 'Authorization': '{}'.format(testuser_token)}
+
+def test_5010_repo_get_app(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    appid=-10
+    response = test_client.get('/api/repo/application/'+str(appid), headers=testuser_headers)
+    json_out = response.get_json()
+    print("got=",json_out)
+    assert response.status_code == 200
