@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from urllib.parse import unquote
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause
 import bcrypt
+from plainbi_backend.config import config
 
 
 """
@@ -53,6 +54,8 @@ WHERE DB_NAME()+'.'+SCHEMA_NAME(t.schema_id)+'.'+t.name = '<fulltablename>'
 ORDER BY database_name, schema_name, table_name, column_id
 """
 
+repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource" : ["db_pass_hash"] }
+
 def get_db_type(dbengine):
     if "sqlite" in str(dbengine.url).lower():
         return "sqlite"
@@ -70,6 +73,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     """
     total_count=None
     log.debug("sql_select tab parameter: %s",tab)
+    my_where_clause=""
     w=where_clause
     try:
         if len(tab.split(" "))==1:          # nur ein wort
@@ -78,11 +82,17 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
             sql=tab
         if versioned:
             if w is not None:
-                w="("+w+") AND is_current_and_active = 'Y'"
+                if len(my_where_clause)==0: my_where_clause=" WHERE "
+                my_where_clause += "("+w+") AND is_current_and_active = 'Y'"
             else:
-                w="is_current_and_active = 'Y'"
-        if w is not None:
-            sql+=" WHERE "+w
+                if len(my_where_clause)==0: my_where_clause=" WHERE "
+                my_where_clause += "is_current_and_active = 'Y'"
+        else:
+            if w is not None:
+                if len(my_where_clause)==0: my_where_clause=" WHERE "
+                where_clause += " ("+w+") "
+        if len(my_where_clause)>0:
+            sql+=my_where_clause
         if order_by is not None:
             sql+=" ORDER BY "+order_by.replace(":"," ")
         if offset is not None:
@@ -96,7 +106,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         log.debug("sql_select: anz rows=%d",len(items))
         columns = list(data.keys())
         if with_total_count:
-            sql_total_count=f'SELECT COUNT(*) AS total_count FROM {tab}'
+            sql_total_count=f'SELECT COUNT(*) AS total_count FROM {tab} {my_where_clause}'
             data_total_count=dbengine.execute(sql_total_count)
             item_total_count=[dict(r) for r in data_total_count]
             total_count=(item_total_count[0])['total_count']
@@ -123,9 +133,12 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
     items = None
     if dbtype == "mssql":
         # for mssql try metadata search
+        log.debug("get_metadata_raw: mssql")
+        collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
         log.debug("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
+            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
         #    
         log.debug("get_metadata_raw: 1")
@@ -137,7 +150,8 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
             pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
             log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
             log.debug("get_metadata_raw from mssql: columns %s",str(columns))
-            out["columns"]=columns
+            collist=[i["column_name"] for i in items]
+            out["columns"]=collist
             out["column_data"]=items
     if "columns" not in out.keys():
         # nothing in metadata - get columns from query
@@ -153,10 +167,12 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_metadata:raw: %s",str(e_sqlalchemy))
             last_stmt_has_errors(e_sqlalchemy, out)
+            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
         except Exception as e:
             log.debug("exception in get_metadata_raw: error %s",str(e))
             last_stmt_has_errors(e, out)
+            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
     log.debug("sql_select in get_metadata_raw 4")
     out["pk_columns"]=pkcols
@@ -167,7 +183,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
                 log.debug("get_metadata_raw returns parameter pk_column_list")
     else:
         log.debug("get_metadata_raw returns computedd column_list")
-    log.debug("++++++++++ leavng get_metadata_raw returning for %s data %s",tab,out)
+    log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
     return out
 
 def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False):
@@ -443,8 +459,17 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
         return e
     return data
 
+def check_hash_columns(tab,item):
+    log.debug("check_hash_columns for %s item %s",tab,item)
+    if tab in repo_columns_to_hash.keys():
+        for c in repo_columns_to_hash[tab]:
+            if c in item.keys():
+                p=bcrypt.hashpw(item[c].encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+                item[c]=p.decode()
+                log.debug("check_hash_columns: hashed %s.%s",tab,c)
+
 ## crud ops
-def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None):
+def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False):
     """ 
     insert record
     """
@@ -456,7 +481,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None):
     log.debug("db_ins: param seq is <%s>",str(seq))
     out={}
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols)
-    log.info("create_item after get_metadata_raw %s",str(metadata))
+    log.info("db_ins after get_metadata_raw %s",str(metadata))
     if "error" in metadata.keys():
         log.debug("db_ins: error in get_metadata_raw returned")
         return metadata
@@ -467,6 +492,9 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None):
         pkcols=[(metadata["columns"])[0]]
         log.warning("db_ins: implicit pk first column")
     s=None
+    # check hash columns
+    if is_repo: check_hash_columns(tab,item)
+    #                    
     if is_versioned:
         log.debug("db_ins: versioned mode" )
         ts=get_current_timestamp(dbeng)
@@ -503,6 +531,16 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None):
             vallist.append("Y")
         else:
             vallist[collist.index("is_current_and_active")]="Y"
+        log.debug("db_ins: check last_changed_by user=%s", changed_by)
+        if "last_changed_by" in metadata["columns"] and changed_by is not None:
+            if "last_changed_by" not in collist:
+                log.debug("db_ins: add last_changed_by")
+                collist.append("last_changed_by")
+                vallist.append(changed_by)
+            else:
+                log.debug("db_ins: upd last_changed_by")
+                vallist[collist.index("last_changed_by")]=changed_by
+            
     else:
         log.debug("db_ins: non versioned mode" )
         collist=[k for k in item.keys()]
@@ -586,10 +624,139 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None):
     return out
 
 ## crud ops
-def db_upd(dbeng,tab,pk,pkcols):
-    pass
+def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False):
+    log.debug("++++++++++ entering db_upd")
+    log.debug("db_upd: param tab is <%s>",str(tab))
+    log.debug("db_upd: param pk is <%s>",str(pk))
+    log.debug("db_upd: pkcols tab is <%s>",str(pkcols))
+    log.debug("db_upd: param is_versioned is <%s>",str(is_versioned))
+    out={}
+    
+    log.debug("item-keys %s",item.keys())
+    metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols)
+    if "error" in metadata.keys():
+        return metadata
+    pkcols=metadata["pk_columns"]
+    if len(pkcols)==0:
+        # kein PK default erste spalte
+        pkcols=[(metadata["columns"])[0]]
+        log.warning("update_item implicit pk first column")
 
-def db_del(dbeng,tab,pk,pkcols,is_versioned=False):
+    #if pkcols[0] not in item.keys():
+    #    out["error"]="PK Spalte muss beim Update (PUT) in den request daten sein"
+    #    return out
+
+    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+    if "total_count" in chkout.keys():
+        if chkout["total_count"]==0:
+            out["error"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+            return out
+    else:
+        out["error"]="PK check nicht erfolgreich"
+        return out
+    
+    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
+    log.debug("update_item: pkwhere %s",pkwhere)
+
+    #pkexp=[k+"=?" for k in pkcols]
+    #pkwhere=" AND ".join(pkexp)
+    #log.debug("pkwhere %s",pkwhere)
+
+    # check hash columns
+    if is_repo: check_hash_columns(tab,item)
+
+    log.debug("pk_columns %s",pkcols)
+    if is_versioned:
+        log.debug("update_item: 1")
+        # aktuellen Datensatz abschließen
+        # neuen Datensatz anlegen
+        ts=get_current_timestamp(dbeng)
+        # hole then alten Datensatz aus der DB mit dem angegebenen pk
+        cur_row=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+        vallist=[]
+        vallist.append(ts)
+        vallist.append(ts)
+        vallist.extend(list(pkwhere_val))
+        log.debug("marker values length is %d",len(vallist))
+        val_tuple=tuple(vallist)
+        log.debug("update_item: 2")
+        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
+        dbeng.execute(sql,val_tuple)
+        log.debug("update_item: 3")
+        # neuen datensatz anlegen
+        # die alten werte mit ggf den neuen überschreiben
+        reclist=cur_row["data"]
+        rec=reclist[0]
+        collist=[k for k in rec.keys()]
+        vallist=[v for v in rec.values()]
+        # überschreibe mit neuen werten
+        for k,v in item.items():
+            log.debug("-> %s %s",k,v)
+            pos=collist.index(k)
+            if pos>=0:
+                log.debug("overwrite: %s %s",k,v)
+                vallist[pos]=v
+        vallist[collist.index("valid_from_dt")]=ts
+        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
+        vallist[collist.index("last_changed_dt")]=ts
+        vallist[collist.index("is_latest_period")]='Y'
+        vallist[collist.index("is_current_and_active")]='Y'
+        if "last_changed_by" in metadata["columns"] and changed_by is not None:
+            if "last_changed_by" not in collist:
+                collist.append("last_changed_by")
+                vallist.append(changed_by)
+            else:
+                vallist[collist.index("last_changed_by")]=changed_by
+        qlist=["?" for k in rec.keys()]
+        q_str=",".join(qlist)
+        collist_str=",".join(collist)
+        log.debug("update_item: 4")
+        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
+        log.debug("create item: %s",sql)
+        try:
+            dbeng.execute(sql,tuple(vallist))
+            log.debug("update_item: 5")
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            return out
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            return out
+    else:
+        # nicht versionierter Standardfall
+        othercols=[col for col in item.keys() if col not in pkcols]
+        log.debug("othercols %s",othercols)
+        osetexp=[k+"=?" for k in othercols]
+        osetexp_str=",".join(osetexp)
+    
+        vallist=[item[col] for col in item.keys() if col not in pkcols]
+        # where clause pk dinger hinzufügen
+        vallist.extend(list(pkwhere_val))
+        val_tuple=tuple(vallist)
+        
+        sql=f"UPDATE {tab} SET {osetexp_str} {pkwhere}"
+        log.debug("update item sql %s",sql)
+        log.debug("update item valtuple %s",str(val_tuple))
+        try:
+            dbeng.execute(sql,val_tuple)
+        except SQLAlchemyError as e_sqlalchemy:
+            last_stmt_has_errors(e_sqlalchemy, out)
+            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            return out
+        except Exception as e:
+            last_stmt_has_errors(e, out)
+            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            return out
+    # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
+    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+    log.debug("++++++++++ leaving db_upd returning %s", str(out))
+    return out
+
+def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False):
     log.debug("++++++++++ entering db_del")
     log.debug("db_del: param tab is <%s>",str(tab))
     log.debug("db_del: param pk is <%s>",str(pk))
@@ -653,6 +820,12 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False):
         vallist[collist.index("is_latest_period")]='Y'
         vallist[collist.index("is_current_and_active")]='N'
         vallist[collist.index("is_deleted")]='Y'
+        if "last_changed_by" in metadata["columns"] and changed_by is not None:
+            if "last_changed_by" not in collist:
+                collist.append("last_changed_by")
+                vallist.append(changed_by)
+            else:
+                vallist[collist.index("last_changed_by")]=changed_by
         qlist=["?" for k in rec.keys()]
         q_str=",".join(qlist)
         collist_str=",".join(collist)
@@ -708,6 +881,6 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None):
     return x
 
 
-b = base64.b64encode(bytes('your string', 'utf-8')) # bytes
-base64_str = b.decode('utf-8') # convert bytes to string
+#b = base64.b64encode(bytes('your string', 'utf-8')) # bytes
+#base64_str = b.decode('utf-8') # convert bytes to string
     
