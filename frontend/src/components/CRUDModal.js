@@ -9,7 +9,7 @@ import {
   message
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, versioned, isRepo, token }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, versioned, isRepo, token }) => {
     
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
@@ -40,6 +40,26 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       )
   };
 
+  
+  const getPKParamForURL = (_pkColumn) => {
+    var pkforurl = "";
+    if (_pkColumn.length <= 1) {
+      console.log("only 1 pk");
+      // if only 1 pk take it directly
+      pkforurl = _pkColumn[0];
+    } else {
+      console.log("composite pk");
+      // if composite key, then build url-specific pk string "&pk=key1,key2,..."
+      for (var i = 0; i < _pkColumn.length; i++) {
+        pkforurl += _pkColumn[i];
+        pkforurl += ",";
+      }
+      pkforurl = pkforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
+    }
+    console.log("getPKParamForURL: " + pkforurl);
+    return pkforurl;
+  }
+
   /*{  
     headers: { 
       'Accept': 'application/json',
@@ -69,7 +89,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       setLoading(true);
       console.log("addTableRow: " + JSON.stringify(record));
       //await Axios.post("/api/crud/"+tableName, record).then( 
-      await Axios.post(api+tableName+(versioned ? "?v" : ""), record, {headers: {Authorization: token}}).then( 
+      await Axios.post(api+tableName+(versioned ? "?v" : "")+(versioned ? "&pk=": "?pk="+getPKParamForURL(pkColumns)), record, {headers: {Authorization: token}}).then( 
           (res) => {
           message.success('Erfolgreich gespeichert.');
           handleSave();
@@ -86,6 +106,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   const handleOk = () => {
     // add or update to API
     // TODO: check if all required fields are filled (except fields with increment)
+    console.log("type: " + type + " / pk: " + pk);
     type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData, pk);
   };
 

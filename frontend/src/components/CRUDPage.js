@@ -47,7 +47,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [pkColumn, setPkColumn] = useState();
+  //const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new"); // new/edit
   let api = "/api/crud/";
@@ -61,7 +61,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   useEffect(() => {
     getTableData(tableName);
     lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
-    setPkColumn(pkColumns); 
+    //setPkColumn(pkColumns); 
   }, [tableName]);
 
   // getTableData
@@ -133,19 +133,19 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     const deleteConfirm = (record) => {
       console.log("deleteConfirm for table: " + tableName);
       console.log(record);
-      //pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
-      //removeTableRow(tableName, record, record[pkColumn[0]]);
-      removeTableRow(tableName, record, getPKForURL(record, pkColumn));
+      //pkColumns ? console.log(record[pkColumns[0]]) : console.log("no pk");
+      //removeTableRow(tableName, record, record[pkColumns[0]]);
+      removeTableRow(tableName, record, getPKForURL(record, pkColumns));
     };
 
     // showModal
     const showEditModal = (record) => {
       console.log("showEditModal for table: " + tableName);
       console.log(record);
-      pkColumn ? console.log(record[pkColumn[0]]) : console.log("no pk");
+      pkColumns ? console.log(record[pkColumns[0]]) : console.log("no pk");
       setModalMode("edit");
-      //setCurrentPK(record[pkColumn[0]]);
-      setCurrentPK(getPKForURL(record, pkColumn));
+      //setCurrentPK(record[pkColumns[0]]);
+      setCurrentPK(getPKForURL(record, pkColumns));
       setShowModal(true);
     };
     const showCreateModal = () => {
@@ -170,7 +170,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       width: 100,
       render: (_, record) => ([
         <Space>
-          {deleteAllowed && pkColumn &&
+          {deleteAllowed && pkColumns &&
             <Popconfirm
             title="Löschen"
             description="Wirklich löschen?"
@@ -183,7 +183,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
             <DeleteOutlined style={{ fontSize: "18px" }} />
             </Popconfirm>
           }
-          {updateAllowed && pkColumn &&
+          {updateAllowed && pkColumns &&
           <Link onClick={(e) => { showEditModal(record, e); }}>
             <EditOutlined style={{ fontSize: "18px" }} />
           </Link>
@@ -254,7 +254,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
         multiple: 3,
       },
       render: (text, record) => (
-        (datatype === "datetime") ? text.substring(0,19) : text // trim milliseconds
+        (datatype === "datetime" && text) ? text.substring(0,19) : text // trim milliseconds
       )
       //key: column_name
       //width: 50,
@@ -338,7 +338,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                 }
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} versioned={versioned} isRepo={isRepo} token={token}/>
+            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} isRepo={isRepo} token={token}/>
             }
 
             </React.Fragment>
