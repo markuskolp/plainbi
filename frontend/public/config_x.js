@@ -1,8 +1,10 @@
+// api
+var BASE_URL = '<API_URL_GOES_HERE>';
 
 // header and footer
-var APP_TITLE = 'MM BI'
-var HEADER_TITLE = 'Messe München - Data & BI';
-var FOOTER = '©2023 plainbi';
+var APP_TITLE = ''; //Data & BI';
+var HEADER_TITLE = ''; //Data & BI';
+var FOOTER = ''; //© 2023 created by Data & BI';
 
 // theme
 var THEME_COLOR_PRIMARY = 'rgb(106, 145, 206)';

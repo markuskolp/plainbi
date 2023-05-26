@@ -8,7 +8,8 @@ import {
   Input,
   Space,
   Popconfirm,
-  message
+  message,
+  Pagination 
 } from "antd";
 import Table from "./Table";
 import {Sorter} from "../utils/sorter";
@@ -53,6 +54,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
   
   const [lookupData, setLookupData] = useState([]);
+  const [filteredTableData, setFilteredTableData] = useState(null);
 
   console.log("lookups: " + lookups);
 
@@ -277,6 +279,21 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       };
     }
 
+    const searchData = (value) => {
+      console.log("searching value: " + value );
+      console.log(tableData);
+ 
+      const tmpFilteredTableData = tableData.filter(o =>
+        Object.keys(o).some(k =>
+          String(o[k])
+            .toLowerCase()
+            .includes(value.toLowerCase())
+        )
+      );
+
+      setFilteredTableData( tmpFilteredTableData );
+    };
+
     return (
       <React.Fragment>
       <PageHeader
@@ -297,22 +314,28 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                 
               ]}
             />
-                {lookupData && <Table
-                  size="small"
-                  columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
-                    .map((column) => {
-                      return (column.ui === "lookup" ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype));
-                    })
-                    .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
+                {lookupData && (
+                  <React.Fragment>
+                    <Table
+                          size="small"
+                          columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
+                            .map((column) => {
+                              return (column.ui === "lookup" ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype));
+                            })
+                            .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
 
-                  dataSource={tableData}
-                  //dataSource={pageMetadataRelevant.name.table_columns}
-                  //pagination={{ pageSize: 50 }}
-                  pagination={false}
-                  //scroll={{ y: 500 }}
-                  //scroll={{ x: 300 }}
-                  loading={loading}
-            /> }
+                          dataSource={filteredTableData == null ? tableData : filteredTableData}
+                          //dataSource={pageMetadataRelevant.name.table_columns}
+                          //pagination={<Pagination  total={25} showTotal={(total) => `Gesamt ${total} Einträge`} defaultPageSize={25}/>}
+                          //pagination={{position: 'topRight'}}
+                          pagination={false}
+                          //scroll={{ y: 500 }}
+                          //scroll={{ x: 300 }}
+                          loading={loading}
+                        />
+                    </React.Fragment>
+                  ) 
+                }
             
             {showModal &&
             <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} versioned={versioned} isRepo={isRepo} token={token}/>
@@ -324,3 +347,14 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
 };
 
 export default CRUDPage;
+
+/*
+                    <Input.Search
+                      placeholder="Suche ..."
+                      //enterButton
+                      onSearch={(value) => {searchData(value)}}
+                      onChange={(e) => {searchData(e.target.value)}}
+                      style={{marginBottom:20,width:500}}
+                      allowClear 
+                    />
+*/

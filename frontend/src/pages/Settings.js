@@ -130,7 +130,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"7", name:"User zu Gruppen (Zuordnung)", alias:"users2groups",
+      id:"7", name:"User zu Gruppen", alias:"users2groups",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"user_to_group",
@@ -141,7 +141,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"8", name:"Applikationen zu Gruppen (Zuordnung)", alias:"apps2groups",
+      id:"8", name:"Applikationen zu Gruppen", alias:"apps2groups",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"application_to_group",
@@ -187,6 +187,7 @@ const Settings = (props) => {
 
   return (
     <React.Fragment>
+      
       <PageHeader
         onBack={() => window.history.back()}
         title="Einstellungen"
@@ -195,6 +196,7 @@ const Settings = (props) => {
       <br/>
       <br/>
       <Tabs defaultActiveKey="1" items={items} tabPosition='left' />
+      
     </React.Fragment>
   );
 };

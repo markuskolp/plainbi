@@ -113,7 +113,7 @@ const ThemeLayout = (props) => {
               </Link>
             </Space>
           </Header>
-          <Content style={{ padding: "0 50px" }}>
+          <Content style={{ padding: "0px 50px" }}>
             <div
               className="site-layout-content"
               style={{ background: colorBgContainer }}
@@ -137,4 +137,12 @@ export default ThemeLayout;
               <Button onClick={handleDarkModeSwitch}>
                 Change Theme to {isDarkMode ? "Light" : "Dark"}
               </Button>
+*/
+
+/*
+            <div
+              className="site-layout-content"
+              style={{ background: colorBgContainer }}
+            >
+            </div>
 */

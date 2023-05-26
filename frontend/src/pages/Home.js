@@ -1,5 +1,5 @@
 import React from "react";
-import { Row, Col } from "antd";
+import { Row, Col, Card } from "antd";
 import Resources from "../components/Resources";
 import TileVA from "../components/TileVA";
 
