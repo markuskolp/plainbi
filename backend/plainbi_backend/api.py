@@ -101,7 +101,7 @@ from flask.json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config
@@ -683,12 +683,13 @@ def get_all_repos(tokdata,tab):
     """
     log.debug("++++++++++ entering get_all_repos")
     log.debug("get_all_repos: param tab is <%s>",str(tab))
+    prof=get_profile(repoengine,tokdata['username'])
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,with_total_count=True)
+    items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,with_total_count=True,is_repo=True,user_id=prof["user_id"])
     log.debug("get_all_repos sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -723,6 +724,7 @@ def get_repo(tokdata,tab,pk):
     log.debug("get_repo: param tab is <%s>",str(tab))
     log.debug("get_repo: param pk is <%s>",str(pk))
     # check options
+    prof=get_profile(repoengine,tokdata['username'])
     pkcols=[]
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -734,9 +736,9 @@ def get_repo(tokdata,tab,pk):
     pk=prep_pk_from_url(pk)
     if tab=="application" and (not is_id(pk)):
         # use alias
-        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"])
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"],is_repo=True,user_id=prof["user_id"])
     else:    
-        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,is_repo=True,user_id=prof["user_id"])
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -772,6 +774,7 @@ def create_repo(tokdata,tab):
     """
     log.debug("++++++++++ entering create_repo")
     log.debug("create_repo: param tab is <%s>",str(tab))
+    prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
     is_versioned=False
@@ -823,6 +826,7 @@ def update_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering update_repo")
     log.debug("update_repo: param tab is <%s>",str(tab))
     log.debug("update_repo: param pk is <%s>",str(pk))
+    prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
     is_versioned=False
@@ -844,110 +848,6 @@ def update_repo(tokdata,tab,pk):
     out = db_upd(repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True)
     return jsonify(out)
 
-"""
-    #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
-    log.debug("item-keys %s",item.keys())
-    metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
-    if "error" in metadata.keys():
-        return jsonify(metadata),500
-   
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=[(metadata["columns"])[0]]
-        log.warning("update_repo implicit pk first column")
-
-    # get old record
-    chkout=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
-    if "total_count" in chkout.keys():
-        if chkout["total_count"]==0:
-            out["error"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
-            return jsonify(out),500
-    else:
-        out["error"]="PK check nicht erfolgreich"
-        return jsonify(out),500
-
-    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
-    #pkexp=[k+"=?" for k in pkcols]
-    #pkwhere=" AND ".join(pkexp)
-    log.debug("pkwhere %s",pkwhere)
-    #pkexp=[k+"=?" for k in pkcols]
-    #pkwhere=" AND ".join(pkexp)
-
-    log.debug("pk_columns %s",pkcols)
-    if is_versioned:
-        # aktuellen Datensatz abschließen
-        # neuen Datensatz anlegen
-        ts=get_current_timestamp(repoengine)
-        # hole then alten Datensatz aus der DB mit dem angegebenen pk
-        cur_row=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,versioned=is_versioned)
-        vallist=[]
-        vallist.append(ts)
-        vallist.append(ts)
-        vallist.extend(list(pkwhere_val))
-        log.debug("marker values length is %d",len(vallist))
-        val_tuple=tuple(vallist)
-        sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere}'" #AND invalid_from_dt='9999-12-31 00:00:00
-        repoengine.execute(sql,val_tuple)
-        # neuen datensatz anlegen
-        # die alten werte mit ggf den neuen überschreiben
-        reclist=cur_row["data"]
-        rec=reclist[0]
-        collist=[k for k in rec.keys()]
-        vallist=[v for v in rec.values()]
-        # überschreibe mit neuen werten
-        for k,v in item.items():
-            log.debug("-> %s %s",k,v)
-            pos=collist.index(k)
-            if pos>=0:
-                log.debug("overwrite: %s %s",k,v)
-                vallist[pos]=v
-        vallist[collist.index("valid_from_dt")]=ts
-        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-        vallist[collist.index("last_changed_dt")]=ts
-        vallist[collist.index("is_latest_period")]='Y'
-        vallist[collist.index("is_current_and_active")]='Y'
-        qlist=["?" for k in rec.keys()]
-        q_str=",".join(qlist)
-        collist_str=",".join(collist)
-        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
-        try:
-            repoengine.execute(sql,tuple(vallist))
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
-    else:
-        # nicht versionierter Standardfall
-        othercols=[col for col in item.keys() if col not in pkcols]
-        log.debug("othercols %s",othercols)
-        osetexp=[k+"=?" for k in othercols]
-        osetexp_str=",".join(osetexp)
-    
-        vallist=[item[col] for col in item.keys() if col not in pkcols]
-        vallist.extend(list(pkwhere_val))
-        val_tuple=tuple(vallist)
-        
-        sql=f"UPDATE {repo_table_prefix}{tab} SET {osetexp_str} {pkwhere}"
-        log.debug("update item sql %s",sql)
-        try:
-            repoengine.execute(sql,val_tuple)
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
-    # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
-    out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,versioned=is_versioned)
-    #return 'Item updated successfully', 200
-"""
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['DELETE'])
 @token_required
@@ -971,6 +871,7 @@ def delete_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering delete_repo")
     log.debug("delete_repo: param tab is <%s>",str(tab))
     log.debug("delete_repo: param pk is <%s>",str(pk))
+    prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
     is_versioned=False
@@ -1263,7 +1164,15 @@ def login():
 @token_required
 def protected(tokdata):
     log.debug("current user=%s",tokdata['username'])
-    return jsonify({'message': f'Hello, {config.current_user}! You are authenticated.'}), 200
+    u=tokdata['username']
+    return jsonify({'message': f'Hello, {u}! You are authenticated.'}), 200
+
+@api.route('/profile', methods=['GET'])
+@token_required
+def profile(tokdata):
+    out=get_profile(repoengine,tokdata['username'])
+    return jsonify(out)
+
 
 @api.route('/logout', methods=['GET'])
 def logout(tokdata):

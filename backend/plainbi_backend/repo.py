@@ -436,6 +436,9 @@ insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-107,
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-108, 'external_resource', 'select name as d, id as r from plainbi_external_resource', 0);
 """,
 """
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-109, 'username', 'select fullname || ''('' || username || '')'' as d, username as r from plainbi_user where username != ''admin'';', 0);
+""",
+"""
 drop view if exists plainbi_resources;
 """,
 """

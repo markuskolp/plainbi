@@ -63,7 +63,7 @@ def get_db_type(dbengine):
         return "mssql"
 
 
-def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False):
+def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False,is_repo=False,user_id=None):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -90,7 +90,10 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         else:
             if w is not None:
                 if len(my_where_clause)==0: my_where_clause=" WHERE "
-                where_clause += " ("+w+") "
+                my_where_clause += " ("+w+") "
+        # check repo rights
+        if is_repo and user_id is not None:
+            my_where_clause = add_auth_to_where_clause(tab, my_where_clause, user_id)
         if len(my_where_clause)>0:
             sql+=my_where_clause
         if order_by is not None:
@@ -186,7 +189,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list):
     log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
     return out
 
-def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False):
+def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle ub der Datenbank
 
@@ -222,6 +225,9 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         log.warning("implicit pk first column")
     print("get_item_raw: pk_columns",str(pkcols))
     pkwhere, pkwhere_val = make_pk_where_clause(pk, pkcols, versioned, version_deleted)
+    if is_repo and user_id is not None:
+        # check repo rights
+        pkwhere = add_auth_to_where_clause(tab, pkwhere, user_id)
     sql=f'SELECT * FROM {tab} {pkwhere}'
     log.debug("sql=%s",sql)
     try:
@@ -469,7 +475,7 @@ def check_hash_columns(tab,item):
                 log.debug("check_hash_columns: hashed %s.%s",tab,c)
 
 ## crud ops
-def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False):
+def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False, user_id=None):
     """ 
     insert record
     """
@@ -619,12 +625,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         last_stmt_has_errors(e, out)
         return out
     # read new record from database and send it back
-    out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned)
+    out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id)
     log.debug("++++++++++ leaving db_ins returning %s", str(out))
     return out
 
 ## crud ops
-def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False):
+def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, user_id=None):
     log.debug("++++++++++ entering db_upd")
     log.debug("db_upd: param tab is <%s>",str(tab))
     log.debug("db_upd: param pk is <%s>",str(pk))
@@ -752,11 +758,11 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False):
             log.debug("++++++++++ leaving db_upd returning %s", str(out))
             return out
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
-    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id)
     log.debug("++++++++++ leaving db_upd returning %s", str(out))
     return out
 
-def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False):
+def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False, user_id=None):
     log.debug("++++++++++ entering db_del")
     log.debug("db_del: param tab is <%s>",str(tab))
     log.debug("db_del: param pk is <%s>",str(pk))
@@ -860,6 +866,33 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False)
     log.debug("++++++++++ leaving db_del returning %s", str(out))
     return out
 
+def get_profile(repoengine,u):
+    usr_sql = "select * from plainbi_user where username=?"
+    usr_data = repoengine.execute(usr_sql,u)
+    usr_items = [dict(row) for row in usr_data]
+    prof = {}
+    if len(usr_items)==1:
+        prof["username"] = (usr_items[0])["username"]
+        prof["email"] = (usr_items[0])["email"]
+        prof["fullname"] = (usr_items[0])["fullname"]
+        user_id = (usr_items[0])["id"]
+        prof["user_id"] = user_id
+        role_id=(usr_items[0])["role_id"]
+        print(role_id)
+        role_sql = "select * from plainbi_role where id=?"
+        role_data = repoengine.execute(role_sql,role_id)
+        role_items = [dict(row) for row in role_data]
+        if len(role_items)==1:
+            prof["role"] = (role_items[0])["name"]
+        grp_sql = "select g.id,g.name,g.alias,* from plainbi_group g join plainbi_user_to_group ug on ug.group_id=g.id where ug.user_id=?"
+        grp_data = repoengine.execute(grp_sql,user_id)
+        grp_items = [dict(row) for row in grp_data]
+        l_groups=[]
+        for i in grp_items:
+            l_groups.append({ "name" : i["name"], "alias" : i["name"] })
+        prof["groups"] = l_groups
+    return prof 
+
     
 def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None):
     """
@@ -880,6 +913,54 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None):
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq="user")
     return x
 
+def add_auth_to_where_clause(tab,where_clause,user_id):
+    log.debug("++++++++++ entering add_auth_to_where_clause")
+    log.debug("add_auth_to_where_clause: param tab is <%s>",str(tab))
+    log.debug("add_auth_to_where_clause: param where_clause is <%s>",str(where_clause))
+    log.debug("add_auth_to_where_clause: param user_id is <%s>",str(user_id))
+    w = where_clause
+    if tab == 'planbi_application' and user_id is not None:
+        if len(w)==0: 
+            w=" WHERE "
+        else:
+            w+=" AND "
+        w+=f"""id in (
+  select atg.application_id
+  from plainbi_application_to_group atg
+  join plainbi_user_to_group utg
+  on atg.group_id=utg.group_id 
+  join plainbi_user u
+  on utg.user_id = u.id
+  where utg.user_id = {user_id}
+  union
+  select a.id
+  from plainbi_application a
+  cross join plainbi_user u
+  where u.id = {user_id}
+  and u.role_id = 1
+)"""
+    if tab == 'planbi_adhoc' and user_id is not None:
+        if len(w)==0: 
+            w=" WHERE "
+        else:
+            w+=" AND "
+        w+=f"""id in (
+  select atg.adhoc_id
+  from plainbi_adhoc_to_group atg
+  join plainbi_user_to_group utg
+  on atg.group_id=utg.group_id 
+  join plainbi_user u
+  on utg.user_id = u.id
+  where utg.user_id = {user_id}
+  union
+  select a.id
+  from plainbi_application a
+  cross join plainbi_user u
+  where u.id = {user_id}
+  and u.role_id = 1
+)"""
+    log.debug("++++++++++ leaving add_auth_to_where_clause with: %s",w)
+    return w
 
 #b = base64.b64encode(bytes('your string', 'utf-8')) # bytes
 #base64_str = b.decode('utf-8') # convert bytes to string

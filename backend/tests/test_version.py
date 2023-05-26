@@ -21,6 +21,7 @@ token=None
 testuser_token=None
 headers=None
 testuser_headers=None
+testuser_id=None
 
 import pytest
 from plainbi_backend.api import create_app
@@ -735,7 +736,7 @@ def test_5000_repo_ins_user(test_client):
     WHEN the '/' page is requested (GET)
     THEN check that the response is valid
     """
-    global headers
+    global headers,testuser_id
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
     appnam='testapp'
     response = test_client.post('/api/repo/user', json= { "username" : "testuser", "password_hash" : "testuser123", "role_id" : 2 }, headers=headers)
@@ -744,6 +745,7 @@ def test_5000_repo_ins_user(test_client):
     print("got=",json_out)
     row1=(json_out["data"])[0]
     assert row1["username"]=="testuser"
+    testuser_id=row1["id"]
 
 def test_5001_testuser_login(test_client):
     #
@@ -769,3 +771,18 @@ def test_5010_repo_get_app(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     assert response.status_code == 200
+
+def test_5020_repo_ins_user_grp(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers,testuser_id
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    response = test_client.post('/api/repo/user_to_group', json= { "user_id" : testuser_id, "group_id" : -3 }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["group_id"]==-3
