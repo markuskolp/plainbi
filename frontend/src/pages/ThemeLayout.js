@@ -1,6 +1,7 @@
 import React from "react";
 import { useState } from "react";
-import { ConfigProvider, Tooltip, Image, Space } from "antd";
+import { Avatar, ConfigProvider, Tooltip, Image, Space, Dropdown } from "antd";
+import { useNavigate } from "react-router-dom";
 import { Layout, theme, Button } from "antd";
 import { Typography } from "antd";
 import axios from "axios";
@@ -37,6 +38,8 @@ const ThemeLayout = (props) => {
     token: { colorBgContainer }
   } = theme.useToken();
 
+  const navigate = useNavigate();
+
   const { defaultAlgorithm, darkAlgorithm } = theme;
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -65,6 +68,41 @@ const ThemeLayout = (props) => {
   const logout = () => {
     props.removeToken();
   }
+
+  const items = [
+    /*{
+      label: <React.Fragment><b style={{color:'#000'}}>kolp</b></React.Fragment>,
+      key: '0',
+      //icon: <UserOutlined />,
+      disabled: true,
+    },
+    */
+    {
+      label: 'Benutzerprofil',
+      key: '1',
+      //icon: <UserOutlined />,
+    },
+    {
+      label: 'Abmelden',
+      key: '2',
+      //icon: <LogoutOutlined />,
+    },
+  ];
+
+  const handleMenuClick = (e) => {
+    console.log('click', e);
+    if (e.key === '1') {
+      navigate("/myprofile");
+    }
+    if (e.key === '2') {
+      logout();
+    }
+  };
+  
+  const menuProps = {
+    items,
+    onClick: handleMenuClick,
+  };
 
   return (
     <React.Fragment>
@@ -101,16 +139,9 @@ const ThemeLayout = (props) => {
                   <AppstoreOutlined />
                 </Tooltip>
               </Link>
-              <Link href="/profile">
-                <Tooltip title="Benutzerprofil">
-                  <UserOutlined />
-                </Tooltip>
-              </Link>
-              <Link href="" onClick={logout}>
-                <Tooltip  title="Abmelden">
-                  <LogoutOutlined />
-                </Tooltip>
-              </Link>
+              <Dropdown menu={menuProps} >
+                <UserOutlined /> 
+              </Dropdown>
             </Space>
           </Header>
           <Content style={{ padding: "0px 50px" }}>
@@ -146,3 +177,16 @@ export default ThemeLayout;
             >
             </div>
 */
+/*
+
+              <Link href="/profile">
+                <Tooltip title="Benutzerprofil">
+                  <UserOutlined />
+                </Tooltip>
+              </Link>
+              <Link href="" onClick={logout}>
+                <Tooltip  title="Abmelden">
+                  <LogoutOutlined />
+                </Tooltip>
+              </Link>
+              */

@@ -1,12 +1,67 @@
 import React from "react";
+import { useState, useEffect } from "react";
+import Axios from "axios";
+import { message, Typography, Tag, Space } from "antd";
+import LoadingMessage from "../components/LoadingMessage";
 import UnderConstruction from "../components/UnderConstruction";
+const { Text, Link, Title  } = Typography;
 
-const UserProfile = () => {
+const UserProfile = (props) => {
+
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState([]); // profile data
+
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    await Axios.get("/profile", {headers: {Authorization: props.token}}).then(
+      (res) => {
+        //console.log(JSON.stringify(res));
+        const resData = res.data;
+        console.log(JSON.stringify(resData));
+        setData(resData);
+        setLoading(false);
+      }
+    ).catch(
+      function (error) {
+        setError(true);
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der Profildaten.');
+      }
+    );
+  };
+
+
   return (
     <React.Fragment>
-      <UnderConstruction />
+      {loading ? (
+          <LoadingMessage />
+        ) : ( 
+          <React.Fragment>
+            <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+              <Title level={3}>{data.fullname ? data.fullname + " (" + data.username + ")" : data.username}</Title> 
+              <Link href={"mailto:"+data.email} >{data.email}</Link> 
+              <Title level={5}>Rolle:</Title> 
+              <Text>{data.role}</Text> 
+              <Title level={5}>Gruppen:</Title> 
+              {data.groups.map((group) => {console.log(group);return <Text>{group.name}</Text>})}
+            </Space>
+          </React.Fragment>
+        )}
     </React.Fragment>
   );
+
 };
 
 export default UserProfile;
+
+/*email
+      username
+      fullname
+      groups
+      role
+      <Text>{group.name}</Text>
+*/

@@ -5,6 +5,8 @@
 
 Global search bei Tabellen -> aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
 
+Pagination !
+
 Excel-Import bei "Messe Statistiken":
 - https://www.npmjs.com/package/react-spreadsheet-import
 - spannend wie man das eingelesene Excel -> JSON -> dann in tv-tabelle lädt (insert und/oder update)
@@ -15,54 +17,42 @@ VA-Liste
 - make both tables look like separate cards (white background, grey surrounding)
 
 Joe:
-- versionierte Tabelle: compound geht nicht
+- Joe nochmal die Init geben für die internen Applikationen !
 
-- plainbi_adhoc braucht noch eine Spalte für den „owner“
-
-- anhand des Token wirklich den User bei versionierten Tabellen (sqdv_changed_by) mitschreiben
-
-- Token verliert aktuell keine Gültigkeit ?! auch gegen /logout von API gehen !
 - abhängig vom Token die Endpunkte schützen
   - Admin bekommt immer alle Inhalte + hat Änderungsrechte (PUT/POST/DELETE) auf /api/repo
-  - User bekommt nur berechtigte Inhalte + /api/crud + GET Rechte auf /api/repo
+  - User bekommt nur berechtigte Inhalte + /api/crud + GET Rechte auf /api/repo + adhoc wo er Besitzer ist !
 
-- wie lange ist Token gültig? sonst immer folgendes einbauen nach jedem Axios request:
-  res.access_token && props.setToken(res.access_token)
-- warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
+- wie lange ist Token gültig? 
+  - Token verliert aktuell keine Gültigkeit ?! auch gegen /logout von API gehen !
+  - sonst immer folgendes einbauen nach jedem Axios request:
+    res.access_token && props.setToken(res.access_token)
+  - warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
 
 - /logout endpoint -> dann "ThemeLayout.js" fertigmachen (Logout Knopf - diesen auch unter dem Avatar als Submenü: Benutzerprofil | Abmelden)
 
-- username und gruppen in JWT Token reinbringen? oder über /profile endpoint beziehen ? -> dann Benutzerprofil-Seite mal ergänzen
-- /profile um Userdaten zu erhalten (welche zum angemeldeten User/Token passen)
-  aus plainbi_user, plainbi_role und über join von plainbi_user_to_group zu plainbi_group (alle zugeordneten gruppen)
-  z.b. wie folgt:
+- get role of user -> if Admin: Zugriff auf Settings-Icon in Header
 
-    {
-      username: xx,
-      email: xx, 
-      fullname: xx, 
-      role: xx,
-      groups: [
-        { name: xx, alias: xx},
-        { name: yy, alias: yy},
-        …
-      ]
-    }
+- /profile
+  - username und gruppen in JWT Token reinbringen? oder über /profile endpoint beziehen ? -> dann Benutzerprofil-Seite mal ergänzen
+  - /profile um Userdaten zu erhalten (welche zum angemeldeten User/Token passen)
+    aus plainbi_user, plainbi_role und über join von plainbi_user_to_group zu plainbi_group (alle zugeordneten gruppen)
+    z.b. wie folgt:
 
-- User: passwort wird über endpoint noch nicht gehashed?
-
+      {
+        username: xx,
+        email: xx, 
+        fullname: xx, 
+        role: xx,
+        groups: [
+          { name: xx, alias: xx},
+          { name: yy, alias: yy},
+          …
+        ]
+      }
 
 
 https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
-
-headers: {Authorization: 'Bearer ' + props.token}
-headers: {Authorization: + props.token}
-
-curl --header "Content-Type: application/json" --request POST --data '{\"username\":\"admin\",\"password\":\"plainbi\"}' "localhost:3001/login" -w "%{http_code}\n"
-set tok=
-curl --header "Content-Type: application/json" --request GET -H "Authorization: %tok%" "localhost:3001/api/repo/application" -w "%{http_code}\n"
-
-Pagination !
 
 Loginseite ändern z.B. auf https://procomponents.ant.design/en-US/components/login-form#loginformpage-1
 
@@ -144,14 +134,10 @@ API enhancements:
           Erstellt am: <YYYY-MM-DD HH24:MI:SS>
           Quelle: DWH - Adhoc <nr>
   - Security / Auth-API / JWT Token
-    - use JWT (JWT Extended or Praetorian)
-    - combine with login.js frontend 
-    - if possible get JWT in session -> test this with Cube.js :)
+    - test JWT with Cube.js :)
     - integrated Users and Roles
       - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
       - User
-    - fill last_changed_by !
-  - swagger-UI
   - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s)) (https://www.baeldung.com/rest-api-error-handling-best-practices)
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
@@ -170,7 +156,6 @@ bundle and run first version on DEV server
 - pagination / filter / global search evtl. mal ändern auf backend bei vielen Daten
 - textinput_url -> with Link to Target :) (in table and edit dialog)
 - getLookups() in CRUDApp.js werden nicht refreshed bei Page-Switch / Dialog-Schliessung / etc.
-- AppRuntime: auch pagination einbauen, sowie Suche/Filter
 - add "page" and "file" as resource for documentation, blog, etc.
   page: id, name, alias, parent_page_id, content_as_markdown
   file: id, name, mime_type, content_as_binary

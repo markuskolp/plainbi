@@ -30,7 +30,7 @@ const App = () => {
           <Route path="/" element={<ThemeLayout removeToken={removeToken}/>}>
             <Route index element={<Home token={token} setToken={setToken} />} />
             <Route path="settings" element={<Settings token={token} setToken={setToken} />} />
-            <Route path="profile" element={<UserProfile token={token} setToken={setToken} />} />
+            <Route path="myprofile" element={<UserProfile token={token} setToken={setToken} />} />
             <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} />} />
             <Route path="apps" element={<Apps token={token} setToken={setToken} />} />
             <Route path="apps/:id" element={<AppRuntime token={token} setToken={setToken} />} />
