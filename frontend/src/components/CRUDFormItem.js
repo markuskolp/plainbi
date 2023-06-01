@@ -7,7 +7,7 @@ import {
   Form,
   Input,
   InputNumber,
-  DatePicker,
+  DatePicker  
 } from "antd";
 import MonacoEditor from 'react-monaco-editor';
 import SelectLookup from './SelectLookup';
@@ -101,10 +101,14 @@ const handleSwitchChange = (checked, e) => {
                 tooltip={tooltip}
               >
                 {
-                  (editable === "false" && ui === "lookup") ? (
+                  (editable === "false" && ui === "lookupn") ? (
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} allowNewValues="true"/>
+                ) : (editable === "false" && ui === "lookup") ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token}/>
                 ) : editable === "false" ? (
                   <Text>{defaultValue}</Text>
+                ) : ui === "lookupn" ? (
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} allowNewValues="true"/>
                 ) : ui === "lookup" ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token}/>
                 ) : ui === "hidden" ? (

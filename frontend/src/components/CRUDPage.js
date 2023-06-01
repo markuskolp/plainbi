@@ -33,6 +33,7 @@ Enum ui {
   numberinput
   datepicker
   lookup
+  lookupn (allow new values)
   textarea
   textarea_sql
   textarea_markdown

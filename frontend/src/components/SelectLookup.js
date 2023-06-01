@@ -1,10 +1,10 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Axios from "axios";
 import { Select } from "antd";
 import LoadingMessage from "./LoadingMessage";
 
-const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token }) => {
+const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token, allowNewValues }) => {
 
   const [loading, setLoading] = useState(true);
   const [lookupData, setLookupData] = useState([]);
@@ -39,6 +39,23 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token 
     console.log("MarkdownEditor - Textarea change: " + JSON.stringify(emuEvent));
     onChange(emuEvent); 
   };
+
+
+  // adds new entries to lookup data if it does not exist
+  const currentValue = useRef();
+  const onSearch = useCallback((value) => {
+
+    currentValue.current = value;
+
+    if (allowNewValues && value && !lookupData.some((op) => op.label === value)) { //.indexOf(value) === 0)) {
+      setLookupData([...lookupData, {
+        value: value,
+        label: value
+      }]);
+    } else {
+      setLookupData([...lookupData]);
+    }
+  }, [lookupData]);
   
 
   return (loading ? (
@@ -53,6 +70,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token 
             options={lookupData}
             defaultValue={defaultValue}
             onChange={handleChange}
+            onSearch={onSearch}
             name={name}
             optionFilterProp="label" // filter by label (not by value/key)
           />
