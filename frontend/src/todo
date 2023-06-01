@@ -2,6 +2,9 @@
 # asap
 # ------------------------------------------------
 
+- get role of user -> if Admin: Zugriff auf Settings-Icon in Header
+
+- /logout endpoint -> dann "ThemeLayout.js" fertigmachen (Logout Knopf - diesen auch unter dem Avatar als Submenü: Benutzerprofil | Abmelden)
 
 Global search bei Tabellen -> aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
 
@@ -29,28 +32,6 @@ Joe:
     res.access_token && props.setToken(res.access_token)
   - warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
 
-- /logout endpoint -> dann "ThemeLayout.js" fertigmachen (Logout Knopf - diesen auch unter dem Avatar als Submenü: Benutzerprofil | Abmelden)
-
-- get role of user -> if Admin: Zugriff auf Settings-Icon in Header
-
-- /profile
-  - username und gruppen in JWT Token reinbringen? oder über /profile endpoint beziehen ? -> dann Benutzerprofil-Seite mal ergänzen
-  - /profile um Userdaten zu erhalten (welche zum angemeldeten User/Token passen)
-    aus plainbi_user, plainbi_role und über join von plainbi_user_to_group zu plainbi_group (alle zugeordneten gruppen)
-    z.b. wie folgt:
-
-      {
-        username: xx,
-        email: xx, 
-        fullname: xx, 
-        role: xx,
-        groups: [
-          { name: xx, alias: xx},
-          { name: yy, alias: yy},
-          …
-        ]
-      }
-
 
 https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
 
@@ -77,7 +58,7 @@ CRUD field validation before save (especially required fields) !
               + ' - ' +
               cast(DATEPART(dd, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(yyyy, vv.ende_dt) as varchar(4))
               as zeitraum
-            , vr.logo as logo_url
+            , vr.logo_url
             , case             	
 	            when vr.kategorie  = 'EV' then 'Eigenveranstaltung'
 	            when vr.kategorie  = 'AV' then 'Auslandsveranstaltung'
@@ -134,7 +115,7 @@ API enhancements:
           Erstellt am: <YYYY-MM-DD HH24:MI:SS>
           Quelle: DWH - Adhoc <nr>
   - Security / Auth-API / JWT Token
-    - test JWT with Cube.js :)
+    - test JWT with Cube.js :) --> dafür username und gruppen in JWT Token reinbringen ?
     - integrated Users and Roles
       - Admin: Zugriff auf Settings-Icon + App-Icon in Header, Editierbutton bei Adhocliste in Portal (Route /)
       - User
