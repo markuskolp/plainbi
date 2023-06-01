@@ -15,6 +15,7 @@ import urllib
 import sqlalchemy
 
 from plainbi_backend.config import config,load_pbi_env
+from plainbi_backend.db import db_connect
 
 #log = logging.getLogger(__name__)
 log = logging.getLogger()
@@ -36,23 +37,10 @@ pbi_env = load_pbi_env()
 def func_name(): 
     return sys._getframe(1).f_code.co_name
 
-
-if "db_params" in pbi_env.keys():
-    params = urllib.parse.quote_plus(pbi_env["db_params"])
-    print("params",params)
-    print("db_engine",pbi_env["db_engine"])
-    dbengine = sqlalchemy.create_engine(pbi_env["db_engine"] % params)
-else:
-    dbengine = sqlalchemy.create_engine(pbi_env["db_engine"])
+dbengine = db_connect(pbi_env["db_engine"],pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
 log.info("dbengine %s",dbengine.url)
 
-if "repo_params" in pbi_env.keys():
-    params = urllib.parse.quote_plus(pbi_env["repo_params"])
-    print("repo params",params)
-    print("repo_engine",pbi_env["repo_engine"])
-    repoengine = sqlalchemy.create_engine(pbi_env["repo_engine"] % params)
-else:
-    repoengine = sqlalchemy.create_engine(pbi_env["repo_engine"])
+repoengine = db_connect(pbi_env["repo_engine"],pbi_env["repo_params"] if "repo_params" in pbi_env.keys() else None)
 log.info("repoengine %s",repoengine.url)
 repo_table_prefix="plainbi_"
 
@@ -125,7 +113,7 @@ def test_000_version(test_client):
     log.info('TEST: %s',func_name())
     response = test_client.get('/api/version')
     assert response.status_code == 200
-    assert b"0.2" in response.data
+    assert b"0.3" in response.data
 
 
 ##############################################################
@@ -890,3 +878,18 @@ def test_5011_repo_get_noapp(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     assert response.status_code == 204
+
+def test_5020_repo_get_resource(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    response = test_client.get('/api/repo/resource', headers=testuser_headers)
+    json_out = response.get_json()
+    print("got=",json_out)
+    assert response.status_code == 200
+    assert response.status_code == 200
+    assert json_out["total_count"] == 1

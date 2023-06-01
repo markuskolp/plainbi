@@ -61,6 +61,21 @@ def get_db_type(dbengine):
         return "sqlite"
     else:
         return "mssql"
+def add_offset_limit(dbtyp,offset,limit):
+    sql=""
+    if dbtyp=="mssql":
+        if offset is not None:
+            sql+=" OFFSET "+offset+ " ROWS"
+        if limit is not None:
+            sql+=" FETCH NEXT "+limit+" ROWS ONLY"
+    elif dbtyp=="sqlite":
+        if limit is not None:
+            sql+=" LIMIT "+limit
+        else:
+            sql+=" LIMIT -1"
+        if offset is not None:
+            sql+=" OFFSET "+offset
+    return sql
 
 
 def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False,is_repo=False,user_id=None):
@@ -75,11 +90,14 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     log.debug("sql_select tab parameter: %s",tab)
     my_where_clause=""
     w=where_clause
+    tab_is_sql_stmt=False
     try:
         if len(tab.split(" "))==1:          # nur ein wort
             sql=f'SELECT * FROM {tab}'
+            tab_is_sql_stmt = False
         else:                               # ein komplettes select statement expected
             sql=tab
+            tab_is_sql_stmt = True
         if versioned:
             if w is not None:
                 if len(my_where_clause)==0: my_where_clause=" WHERE "
@@ -97,12 +115,10 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
             log.debug("sql_select auth added:%s",my_where_clause)
         if len(my_where_clause)>0:
             sql+=my_where_clause
+        sql_without_orderby_offset_limit=sql
         if order_by is not None:
             sql+=" ORDER BY "+order_by.replace(":"," ")
-        if offset is not None:
-            sql+=" OFFSET "+offset+ " ROWS"
-        if limit is not None:
-            sql+=" FETCH NEXT "+limit+" ROWS ONLY"
+        sql+=add_offset_limit(get_db_type(dbengine),offset,limit)
         log.debug("sql_select: %s",sql)
         data=dbengine.execute(sql)
         #data.fetchall()
@@ -110,7 +126,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         log.debug("sql_select: anz rows=%d",len(items))
         columns = list(data.keys())
         if with_total_count:
-            sql_total_count=f'SELECT COUNT(*) AS total_count FROM {tab} {my_where_clause}'
+            sql_total_count=f'SELECT COUNT(*) AS total_count FROM ({sql_without_orderby_offset_limit}) x'
             data_total_count=dbengine.execute(sql_total_count)
             item_total_count=[dict(r) for r in data_total_count]
             total_count=(item_total_count[0])['total_count']
@@ -925,6 +941,7 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
     log.debug("add_auth_to_where_clause: param where_clause is <%s>",str(where_clause))
     log.debug("add_auth_to_where_clause: param user_id is <%s>",str(user_id))
     w = where_clause
+    if w is None: w=""
     if tab == 'plainbi_application' and user_id is not None:
         log.debug("add_auth_to_where_clause: apply auth for application")
         if len(w)==0: 
@@ -966,6 +983,10 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
   cross join plainbi_user u
   where u.id = {user_id}
   and u.role_id = 1
+  union
+  select a.id
+  from plainbi_adhoc a
+  where a.owner_user_id = {user_id}
 )"""
     if tab == 'plainbi_external_resource' and user_id is not None:
         log.debug("add_auth_to_where_clause: apply auth for external_resource")
@@ -994,3 +1015,15 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
 #b = base64.b64encode(bytes('your string', 'utf-8')) # bytes
 #base64_str = b.decode('utf-8') # convert bytes to string
     
+
+def db_connect(enginestr, params=None):
+    log.debug("++++++++++ entering db_connect")
+    log.debug("db_connect: param enginestr is <%s>",str(enginestr))
+    log.debug("db_connect: param params is <%s>",str(params))
+    if params is not None:
+        dbengine = sqlalchemy.create_engine(enginestr % params)
+    else:
+        dbengine = sqlalchemy.create_engine(enginestr)
+    log.info("db_connect: dbengine url %s",dbengine.url)
+    log.debug("++++++++++ leaving db_connect")
+    return dbengine

@@ -19,9 +19,9 @@ class MyConfig:
     
 config = MyConfig()
 
-config.version="0.2 22.05.2023"
+config.version="0.3 01.06.2023"
 config.SECRET_KEY=os.urandom(24)
-print("secred key generated")
+print("secret key generated")
 
 def load_pbi_env():
     home_directory = os.path.expanduser( '~' )

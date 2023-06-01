@@ -22,6 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--password', type=str, help='The password for the database connection')
     parser.add_argument('-d', '--database', type=str, help='The database connection description')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode (debug=True)')
+    parser.add_argument('-r', '--repository', type=str, help='The repository database connection description')
     # Parse the arguments
     args = parser.parse_args()
 
@@ -40,6 +41,11 @@ if __name__ == '__main__':
         logging.info(f"The database connection description is {args.database}")
     else:
         logging.info("No database connection description was provided")
+
+    if args.repository:
+        logging.info(f"The repository database connection description is {args.repository}")
+    else:
+        logging.info("No repository database connection description was provided")
     
     if args.port:
         app_port=args.port
@@ -55,7 +61,7 @@ if __name__ == '__main__':
 
     #logging.setLevel(logging.DEBUG)
     logging.info("start server "+__name__)
-    app=create_app(None)  # no config file yet
+    app=create_app(None,p_repository=args.repository)  # no config file yet
     if dbg: 
         app.logger.setLevel(logging.DEBUG)
         print("debug mode")

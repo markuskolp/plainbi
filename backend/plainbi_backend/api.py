@@ -11,6 +11,9 @@ windows comman cmd set tok=ldkasaölsfjaölsdkf
 
 python -m pytest tests\test_version.py
 
+# resource
+curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/repo/resource?order_by=name&offset=1" -w "%{http_code}\n"
+
 # GET ALL
 curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/crud/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
@@ -100,7 +103,7 @@ from flask.json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -153,27 +156,9 @@ def token_required(f):
 
     return decorated
 
-if "db_params" in pbi_env.keys():
-    params = urllib.parse.quote_plus(pbi_env["db_params"])
-    print("params",params)
-    print("db_engine",pbi_env["db_engine"])
-    dbengine = sqlalchemy.create_engine(pbi_env["db_engine"] % params)
-else:
-    dbengine = sqlalchemy.create_engine(pbi_env["db_engine"])
-log.info("dbengine %s",dbengine.url)
+dbengine=None
+repoengine=None
 
-if "repo_engine" not in pbi_env.keys():
-    log.error("repo_engine must be defined")
-    sys.exit(1)
-
-if "repo_params" in pbi_env.keys():
-    params = urllib.parse.quote_plus(pbi_env["repo_params"])
-    print("repo params",params)
-    print("repo_engine",pbi_env["repo_engine"])
-    repoengine = sqlalchemy.create_engine(pbi_env["repo_engine"] % params)
-else:
-    repoengine = sqlalchemy.create_engine(pbi_env["repo_engine"])
-log.info("repoengine %s",repoengine.url)
 repo_table_prefix="plainbi_"
 
 api_root="/api"
@@ -454,107 +439,6 @@ def delete_item(tokdata,tab,pk):
             return 'Record deleted successfully', 200
     return jsonify(out)
 
-"""
-    # check options
-    out={}
-    pkcols=[]
-    is_versioned=False
-    if len(request.args) > 0:
-        for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
-            if key=="pk":
-                pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
-            if key=="v":
-                is_versioned=True
-                log.debug("versions enabled")
-    # check if pk is compound
-    pk=prep_pk_from_url(pk)
-    #
-    log.debug("delete_item tab %s pk %s pkcols %s",tab,pk,pkcols)
-    metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
-    if "error" in metadata.keys():
-        return jsonify(metadata),500
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=[(metadata["columns"])[0]]
-        log.warning("delete_item implicit pk first column")
-
-    chkout=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
-    if "total_count" in chkout.keys():
-        if chkout["total_count"]==0:
-            out["error"]="PK ist nicht vorhanden"
-            return jsonify(out),500
-    else:
-        out["error"]="PK check nicht erfolgreich"
-        return jsonify(out),500
-
-    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
-    log.debug("delete_item: pkwhere %s",pkwhere)
-        
-    #log.debug("delete_item pk_columns %s",pkcols)
-    #if len(pkcols)==1:
-    #    pkwhere=pkcols[0]+"=?"
-    #else:
-    #    pkexp=[k+"=?" for k in pkcols]
-    #    pkwhere=" AND ".join(pkexp)
-    #log.debug("pkwhere %s",pkwhere)
-    if is_versioned:
-        # aktuellen Datensatz abschließen
-        # neuen Datensatz anlegen
-        ts=get_current_timestamp(dbengine)
-        cur_row=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols)
-        vallist=[]
-        vallist.append(ts)
-        vallist.append(ts)
-        vallist.append(pk)
-        val_tuple=tuple(vallist)
-        sql=f"UPDATE {tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
-        dbengine.execute(sql,val_tuple)
-        # neuen datensatz anlegen
-        # die alten werte mit ggf den neuen überschreiben
-        reclist=cur_row["data"]
-        rec=reclist[0]
-        collist=[k for k in rec.keys()]
-        vallist=[v for v in rec.values()]
-        vallist[collist.index("valid_from_dt")]=ts
-        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-        vallist[collist.index("last_changed_dt")]=ts
-        vallist[collist.index("is_latest_period")]='Y'
-        vallist[collist.index("is_current_and_active")]='N'
-        vallist[collist.index("is_deleted")]='Y'
-        qlist=["?" for k in rec.keys()]
-        q_str=",".join(qlist)
-        collist_str=",".join(collist)
-        sql = f"INSERT INTO {tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
-        try:
-            dbengine.execute(sql,tuple(vallist))
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
-            
-    else:
-        sql=f"DELETE FROM {tab} {pkwhere}"
-        log.debug("delete_item sql %s",sql)
-        try:
-            dbengine.execute(sql,pk)
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out,500)
-    return 'Item deleted successfully', 200
-    #return jsonify(out)
-"""
-
 
 @api.route(api_metadata_prefix+'/tables', methods=['GET'])
 @token_required
@@ -619,6 +503,86 @@ def get_metadata_tab_columns(tokdata,tab):
 ## REPO
 ##
 ###########################
+
+# Define routes for CRUD operations
+@api.route(repo_api_prefix+'/resource', methods=['GET'])
+@token_required
+def get_resource(tokdata):
+    """
+    Hole (mehrere) Datensätze aus dem Repository
+
+    Parameters
+    ----------
+    tab : Name der Repository Tabelle (ohne plainbi_ prefix)
+
+    Returns
+    -------
+    dict mit den keys "data", "columns", "total_count"
+
+    """
+    log.debug("++++++++++ entering get_resource")
+    prof=get_profile(repoengine,tokdata['username'])
+    user_id=prof["user_id"]
+    out={}
+    offset = request.args.get('offset')
+    limit = request.args.get('limit')
+    order_by = request.args.get('order_by')
+    log.debug("pagination offset=%s limit=%s",offset,limit)
+    
+    w_app=add_auth_to_where_clause("plainbi_application",None,user_id)
+    w_adhoc=add_auth_to_where_clause("plainbi_adhoc",None,user_id)
+    w_ext_res=add_auth_to_where_clause("plainbi_external_resource",None,user_id)
+    
+    resource_sql=f"""select
+'application_'||id as id
+, name
+, '/application/'||alias as url
+, '_self' as target
+, null as output_format
+, null as description
+, null as source
+, null as dataset
+, 'application' as resource_type
+, 'Applikation' as resource_type_de
+from plainbi_application pa
+{w_app}
+union all
+select
+'adhoc_'||id as id
+, name
+, '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
+, '_self' as target
+, coalesce(output_format, 'HTML') output_format
+, null as description
+, 'Adhoc' as source
+, null as dataset
+, 'adhoc' as resource_type
+, 'Adhoc' as resource_type_de
+from plainbi_adhoc padh
+{w_adhoc}
+union all
+select
+'external_resource_'||id as id
+, name
+, url
+, '_blank' as target
+, null as output_format
+, description
+, source
+, dataset
+, 'external_resource' as resource_type
+, 'Extern' as resource_type_de
+from plainbi_external_resource per
+{w_ext_res}
+"""
+    items,columns,total_count,e=sql_select(repoengine,resource_sql,order_by,offset,limit,with_total_count=True,is_repo=True,user_id=prof["user_id"])
+    log.debug("get_resource sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        return jsonify(out),500
+    out["data"]=items
+    out["columns"]=columns
+    out["total_count"]=total_count
+    return jsonify(out)
 
 
 # Define routes for CRUD operations
@@ -853,84 +817,7 @@ def delete_repo(tokdata,tab,pk):
     return jsonify(out)
 
 
-"""
-    # check if pk is compound
-    #
-    metadata=get_metadata_raw(repoengine,repo_table_prefix+tab,pk_column_list=pkcols)
-    if "error" in metadata.keys():
-        return jsonify(metadata),500
-    pkcols=metadata["pk_columns"]
-    if len(pkcols)==0:
-        # kein PK default erste spalte
-        pkcols=(metadata["columns"])[:1]
-        log.warning("delete_repo implicit pk first column")
-        
-    chkout=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
-    if "total_count" in chkout.keys():
-        if chkout["total_count"]==0:
-            out["error"]="PK ist nicht vorhanden"
-            return jsonify(out),500
-    else:
-        out["error"]="PK check nicht erfolgreich"
-        return jsonify(out),500
-        
-    log.debug("delete_repo pk_columns %s",pkcols)
-    pkwhere, pkwhere_val = make_pk_where_clause(pk,pkcols,is_versioned)
-    log.debug("delete_repo: pkwhere %s",pkwhere)
-    #pkexp=[k+"=?" for k in pkcols]
-    #pkwhere=" AND ".join(pkexp)
-    if is_versioned:
-        # aktuellen Datensatz abschließen
-        # neuen Datensatz anlegen
-        ts=get_current_timestamp(repoengine)
-        cur_row=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols)
-        vallist=[]
-        vallist.append(ts)
-        vallist.append(ts)
-        vallist.append(pk)
-        val_tuple=tuple(vallist)
-        sql=f"UPDATE {repo_table_prefix}{tab} SET invalid_from_dt=?,last_changed_dt=?,is_latest_period='N',is_current_and_active='N' WHERE {pkwhere}  AND invalid_from_dt='9999-12-31 00:00:00'"
-        repoengine.execute(sql,val_tuple)
-        # neuen datensatz anlegen
-        # die alten werte mit ggf den neuen überschreiben
-        reclist=cur_row["data"]
-        rec=reclist[0]
-        collist=[k for k in rec.keys()]
-        vallist=[v for v in rec.values()]
-        vallist[collist.index("valid_from_dt")]=ts
-        vallist[collist.index("invalid_from_dt")]="9999-12-31 00:00:00"
-        vallist[collist.index("last_changed_dt")]=ts
-        vallist[collist.index("is_latest_period")]='Y'
-        vallist[collist.index("is_current_and_active")]='N'
-        vallist[collist.index("is_deleted")]='Y'
-        qlist=["?" for k in rec.keys()]
-        q_str=",".join(qlist)
-        collist_str=",".join(collist)
-        sql = f"INSERT INTO {repo_table_prefix}{tab} ({collist_str}) VALUES ({q_str})"
-        log.debug("create item: %s",sql)
-        try:
-            repoengine.execute(sql,tuple(vallist))
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
-    else:
-        sql=f"DELETE FROM {repo_table_prefix}{tab} {pkwhere}"
-        log.debug("delete_repo sql %s",sql)
-        try:
-            repoengine.execute(sql, pkwhere_val)
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
-    return 'Repo Record deleted successfully', 200
-    #return jsonify(out)
-"""
+
 
 @api.route(repo_api_prefix+'/init_repo', methods=['POST'])
 @token_required
@@ -1136,12 +1023,26 @@ def logout(tokdata):
     return jsonify({'message': 'logged out'})
 
 
-def create_app(config_filename):
-    global app
+def create_app(config_filename=None,p_repository=None):
+    global app, dbengine, repoengine
     app = Flask(__name__)
     #app.config.from_pyfile(config_filename)
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
+    
+    if p_repository is not None:
+        repoengine = db_connect(p_repository)
+    else:
+        repoengine = db_connect(pbi_env["repo_engine"], pbi_env["repo_params"] if "repo_params" in pbi_env.keys() else None)
+    log.info("repoengine %s",repoengine.url)
+
+    dbengine = db_connect(pbi_env["db_engine"], pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
+    log.info("dbengine %s",dbengine.url)
+
+    if "repo_engine" not in pbi_env.keys():
+        log.error("repo_engine must be defined")
+        sys.exit(1)
+
 
     #from yourapplication.model import db
     #db.init_app(app)
@@ -1152,6 +1053,7 @@ def create_app(config_filename):
     #app.register_blueprint(frontend)
 
     app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
+
     #jwt = JWTManager(app)
 
     return app
