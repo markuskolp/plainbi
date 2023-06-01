@@ -962,7 +962,28 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
   where utg.user_id = {user_id}
   union
   select a.id
-  from plainbi_application a
+  from plainbi_adhoc a
+  cross join plainbi_user u
+  where u.id = {user_id}
+  and u.role_id = 1
+)"""
+    if tab == 'plainbi_external_resource' and user_id is not None:
+        log.debug("add_auth_to_where_clause: apply auth for external_resource")
+        if len(w)==0: 
+            w=" WHERE "
+        else:
+            w+=" AND "
+        w+=f"""id in (
+  select atg.external_resource_id
+  from plainbi_external_resource_to_group atg
+  join plainbi_user_to_group utg
+  on atg.group_id=utg.group_id 
+  join plainbi_user u
+  on utg.user_id = u.id
+  where utg.user_id = {user_id}
+  union
+  select a.id
+  from plainbi_external_resource a
   cross join plainbi_user u
   where u.id = {user_id}
   and u.role_id = 1
