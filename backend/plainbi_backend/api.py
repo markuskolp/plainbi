@@ -87,7 +87,6 @@ from datetime import date,datetime
 import json
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from dotenv import load_dotenv
 import csv
 import pandas as pd
 import bcrypt
@@ -104,12 +103,15 @@ from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stm
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile
 from plainbi_backend.repo import create_repo_db
 
-from plainbi_backend.config import config
+from plainbi_backend.config import config,load_pbi_env
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 api = Blueprint('api', __name__)
+
+pbi_env = load_pbi_env()
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -151,36 +153,6 @@ def token_required(f):
 
     return decorated
 
-home_directory = os.path.expanduser( '~' )
-dotenv_path = os.path.join(home_directory, '.env')
-load_dotenv(dotenv_path)
-
-#app = Flask(__name__)
-#app.json_encoder = CustomJSONEncoder
-
-#log=app.logger
-#log.setLevel(log.DEBUG)
-
-pbi_env={}
-pbi_env["db_server"] = os.environ.get("db_server")
-pbi_env["db_username"] = os.environ.get("db_username")
-pbi_env["db_password"] = os.environ.get("db_password")
-pbi_env["db_database"] = os.environ.get("db_database")
-
-
-v = os.environ.get("db_params")
-if v is not None:
-    pbi_env["db_params"] = v
-    pbi_env["db_params"] = db_subs_env(pbi_env["db_params"],pbi_env) 
-    print("pbi_env",str(pbi_env))
-
-pbi_env["db_engine"] = os.environ.get("db_engine")
-pbi_env["db_engine"] = db_subs_env(pbi_env["db_engine"],pbi_env) 
-
-if "db_engine" not in pbi_env.keys():
-    log.error("db_engine must be defined")
-    sys.exit(1)
-
 if "db_params" in pbi_env.keys():
     params = urllib.parse.quote_plus(pbi_env["db_params"])
     print("params",params)
@@ -189,22 +161,6 @@ if "db_params" in pbi_env.keys():
 else:
     dbengine = sqlalchemy.create_engine(pbi_env["db_engine"])
 log.info("dbengine %s",dbengine.url)
-
-
-# repo connection
-pbi_env["repo_server"] = os.environ.get("repo_server")
-pbi_env["repo_username"] = os.environ.get("repo_username")
-pbi_env["repo_password"] = os.environ.get("repo_password")
-pbi_env["repo_database"] = os.environ.get("repo_database")
-
-v = os.environ.get("repo_params")
-if v is not None:
-    pbi_env["repo_params"] = v
-    pbi_env["repo_params"] = db_subs_env(pbi_env["repo_params"],pbi_env) 
-    print("pbi_env",str(pbi_env))
-
-pbi_env["repo_engine"] = os.environ.get("repo_engine")
-pbi_env["repo_engine"] = db_subs_env(pbi_env["repo_engine"],pbi_env) 
 
 if "repo_engine" not in pbi_env.keys():
     log.error("repo_engine must be defined")

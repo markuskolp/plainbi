@@ -94,6 +94,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         # check repo rights
         if is_repo and user_id is not None:
             my_where_clause = add_auth_to_where_clause(tab, my_where_clause, user_id)
+            log.debug("sql_select auth added:%s",my_where_clause)
         if len(my_where_clause)>0:
             sql+=my_where_clause
         if order_by is not None:
@@ -228,6 +229,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     if is_repo and user_id is not None:
         # check repo rights
         pkwhere = add_auth_to_where_clause(tab, pkwhere, user_id)
+        log.debug("sql_select auth added:%s",pkwhere)
     sql=f'SELECT * FROM {tab} {pkwhere}'
     log.debug("sql=%s",sql)
     try:
@@ -889,12 +891,12 @@ def get_profile(repoengine,u):
         grp_items = [dict(row) for row in grp_data]
         l_groups=[]
         for i in grp_items:
-            l_groups.append({ "name" : i["name"], "alias" : i["name"] })
+            l_groups.append({ "name" : i["name"], "alias" : i["alias"] })
         prof["groups"] = l_groups
     return prof 
 
     
-def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None):
+def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     """
     ,username text
     ,email text
@@ -904,7 +906,11 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None):
     
     example: db_adduser(repoengine,"joe",fullname="Johannes Kribbel",pwd="joe123")
     """
-    item = { "id":None, "username":usr,"fullname":fullname}
+    if is_admin:
+        role_id=1
+    else:
+        role_id=2
+    item = { "id":None, "username":usr,"fullname":fullname,"role_id":role_id}
     if email is not None:
         item["email"]=email
     if pwd is not None:
@@ -919,7 +925,8 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
     log.debug("add_auth_to_where_clause: param where_clause is <%s>",str(where_clause))
     log.debug("add_auth_to_where_clause: param user_id is <%s>",str(user_id))
     w = where_clause
-    if tab == 'planbi_application' and user_id is not None:
+    if tab == 'plainbi_application' and user_id is not None:
+        log.debug("add_auth_to_where_clause: apply auth for application")
         if len(w)==0: 
             w=" WHERE "
         else:
@@ -939,7 +946,8 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
   where u.id = {user_id}
   and u.role_id = 1
 )"""
-    if tab == 'planbi_adhoc' and user_id is not None:
+    if tab == 'plainbi_adhoc' and user_id is not None:
+        log.debug("add_auth_to_where_clause: apply auth for adhoc")
         if len(w)==0: 
             w=" WHERE "
         else:
