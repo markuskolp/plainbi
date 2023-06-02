@@ -505,7 +505,7 @@ def get_metadata_tab_columns(tokdata,tab):
 ###########################
 
 # Define routes for CRUD operations
-@api.route(repo_api_prefix+'/resource', methods=['GET'])
+@api.route(repo_api_prefix+'/resources', methods=['GET'])
 @token_required
 def get_resource(tokdata):
     """
@@ -536,7 +536,7 @@ def get_resource(tokdata):
     resource_sql=f"""select
 'application_'||id as id
 , name
-, '/application/'||alias as url
+, '/apps/'||alias as url
 , '_self' as target
 , null as output_format
 , null as description
