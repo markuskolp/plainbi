@@ -9,10 +9,10 @@ const Home = (props) => {
         <React.Fragment>
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
             <Col span={12}>
-              <Resources token={props.token}/>
+              <Resources token={props.token} removeToken={props.removeToken}/>
             </Col>
             <Col span={12}> 
-              <TileVA token={props.token}/>
+            <TileVA token={props.token}/>
             </Col>
           </Row>
       </React.Fragment>

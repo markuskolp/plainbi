@@ -28,7 +28,7 @@ const App = () => {
       (
         <Routes>
           <Route path="/" element={<ThemeLayout removeToken={removeToken}/>}>
-            <Route index element={<Home token={token} setToken={setToken} />} />
+            <Route index element={<Home token={token} setToken={setToken} removeToken={removeToken}/>} />
             <Route path="settings" element={<Settings token={token} setToken={setToken} />} />
             <Route path="myprofile" element={<UserProfile token={token} setToken={setToken} />} />
             <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} />} />
