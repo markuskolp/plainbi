@@ -15,7 +15,9 @@ from urllib.parse import unquote
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause
 #import bcrypt
 from plainbi_backend.config import config
+from threading import Lock
 
+config.database_lock = Lock()
 
 """
 import urllib
@@ -71,42 +73,61 @@ def db_exec(engine,sql,params=None):
     #    return res
     if params is not None:
         if not isinstance(params, dict):
-            log.warning("db_exec called WITHOUT dict")
+            log.warning("db_exec called with params WITHOUT dict")
     #sqlalchemy 2.0
     mysql=sqlalchemy.text(sql)
 
-    log.debug("db_exec: check connection")
-    if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
-        log.debug("db_exec: connect")
-        config.conn[engine.url] = engine.connect()
-
-    if config.conn[engine.url].closed:
-        log.debug("db_exec: open connection")
-        config.conn[engine.url] = engine.connect()
-    log.debug("db_exec: execute")
-
-    if sql.lower().strip().startswith("select"):
-        log.debug("db_exec: sql is a select")
-        is_select=True
-    try:
-        if params is not None:
-            res=config.conn[engine.url].execute(mysql,params)
-            #with engine.begin() as connection:
-            #    res=connection.execute(mysql,params)
+    with config.database_lock:
+        log.debug("db_exec: check connection")
+        if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
+            log.debug("db_exec: connect")
+            config.conn[engine.url] = engine.connect()
+    
+        if config.conn[engine.url].closed:
+            log.debug("db_exec: open connection")
+            config.conn[engine.url] = engine.connect()
+        log.debug("db_exec: execute")
+    
+        if sql.lower().strip().startswith("select"):
+            log.debug("db_exec: sql is a select")
+            is_select=True
+        try:
+            if params is not None:
+                res=config.conn[engine.url].execute(mysql,params)
+                #with engine.begin() as connection:
+                #    res=connection.execute(mysql,params)
+            else:
+                res=config.conn[engine.url].execute(mysql)
+                #with engine.begin() as connection:
+                #    res=connection.execute(mysql)
+            if int(sqlalchemy.__version__[:1])>1:
+                if not is_select:
+                    config.conn[engine.url].commit()
+        except Exception as e:
+            log.error("db_exec ERROR: %s",str(e))
+            log.error("db_exec ERROR: SQL is %s",str(sql))
+            log.error("db_exec ERROR: params are %s",str(params))
+            raise e
+        if is_select:
+            log.debug("db_exec: is select and returns data")
+            items = [row._asdict() for row in res]
+            log.debug("db_exec: anz rows=%d",len(items))
+            columns = list(res.keys())
+        #close connection
+        if isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
+            if not config.conn[engine.url].closed:
+                config.conn[engine.url].close()
+                log.debug("db_exec: connection closed")
+            else:
+                log.debug("db_exec: connection is already closed")
         else:
-            res=config.conn[engine.url].execute(mysql)
-            #with engine.begin() as connection:
-            #    res=connection.execute(mysql)
-        if int(sqlalchemy.__version__[:1])>1:
-            if not is_select:
-                config.conn[engine.url].commit()
-    except Exception as e:
-        log.error("db_exec ERROR: %s",str(e))
-        log.error("db_exec ERROR: SQL is %s",str(sql))
-        log.error("db_exec ERROR: params are %s",str(params))
-        raise e
-    log.debug("++++++++++ leaving db_exec")
-    return res
+                log.debug("db_exec: connection is not sqlalchemy connection for closing")
+        if is_select:
+            log.debug("++++++++++ leaving db_exec with data result")
+            return items, columns
+        else:
+            log.debug("++++++++++ leaving db_exec with dml result status")
+            return res
 
 def get_db_type(dbengine):
     if "sqlite" in str(dbengine.url).lower():
@@ -173,7 +194,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     log.debug("sql_select: %s",sql)
 
     try:
-        data=db_exec(dbengine,sql)
+        items,columns=db_exec(dbengine,sql)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in sql_select: %s",str(e_sqlalchemy))
         return None,None,None,e_sqlalchemy
@@ -181,14 +202,11 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         log.error("exception in sql_select: %s",str(e))
         return None,None,None,e
     
-    items = [row._asdict() for row in data]
     log.debug("sql_select: anz rows=%d",len(items))
-    columns = list(data.keys())
     if with_total_count:
         log.debug("check totalcount")
         sql_total_count=f'SELECT COUNT(*) AS total_count FROM ({sql_without_orderby_offset_limit}) x'
-        data_total_count=db_exec(dbengine,sql_total_count)
-        item_total_count=[r._asdict() for r in data_total_count]
+        item_total_count,columns_total_count=db_exec(dbengine,sql_total_count)
         total_count=(item_total_count[0])['total_count']
     return items,columns,total_count,"ok"
 
@@ -238,8 +256,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         try:
             sql=f'SELECT * FROM {tab} WHERE 1=0'
             log.debug("get_metadata_raw: sql=%s",sql)
-            data=db_exec(dbengine,sql)
-            columns = list(data.keys())
+            _,columns=db_exec(dbengine,sql)
             out["columns"]=columns
             #out["metadata"]=mitems
         except SQLAlchemyError as e_sqlalchemy:
@@ -307,7 +324,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     sql=f'SELECT * FROM {tab} {pkwhere}'
     log.debug("sql=%s",sql)
     try:
-        data=db_exec(dbengine,sql,pkwhere_params)
+        items, columns = db_exec(dbengine,sql,pkwhere_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in get_item_raw: %s",str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
@@ -316,25 +333,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         log.debug("exception in get_item_raw: %s ",str(e))
         last_stmt_has_errors(e, out)
         return out
-    log.debug("JK: type(data) = %s",str(type(data)))
-    print("JK: type(data) = ",str(type(data)))
-    if hasattr(sqlalchemy.engine.cursor, "LegacyCursorResult"):
-        if not isinstance(data, sqlalchemy.engine.cursor.LegacyCursorResult):
-            log.warning("get_item_raw: result data is not sqlalchemy.engine.cursor.LegacyCursorResult but %s ",str(type(data)))
-            out["error"]="get_item_raw: result data is not sqlalchemy.engine.cursor.LegacyCursorResult but %s" % (str(type(data)))
-            return out
-    else:
-        if not isinstance(data, sqlalchemy.engine.cursor.CursorResult):
-            log.warning("get_item_raw: result data is not sqlalchemy.engine.cursor.CursorResult but %s ",str(type(data)))
-            out["error"]="get_item_raw: result data is not sqlalchemy.engine.cursor.CursorResult but %s" % (str(type(data)))
-            return out
 
-    items = [row._asdict() for row in data]
-    columns = list(data.keys())
-#        for r in items:
-#            for k,v in r.items():
-#                if type(v).__name__=="datetime":
-#                    r[k]=v.strftime("%Y-%m-%d %H:%M:%S.%f")
     log.debug("columns: %s",columns)
     out["data"]=items
     out["columns"]=columns
@@ -362,9 +361,8 @@ def get_next_seq(dbengine,seq):
         itemseq={ "seq" : seq}
         sql="SELECT curval FROM plainbi_seq WHERE sequence_name=:seq"
         log.debug("sql=%s ,%s",sql,str(itemseq))
-        data=db_exec(dbengine,sql,itemseq)
+        items, columns = db_exec(dbengine,sql,itemseq)
         log.debug("sql done")
-        items = [row._asdict() for row in data]
         log.debug("items %s",items)
         curval=items[0]["curval"]
         nextval=curval+1
@@ -387,7 +385,7 @@ def get_next_seq(dbengine,seq):
         log.debug("sql=%s",sql)
         try:
             #cursor = cnxn.cursor()
-            data=db_exec(dbengine,sql)
+            items, columns = db_exec(dbengine,sql)
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
             last_stmt_has_errors(e_sqlalchemy, out)
@@ -397,8 +395,9 @@ def get_next_seq(dbengine,seq):
             last_stmt_has_errors(e, out)
             return out
 
-        for row in data:
-            out=row.nextval
+        out=items[0]["nextval"] 
+        #for row in data:
+        #    out=row.nextval
         log.debug("got sequence value %d",out)    
     return out
 
@@ -421,7 +420,7 @@ def get_current_timestamp(dbengine):
     log.debug("sql=%s",sql)
     try:
         #cursor = cnxn.cursor()
-        data=db_exec(dbengine,sql)
+        items, columns = db_exec(dbengine,sql)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
@@ -430,8 +429,9 @@ def get_current_timestamp(dbengine):
         log.debug("exception in get_next_seq: %s ",str(e))
         last_stmt_has_errors(e, out)
         return out
-    for row in data:
-        out=row.ts
+    out=items[0]["ts"] 
+    #for row in data:
+    #    out=row.ts
     log.debug("got timestamp value %s",out)    
     return out
 
@@ -453,8 +453,8 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
         reposql_params={ "alias" : id}
         reposql="select * from plainbi_lookup where alias=:alias"
     log.debug("repo_lookup_select: repo sql is <%s>",reposql)
-    lkpq=db_exec(repoengine, reposql , reposql_params)
-    lkp=[r._asdict() for r in lkpq]
+    lkp,lkp_columns = db_exec(repoengine, reposql , reposql_params)
+    #lkp=[r._asdict() for r in lkpq]
     log.debug("lkp=%s",str(lkp))
     sql=None
     execute_in_repodb=None
@@ -475,12 +475,12 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
     try:
         if execute_in_repodb:
             log.debug("lookup query execution in repodb")
-            data=db_exec(repoengine,sql)
+            items, columns = db_exec(repoengine,sql)
         else:
             log.debug("lookup query execution")
-            data=db_exec(dbengine,sql)
-        items = [row._asdict() for row in data]
-        columns = list(data.keys())
+            items, columns = db_exec(dbengine,sql)
+        #items = [row._asdict() for row in data]
+        #columns = list(data.keys())
         total_count=len(items)
         return items,columns,total_count,"ok"
     except SQLAlchemyError as e_sqlalchemy:
@@ -510,7 +510,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
         reposql="select * from plainbi_adhoc where alias=:alias"
     log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
     try:
-        lkpq=db_exec(repoengine, reposql , reposql_params)
+        lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
@@ -519,7 +519,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
         log.debug("exception in get_next_seq: %s ",str(e))
         last_stmt_has_errors(e, out)
         return out
-    lkp=[r._asdict() for r in lkpq]
+    #lkp=[r._asdict() for r in lkpq]
     sql=None
     execute_in_repodb=None
     if isinstance(lkp,list):
@@ -534,7 +534,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     return sql, execute_in_repodb
 
 
-## repo lookup adhoc
+# repo lookup adhoc
 def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None):
     """
     führt ein sql aus und gibt zurück
@@ -546,20 +546,14 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
     log.debug("++++++++++entering repo_adhoc_select")
     log.debug("repo_adhoc_select: param id is <%s>",str(id))
     sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
-    try:
-        if execute_in_repodb:
-            log.debug("adhoc query execution in repodb")
-            data=db_exec(repoengine,sql)
-        else:
-            log.debug("adhoc query execution")
-            data=db_exec(dbengine,sql)
-    except SQLAlchemyError as e_sqlalchemy:
-        log.error("sqlalchemy exception in repo_adhoc_select: %s",str(e_sqlalchemy))
-        return e_sqlalchemy
-    except Exception as e:
-        log.error("exception in repo_adhoc_select: %s",str(e))
-        return e
-    return data
+    if execute_in_repodb:
+        log.debug("adhoc query execution in repodb")
+        items, columns = db_exec(repoengine,sql)
+    else:
+        log.debug("adhoc query execution")
+        items, columns =db_exec(dbengine,sql)
+    return items, columns
+
 
 def check_hash_columns(tab,item):
     log.debug("check_hash_columns for %s item %s",tab,item)
@@ -911,8 +905,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
 
 def get_profile(repoengine,u):
     usr_sql = "select * from plainbi_user where username=:username"
-    usr_data = db_exec(repoengine,usr_sql,{ "username" : u })
-    usr_items = [row._asdict() for row in usr_data]
+    usr_items, usr_columns = db_exec(repoengine,usr_sql,{ "username" : u })
     prof = {}
     if len(usr_items)==1:
         prof["username"] = (usr_items[0])["username"]
@@ -923,13 +916,11 @@ def get_profile(repoengine,u):
         role_id=(usr_items[0])["role_id"]
         print(role_id)
         role_sql = "select * from plainbi_role where id=:role_id"
-        role_data = db_exec(repoengine,role_sql,{ "role_id": role_id})
-        role_items = [row._asdict() for row in role_data]
+        role_items, role_columns = db_exec(repoengine,role_sql,{ "role_id": role_id})
         if len(role_items)==1:
             prof["role"] = (role_items[0])["name"]
         grp_sql = "select g.id,g.name,g.alias,* from plainbi_group g join plainbi_user_to_group ug on ug.group_id=g.id where ug.user_id=:user_id"
-        grp_data = db_exec(repoengine,grp_sql,{"user_id":user_id})
-        grp_items = [row._asdict() for row in grp_data]
+        grp_items, grp_columns = db_exec(repoengine,grp_sql,{"user_id":user_id})
         l_groups=[]
         for i in grp_items:
             l_groups.append({ "name" : i["name"], "alias" : i["alias"] })

@@ -93,6 +93,8 @@ from sqlalchemy.exc import SQLAlchemyError
 import csv
 import pandas as pd
 from flask_bcrypt import Bcrypt
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 #import bcrypt
 
 from functools import wraps
@@ -877,90 +879,126 @@ def get_adhoc_data(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+    adhoc_sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
     if fmt=="JSON":
-        sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
-        if sql is None:
+        if adhoc_sql is None:
             msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
             log.error(msg)
             return msg, 500
-        try:
-            if execute_in_repodb:
-                log.debug("adhoc query execution in repodb")
-                data=db_exec(repoengine,sql)
-            else:
-                log.debug("adhoc query execution")
-                data=db_exec(dbengine,sql)
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
+        if execute_in_repodb:
+            log.debug("adhoc query execution in repodb")
+            items, columns = db_exec(repoengine,adhoc_sql)
+        else:
+            log.debug("adhoc query execution")
+            items, columns = db_exec(dbengine,adhoc_sql)
+        if not isinstance(items,list):
+            return "adhoc json result error",500
         offset = request.args.get('offset')
         limit = request.args.get('limit')
         order_by = request.args.get('order_by')
         log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
-        items = [row._asdict() for row in data]
-        columns = list(data.keys())
         total_count=len(items)
         out["data"]=items
         out["columns"]=columns
         out["total_count"]=total_count
         return jsonify(out)
     else:
-        result=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
-        if last_stmt_has_errors(result, out):
-            return jsonify(out),500
-        if result is None:  # keine Spalten
-            out["message"] = "adhoc fehler leer"
-            return jsonify(out),500
+        items, columns=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
+        if isinstance(items,list):
+            if len(items)==0:
+                out["message"] = "adhoc returns no rows"
+                return jsonify(out),500
+            else:
+                df = pd.DataFrame(items, columns=columns)
+                # Save the DataFrame to an Excel file
+                if fmt=="XLSX":
+                    log.debug("adhoc excel")
+                    tmpfile='mydata.xlsx'
+                    datasheet_name="daten"
+                    infosheet_name="info"
+                    output = pd.ExcelWriter(tmpfile)
+                    df.to_excel(output, index=False, sheet_name=datasheet_name)
+                    output.close()
+                    # add sheet with sql
+                    book = load_workbook(tmpfile)
+                    #autofit columns
+                    sheet = book[datasheet_name]
+                    for column in sheet.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(cell.value)
+                            except:
+                                pass
+                        adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
+                        sheet.column_dimensions[column_letter].width = adjusted_width                    
+                    # Create a new sheet
+                    book.create_sheet(title=infosheet_name)
+                    new_sheet = book[infosheet_name]
+                    #new_sheet.sheet_state = 'hidden'
+                    new_sheet['A1'] = "erstellt am:"
+                    new_sheet['A2'] = "adhoc:"
+                    new_sheet['A3'] = "sql:"
+                    new_sheet['B1'] = str(datetime.now())
+                    new_sheet['B2'] = id
+                    new_sheet['B3'] = adhoc_sql
+                    #autofit columns
+                    for column in new_sheet.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(cell.value)
+                            except:
+                                pass
+                        adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
+                        new_sheet.column_dimensions[column_letter].width = adjusted_width                    
+
+                    book.save(tmpfile)                    
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
+                        )
+                        return response
+                elif fmt=="CSV":
+                    log.debug("adhoc csv")
+                    tmpfile='mydata.csv'
+                    # Prepare the CSV file
+                    df.to_csv(tmpfile, index=False)
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='text/csv',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                        )
+                        return response
+                elif fmt=="TXT":
+                    log.debug("adhoc txt separated with tabs")
+                    tmpfile='mydata.csv'
+                    # Prepare the CSV file
+                    df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='text/csv',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                        )
+                        return response
+                else: 
+                    return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
         else:
-            df = pd.DataFrame(result.fetchall(), columns=result.keys())
-    
-            # Save the DataFrame to an Excel file
-            if fmt=="XLSX":
-                log.debug("adhoc excel")
-                tmpfile='mydata.xlsx'
-                output = pd.ExcelWriter(tmpfile)
-                df.to_excel(output, index=False)
-                output.close()
-                # Return the Excel file as a download
-                with open(tmpfile, 'rb') as file:
-                    response = Response(
-                        file.read(),
-                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
-                    )
-                    return response
-            elif fmt=="CSV":
-                log.debug("adhoc csv")
-                tmpfile='mydata.csv'
-                # Prepare the CSV file
-                df.to_csv(tmpfile, index=False)
-                # Return the Excel file as a download
-                with open(tmpfile, 'rb') as file:
-                    response = Response(
-                        file.read(),
-                        mimetype='text/csv',
-                        headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                    )
-                    return response
-            elif fmt=="TXT":
-                log.debug("adhoc csv")
-                tmpfile='mydata.csv'
-                # Prepare the CSV file
-                df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
-                # Return the Excel file as a download
-                with open(tmpfile, 'rb') as file:
-                    response = Response(
-                        file.read(),
-                        mimetype='text/csv',
-                        headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                    )
-                    return response
-            else: 
-                return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
+            out["message"] = "error from adhoc"
+            return jsonify(out),500
+    return "adhoc error that should not happen", 500
+            
 
 
 
