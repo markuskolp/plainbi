@@ -69,7 +69,6 @@ def setup_and_teardown_for_stuff():
     create_repo_db(repoengine)
     t,tv,s,tvc = create_pytest_tables(dbengine)
     # first add testuser
-    db_adduser(repoengine,"joe",fullname="Johannes Kribbel",pwd="joe123",is_admin=True)
     print("\nrepo created")
     print (t,tv,s,tvc)
     yield
@@ -85,6 +84,20 @@ def test_client():
         with flask_app.app_context():
             yield testing_client  # this is where the testing happens!
 
+
+#def test_000_add___user_joe(test):
+#    global headers,testuser_id
+#    log.info('TEST: %s',func_name())
+#    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+#    response = test_client.post('/api/repo/user', json= { "username" : "joe", "password_hash" : "joe123", "role_id" : 1 }, headers=headers)
+#    assert response.status_code == 200
+#    json_out = response.get_json()
+#    print("got=",json_out)
+#    row1=(json_out["data"])[0]
+#    assert row1["username"]=="joe"
+#    joeuser_id=row1["id"]
+
+
 def test_000_init_repo(setup_and_teardown_for_stuff):
     log.info('TEST: %s',func_name())
     assert 1 == 1
@@ -93,16 +106,22 @@ def test_000_init_repo(setup_and_teardown_for_stuff):
 def test_000_login(test_client):
     #
     # login with testuser
-    log.info('TEST: %s',func_name())
     global token,headers
+    log.info('++++++++++++++++\nTEST: %s++++++++++++++++\n',func_name())
+    db_adduser(repoengine,"joe",fullname="Johannes Kribbel",pwd="joe123",is_admin=True)
+    log.info("++++++++++++++++\ndone add user joe\n++++++++++++++++\n")
+    log.info('++++++++++++++++\nlogin joe\n++++++++++++++++\n')
     response = test_client.post('/login', json= { "username" : "joe", "password":"joe123" })
+    log.info('++++++++++++++++\nlogin joe2\n++++++++++++++++\n')
     assert response.status_code == 200
     json_out = response.get_json()
     print("got=",json_out)
+    log.info('++++++++++++++++\njson_out=%s\n++++++++++++++++\n',json_out)
     token=json_out["access_token"]
     print(token)
+    log.info("Token: %s",str(token))
     headers = { 'Authorization': '{}'.format(token)}
-
+    log.info("Headers set to: %s",str(headers))
 
 def test_000_version(test_client):
     """
@@ -392,6 +411,7 @@ def test_2030_get(test_client):
     THEN check that the response is valid
     """
     log.info('TEST: %s',func_name())
+    global t
     id=-8
     response = test_client.get('/api/crud/'+t+'/'+str(id), headers=headers)
     assert response.status_code == 200
@@ -407,6 +427,7 @@ def test_2031_getall(test_client):
     WHEN the '/' page is requested (GET)
     THEN check that the response is valid
     """
+    global t
     log.info('TEST: %s',func_name())
     response = test_client.get('/api/crud/'+t, headers=headers)
     assert response.status_code == 200
@@ -887,7 +908,7 @@ def test_5020_repo_get_resource(test_client):
     """
     log.info('TEST: %s',func_name())
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
-    response = test_client.get('/api/repo/resource', headers=testuser_headers)
+    response = test_client.get('/api/repo/resources', headers=testuser_headers)
     json_out = response.get_json()
     print("got=",json_out)
     assert response.status_code == 200

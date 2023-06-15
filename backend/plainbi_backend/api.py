@@ -92,18 +92,19 @@ import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 import csv
 import pandas as pd
-import bcrypt
+from flask_bcrypt import Bcrypt
+#import bcrypt
 
 from functools import wraps
 
 
 from flask import Flask, jsonify, request, Response, Blueprint
-from flask.json import JSONEncoder
-
+#from flask.json import JSONEncoder
+from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -885,10 +886,10 @@ def get_adhoc_data(tokdata,id):
         try:
             if execute_in_repodb:
                 log.debug("adhoc query execution in repodb")
-                data=repoengine.execute(sql)
+                data=db_exec(repoengine,sql)
             else:
                 log.debug("adhoc query execution")
-                data=dbengine.execute(sql)
+                data=db_exec(dbengine,sql)
         except SQLAlchemyError as e_sqlalchemy:
             last_stmt_has_errors(e_sqlalchemy, out)
             if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
@@ -900,7 +901,7 @@ def get_adhoc_data(tokdata,id):
         limit = request.args.get('limit')
         order_by = request.args.get('order_by')
         log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
-        items = [dict(row) for row in data]
+        items = [row._asdict() for row in data]
         columns = list(data.keys())
         total_count=len(items)
         out["data"]=items
@@ -965,10 +966,10 @@ def get_adhoc_data(tokdata,id):
 
 @api.route('/login', methods=['POST'])
 def login():
+    log.debug("++++++++++ entering login")
     out={}
     log.debug("login")
     data_bytes = request.get_data()
-    log.debug("create_item 7")
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
@@ -990,18 +991,75 @@ def login():
         log.debug("invalid cred")
         return jsonify({'message': 'Invalid credentials'}), 400
 
-
-    p=bcrypt.hashpw(password.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+    #p=config.bcrypt.hashpw(password.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+    #pwd_hashed=p.decode()
+    p=config.bcrypt.generate_password_hash(password)
     pwd_hashed=p.decode()
-    print(pwd_hashed)
+    log.debug("login: hashed input pwd is %s",pwd_hashed)
     if username in users.keys():
-        if users[username] == pwd_hashed:
-            log.debug("pwd ok")
+        if config.bcrypt.check_password_hash(users[username], password):
+        #if users[username] == pwd_hashed:
+            log.debug("login: pwd ok")
             token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
             return jsonify({'access_token': token}), 200
-
+    else:
+        log.debug("login: user %s is unknown in repo",username)
+    log.debug("++++++++++ leaving login")
     return jsonify({'message': 'Invalid credentials'}), 401
 
+@api.route('/passwd', methods=['POST'])
+@token_required
+def passwd(tokdata):
+    out={}
+    log.debug("passwd")
+    data_bytes = request.get_data()
+    log.debug("databytes: %s",data_bytes)
+    data_string = data_bytes.decode('utf-8')
+    log.debug("datastring: %s",data_string)
+    item = json.loads(data_string.strip("'"))
+    print("passwd items ",str(item))
+    prof=get_profile(repoengine,tokdata['username'])
+    
+    plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
+    if last_stmt_has_errors(e,out):
+        return jsonify({'error': 'Invalid User collecting'}), 500
+    users = {u["username"]: u["password_hash"] for u in plainbi_users}
+    print(str(users))
+
+    password = item['password']
+    log.debug("login: password=%s",password)
+    p=config.bcrypt.generate_password_hash(password)
+    pwd_hashed=p.decode()
+    print(pwd_hashed)
+    
+    if prof["role"] == "Admin":
+        username = item['username']
+        log.debug("passwd: username=%s",username)
+    else:
+        username=prof["username"]
+        oldpassword = item['old_password']
+        log.debug("login: password=%s",oldpassword)
+        if username in users.keys():
+            if config.bcrypt.check_password_hash(users[username], oldpassword):
+                log.debug("old pwd ok")
+                out["message"]="old password does not match"
+                return jsonify(out)
+    out=db_passwd(repoengine,username,p)
+    log.debug("++++++++++ leaving passwd with %s",out)
+    return jsonify(out)
+
+
+@api.route('/hash_passwd/<pwd>', methods=['GET'])
+def hash_passwd(pwd):
+    out={}
+    out["pwd"]=pwd
+    #p=config.bcrypt.generate_password_hash(pwd.encode('utf-8'))
+    #pwd_hashed=p.decode()
+    p=config.bcrypt.generate_password_hash(pwd)
+    pwd_hashed=p.decode()
+    out["hashed"]=pwd_hashed
+    print(pwd_hashed)
+    return jsonify(out)
 
 @api.route('/protected', methods=['GET'])
 @token_required
@@ -1035,6 +1093,7 @@ def create_app(config_filename=None,p_repository=None):
     else:
         repoengine = db_connect(pbi_env["repo_engine"], pbi_env["repo_params"] if "repo_params" in pbi_env.keys() else None)
     log.info("repoengine %s",repoengine.url)
+    config.repoengine=repoengine
 
     dbengine = db_connect(pbi_env["db_engine"], pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
     log.info("dbengine %s",dbengine.url)
@@ -1053,6 +1112,7 @@ def create_app(config_filename=None,p_repository=None):
     #app.register_blueprint(frontend)
 
     app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
+    config.bcrypt = Bcrypt(app)
 
     #jwt = JWTManager(app)
 
