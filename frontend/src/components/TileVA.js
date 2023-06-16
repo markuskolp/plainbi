@@ -108,7 +108,7 @@ const TileVA = (props) => {
       key: "logo_url",
       //width: 140,
       //minwidth: 200,
-      render: (logo_url) => (<Image preview={false} height={30} maxWidth={80} src={logo_url} />)
+      render: (logo_url) => (<Image preview={false} height={30} maxWidth={80} src={logo_url} fallback={"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}/> )
     },
     {
       title: "Messe",

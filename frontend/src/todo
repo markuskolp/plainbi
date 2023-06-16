@@ -45,47 +45,52 @@ CRUD field validation before save (especially required fields) !
 
 /api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt
 
-        use dwh;
+use dwh;
 
-        drop view if exists config.v_portal_veranstaltung;
+drop view if exists config.v_portal_veranstaltung;
         create view config.v_portal_veranstaltung
-        as
-        select 
-                vv.veranstaltung_nr 
-                , vv.name 
-                , vv.status
-                , coalesce(vv.url, vr.url) as url
-                , vv.jahr
-                , vv.beginn_dt 
-                , vv.ende_dt 
-                , cast(DATEPART(dd, vv.beginn_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.beginn_dt) as varchar(2))
-              + ' - ' +
-              cast(DATEPART(dd, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(yyyy, vv.ende_dt) as varchar(4))
-              as zeitraum
-            , vr.logo_url
-            , case             	
-	            when vr.kategorie  = 'EV' then 'Eigenveranstaltung'
-	            when vr.kategorie  = 'AV' then 'Auslandsveranstaltung'
-	            when vr.kategorie  = 'GV' then 'Gastveranstaltung'
-	            when vr.kategorie  = 'CO' then 'Kooperation'
-	            else coalesce(vr.kategorie, '(n/a)')
-	            end as kategorie
-          from dwh.core.vv_veranstaltung vv 
-              left outer join dwh.core.vv_veranstaltungsreihe vr on vv.veranstaltungsreihe_id = vr.veranstaltungsreihe_id 
-          where 1=1
-          and vv.jahr <= year(getdate() ) + 1 -- max. 1 Jahr in die Zukunft schauen
-          and vv.veranstaltung_nr not like '%9999%'
-          and lower(vv.name) not like '%complimentary%'
-          and lower(vv.name) not like '%servicepartner%'
-          and lower(vv.name) not like '%ticketshop%'
-          and lower(vv.name) not like '%onlineportal%mitarbeiter%'
-          and lower(vv.name) not like '%testveranstaltung%'
-          and lower(vv.name) not like '%impfzentrum%'
-          and lower(vv.name) not like '%cross_check%'
-          and lower(vv.name) not like '%fkm_zertifiz%'
-          and lower(vv.name) not like '%service_ausweis%'
-          and vv.ist_terminal = 'N'
-          ;
+                as
+                select 
+                        vv.veranstaltung_nr 
+                        , vv.name 
+                        , vv.status
+                        , coalesce(vv.url, vr.url) as url
+                        , vv.jahr
+                        , vv.beginn_dt 
+                        , vv.ende_dt 
+                        , cast(DATEPART(dd, vv.beginn_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.beginn_dt) as varchar(2))
+                      + ' - ' +
+                      cast(DATEPART(dd, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(mm, vv.ende_dt) as varchar(2)) + '.' +  cast(DATEPART(yyyy, vv.ende_dt) as varchar(4))
+                      as zeitraum
+                    , vr.logo_url as logo_url
+                    , case             	
+                      when vr.kategorie  = 'EV' and vl.in_ausland = 'Inland' then 'Eigenveranstaltung'
+                      when vr.kategorie  = 'EV' and vl.in_ausland = 'Ausland' then 'Eigenveranstaltung Ausland'
+                      when vr.kategorie  = 'GV' and vl.in_ausland = 'Inland' then 'Gastveranstaltung'
+                      when vr.kategorie  = 'GV' and vl.in_ausland = 'Ausland' then 'Gastv. Ausland'
+                      else 'Sonst'
+                      end as kategorie
+              , vl.land
+              , coalesce(vl.in_ausland, '(n/a)') in_ausland
+                  from dwh.core.vv_veranstaltung vv 
+                      left outer join dwh.core.vv_veranstaltungsreihe vr on vv.veranstaltungsreihe_id = vr.veranstaltungsreihe_id 
+                      left outer join dwh.core.vv_land vl on vv.land_id  = vl.land_id 
+                  where 1=1
+                  and vv.jahr <= year(getdate() ) + 1 -- max. 1 Jahr in die Zukunft schauen
+                  and vv.jahr >= year(getdate() ) -5 -- max. 5 Jahre in die Vergangenheit schauen
+                  and vv.veranstaltung_nr not like '%9999%'
+                  and lower(vv.name) not like '%complimentary%'
+                  and lower(vv.name) not like '%servicepartner%'
+                  and lower(vv.name) not like '%ticketshop%'
+                  and lower(vv.name) not like '%onlineportal%mitarbeiter%'
+                  and lower(vv.name) not like '%testveranstaltung%'
+                  and lower(vv.name) not like '%impfzentrum%'
+                  and lower(vv.name) not like '%cross_check%'
+                  and lower(vv.name) not like '%fkm_zertifiz%'
+                  and lower(vv.name) not like '%service_ausweis%'
+                  and vv.ist_terminal = 'N'
+                  and vv.veranstaltung_id != -1
+                  ;
 
 auf "errors" im body reagieren !
 
