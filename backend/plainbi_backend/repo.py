@@ -30,14 +30,18 @@ GET /api/repo/lookup/<id>/data	The data of a lookup (result of its SQL)
 """
 
 import sqlite3
+import time
 
 sqlitecon = sqlite3.connect("plainbi_repo.db")
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
+from plainbi_backend.db import db_exec
 
 """
 repoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi_repo.db")
+repoengine = sqlalchemy.create_engine("sqlite:////opt/app/portal/backend/repo.db")
+
 """
 
 
@@ -52,7 +56,6 @@ create table plainbi_seq (
  ,curval int not null
 )
 """,
-
 """
 drop table if exists plainbi_role
 """,
@@ -63,13 +66,13 @@ create table plainbi_role (
 )
 """,
 """
-INSERT INTO plainbi_role (id,name) VALUES (1,'Admin')
+INSERT INTO plainbi_role (id,name) VALUES (1,'Admin');
 """,
 """
-INSERT INTO plainbi_role (id,name) VALUES (2,'User')
+INSERT INTO plainbi_role (id,name) VALUES (2,'User');
 """,
 """
-insert into plainbi_seq (sequence_name,curval) values ('role',2)
+insert into plainbi_seq (sequence_name,curval) values ('role',2);
 """,
 
 """
@@ -285,6 +288,15 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                "required":"true"
             },
             {
+               "column_name":"owner_user_id",
+               "column_label":"Besitzer",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"user",
+               "editable":"true",
+               "required":"true"
+            },
+            {
                "column_name":"sql_query",
                "column_label":"SQL Abfrage",
                "datatype":"text",
@@ -338,7 +350,6 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
          ]
       }
    ]
-}   ]
 }',0),
        (-101,'externe Ressourcen','ext_res','{
    "pages":[
@@ -404,6 +415,39 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                "required":"true"
             }
          ]
+      },
+      {
+         "id":"2",
+         "name":"Berechtigung",
+         "alias":"rights",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["external_resource_id","group_id"],
+         "table":"external_resource_to_group",
+         "table_columns":[
+            {
+               "column_name":"external_resource_id",
+               "column_label":"Ext. Ressource",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"external_resource",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"group_id",
+               "column_label":"Gruppe",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"group",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
       }
    ]
 }',0);
@@ -418,7 +462,7 @@ insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-101,
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-102, 'db_type', 'select ''SQLite'' as d, ''sqlite'' as r union select ''MS SQL Server'' as d, ''mssql'' as r', 0);
 """,
 """
-insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select fullname as d, id as r from plainbi_user', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select coalesce(fullname || ''('' || username || '')'', username) as d, id as r from plainbi_user', 0);
 """,
 """
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-104, 'group', 'select name as d, id as r from plainbi_group', 0);
@@ -441,53 +485,12 @@ insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-109,
 """
 drop view if exists plainbi_resources;
 """,
-"""
-create view plainbi_resources
-as
-select
-'application_'||id as id
-, name
-, '/apps/'||alias as url
-, '_self' as target
-, null as output_format
-, null as description
-, null as source
-, null as dataset
-, 'application' as resource_type
-, 'Applikation' as resource_type_de
-from plainbi_application pa
-union all
-select
-'adhoc_'||id as id
-, name
-, '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
-, '_self' as target
-, coalesce(output_format, 'HTML') output_format
-, null as description
-, 'Adhoc' as source
-, null as dataset
-, 'adhoc' as resource_type
-, 'Adhoc' as resource_type_de
-from plainbi_adhoc padh
-union all
-select
-'external_resource_'||id as id
-, name
-, url
-, '_blank' as target
-, null as output_format
-, description
-, source
-, dataset
-, 'external_resource' as resource_type
-, 'Extern' as resource_type_de
-from plainbi_external_resource per
-""",
     ]
     print("******************************")
     for sql in sql_create_list[:]:
        print(sql)
-       engine.execute(sql)
+       db_exec(engine,sql)
+       #time.sleep(1)
     #con.close()
    
 """
@@ -505,8 +508,7 @@ def create_pytest_tables(engine):
     sq="analysis.pytest_seq"
     s="dwh."+sq
     sql_create_list=[
-
-f"""
+"""
 use dwh;
 """,
 f"""
@@ -566,5 +568,5 @@ CREATE TABLE {tvc} (
     print("******************************")
     for sql in sql_create_list[:]:
        print(sql)
-       engine.execute(sql)
+       db_exec(engine,sql)
     return t,tv,s,tvc

@@ -63,32 +63,38 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
     log.debug("make_pk_where_clause: param pk is <%s>",str(pk))
     log.debug("make_pk_where_clause: param pkcols is <%s>",str(pkcols))
     w=""
-    vallist=[]
+    val={}
     if isinstance(pk, dict):
-        pkstr1=pkcols[0]
-        i=0
-        for c,v in pk.items():
-            i+=1
-            if i==1:
-                w+=" WHERE "
-            else:
-                w+=" AND "
-            w+=c+"=?"
-            vallist.append(v)
+        mypk=pk
     else:
-        if len(pkcols)>1:
+        if isinstance(pkcols, list):
+            pkcolnam=pkcols[0]
+        else:
+            pkcolnam=pkcols
+        mypk={ pkcolnam : pk }
+
+    if isinstance(pkcols, list):
+        if len(pkcols) != len(mypk):
             log.error("number of pkcols and pk values do not match")
-        pkstr1=pkcols[0]
-        w=f'WHERE {pkstr1}=?'
-        vallist=[pk]
+            return None,None
+       
+    i=0
+    for c,v in mypk.items():
+        i+=1
+        if i==1:
+            w+=" WHERE "
+        else:
+            w+=" AND "
+        w+=c+"=:"+c
+
     if versioned:
        if version_deleted:
            # get also last deleted version
            w+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
        else:
            w+=" AND is_current_and_active = 'Y'" 
-    log.debug("make_pk_where_clause: return whereclause=%s , vallist=%s",w,vallist)
-    return w, tuple(vallist)
+    log.debug("make_pk_where_clause: return whereclause=%s , vallist=%s",w,val)
+    return w, mypk
 
 def last_stmt_has_errors(e,out):
     """

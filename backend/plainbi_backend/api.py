@@ -92,18 +92,21 @@ import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 import csv
 import pandas as pd
-import bcrypt
+from flask_bcrypt import Bcrypt
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
+#import bcrypt
 
 from functools import wraps
 
 
 from flask import Flask, jsonify, request, Response, Blueprint
-from flask.json import JSONEncoder
-
+#from flask.json import JSONEncoder
+from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -876,99 +879,135 @@ def get_adhoc_data(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+    adhoc_sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
     if fmt=="JSON":
-        sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
-        if sql is None:
+        if adhoc_sql is None:
             msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
             log.error(msg)
             return msg, 500
-        try:
-            if execute_in_repodb:
-                log.debug("adhoc query execution in repodb")
-                data=repoengine.execute(sql)
-            else:
-                log.debug("adhoc query execution")
-                data=dbengine.execute(sql)
-        except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            return jsonify(out),500
-        except Exception as e:
-            last_stmt_has_errors(e, out)
-            return jsonify(out),500
+        if execute_in_repodb:
+            log.debug("adhoc query execution in repodb")
+            items, columns = db_exec(repoengine,adhoc_sql)
+        else:
+            log.debug("adhoc query execution")
+            items, columns = db_exec(dbengine,adhoc_sql)
+        if not isinstance(items,list):
+            return "adhoc json result error",500
         offset = request.args.get('offset')
         limit = request.args.get('limit')
         order_by = request.args.get('order_by')
         log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
-        items = [dict(row) for row in data]
-        columns = list(data.keys())
         total_count=len(items)
         out["data"]=items
         out["columns"]=columns
         out["total_count"]=total_count
         return jsonify(out)
     else:
-        result=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
-        if last_stmt_has_errors(result, out):
-            return jsonify(out),500
-        if result is None:  # keine Spalten
-            out["message"] = "adhoc fehler leer"
-            return jsonify(out),500
+        items, columns=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
+        if isinstance(items,list):
+            if len(items)==0:
+                out["message"] = "adhoc returns no rows"
+                return jsonify(out),500
+            else:
+                df = pd.DataFrame(items, columns=columns)
+                # Save the DataFrame to an Excel file
+                if fmt=="XLSX":
+                    log.debug("adhoc excel")
+                    tmpfile='mydata.xlsx'
+                    datasheet_name="daten"
+                    infosheet_name="info"
+                    output = pd.ExcelWriter(tmpfile)
+                    df.to_excel(output, index=False, sheet_name=datasheet_name)
+                    output.close()
+                    # add sheet with sql
+                    book = load_workbook(tmpfile)
+                    #autofit columns
+                    sheet = book[datasheet_name]
+                    for column in sheet.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(cell.value)
+                            except:
+                                pass
+                        adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
+                        sheet.column_dimensions[column_letter].width = adjusted_width                    
+                    # Create a new sheet
+                    book.create_sheet(title=infosheet_name)
+                    new_sheet = book[infosheet_name]
+                    #new_sheet.sheet_state = 'hidden'
+                    new_sheet['A1'] = "erstellt am:"
+                    new_sheet['A2'] = "adhoc:"
+                    new_sheet['A3'] = "sql:"
+                    new_sheet['B1'] = str(datetime.now())
+                    new_sheet['B2'] = id
+                    new_sheet['B3'] = adhoc_sql
+                    #autofit columns
+                    for column in new_sheet.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(cell.value)
+                            except:
+                                pass
+                        adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
+                        new_sheet.column_dimensions[column_letter].width = adjusted_width                    
+
+                    book.save(tmpfile)                    
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
+                        )
+                        return response
+                elif fmt=="CSV":
+                    log.debug("adhoc csv")
+                    tmpfile='mydata.csv'
+                    # Prepare the CSV file
+                    df.to_csv(tmpfile, index=False)
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='text/csv',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                        )
+                        return response
+                elif fmt=="TXT":
+                    log.debug("adhoc txt separated with tabs")
+                    tmpfile='mydata.csv'
+                    # Prepare the CSV file
+                    df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='text/csv',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                        )
+                        return response
+                else: 
+                    return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
         else:
-            df = pd.DataFrame(result.fetchall(), columns=result.keys())
-    
-            # Save the DataFrame to an Excel file
-            if fmt=="XLSX":
-                log.debug("adhoc excel")
-                tmpfile='mydata.xlsx'
-                output = pd.ExcelWriter(tmpfile)
-                df.to_excel(output, index=False)
-                output.close()
-                # Return the Excel file as a download
-                with open(tmpfile, 'rb') as file:
-                    response = Response(
-                        file.read(),
-                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
-                    )
-                    return response
-            elif fmt=="CSV":
-                log.debug("adhoc csv")
-                tmpfile='mydata.csv'
-                # Prepare the CSV file
-                df.to_csv(tmpfile, index=False)
-                # Return the Excel file as a download
-                with open(tmpfile, 'rb') as file:
-                    response = Response(
-                        file.read(),
-                        mimetype='text/csv',
-                        headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                    )
-                    return response
-            elif fmt=="TXT":
-                log.debug("adhoc csv")
-                tmpfile='mydata.csv'
-                # Prepare the CSV file
-                df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
-                # Return the Excel file as a download
-                with open(tmpfile, 'rb') as file:
-                    response = Response(
-                        file.read(),
-                        mimetype='text/csv',
-                        headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                    )
-                    return response
-            else: 
-                return "adhoc format invalid XLSX/CSV/TXT/JSON", 500
+            out["message"] = "error from adhoc"
+            return jsonify(out),500
+    return "adhoc error that should not happen", 500
+            
 
 
 
 @api.route('/login', methods=['POST'])
 def login():
+    log.debug("++++++++++ entering login")
     out={}
     log.debug("login")
     data_bytes = request.get_data()
-    log.debug("create_item 7")
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
@@ -990,18 +1029,75 @@ def login():
         log.debug("invalid cred")
         return jsonify({'message': 'Invalid credentials'}), 400
 
-
-    p=bcrypt.hashpw(password.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+    #p=config.bcrypt.hashpw(password.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+    #pwd_hashed=p.decode()
+    p=config.bcrypt.generate_password_hash(password)
     pwd_hashed=p.decode()
-    print(pwd_hashed)
+    log.debug("login: hashed input pwd is %s",pwd_hashed)
     if username in users.keys():
-        if users[username] == pwd_hashed:
-            log.debug("pwd ok")
+        if config.bcrypt.check_password_hash(users[username], password):
+        #if users[username] == pwd_hashed:
+            log.debug("login: pwd ok")
             token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
             return jsonify({'access_token': token}), 200
-
+    else:
+        log.debug("login: user %s is unknown in repo",username)
+    log.debug("++++++++++ leaving login")
     return jsonify({'message': 'Invalid credentials'}), 401
 
+@api.route('/passwd', methods=['POST'])
+@token_required
+def passwd(tokdata):
+    out={}
+    log.debug("passwd")
+    data_bytes = request.get_data()
+    log.debug("databytes: %s",data_bytes)
+    data_string = data_bytes.decode('utf-8')
+    log.debug("datastring: %s",data_string)
+    item = json.loads(data_string.strip("'"))
+    print("passwd items ",str(item))
+    prof=get_profile(repoengine,tokdata['username'])
+    
+    plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
+    if last_stmt_has_errors(e,out):
+        return jsonify({'error': 'Invalid User collecting'}), 500
+    users = {u["username"]: u["password_hash"] for u in plainbi_users}
+    print(str(users))
+
+    password = item['password']
+    log.debug("login: password=%s",password)
+    p=config.bcrypt.generate_password_hash(password)
+    pwd_hashed=p.decode()
+    print(pwd_hashed)
+    
+    if prof["role"] == "Admin":
+        username = item['username']
+        log.debug("passwd: username=%s",username)
+    else:
+        username=prof["username"]
+        oldpassword = item['old_password']
+        log.debug("login: password=%s",oldpassword)
+        if username in users.keys():
+            if config.bcrypt.check_password_hash(users[username], oldpassword):
+                log.debug("old pwd ok")
+                out["message"]="old password does not match"
+                return jsonify(out)
+    out=db_passwd(repoengine,username,p)
+    log.debug("++++++++++ leaving passwd with %s",out)
+    return jsonify(out)
+
+
+@api.route('/hash_passwd/<pwd>', methods=['GET'])
+def hash_passwd(pwd):
+    out={}
+    out["pwd"]=pwd
+    #p=config.bcrypt.generate_password_hash(pwd.encode('utf-8'))
+    #pwd_hashed=p.decode()
+    p=config.bcrypt.generate_password_hash(pwd)
+    pwd_hashed=p.decode()
+    out["hashed"]=pwd_hashed
+    print(pwd_hashed)
+    return jsonify(out)
 
 @api.route('/protected', methods=['GET'])
 @token_required
@@ -1035,6 +1131,7 @@ def create_app(config_filename=None,p_repository=None):
     else:
         repoengine = db_connect(pbi_env["repo_engine"], pbi_env["repo_params"] if "repo_params" in pbi_env.keys() else None)
     log.info("repoengine %s",repoengine.url)
+    config.repoengine=repoengine
 
     dbengine = db_connect(pbi_env["db_engine"], pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
     log.info("dbengine %s",dbengine.url)
@@ -1053,6 +1150,7 @@ def create_app(config_filename=None,p_repository=None):
     #app.register_blueprint(frontend)
 
     app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
+    config.bcrypt = Bcrypt(app)
 
     #jwt = JWTManager(app)
 

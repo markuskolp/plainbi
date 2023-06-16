@@ -1,0 +1,14 @@
+
+[Unit]
+Description=uWSGI instance to serve Plainbi Backend
+After=network.target
+
+[Service]
+User=portal
+Group=portal
+WorkingDirectory=/opt/app/portal/backend
+Environment="PATH=/opt/app/portal/backend/venv_plainbi/bin"
+ExecStart=/opt/app/portal/backend/venv_plainbi/bin/uwsgi --ini plainbi_backend_standalone_wsgi.ini
+
+[Install]
+WantedBy=multi-user.target
