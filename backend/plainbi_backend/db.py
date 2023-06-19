@@ -271,9 +271,13 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             return out
     log.debug("sql_select in get_metadata_raw 4")
     out["pk_columns"]=pkcols
+    log.debug("sql_select in get_metadata_raw 4 pk_column_list=%s",str(pk_column_list))
     if pk_column_list is not None:
+        log.debug("sql_select in get_metadata_raw 5")
         if isinstance(pk_column_list, list):
+            log.debug("sql_select in get_metadata_raw 6")
             if len(pk_column_list) > 0:
+                log.debug("sql_select in get_metadata_raw 7")
                 out["pk_columns"]=pk_column_list
                 log.debug("get_metadata_raw returns parameter pk_column_list")
     else:
@@ -1044,3 +1048,10 @@ def db_connect(enginestr, params=None):
     log.info("db_connect: dbengine url %s",dbengine.url)
     log.debug("++++++++++ leaving db_connect")
     return dbengine
+
+def audit(tokdata,url,id=None,msg=None):
+    if isinstance(tokdata,dict):
+        usrnam=tokdata["username"]
+    else:
+        usrnam=tokdata
+    log.debug('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,url,str(id),str(msg))

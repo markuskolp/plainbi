@@ -55,7 +55,7 @@ if args.port:
     app_port=args.port
     logging.info(f"The port number is {args.port}")
 else:
-    app_port=3002
+    app_port=3001
     logging.info(f"No port number was provided - default {args.port} is used ")
 
 if args.verbose:

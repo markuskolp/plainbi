@@ -106,7 +106,7 @@ from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec,audit
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -210,6 +210,7 @@ def get_all_items(tokdata,tab):
     """
     log.debug("++++++++++ entering get_all_items")
     log.debug("get_all_items: param tab is <%s>",str(tab))
+    audit(tokdata,request.url)
     out={}
     is_versioned=False
     # check options
@@ -259,6 +260,7 @@ def get_item(tokdata,tab,pk):
     log.debug("++++++++++ entering get_items")
     log.debug("get_items: param tab is <%s>",str(tab))
     log.debug("get_items: param pk/id is <%s>",str(pk))
+    audit(tokdata,request.url)
     # check options
     out={}
     is_versioned=False
@@ -315,6 +317,7 @@ def create_item(tokdata,tab):
     """
     log.debug("++++++++++ entering create_item")
     log.debug("create_item: param tab is <%s>",str(tab))
+    audit(tokdata,request.url)
     out={}
     pkcols=[]
     is_versioned=False
@@ -367,6 +370,7 @@ def update_item(tokdata,tab,pk):
     log.debug("++++++++++ entering update_item")
     log.debug("update_item: param tab is <%s>",str(tab))
     log.debug("update_item: param pk is <%s>",str(pk))
+    audit(tokdata,request.url)
     out={}
     pkcols=[]
     is_versioned=False
@@ -382,6 +386,15 @@ def update_item(tokdata,tab,pk):
                 log.debug("versions enabled")
     # check if pk is compound
     pk=prep_pk_from_url(pk)
+    # check pk from compound key 
+    if len(pkcols)==0:
+        # pk columns are not explicitly given as url parameter
+        if isinstance(pk,dict):
+           # there is an url pk in form (col:val)
+           pkcols=list(pk.keys())
+           log.debug("pk columns from url form (col:val[:col2:val2...])")
+    else:
+        log.debug("pk columns explicitly from url parameter")
     #
     data_bytes = request.get_data()
     log.debug("databytes: %s",data_bytes)
@@ -418,6 +431,7 @@ def delete_item(tokdata,tab,pk):
     log.debug("++++++++++ entering delete_item")
     log.debug("delete_item: param tab is <%s>",str(tab))
     log.debug("delete_item: param pk is <%s>",str(pk))
+    audit(tokdata,request.url)
     out={}
     pkcols=[]
     is_versioned=False
@@ -435,7 +449,17 @@ def delete_item(tokdata,tab,pk):
 
     pk=prep_pk_from_url(pk)
     log.debug("delete_item tab %s pk %s",tab,pk)
+    # check pk from compound key 
+    if len(pkcols)==0:
+        # pk columns are not explicitly given as url parameter
+        if isinstance(pk,dict):
+           # there is an url pk in form (col:val)
+           pkcols=list(pk.keys())
+           log.debug("pk columns from url form (col:val[:col2:val2...])")
+    else:
+        log.debug("pk columns explicitly from url parameter")
 
+    log.debug("############# pk columns for delete is %s",str(pkcols))
     out = db_del(dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
     if isinstance(out,dict):
         if "error" not in out.keys():
@@ -447,6 +471,7 @@ def delete_item(tokdata,tab,pk):
 @token_required
 def get_metadata_tables(tokdata):
     log.debug("++++++++++ entering get_metadata_tables")
+    audit(tokdata,request.url)
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -476,9 +501,10 @@ def get_metadata_tab_columns(tokdata,tab):
     -------
 
     """
-    out={}
     log.debug("++++++++++ entering get_metadata_tab_columns")
     log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
+    audit(tokdata,request.url)
+    out={}
     pkcols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -524,6 +550,7 @@ def get_resource(tokdata):
 
     """
     log.debug("++++++++++ entering get_resource")
+    audit(tokdata,request.url)
     prof=get_profile(repoengine,tokdata['username'])
     user_id=prof["user_id"]
     out={}
@@ -606,6 +633,7 @@ def get_all_repos(tokdata,tab):
     """
     log.debug("++++++++++ entering get_all_repos")
     log.debug("get_all_repos: param tab is <%s>",str(tab))
+    audit(tokdata,request.url)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     offset = request.args.get('offset')
@@ -646,6 +674,7 @@ def get_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering get_repo")
     log.debug("get_repo: param tab is <%s>",str(tab))
     log.debug("get_repo: param pk is <%s>",str(pk))
+    audit(tokdata,request.url)
     # check options
     prof=get_profile(repoengine,tokdata['username'])
     pkcols=[]
@@ -697,6 +726,7 @@ def create_repo(tokdata,tab):
     """
     log.debug("++++++++++ entering create_repo")
     log.debug("create_repo: param tab is <%s>",str(tab))
+    audit(tokdata,request.url)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -749,6 +779,7 @@ def update_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering update_repo")
     log.debug("update_repo: param tab is <%s>",str(tab))
     log.debug("update_repo: param pk is <%s>",str(pk))
+    audit(tokdata,request.url)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -762,6 +793,16 @@ def update_repo(tokdata,tab,pk):
                 log.debug("pk option %s",pkcols)
     # check if pk is compound
     pk=prep_pk_from_url(pk)
+    # check pk from compound key 
+    if len(pkcols)==0:
+        # pk columns are not explicitly given as url parameter
+        if isinstance(pk,dict):
+           # there is an url pk in form (col:val)
+           pkcols=list(pk.keys())
+           log.debug("pk columns from url form (col:val[:col2:val2...])")
+    else:
+        log.debug("pk columns explicitly from url parameter")
+    
     data_bytes = request.get_data()
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
@@ -794,6 +835,7 @@ def delete_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering delete_repo")
     log.debug("delete_repo: param tab is <%s>",str(tab))
     log.debug("delete_repo: param pk is <%s>",str(pk))
+    audit(tokdata,request.url)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -812,7 +854,17 @@ def delete_repo(tokdata,tab,pk):
 
     pk=prep_pk_from_url(pk)
     log.debug("delete_repo tab %s pk %s",tab,pk)
+    # check pk from compound key 
+    if len(pkcols)==0:
+        # pk columns are not explicitly given as url parameter
+        if isinstance(pk,dict):
+           # there is an url pk in form (col:val)
+           pkcols=list(pk.keys())
+           log.debug("pk columns from url form (col:val[:col2:val2...])")
+    else:
+        log.debug("pk columns explicitly from url parameter")
 
+    log.debug("############# pk columns for delete is %s",str(pkcols))
     out = db_del(repoengine,repo_table_prefix+tab,pk,pkcols,is_versioned,is_repo=True)
     if isinstance(out,dict):
         if "error" not in out.keys():
@@ -826,6 +878,7 @@ def delete_repo(tokdata,tab,pk):
 @token_required
 def init_repo(tokdata):
     log.debug("++++++++++ entering init_repo")
+    audit(tokdata,request.url)
     with repoengine.connect() as conn:
         pass
     create_repo_db(repoengine)
@@ -848,6 +901,7 @@ GET /api/repo/lookup/<id>/data
 def get_lookup(tokdata,id):
     log.debug("++++++++++ entering get_lookup")
     log.debug("get_lookup: param id is <%s>",str(id))
+    audit(tokdata,request.url)
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
@@ -867,6 +921,7 @@ def get_lookup(tokdata,id):
 def get_adhoc_data(tokdata,id):
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
+    audit(tokdata,request.url)
     out={}
     fmt="JSON"
     if len(request.args) > 0:
@@ -934,16 +989,18 @@ def get_adhoc_data(tokdata,id):
                                 pass
                         adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
                         sheet.column_dimensions[column_letter].width = adjusted_width                    
+                    # Iterate over each column and set the filter
+                    for col_num in range(1, sheet.max_column + 1):
+                        col_letter = get_column_letter(col_num)
+                        column_range = f'{col_letter}1:{col_letter}{sheet.max_row}'
+                        sheet.auto_filter.ref = column_range
                     # Create a new sheet
                     book.create_sheet(title=infosheet_name)
                     new_sheet = book[infosheet_name]
-                    #new_sheet.sheet_state = 'hidden'
                     new_sheet['A1'] = "erstellt am:"
                     new_sheet['A2'] = "adhoc:"
-                    new_sheet['A3'] = "sql:"
                     new_sheet['B1'] = str(datetime.now())
                     new_sheet['B2'] = id
-                    new_sheet['B3'] = adhoc_sql
                     #autofit columns
                     for column in new_sheet.columns:
                         max_length = 0
@@ -956,6 +1013,12 @@ def get_adhoc_data(tokdata,id):
                                 pass
                         adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
                         new_sheet.column_dimensions[column_letter].width = adjusted_width                    
+                    # new sql sheet
+                    book.create_sheet(title="sql")
+                    sql_sheet = book["sql"]
+                    sql_sheet.sheet_state = 'hidden'
+                    sql_sheet['A1'] = "sql:"
+                    sql_sheet['A2'] = adhoc_sql
 
                     book.save(tmpfile)                    
                     # Return the Excel file as a download
@@ -1018,6 +1081,7 @@ def login():
     log.debug("login: username=%s",username)
     password = item['password']
     log.debug("login: password=%s",password)
+    audit(item['username'],request.url)
 
     plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
@@ -1109,6 +1173,7 @@ def protected(tokdata):
 @api.route('/profile', methods=['GET'])
 @token_required
 def profile(tokdata):
+    audit(tokdata,request.url)
     out=get_profile(repoengine,tokdata['username'])
     return jsonify(out)
 
@@ -1116,6 +1181,7 @@ def profile(tokdata):
 @api.route('/logout', methods=['GET'])
 def logout(tokdata):
     log.debug("logout")
+    audit(tokdata,request.url)
     return jsonify({'message': 'logged out'})
 
 

@@ -8,11 +8,11 @@ run:
 @author: kribbel
 """
 import sys
-import os
 import logging
 #sys.path.append('/plainbi/backend')
 import urllib
 import sqlalchemy
+import os
 
 from plainbi_backend.config import config,load_pbi_env
 from plainbi_backend.db import db_connect
@@ -341,6 +341,43 @@ def test_1106_repo_get(test_client):
     """
     log.info('TEST: %s',func_name())
     response = test_client.get('/api/repo/application_to_group/(application_id:-9:group_id:-3)?pk=application_id,group_id', headers=headers)
+    assert response.status_code == 204
+
+def test_1114_repo_ins_app_to_grp_nopk(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"    
+    response = test_client.post('/api/repo/application_to_group', json= { "application_id" : -9, "group_id": -3 }, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["group_id"]==-3
+
+
+def test_1115_repo_compound_del_nopk(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request DELETE  "localhost:3002/api/repo/application_to_group/(application_id:-9:group_id:-3)?pk=application_id,group_id" -w "%{http_code}\n"
+    response = test_client.delete('/api/repo/application_to_group/(application_id:-9:group_id:-3)', headers=headers)
+    assert response.status_code == 200
+
+def test_1116_repo_get_nopk(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    log.info('TEST: %s',func_name())
+    response = test_client.get('/api/repo/application_to_group/(application_id:-9:group_id:-3)', headers=headers)
     assert response.status_code == 204
 
 
