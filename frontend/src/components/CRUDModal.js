@@ -14,6 +14,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
   console.log("Rendering with: ", recordData);
+  console.log("pkColumns: ", pkColumns);
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
 
@@ -72,7 +73,9 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     setLoading(true);
     console.log("updateTableRow: " + JSON.stringify(record));
     //await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
-    await Axios.put(api+tableName+"/"+pk+(versioned ? "?v" : ""), record, {headers: {Authorization: token}}).then(  
+    let endPoint = api+tableName+"/"+pk+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns));
+    console.log("updateTableRow: endpoint: " + endPoint);
+    await Axios.put(endPoint, record, {headers: {Authorization: token}}).then(  
         (res) => {
         message.success('Erfolgreich gespeichert.');
         handleSave();
@@ -85,11 +88,13 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   };
 
     // addTableRow
-    const addTableRow = async (tableName, record, pk) => {
+    const addTableRow = async (tableName, record) => {
       setLoading(true);
       console.log("addTableRow: " + JSON.stringify(record));
       //await Axios.post("/api/crud/"+tableName, record).then( 
-      await Axios.post(api+tableName+(versioned ? "?v" : "")+(versioned ? "&pk=": "?pk="+getPKParamForURL(pkColumns)), record, {headers: {Authorization: token}}).then( 
+      let endPoint = api+tableName+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns));
+      console.log("addTableRow: endpoint: " + endPoint);
+      await Axios.post(endPoint, record, {headers: {Authorization: token}}).then( 
           (res) => {
           message.success('Erfolgreich gespeichert.');
           handleSave();
@@ -107,7 +112,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     // add or update to API
     // TODO: check if all required fields are filled (except fields with increment)
     console.log("type: " + type + " / pk: " + pk);
-    type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData, pk);
+    type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData);
   };
 
   const layout = {

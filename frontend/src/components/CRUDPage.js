@@ -86,7 +86,9 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   // removeTableRow
   const removeTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    await Axios.delete(api+tableName+"/"+pk+(versioned ? "?v" : "")
+    let endPoint = api+tableName+"/"+pk+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns) : "?pk="+getPKParamForURL(pkColumns));
+    console.log("removeTableRow: endPoint: " + endPoint);
+    await Axios.delete(endPoint
     , {  
         headers: { 
           'Accept': 'application/json',
@@ -129,6 +131,25 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     console.log("getPKForURL: " + pkforurl);
     return pkforurl;
   }
+  
+  const getPKParamForURL = (_pkColumn) => {
+    var pkforurl = "";
+    if (_pkColumn.length <= 1) {
+      console.log("only 1 pk");
+      // if only 1 pk take it directly
+      pkforurl = _pkColumn[0];
+    } else {
+      console.log("composite pk");
+      // if composite key, then build url-specific pk string "&pk=key1,key2,..."
+      for (var i = 0; i < _pkColumn.length; i++) {
+        pkforurl += _pkColumn[i];
+        pkforurl += ",";
+      }
+      pkforurl = pkforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
+    }
+    console.log("getPKParamForURL: " + pkforurl);
+    return pkforurl;
+  }
 
     // deleteConfirm
     const deleteConfirm = (record) => {
@@ -144,12 +165,13 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       console.log("showEditModal for table: " + tableName);
       console.log(record);
       pkColumns ? console.log(record[pkColumns[0]]) : console.log("no pk");
-      setModalMode("edit");
       //setCurrentPK(record[pkColumns[0]]);
       setCurrentPK(getPKForURL(record, pkColumns));
+      setModalMode("edit");
       setShowModal(true);
     };
     const showCreateModal = () => {
+      setCurrentPK(null);
       setModalMode("new");
       setShowModal(true);
     };
@@ -317,6 +339,14 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
             />
                 {lookupData && (
                   <React.Fragment>
+                    <Input.Search
+                      placeholder="Suche ..."
+                      //enterButton
+                      onSearch={(value) => {searchData(value)}}
+                      onChange={(e) => {searchData(e.target.value)}}
+                      style={{marginBottom:20,width:500}}
+                      allowClear 
+                    />
                     <Table
                           size="small"
                           columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
@@ -349,13 +379,3 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
 
 export default CRUDPage;
 
-/*
-                    <Input.Search
-                      placeholder="Suche ..."
-                      //enterButton
-                      onSearch={(value) => {searchData(value)}}
-                      onChange={(e) => {searchData(e.target.value)}}
-                      style={{marginBottom:20,width:500}}
-                      allowClear 
-                    />
-*/
