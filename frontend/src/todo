@@ -2,25 +2,27 @@
 # asap
 # ------------------------------------------------
 
+CRUD Aufrufe zum Testen !
+
+Bugs:
+- POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück
+- "compound key edit" geht nicht
+- "delete versionierung" geht nicht
 - wenn Token abläuft dann zum Anmeldebildschirm gehen (überall einbauen -> siehe Resources.js)
   https://stackoverflow.com/questions/47216452/how-to-handle-401-authentication-error-in-axios-and-react
-
 - get role of user -> if Admin: Zugriff auf Settings-Icon in Header
+- global search bei Tabellen -> aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
+- pagination !
 
-- /logout endpoint -> dann "ThemeLayout.js" fertigmachen (Logout Knopf - diesen auch unter dem Avatar als Submenü: Benutzerprofil | Abmelden)
-
-Global search bei Tabellen -> aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
-
-Pagination !
+Audit einbauen d.h. wer ruft wann was auf !
 
 Excel-Import bei "Messe Statistiken":
 - https://www.npmjs.com/package/react-spreadsheet-import
 - spannend wie man das eingelesene Excel -> JSON -> dann in tv-tabelle lädt (insert und/oder update)
 
-VA-Liste
-- alle Logo's holen und pflegen -> dann auch in Init-Skript schieben !
-- View später mal ablösen (doch die irrelevanten auch markieren?)
+Home
 - make both tables look like separate cards (white background, grey surrounding)
+- VA-View später mal ablösen (doch die irrelevanten auch markieren?)
 
 Joe:
 - Joe nochmal die Init geben für die internen Applikationen !
@@ -34,8 +36,6 @@ Joe:
   - sonst immer folgendes einbauen nach jedem Axios request:
     res.access_token && props.setToken(res.access_token)
   - warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
-
-Audit einbauen d.h. wer ruft wann was auf !
 
 https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
 
@@ -132,11 +132,6 @@ API enhancements:
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
 SSL Zertifikat für nginx ?
-
-bundle and run first version on DEV server
-  - use flask as webserver ? how to replace "proxy" setting ?
-  - make customer CI settings (logo, title, etc.)
-
 
 
 # ------------------------------------------------
