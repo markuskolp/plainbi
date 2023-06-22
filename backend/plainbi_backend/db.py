@@ -852,7 +852,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
         ts=get_current_timestamp(dbeng)
-        cur_row=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+        cur_row=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
         upditem={}
         upditem["invalid_from_dt"]=ts
         upditem["last_changed_dt"]=ts
@@ -869,6 +869,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         newrec["last_changed_dt"]=ts
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='N'
+        newrec["is_deleted"]='Y'
         if "last_changed_by" in metadata["columns"] and changed_by is not None:
             newrec["last_changed_by"]=changed_by
         log.debug("db_upd: construct sql" )

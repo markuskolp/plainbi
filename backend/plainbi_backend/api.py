@@ -95,6 +95,8 @@ import pandas as pd
 from flask_bcrypt import Bcrypt
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font
+
 #import bcrypt
 
 from functools import wraps
@@ -978,6 +980,7 @@ def get_adhoc_data(tokdata,id):
                     book = load_workbook(tmpfile)
                     #autofit columns
                     sheet = book[datasheet_name]
+                    font = Font(name='Arial', size=9, bold=True, italic=False)
                     for column in sheet.columns:
                         max_length = 0
                         column_letter = column[0].column_letter
@@ -988,12 +991,15 @@ def get_adhoc_data(tokdata,id):
                             except:
                                 pass
                         adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
-                        sheet.column_dimensions[column_letter].width = adjusted_width                    
+                        sheet.column_dimensions[column_letter].width = adjusted_width
+                        sheet[f'{column_letter}1'].font = font
+
                     # Iterate over each column and set the filter
-                    for col_num in range(1, sheet.max_column + 1):
-                        col_letter = get_column_letter(col_num)
-                        column_range = f'{col_letter}1:{col_letter}{sheet.max_row}'
-                        sheet.auto_filter.ref = column_range
+                    sheet.auto_filter.ref = sheet.dimensions
+                    #for col_num in range(1, sheet.max_column + 1):
+                    #    column_letter = get_column_letter(col_num)
+                    #    column_range = f'{column_letter}1:{column_letter}{sheet.max_row}'
+                    #    sheet.auto_filter.ref = column_range
                     # Create a new sheet
                     book.create_sheet(title=infosheet_name)
                     new_sheet = book[infosheet_name]
