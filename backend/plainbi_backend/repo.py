@@ -485,6 +485,20 @@ insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-109,
 """
 drop view if exists plainbi_resources;
 """,
+"""
+drop table if exists plainbi_audit
+""",
+"""
+create table plainbi_audit (
+  username varchar
+ ,t TIMESTAMP
+ ,url varchar
+ ,id varchar
+ ,remark varchar
+ ,request_method varchar
+ ,request_body varchar
+)
+"""
     ]
     print("******************************")
     for sql in sql_create_list[:]:
@@ -562,7 +576,7 @@ CREATE TABLE {tvc} (
   , is_current_and_active char(1) NOT NULL
   , last_changed_by varchar(120)
   , PRIMARY KEY (nr, typ, invalid_from_dt)
-);
+)
 """,
     ]
     print("******************************")

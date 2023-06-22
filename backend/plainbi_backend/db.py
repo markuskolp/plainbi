@@ -1050,9 +1050,19 @@ def db_connect(enginestr, params=None):
     log.debug("++++++++++ leaving db_connect")
     return dbengine
 
-def audit(tokdata,url,id=None,msg=None):
+def audit(tokdata,req,id=None,msg=None):
     if isinstance(tokdata,dict):
         usrnam=tokdata["username"]
     else:
         usrnam=tokdata
-    log.debug('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,url,str(id),str(msg))
+    log.debug('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,req.url,str(id),str(msg))
+    audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json())}
+    audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body)"
+    try:
+        db_exec(config.repoengine, audit_sql, audit_params)
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("audit error: %s",str(e_sqlalchemy))
+        log.debug("continuing")
+    except Exception as e:
+        log.error("audit exception: %s",str(e))
+        log.debug("continuing")

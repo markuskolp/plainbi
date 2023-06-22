@@ -212,7 +212,7 @@ def get_all_items(tokdata,tab):
     """
     log.debug("++++++++++ entering get_all_items")
     log.debug("get_all_items: param tab is <%s>",str(tab))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     out={}
     is_versioned=False
     # check options
@@ -262,7 +262,7 @@ def get_item(tokdata,tab,pk):
     log.debug("++++++++++ entering get_items")
     log.debug("get_items: param tab is <%s>",str(tab))
     log.debug("get_items: param pk/id is <%s>",str(pk))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     # check options
     out={}
     is_versioned=False
@@ -319,7 +319,7 @@ def create_item(tokdata,tab):
     """
     log.debug("++++++++++ entering create_item")
     log.debug("create_item: param tab is <%s>",str(tab))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     out={}
     pkcols=[]
     is_versioned=False
@@ -372,7 +372,7 @@ def update_item(tokdata,tab,pk):
     log.debug("++++++++++ entering update_item")
     log.debug("update_item: param tab is <%s>",str(tab))
     log.debug("update_item: param pk is <%s>",str(pk))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     out={}
     pkcols=[]
     is_versioned=False
@@ -433,7 +433,7 @@ def delete_item(tokdata,tab,pk):
     log.debug("++++++++++ entering delete_item")
     log.debug("delete_item: param tab is <%s>",str(tab))
     log.debug("delete_item: param pk is <%s>",str(pk))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     out={}
     pkcols=[]
     is_versioned=False
@@ -473,7 +473,7 @@ def delete_item(tokdata,tab,pk):
 @token_required
 def get_metadata_tables(tokdata):
     log.debug("++++++++++ entering get_metadata_tables")
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -505,7 +505,7 @@ def get_metadata_tab_columns(tokdata,tab):
     """
     log.debug("++++++++++ entering get_metadata_tab_columns")
     log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     out={}
     pkcols=None
     if len(request.args) > 0:
@@ -552,7 +552,7 @@ def get_resource(tokdata):
 
     """
     log.debug("++++++++++ entering get_resource")
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     prof=get_profile(repoengine,tokdata['username'])
     user_id=prof["user_id"]
     out={}
@@ -635,7 +635,7 @@ def get_all_repos(tokdata,tab):
     """
     log.debug("++++++++++ entering get_all_repos")
     log.debug("get_all_repos: param tab is <%s>",str(tab))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     offset = request.args.get('offset')
@@ -676,7 +676,7 @@ def get_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering get_repo")
     log.debug("get_repo: param tab is <%s>",str(tab))
     log.debug("get_repo: param pk is <%s>",str(pk))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     # check options
     prof=get_profile(repoengine,tokdata['username'])
     pkcols=[]
@@ -728,7 +728,7 @@ def create_repo(tokdata,tab):
     """
     log.debug("++++++++++ entering create_repo")
     log.debug("create_repo: param tab is <%s>",str(tab))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -781,7 +781,7 @@ def update_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering update_repo")
     log.debug("update_repo: param tab is <%s>",str(tab))
     log.debug("update_repo: param pk is <%s>",str(pk))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -837,7 +837,7 @@ def delete_repo(tokdata,tab,pk):
     log.debug("++++++++++ entering delete_repo")
     log.debug("delete_repo: param tab is <%s>",str(tab))
     log.debug("delete_repo: param pk is <%s>",str(pk))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -880,7 +880,7 @@ def delete_repo(tokdata,tab,pk):
 @token_required
 def init_repo(tokdata):
     log.debug("++++++++++ entering init_repo")
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     with repoengine.connect() as conn:
         pass
     create_repo_db(repoengine)
@@ -903,7 +903,7 @@ GET /api/repo/lookup/<id>/data
 def get_lookup(tokdata,id):
     log.debug("++++++++++ entering get_lookup")
     log.debug("get_lookup: param id is <%s>",str(id))
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
@@ -923,7 +923,7 @@ def get_lookup(tokdata,id):
 def get_adhoc_data(tokdata,id):
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
-    audit(tokdata,request.url)
+    audit(tokdata,request,id=str(id))
     out={}
     fmt="JSON"
     if len(request.args) > 0:
@@ -1087,7 +1087,7 @@ def login():
     log.debug("login: username=%s",username)
     password = item['password']
     log.debug("login: password=%s",password)
-    audit(item['username'],request.url)
+    audit(item['username'],request)
 
     plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
@@ -1179,7 +1179,7 @@ def protected(tokdata):
 @api.route('/profile', methods=['GET'])
 @token_required
 def profile(tokdata):
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     out=get_profile(repoengine,tokdata['username'])
     return jsonify(out)
 
@@ -1187,7 +1187,7 @@ def profile(tokdata):
 @api.route('/logout', methods=['GET'])
 def logout(tokdata):
     log.debug("logout")
-    audit(tokdata,request.url)
+    audit(tokdata,request)
     return jsonify({'message': 'logged out'})
 
 
