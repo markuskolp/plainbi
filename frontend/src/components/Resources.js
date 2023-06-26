@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Card,  Row, Col, Tooltip , Image, Table, Tag, Button, DatePicker, Space, version, message } from "antd";
+import { Segmented, Card,  Row, Col, Tooltip , Image, Table, Tag, Button, DatePicker, Space, version, message } from "antd";
 import {
   AppstoreOutlined,
   SettingOutlined,
@@ -26,10 +26,19 @@ const Resources = (props) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]); // all eligable resources (adhoc, application, external_resource)
+  const [selectedCategory, setSelectedCategory] = useState(); 
+  const [availableCategories, setAvailableCategories] = useState(); 
 
   useEffect(() => {
-    initializeApp();
-  }, []);
+      setSelectedCategory("all");
+      setAvailableCategories([
+        {value: "all", label: "Alle"},
+        {value: "adh", label: "Adhoc"},
+        {value: "app", label: "Applikation"},
+        {value: "ext", label: "Extern"}
+      ]);
+      initializeApp();
+    }, []);
 
   const initializeApp = async () => {
     await Axios.get("/api/repo/resources", {headers: {Authorization: props.token}}).then(
@@ -133,22 +142,33 @@ const onTableChange = (pagination, filters, sorter, extra) => {
   console.log('params', pagination, filters, sorter, extra);
 };
 
+const handleCategoryChange = (value) => {
+  console.log('handleCategoryChange: ' + value);
+  setSelectedCategory(value);
+};
 
   return (
     <React.Fragment>
+      <Space direction="vertical" size="middle" >
       <PageHeader
         title="Berechtigte Inhalte"
         subTitle=""
       />
+        <Segmented 
+          defaultValue="all" 
+          options={availableCategories}
+          onChange={handleCategoryChange}
+        />
       <Table 
             pagination={false} 
             size="middle" 
             columns={columns}
-            dataSource={data} 
+            dataSource={data && selectedCategory && data.filter((row) => ("all" == selectedCategory || row.resource_type_de.substring(0,3).toLowerCase() == selectedCategory.toLowerCase()))} 
             onChange={onTableChange}
             loading={loading}
             rowKey="id"
             />
+      </Space>
     </React.Fragment>
   );
 };

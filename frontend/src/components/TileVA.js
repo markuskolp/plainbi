@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Segmented, Select, Image, Table, Tag, message } from "antd";
+import { Segmented, Select, Image, Table, Tag, message, Space } from "antd";
 import { Typography } from 'antd';
 import { PageHeader } from "@ant-design/pro-layout";
 const { Title, Link, Text } = Typography;
@@ -149,39 +149,38 @@ const handleCategoryChange = (value) => {
 
   return (
     <React.Fragment>
-      <PageHeader
-              //onBack={() => window.history.back()}
-              title="Veranstaltungen"
-              subTitle=""
-              extra={[
-                <React.Fragment>
-                  <Select 
-                    defaultValue="2023"
-                    style={{
-                      width: 120,
-                    }}
-                    onChange={handleYearChange}
-                    options={availableYears}
-                  />
-                  <Segmented 
-                    defaultValue="Eigenveranstaltung" 
-                    options={availableCategories}
-                    onChange={handleCategoryChange}
-                  />
-                </React.Fragment>
-              ]}
+      <Space direction="vertical" size="middle" >
+        <PageHeader
+                //onBack={() => window.history.back()}
+                title="Veranstaltungen"
+                subTitle=""
+              />
+          <Space>
+            <Select 
+              defaultValue="2023"
+              style={{
+                width: 120,
+              }}
+              onChange={handleYearChange}
+              options={availableYears}
             />
-      
-      <Table 
-            pagination={false} 
-            size="middle" 
-            columns={columns}
-            //dataSource={data} 
-            dataSource={data && selectedYear && selectedCategory && data.filter((row) => (row.jahr == selectedYear && row.kategorie == selectedCategory))} // show fair events belonging to selected year
-            onChange={onTableChange}
-            loading={loading}
-            rowKey="id"
+            <Segmented 
+              defaultValue="Eigenveranstaltung" 
+              options={availableCategories}
+              onChange={handleCategoryChange}
             />
+          </Space>
+        <Table 
+              pagination={false} 
+              size="middle" 
+              columns={columns}
+              //dataSource={data} 
+              dataSource={data && selectedYear && selectedCategory && data.filter((row) => (row.jahr == selectedYear && row.kategorie == selectedCategory))} // show fair events belonging to selected year
+              onChange={onTableChange}
+              loading={loading}
+              rowKey="id"
+              />
+      </Space>
     </React.Fragment>
   );
 };
