@@ -7,7 +7,6 @@ CRUD Aufrufe zum Testen !
 Bugs:
 - POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück
 - "compound key edit" geht nicht
-- "delete versionierung" geht nicht
 - wenn Token abläuft dann zum Anmeldebildschirm gehen (überall einbauen -> siehe Resources.js)
   https://stackoverflow.com/questions/47216452/how-to-handle-401-authentication-error-in-axios-and-react
 - get role of user -> if Admin: Zugriff auf Settings-Icon in Header
@@ -15,10 +14,7 @@ Bugs:
 - pagination !
 
 Audit einbauen d.h. wer ruft wann was auf !
-
-Excel-Import bei "Messe Statistiken":
-- https://www.npmjs.com/package/react-spreadsheet-import
-- spannend wie man das eingelesene Excel -> JSON -> dann in tv-tabelle lädt (insert und/oder update)
+-> und wie auswerten ?
 
 Home
 - make both tables look like separate cards (white background, grey surrounding)
@@ -38,8 +34,6 @@ Joe:
   - warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
 
 https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
-
-Loginseite ändern z.B. auf https://procomponents.ant.design/en-US/components/login-form#loginformpage-1
 
 CRUD field validation before save (especially required fields) !
 
@@ -116,13 +110,6 @@ finish dark mode switch
 # ------------------------------------------------
 
 API enhancements:
-  - Excel
-    - Sheetname: "daten"
-      - Headerzeile: Arial, 9, Border unten, Auto filter, Bold, Left (align)
-      - Datensätze: Arial, 9
-    - zusätzliches Sheet "info"
-          Erstellt am: <YYYY-MM-DD HH24:MI:SS>
-          Quelle: DWH - Adhoc <nr>
   - Security / Auth-API / JWT Token
     - test JWT with Cube.js :) --> dafür username und gruppen in JWT Token reinbringen ?
     - integrated Users and Roles
@@ -131,13 +118,16 @@ API enhancements:
   - Fehlermeldungen als JSON zurückgeben (timestamp, error(s), message(s), detail(s)) (https://www.baeldung.com/rest-api-error-handling-best-practices)
     - get error from API and show it (e.g. wrong datatype, primary key already exists, etc.)
 
-SSL Zertifikat für nginx ?
 
 
 # ------------------------------------------------
 # Backlog
 # ------------------------------------------------
 
+- Loginseite ändern z.B. auf https://procomponents.ant.design/en-US/components/login-form#loginformpage-1
+- Excel-Import bei "Messe Statistiken":
+  - https://www.npmjs.com/package/react-spreadsheet-import
+  - spannend wie man das eingelesene Excel -> JSON -> dann in tv-tabelle lädt (insert und/oder update)
 - Filter/Parameter bei Adhoc
 - pagination / filter / global search evtl. mal ändern auf backend bei vielen Daten
 - textinput_url -> with Link to Target :) (in table and edit dialog)

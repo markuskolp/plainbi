@@ -26,7 +26,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   const getRecordData = async (tableName) => {
     setRecordData(null);
     //await Axios.get("/api/crud/"+tableName+"/"+pk).then(
-    await Axios.get(api+tableName+"/"+pk+(versioned ? "?v" : ""), {headers: {Authorization: token}}).then(
+    await Axios.get(api+tableName+"/"+pk+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns)), {headers: {Authorization: token}}).then(
         (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
@@ -169,7 +169,8 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
                   return (
                     (type == 'new' || recordData ) ? // only show if type is "new" or the data record could be retrieved (for "editing")
-                    <CRUDFormItem name={column.column_name} label={column.column_label} required={column.required} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} token={token}/>
+                    // only make item editable if it is not part of the primary key
+                    <CRUDFormItem type={type} name={column.column_name} label={column.column_label} required={column.required} isprimarykey={pkColumns.includes(column.column_name)} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} token={token}/>
                     : ""
                   )
 

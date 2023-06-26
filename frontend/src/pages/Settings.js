@@ -131,7 +131,7 @@ const Settings = (props) => {
     }, 
     {
       id:"7", name:"User zu Gruppen", alias:"users2groups",
-      allowed_actions:["create", "update", "delete"],
+      allowed_actions:["create", "delete"],
       datasource:"repo",
       table:"user_to_group",
       pk_columns:["user_id","group_id"],
@@ -142,7 +142,7 @@ const Settings = (props) => {
     }, 
     {
       id:"8", name:"Applikationen zu Gruppen", alias:"apps2groups",
-      allowed_actions:["create", "update", "delete"],
+      allowed_actions:["create", "delete"],
       datasource:"repo",
       table:"application_to_group",
       pk_columns:["application_id","group_id"],

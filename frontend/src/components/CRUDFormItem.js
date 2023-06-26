@@ -18,7 +18,7 @@ const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 
-const CRUDFormItem = ({ name, label, required, editable, lookupid, ui, defaultValue, onChange, tooltip, token }) => {
+const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token }) => {
 
   const dateFormat = 'YYYY-MM-DD';
 
@@ -101,11 +101,11 @@ const handleSwitchChange = (checked, e) => {
                 tooltip={tooltip}
               >
                 {
-                  (editable === "false" && ui === "lookupn") ? (
+                  ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") && ui === "lookupn") ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} allowNewValues="true"/>
-                ) : (editable === "false" && ui === "lookup") ? (
+                ) : ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") && ui === "lookup") ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token}/>
-                ) : editable === "false" ? (
+                ) : (editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookupn" ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} allowNewValues="true"/>
