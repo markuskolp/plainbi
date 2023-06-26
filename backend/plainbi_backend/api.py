@@ -97,6 +97,11 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
 
+try:
+    import ldap3
+except:
+    print("LDAP disabled because not installed")
+
 #import bcrypt
 
 from functools import wraps
@@ -108,7 +113,7 @@ from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec,audit
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec,audit,db_adduser
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -1067,14 +1072,71 @@ def get_adhoc_data(tokdata,id):
             out["message"] = "error from adhoc"
             return jsonify(out),500
     return "adhoc error that should not happen", 500
-            
 
+
+users=dict()
+
+def load_repo_users():
+    log.debug("++++++++++ entering load_repo_users")
+    global pbi_env,users
+    out={}
+    plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
+    if last_stmt_has_errors(e,out):
+        log.error('error in select users %s', str(e))
+        return False
+    users = {u["username"]: u["password_hash"] for u in plainbi_users}
+    
+def authenticate_local(username,password):
+    log.debug("++++++++++ entering authenticate_local")
+    global pbi_env,users
+    load_repo_users()
+    if not username or not password:
+        log.error('error invalid cred')
+        return False
+
+    p=config.bcrypt.generate_password_hash(password)
+    pwd_hashed=p.decode()
+    log.debug("login: hashed input pwd is %s",pwd_hashed)
+    if username in users.keys():
+        if config.bcrypt.check_password_hash(users[username], password):
+            log.debug("login: pwd ok")
+            return True
+    else:
+        log.debug("login: user %s is unknown in repo",username)
+    log.debug("++++++++++ leaving login")
+    return False
+    
+def authenticate_ldap(username,password):
+    log.debug("++++++++++ entering authenticate_ldap")
+    global pbi_env,users
+    load_repo_users()
+    authenticated=False
+    s = ldap3.Server(host=pbi_env["LDAP_HOST"], port=int(pbi_env["LDAP_PORT"]), use_ssl=False, get_info=ldap3.ALL)
+    conn_bind = ldap3.Connection(s, user=pbi_env["LDAP_BIND_USER_DN"], password=pbi_env["LDAP_BIND_USER_PASSWORD"], auto_bind='NONE', version=3, authentication='SIMPLE')
+    if not conn_bind.bind():
+        log.error('error in bind %s', str(conn_bind.result))
+        log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
+        return authenticated
+    conn_bind.search(pbi_env["LDAP_BASE_DN"], f'(&(cn={username}))', attributes=['*'])
+    for entry in conn_bind.entries:
+        log.debug("ldap entry=%s",entry.entry_dn)
+        conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
+        if not conn_auth.bind():
+            log.warning("error in bind ldap entry=%s",entry.entry_dn)
+            authenticated=False
+        else:
+            authenticated=True
+            if username not in users.keys():
+                log.warning("new user %s from ldap registered",username)
+                db_adduser(config.repoengine,username,pwd="x",is_admin=False)
+            break
+    log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
+    return authenticated
 
 
 @api.route('/login', methods=['POST'])
 def login():
     log.debug("++++++++++ entering login")
-    out={}
     log.debug("login")
     data_bytes = request.get_data()
     log.debug("databytes: %s",data_bytes)
@@ -1089,30 +1151,22 @@ def login():
     log.debug("login: password=%s",password)
     audit(item['username'],request)
 
-    plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
-    if last_stmt_has_errors(e,out):
-        return jsonify({'error': 'Invalid User collecting'}), 500
-    users = {u["username"]: u["password_hash"] for u in plainbi_users}
-    print(str(users))
+    authenticated = False
+    if "LDAP_HOST" in pbi_env.keys():  # if LDAP is defined in config environment
+        authenticated = authenticate_ldap(username,password)
+        log.debug("login authenticated by ldap = %s",authenticated)
+        if not authenticated:
+            log.debug("try locally authenticated")
+            authenticated = authenticate_local(username,password)
+            log.debug("login authenticated local = %s",authenticated)
+    else: 
+        authenticated = authenticate_local(username,password)
+        log.debug("login authenticated local = %s",authenticated)
+    if authenticated:
+        log.debug("login authenticated")
+        token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
+        return jsonify({'access_token': token}), 200
 
-    if not username or not password:
-        log.debug("invalid cred")
-        return jsonify({'message': 'Invalid credentials'}), 400
-
-    #p=config.bcrypt.hashpw(password.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
-    #pwd_hashed=p.decode()
-    p=config.bcrypt.generate_password_hash(password)
-    pwd_hashed=p.decode()
-    log.debug("login: hashed input pwd is %s",pwd_hashed)
-    if username in users.keys():
-        if config.bcrypt.check_password_hash(users[username], password):
-        #if users[username] == pwd_hashed:
-            log.debug("login: pwd ok")
-            token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
-            return jsonify({'access_token': token}), 200
-    else:
-        log.debug("login: user %s is unknown in repo",username)
-    log.debug("++++++++++ leaving login")
     return jsonify({'message': 'Invalid credentials'}), 401
 
 @api.route('/passwd', methods=['POST'])
@@ -1204,6 +1258,7 @@ def create_app(config_filename=None,p_repository=None):
         repoengine = db_connect(pbi_env["repo_engine"], pbi_env["repo_params"] if "repo_params" in pbi_env.keys() else None)
     log.info("repoengine %s",repoengine.url)
     config.repoengine=repoengine
+    log.info("config.repoengine set to %s",repoengine.url)
 
     dbengine = db_connect(pbi_env["db_engine"], pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
     log.info("dbengine %s",dbengine.url)

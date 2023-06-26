@@ -24,6 +24,7 @@ config.SECRET_KEY=os.urandom(24)
 print("secret key generated")
 
 def load_pbi_env():
+    log.debug("++++++++++ entering load_pbi_env")
     home_directory = os.path.expanduser( '~' )
     dotenv_path = os.path.join(home_directory, '.env')
     load_dotenv(dotenv_path)
@@ -52,6 +53,7 @@ def load_pbi_env():
     
     if "db_engine" not in pbi_env.keys():
         log.error("db_engine must be defined")
+        log.debug("++++++++++ leaving load_pbi_env")
         sys.exit(1)
     
     
@@ -70,4 +72,16 @@ def load_pbi_env():
     
     pbi_env["repo_engine"] = os.environ.get("repo_engine")
     pbi_env["repo_engine"] = db_subs_env(pbi_env["repo_engine"],pbi_env) 
+    
+    pbi_env["LDAP_HOST"] = os.environ.get("LDAP_HOST")
+    pbi_env["LDAP_PORT"] = int(os.environ.get("LDAP_PORT"))
+    pbi_env["LDAP_BASE_DN"] = os.environ.get("LDAP_BASE_DN")
+    #pbi_env["LDAP_USER_DN"] = os.environ.get("LDAP_USER_DN")
+    #pbi_env["LDAP_GROUP_DN"] = os.environ.get("LDAP_GROUP_DN")
+    pbi_env["LDAP_USER_RDN_ATTR"] = os.environ.get("LDAP_USER_RDN_ATTR")
+    pbi_env["LDAP_USER_LOGIN_ATTR"] = os.environ.get("LDAP_USER_LOGIN_ATTR")
+    pbi_env["LDAP_BIND_USER_DN"] = os.environ.get("LDAP_BIND_USER_DN")
+    pbi_env["LDAP_BIND_USER_PASSWORD"] = os.environ.get("LDAP_BIND_USER_PASSWORD")
+    
+    log.debug("++++++++++ leaving load_pbi_env")
     return pbi_env

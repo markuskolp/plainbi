@@ -134,20 +134,29 @@ def get_db_type(dbengine):
         return "sqlite"
     else:
         return "mssql"
-def add_offset_limit(dbtyp,offset,limit):
+def add_offset_limit(dbtyp,offset,limit,order_by):
+    log.debug("++++++++++ entering add_offset_limit")
     sql=""
     if dbtyp=="mssql":
+        if order_by is not None:
+            sql+=" ORDER BY "+order_by.replace(":"," ")
+        else:
+            if limit is not None or offset is not None:
+                sql+=" ORDER BY 1"
         if offset is not None:
             sql+=" OFFSET "+offset+ " ROWS"
         if limit is not None:
             sql+=" FETCH NEXT "+limit+" ROWS ONLY"
     elif dbtyp=="sqlite":
+        if order_by is not None:
+            sql+=" ORDER BY "+order_by.replace(":"," ")
         if limit is not None:
             sql+=" LIMIT "+limit
         else:
             sql+=" LIMIT -1"
         if offset is not None:
             sql+=" OFFSET "+offset
+    log.debug("++++++++++ leaving add_offset_limit with <%s>",sql)
     return sql
 
 
@@ -159,8 +168,18 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
       total_count .. anzahl der rows in der Tabelle (count*)
       msg ... ggf error code sonst "ok"
     """
+    log.debug("++++++++++ entering sql_select")
+    log.debug("sql_select: param tab is <%s>",tab)
+    log.debug("sql_select: param order_by is <%s>",str(order_by))
+    log.debug("sql_select: param offset is <%s>",str(offset))
+    log.debug("sql_select: param limit is <%s>",str(limit))
+    log.debug("sql_select: param filter is <%s>",str(filter))
+    log.debug("sql_select: param with_total_count is <%s>",str(with_total_count))
+    log.debug("sql_select: param where_clause is <%s>",str(where_clause))
+    log.debug("sql_select: param versioned is <%s>",str(versioned))
+    log.debug("sql_select: param is_repo is <%s>",str(is_repo))
+    log.debug("sql_select: param user_id is <%s>",str(user_id))
     total_count=None
-    log.debug("sql_select tab parameter: %s",tab)
     my_where_clause=""
     w=where_clause
     tab_is_sql_stmt=False
@@ -188,9 +207,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     if len(my_where_clause)>0:
         sql+=my_where_clause
     sql_without_orderby_offset_limit=sql
-    if order_by is not None:
-        sql+=" ORDER BY "+order_by.replace(":"," ")
-    sql+=add_offset_limit(get_db_type(dbengine),offset,limit)
+    sql+=add_offset_limit(get_db_type(dbengine),offset,limit,order_by)
     log.debug("sql_select: %s",sql)
 
     try:
@@ -1051,18 +1068,26 @@ def db_connect(enginestr, params=None):
     return dbengine
 
 def audit(tokdata,req,id=None,msg=None):
+    log.debug("++++++++++ entering audit")
     if isinstance(tokdata,dict):
         usrnam=tokdata["username"]
     else:
         usrnam=tokdata
     log.debug('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,req.url,str(id),str(msg))
-    audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json())}
+    #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json())}
+    #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":None}
+    #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json(force=True))}
+    audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data)}
     audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body)"
     try:
+        log.debug('Audit sql:%s',audit_sql )
+        log.debug('Audit params:%s',audit_params )
         db_exec(config.repoengine, audit_sql, audit_params)
+        log.debug('Audit executed')
     except SQLAlchemyError as e_sqlalchemy:
         log.error("audit error: %s",str(e_sqlalchemy))
         log.debug("continuing")
     except Exception as e:
         log.error("audit exception: %s",str(e))
         log.debug("continuing")
+    log.debug("++++++++++ leaving audit")
