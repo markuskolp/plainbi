@@ -10,6 +10,16 @@ db_engine=mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_database}
 repo_server=""
 repo_username=""
 repo_password=""
-repo_engine="sqlite:////Users/<username>/plainbi_repo.db"
+repo_engine="sqlite:////Users/<username>/plainbi_repo.db?check_same_thread=False"
+
+
+ldap_port="389"
+ldap_host=""
+ldap_base_dn="DC=...,DC=..."
+ldap_user_rdn_attr="cn"
+ldap_user_login_attr="cn"
+ldap_bind_user_dn="CN=.,OU=...,OU=...,OU=...,DC=...,DC=..."
+ldap_bind_user_password=""
+
 
 # curl --header "Content-Type: application/json" --request POST "localhost:3001/api/repo/init_repo" -w "%{http_code}\n"

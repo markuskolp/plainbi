@@ -21,7 +21,7 @@ const UserProfile = (props) => {
       (res) => {
         //console.log(JSON.stringify(res));
         const resData = res.data;
-        console.log(JSON.stringify(resData));
+        console.log("/profile response: " + JSON.stringify(resData));
         setData(resData);
         setLoading(false);
       }
@@ -47,7 +47,7 @@ const UserProfile = (props) => {
               <Title level={5}>Rolle:</Title> 
               <Text>{data.role}</Text> 
               <Title level={5}>Gruppen:</Title> 
-              {data.groups.map((group) => {console.log(group);return <Text>{group.name}</Text>})}
+              {data.groups && data.groups.map((group) => {console.log(group);return <Text>{group.name}</Text>})}
             </Space>
           </React.Fragment>
         )}

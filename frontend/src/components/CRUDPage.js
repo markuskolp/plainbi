@@ -51,6 +51,11 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   //const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new"); // new/edit
+  const [offset, setOffset]=useState(0);
+  const [limit, setLimit]=useState(20);
+  const [params, setParams]=useState({});
+  const [totalCount, setTotalCount]=useState();
+  
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
   
@@ -66,9 +71,11 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   }, [tableName]);
 
   // getTableData
+  /*
   const getTableData = async (tableName) => {
     setTableData(null);
     await Axios.get(api+tableName+(versioned ? "?v" : ""), {headers: {Authorization: token}}).then(
+    //await Axios.get(api+tableName+(versioned ? "?v" : "")+(versioned ? "&limit="+limit : "?limit="+limit), {headers: {Authorization: token}}).then(
       (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
@@ -81,6 +88,58 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
         message.error('Es gab einen Fehler beim Laden der Daten.');
       }
       )
+  };
+  */
+    const getTableData = async (tableName) => {
+
+      setLoading(true);
+      setTableData(null);
+
+      const queryParams = new URLSearchParams();
+      if(versioned) {
+        queryParams.append("v", offset);
+      }
+      queryParams.append("offset", offset);
+      queryParams.append("limit", limit);
+      if(params && params.order) {
+        queryParams.append("order_by", JSON.stringify(params.order));
+      }
+      console.log("queryParams: " + queryParams.toString());
+      
+      await Axios.get(api+tableName+'?'+queryParams, {headers: {Authorization: token}}).then(
+        (res) => {
+          const tc = (res.data.length === 0 || res.data.length === undefined ? res.data.total_count : res.total_count); // take data directly if exists, otherwise take "data" part in JSON response
+          setTotalCount(tc);
+          console.log("totalCount: " + tc);
+          const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+          console.log(JSON.stringify(resData));
+          setTableData(resData);
+          console.log(JSON.stringify(tableData));
+          setLoading(false);
+        }
+        ).catch(function (error) {
+          setLoading(false);
+          message.error('Es gab einen Fehler beim Laden der Daten.');
+        }
+        )
+    };
+
+  const handleChange = (pagination, filters, sorter) => {
+    const offset = pagination.current * pagination.pageSize - pagination.pageSize;
+    const limit = pagination.pageSize;
+    const params = {};
+    console.log("offset: " + offset);
+    console.log("limit: " + limit);
+    console.log("sorter: " + JSON.stringify(sorter));
+  
+    if (sorter.hasOwnProperty("column")) {
+      params.order = { field: sorter.field, dir: sorter.order };
+    }
+  
+    setOffset(offset);
+    setLimit(limit);
+    setParams(params);
+    getTableData(tableName);
   };
 
   // removeTableRow
@@ -356,13 +415,20 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                             .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
 
                           dataSource={filteredTableData == null ? tableData : filteredTableData}
+                          //rowKey="key"
                           //dataSource={pageMetadataRelevant.name.table_columns}
                           //pagination={<Pagination  total={25} showTotal={(total) => `Gesamt ${total} Einträge`} defaultPageSize={25}/>}
                           //pagination={{position: 'topRight'}}
-                          pagination={false}
+                          pagination={{ total: totalCount}}
+                          scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+                          //pagination={false}
                           //scroll={{ y: 500 }}
                           //scroll={{ x: 300 }}
                           loading={loading}
+                          onChange={handleChange}
+                          //pagination={{
+                          //  total: totalCount // total count returned from backend
+                          //}}
                         />
                     </React.Fragment>
                   ) 
