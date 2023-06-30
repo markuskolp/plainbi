@@ -204,6 +204,12 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     if is_repo and user_id is not None:
         my_where_clause = add_auth_to_where_clause(tab, my_where_clause, user_id)
         log.debug("sql_select auth added:%s",my_where_clause)
+    # filter
+    if filter is not None:
+        metadata=get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=versioned)
+        if len(my_where_clause)==0: my_where_clause=" WHERE "
+        my_where_clause = add_filter_to_where_clause(tab, my_where_clause, filter, metadata["columns"],is_versioned=versioned )
+    # now add where clause
     if len(my_where_clause)>0:
         sql+=my_where_clause
     sql_without_orderby_offset_limit=sql
@@ -973,6 +979,30 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
         item["password_hash"]=p.decode()
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq="user")
     return x
+
+def add_filter_to_where_clause(tab,where_clause,filter,columns,is_versioned=False):
+    log.debug("++++++++++ entering add_filter_to_where_clause")
+    log.debug("add_filter_to_where_clause: param tab is <%s>",str(tab))
+    log.debug("add_filter_to_where_clause: param filter is <%s>",str(filter))
+    log.debug("add_filter_to_where_clause: param columns is <%s>",str(columns))
+    w = where_clause
+    if w is None: w=""
+    filter_tokens=filter.split(" ")
+    w+="("
+    cnt=0
+    for ftok in filter_tokens:
+        lftok=ftok.lower()
+        for c in columns:
+            lc=c.lower()
+            # do not filter in version columns
+            if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
+            cnt=cnt+1
+            if cnt>1: w+=" or "
+            w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
+    w+=")"
+    log.debug("++++++++++ leaving add_filter_to_where_clause with: %s",w)
+    return w
+
 
 def add_auth_to_where_clause(tab,where_clause,user_id):
     log.debug("++++++++++ entering add_auth_to_where_clause")

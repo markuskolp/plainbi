@@ -76,10 +76,6 @@ def load_pbi_env():
     pbi_env["LDAP_HOST"] = os.environ.get("LDAP_HOST")
     pbi_env["LDAP_PORT"] = int(os.environ.get("LDAP_PORT"))
     pbi_env["LDAP_BASE_DN"] = os.environ.get("LDAP_BASE_DN")
-    #pbi_env["LDAP_USER_DN"] = os.environ.get("LDAP_USER_DN")
-    #pbi_env["LDAP_GROUP_DN"] = os.environ.get("LDAP_GROUP_DN")
-    pbi_env["LDAP_USER_RDN_ATTR"] = os.environ.get("LDAP_USER_RDN_ATTR")
-    pbi_env["LDAP_USER_LOGIN_ATTR"] = os.environ.get("LDAP_USER_LOGIN_ATTR")
     pbi_env["LDAP_BIND_USER_DN"] = os.environ.get("LDAP_BIND_USER_DN")
     pbi_env["LDAP_BIND_USER_PASSWORD"] = os.environ.get("LDAP_BIND_USER_PASSWORD")
     

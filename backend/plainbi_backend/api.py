@@ -227,11 +227,12 @@ def get_all_items(tokdata,tab):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
+    myfilter = request.args.get('filter')
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned)
+    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter)
     log.debug("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500

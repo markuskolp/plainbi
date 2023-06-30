@@ -585,6 +585,40 @@ def test_2031_getall(test_client):
     #row1=(json_out["data"])[0]
     assert json_out["total_count"]==2
 
+def test_2035_getall_filter(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global t,headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/crud/'+t+"?filter=item"
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==2
+
+def test_2036_getall_filter2(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global t,headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/crud/'+t+"?filter=item2"
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==1
+
 def test_2040_del(test_client):
     """
     GIVEN a Flask application configured for testing
