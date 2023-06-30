@@ -53,7 +53,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [modalMode, setModalMode] = useState("new"); // new/edit
   const [offset, setOffset]=useState(0);
   const [limit, setLimit]=useState(20);
-  const [params, setParams]=useState({});
+  const [order, setOrder]=useState("");
   const [totalCount, setTotalCount]=useState();
   
   let api = "/api/crud/";
@@ -101,8 +101,8 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       }
       queryParams.append("offset", offset);
       queryParams.append("limit", limit);
-      if(params && params.order) {
-        queryParams.append("order_by", JSON.stringify(params.order));
+      if(order && order.length > 0) {
+        queryParams.append("order_by", order);
       }
       console.log("queryParams: " + queryParams.toString());
       
@@ -131,14 +131,33 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     console.log("offset: " + offset);
     console.log("limit: " + limit);
     console.log("sorter: " + JSON.stringify(sorter));
-  
+    var order = "";
+    console.log("order sorter.length: " + sorter.length);
+    console.log("order sorter hasproperty column: " + sorter.hasOwnProperty("column"));
     if (sorter.hasOwnProperty("column")) {
-      params.order = { field: sorter.field, dir: sorter.order };
+      //params.order = { field: sorter.field, dir: sorter.order };
+      if (!sorter.length) {
+        // if only 1 sort column, then take the props directly
+        console.log("one sorter order");
+        order = sorter.field + (sorter.order == "descend" ? " desc" : "");
+      } 
     }
-  
+    if (sorter.length > 1) {
+      // if more than 1 sort column, then loop through them and get props
+      console.log("more than one sorter order");
+      for (var i = 0; i < sorter.length; i++) {
+        order += sorter[i].field;
+        if (sorter[i].order == "descend") { // only append descend if defined - ascend is default and does not need to be set explicitly
+          order += " desc";
+        }
+        order += ",";
+      }
+      order = order.slice(0,-1); // eliminate the last comma
+    }
+    console.log("sort order: " + order);
     setOffset(offset);
     setLimit(limit);
-    setParams(params);
+    setOrder(order);
     getTableData(tableName);
   };
 
