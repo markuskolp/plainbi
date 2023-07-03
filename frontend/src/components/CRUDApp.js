@@ -74,7 +74,8 @@ const CRUDApp = ({ name, pages, token }) => {
           <Content style={{ background: "#FFF"}}>
 
             {page && 
-            <CRUDPage name={page.name} tableName={page.table} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} isRepo={page.datasource === "repo" ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token}/>
+            <CRUDPage key={page.name} name={page.name} tableName={page.table} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} isRepo={page.datasource === "repo" ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token} />
+            // key property resets state when changed - this is important for page switch (to reset filter, order, offset and limit in page component)!
             }
 
           </Content>

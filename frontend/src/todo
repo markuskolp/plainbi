@@ -2,18 +2,16 @@
 # asap
 # ------------------------------------------------
 
-page switch (delete order, filter, offset, limit)
-
+asap
 - Filter: noch Fehler in backend - warten auf Joe
-- Filter: aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
-- Order: klappt bei Lookup-Spalten nicht z.B. Veranstaltungsnr !
-
-CRUD Aufrufe zum Testen !
-
-Bugs:
 - POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück
 - wenn Token abläuft dann zum Anmeldebildschirm gehen (überall einbauen -> siehe Resources.js)
   https://stackoverflow.com/questions/47216452/how-to-handle-401-authentication-error-in-axios-and-react
+
+CRUD Aufrufe zum Testen !
+
+eigene Table/SQL Angabe für Summary/Listview bei CRUD (bei Application > Page, damit man das Lookup-Problem vereinfachen kann (sowohl beim Laden, als auch bei Sortierung, Filterung, etc.))
+  - Order: klappt bei Lookup-Spalten nicht z.B. Veranstaltungsnr !
 
 Subpage ermöglichen
 - dann bei Adhoc z.B. die Berechtigung und Aufrufe damit abbilden - auch Messe Statistik Pflegemaske
