@@ -35,6 +35,23 @@ header h1 {
 .ant-table-thead > tr > th {
   background-color: #fff !important; /* change background color of table header row - overwrites default */
 }
+.inactive {
+  color: rgba(0, 0, 0, 0.29);
+}
+.ant-table-column-sorter {
+  display: none;
+}
+.th-div-custom {
+  display: flex;
+  flex: auto;
+  align-items: center;
+  justify-content: space-between;
+}
+.th-div-custom-title {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
 .right {
   float: right;
 }

@@ -13,6 +13,10 @@ import {
 } from "antd";
 import Table from "./Table";
 import {Sorter} from "../utils/sorter";
+import {
+  CaretUpFilled,
+  CaretDownFilled
+} from '@ant-design/icons';
 import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import CRUDModal from "./CRUDModal";
@@ -140,12 +144,15 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     var order = "";
     console.log("order sorter.length: " + sorter.length);
     console.log("order sorter hasproperty column: " + sorter.hasOwnProperty("column"));
+    console.log("order sorter.order: " + sorter.order);
     if (sorter.hasOwnProperty("column")) {
       //params.order = { field: sorter.field, dir: sorter.order };
       if (!sorter.length) {
-        // if only 1 sort column, then take the props directly
-        console.log("one sorter order");
-        order = sorter.field + (sorter.order == "descend" ? " desc" : " asc");
+        if(sorter.order) { // only if sorter order is not undefined
+          // if only 1 sort column, then take the props directly
+          console.log("one sorter order");
+          order = sorter.field + (sorter.order == "descend" ? " desc" : "");
+        }
       } 
     }
     if (sorter.length > 1) {
@@ -357,7 +364,26 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   // return a column to be used as metadata for a Table component
   function getColumn(column_label, column_name, datatype) {
     return {
-      title: column_label,
+      //title: column_label
+      title: ({ sortColumns }) => {
+        const sortedColumn = sortColumns?.find(({ column }) => column.key === column_name);
+        return (
+          <div class="th-div-custom">
+            <span class="th-div-custom-title">{column_label}</span>
+            <span>{sortedColumn ? (
+              sortedColumn.order === "ascend" ? (
+                <CaretUpFilled style={{fontSize: '14px'}}/>
+              ) : (
+                sortedColumn.order === "descend" ? (
+                  <CaretDownFilled style={{fontSize: '14px'}}/>
+                ) :  <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />
+              )
+            ) : <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />}
+            </span>
+          </div>
+        )
+      }
+      ,
       dataIndex: column_name,
       sorter: {
         compare: Sorter.DEFAULT,
@@ -366,7 +392,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       render: (text, record) => (
         (datatype === "datetime" && text) ? text.substring(0,19) : text // trim milliseconds
       )
-      //key: column_name
+      , key: column_name
       //width: 50,
     };
   }
@@ -375,13 +401,32 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     // this is from the type "lookup"
     const getLookupColumn = (column_label, column_name, lookupid) => {
       return {
-        title: column_label,
+        //title: column_label
+      title: ({ sortColumns }) => {
+        const sortedColumn = sortColumns?.find(({ column }) => column.key === column_name);
+        return (
+          <div class="th-div-custom">
+            <span class="th-div-custom-title">{column_label}</span>
+            <span>{sortedColumn ? (
+              sortedColumn.order === "ascend" ? (
+                <CaretUpFilled style={{fontSize: '14px'}}/>
+              ) : (
+                sortedColumn.order === "descend" ? (
+                  <CaretDownFilled style={{fontSize: '14px'}}/>
+                ) :  <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />
+              )
+            ) : <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />}
+            </span>
+          </div>
+        )
+      }
+      ,
         dataIndex: column_name,
         sorter: {
           compare: Sorter.DEFAULT,
           multiple: 3,
         },
-        //key: column_name
+        key: column_name,
         //width: 50,
         render: (text, record, column_name) => (
           <Text>{getLookupValue(text, lookupid, column_name)}</Text>
