@@ -12,6 +12,9 @@ asap
 - POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück
 - wenn Token abläuft dann zum Anmeldebildschirm gehen (überall einbauen -> siehe Resources.js)
   https://stackoverflow.com/questions/47216452/how-to-handle-401-authentication-error-in-axios-and-react
+  - sonst immer folgendes einbauen nach jedem Axios request:
+    res.access_token && props.setToken(res.access_token)
+  - https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
 
 CRUD Aufrufe zum Testen !
 
@@ -31,25 +34,13 @@ Joe:
   - bei Login nicht im Body das pw mitschreiben !
   - bei Adhoc immer die ID auch mitschreiben !
 
-- abhängig vom Token die Endpunkte schützen
-  - Admin bekommt immer alle Inhalte + hat Änderungsrechte (PUT/POST/DELETE) auf /api/repo
-  - User bekommt nur berechtigte Inhalte + /api/crud + GET Rechte auf /api/repo + adhoc wo er Besitzer ist !
-
-- wie lange ist Token gültig? 
-  - Token verliert aktuell keine Gültigkeit ?! auch gegen /logout von API gehen !
-  - sonst immer folgendes einbauen nach jedem Axios request:
-    res.access_token && props.setToken(res.access_token)
-  - warum wird nicht der Zusatz 'Bearer ' +  benötigt ?
-
-https://dev.to/nagatodev/how-to-add-login-authentication-to-a-flask-and-react-application-23i7
-
 CRUD field validation before save (especially required fields) !
 
 /api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt
 
-use dwh;
+      use dwh;
 
-drop view if exists config.v_portal_veranstaltung;
+      drop view if exists config.v_portal_veranstaltung;
         create view config.v_portal_veranstaltung
                 as
                 select 
@@ -105,13 +96,6 @@ crud ui textarea components
   - monaco-editor evtl. switchen auf https://wangchujiang.com/react-monacoeditor/ ?
   - markdown: erweitern um "remark-gfm"
 
-finish dark mode switch
-- put it in user profile page or as menu option when clicking on avatar in upper right corner
-- make 3 options: yes / no / browser default
-- save setting in repository (table: user_preference)
-
-
-
 
 # ------------------------------------------------
 # wait for backend
@@ -132,6 +116,10 @@ API enhancements:
 # Backlog
 # ------------------------------------------------
 
+- finish dark mode switch
+  - put it in user profile page or as menu option when clicking on avatar in upper right corner
+  - make 3 options: yes / no / browser default
+  - save setting in repository (table: user_preference)
 - Authentifizierung/Authorisierung besser kapseln (Token, Role, ...)
 - Loginseite ändern z.B. auf https://procomponents.ant.design/en-US/components/login-form#loginformpage-1
 - Excel-Import bei "Messe Statistiken":

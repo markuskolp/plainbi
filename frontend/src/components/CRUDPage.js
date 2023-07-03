@@ -9,6 +9,7 @@ import {
   Space,
   Popconfirm,
   message,
+  Tooltip,
   Pagination 
 } from "antd";
 import Table from "./Table";
@@ -389,8 +390,15 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
         compare: Sorter.DEFAULT,
         multiple: 3,
       },
+      ellipsis: {
+        showTitle: false,
+      },
       render: (text, record) => (
-        (datatype === "datetime" && text) ? text.substring(0,19) : text // trim milliseconds
+        // if datetime then trim milliseconds
+        // tooltip because of ellipsis above
+        <Tooltip placement="topLeft" title={text}>          
+          {(datatype === "datetime" && text) ? text.substring(0,19) : text} 
+        </Tooltip>
       )
       , key: column_name
       //width: 50,
@@ -428,8 +436,14 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
         },
         key: column_name,
         //width: 50,
+        ellipsis: {
+          showTitle: false,
+        },
         render: (text, record, column_name) => (
-          <Text>{getLookupValue(text, lookupid, column_name)}</Text>
+          // tooltip because of ellipsis above
+          <Tooltip placement="topLeft" title={getLookupValue(text, lookupid, column_name)}>   
+            <Text>{getLookupValue(text, lookupid, column_name)}</Text>
+          </Tooltip>
         )
       };
     }
