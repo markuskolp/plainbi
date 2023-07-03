@@ -117,6 +117,7 @@ const Login = (props) => {
               htmlType="submit"
               className="login-form-button"
               onClick={logMeIn}
+              loading={loading}
             >
               Anmelden
             </Button>

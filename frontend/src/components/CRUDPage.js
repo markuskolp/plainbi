@@ -519,6 +519,12 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                           //scroll={{ y: 500 }}
                           //scroll={{ x: 300 }}
                           loading={loading}
+                          /*locale={{
+                            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={'keine Daten'}/>,
+                            triggerDesc: 'Klicken um absteigend zu sortieren',
+                            triggerAsc: 'Klicken um aufsteigend zu sortieren', 
+                            cancelSort: 'Klicken um Sortierung aufzuheben'
+                          }}*/
                           onChange={handleChange}
                           //pagination={{
                           //  total: totalCount // total count returned from backend

@@ -2,8 +2,13 @@
 # asap
 # ------------------------------------------------
 
+testen auf portal server: filter, order by, pagination
+  -> adhoc audit view fehlt !
+
+warten auf Joe auf customsql !
+  -> dann MesseStat fertig machen !!
+
 asap
-- Filter: noch Fehler in backend - warten auf Joe
 - POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück
 - wenn Token abläuft dann zum Anmeldebildschirm gehen (überall einbauen -> siehe Resources.js)
   https://stackoverflow.com/questions/47216452/how-to-handle-401-authentication-error-in-axios-and-react
