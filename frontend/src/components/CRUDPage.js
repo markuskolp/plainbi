@@ -57,6 +57,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [totalCount, setTotalCount]=useState();
   const [filter, setFilter]=useState();
   const [tableParamChanged, setTableParamChanged]=useState(false);
+  const [typingTimeout, setTypingTimeout]=useState(null);
   
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
@@ -412,6 +413,18 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       setTableParamChanged(!tableParamChanged);
     }
 
+    const searchDataWithTimeout = (value) => {
+      console.log("setting filter: " + value );
+      if(typingTimeout) clearTimeout(typingTimeout);
+      setTypingTimeout( 
+        setTimeout(() => {
+          setFilter(value);
+          //auto refresh of table data because table params where changed - see useEffect()
+          setTableParamChanged(!tableParamChanged);
+        }, 600)
+      );
+    }
+
     return (
       <React.Fragment>
       <PageHeader
@@ -438,7 +451,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                       placeholder="Suche ..."
                       //enterButton
                       onSearch={(value) => {searchData(value)}}
-                      //onChange={(e) => {searchData(e.target.value)}}
+                      onChange={(e) => {searchDataWithTimeout(e.target.value)}}
                       style={{marginBottom:20,width:500}}
                       allowClear 
                     />
