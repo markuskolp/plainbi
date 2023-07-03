@@ -48,6 +48,7 @@ const ThemeLayout = (props) => {
     setIsDarkMode((previousValue) => !previousValue);
    };
 
+  const userRole = localStorage.getItem('role');
    
   const logMeOut = () => {
     axios({
@@ -66,7 +67,9 @@ const ThemeLayout = (props) => {
   };
 
   const logout = () => {
+    localStorage.removeItem("role");
     props.removeToken();
+    //props.setRole(null);
   }
 
   const items = [
@@ -129,11 +132,13 @@ const ThemeLayout = (props) => {
               </Link>
             </Space>
             <Space size={"middle"} className="right">
-              <Link href="/settings">
-                <Tooltip title="Einstellungen">
-                  <SettingOutlined />
-                </Tooltip>
-              </Link>
+              {userRole == 'ADMIN' && 
+                <Link href="/settings">
+                  <Tooltip title="Einstellungen">
+                    <SettingOutlined />
+                  </Tooltip>
+                </Link>
+              }
               <Link href="/apps">
                 <Tooltip title="Applikationen">
                   <AppstoreOutlined />

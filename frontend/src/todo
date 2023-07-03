@@ -2,19 +2,26 @@
 # asap
 # ------------------------------------------------
 
+Globale Suche / Filterung
+- noch übermitteln in API beim GET !
+- aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
+
+Optimieren
+- Pagination: Wechsel von Anzahl pro Seite klappt nicht sofort
+- Order: Wechsel klappt erst einen Schritt später
+- Order: klappt bei Lookup-Spalten nicht z.B. Veranstaltungsnr !
+
+Filter in Spaltentitel noch erlauben / umsetzen
+
 CRUD Aufrufe zum Testen !
 
 Bugs:
 - POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück
-- "compound key edit" geht nicht
 - wenn Token abläuft dann zum Anmeldebildschirm gehen (überall einbauen -> siehe Resources.js)
   https://stackoverflow.com/questions/47216452/how-to-handle-401-authentication-error-in-axios-and-react
-- get role of user -> if Admin: Zugriff auf Settings-Icon in Header
-- global search bei Tabellen -> aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
-- pagination !
 
-Audit einbauen d.h. wer ruft wann was auf !
--> und wie auswerten ?
+Subpage ermöglichen
+- dann bei Adhoc z.B. die Berechtigung und Aufrufe damit abbilden - auch Messe Statistik Pflegemaske
 
 Home
 - make both tables look like separate cards (white background, grey surrounding)
@@ -22,6 +29,9 @@ Home
 
 Joe:
 - Joe nochmal die Init geben für die internen Applikationen !
+- Audit: 
+  - bei Login nicht im Body das pw mitschreiben !
+  - bei Adhoc immer die ID auch mitschreiben !
 
 - abhängig vom Token die Endpunkte schützen
   - Admin bekommt immer alle Inhalte + hat Änderungsrechte (PUT/POST/DELETE) auf /api/repo
@@ -124,6 +134,7 @@ API enhancements:
 # Backlog
 # ------------------------------------------------
 
+- Authentifizierung/Authorisierung besser kapseln (Token, Role, ...)
 - Loginseite ändern z.B. auf https://procomponents.ant.design/en-US/components/login-form#loginformpage-1
 - Excel-Import bei "Messe Statistiken":
   - https://www.npmjs.com/package/react-spreadsheet-import

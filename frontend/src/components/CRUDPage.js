@@ -97,7 +97,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
 
       const queryParams = new URLSearchParams();
       if(versioned) {
-        queryParams.append("v", offset);
+        queryParams.append("v", 1);
       }
       queryParams.append("offset", offset);
       queryParams.append("limit", limit);
@@ -105,16 +105,18 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
         queryParams.append("order_by", order);
       }
       console.log("queryParams: " + queryParams.toString());
-      
+
+      queryParams.append("filterx", "");
+
       await Axios.get(api+tableName+'?'+queryParams, {headers: {Authorization: token}}).then(
         (res) => {
           const tc = (res.data.length === 0 || res.data.length === undefined ? res.data.total_count : res.total_count); // take data directly if exists, otherwise take "data" part in JSON response
           setTotalCount(tc);
           console.log("totalCount: " + tc);
           const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
-          console.log(JSON.stringify(resData));
+          //console.log(JSON.stringify(resData));
           setTableData(resData);
-          console.log(JSON.stringify(tableData));
+          //console.log(JSON.stringify(tableData));
           setLoading(false);
         }
         ).catch(function (error) {
@@ -304,7 +306,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const getLookupDataAll = () => {
     Promise.all(lookups.map(getLookupData)).then( (data) => {
       console.log("data length: " + data.length);
-      console.log("data: " + JSON.stringify(data));
+      //console.log("data: " + JSON.stringify(data));
       /*
       var tmpArray = [];
       for(var i = 0; i< data.length; i++) {
@@ -325,15 +327,15 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     //getLookupData(lookupid);
     //console.log("getLookupValue for column: " + column_name + " / lookupreturnid: " + lookupreturnid + " / lookupid: " + lookupid);
     console.log("lookupData length: " + lookupData.length);   
-    console.log("lookupData: " + JSON.stringify(lookupData));   
+    //console.log("lookupData: " + JSON.stringify(lookupData));   
     //var relevantLookupData = lookupData; //[0].values; //.filter((row) => row.lookup == lookupid).values;   //
     var relevantLookupData = lookupData.filter((row) => row.lookup == lookupid)[0]; //.values;   //
-    console.log("relevantLookup: " + JSON.stringify(relevantLookupData));   
-    console.log("relevantLookupData data length: " + relevantLookupData.lookupdata);   
+    //console.log("relevantLookup: " + JSON.stringify(relevantLookupData));   
+    //console.log("relevantLookupData data length: " + relevantLookupData.lookupdata);   
     for (var i = 0; i < relevantLookupData.lookupdata.length; i++) {
-      console.log("r: " + relevantLookupData.lookupdata[i].r + " / d: " + relevantLookupData.lookupdata[i].d);
+      //console.log("r: " + relevantLookupData.lookupdata[i].r + " / d: " + relevantLookupData.lookupdata[i].d);
       if (relevantLookupData.lookupdata[i].r == lookupreturnid) {
-        console.log("found - label:" + relevantLookupData.lookupdata[i].d);
+        //console.log("found - label:" + relevantLookupData.lookupdata[i].d);
         displayValue = relevantLookupData.lookupdata[i].d;
         break;
       }
