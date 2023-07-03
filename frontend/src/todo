@@ -2,16 +2,10 @@
 # asap
 # ------------------------------------------------
 
-Globale Suche / Filterung
-- noch übermitteln in API beim GET !
-- aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
 
-Optimieren
-- Pagination: Wechsel von Anzahl pro Seite klappt nicht sofort
-- Order: Wechsel klappt erst einen Schritt später
+- Filter: noch Fehler in backend - warten auf Joe
+- Filter: aktuell noch Probleme beim Seitenwechsel / und nicht alle Spalten durchsuchen wie geändert am, ... !
 - Order: klappt bei Lookup-Spalten nicht z.B. Veranstaltungsnr !
-
-Filter in Spaltentitel noch erlauben / umsetzen
 
 CRUD Aufrufe zum Testen !
 

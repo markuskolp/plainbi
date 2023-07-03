@@ -55,6 +55,8 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [limit, setLimit]=useState(20);
   const [order, setOrder]=useState("");
   const [totalCount, setTotalCount]=useState();
+  const [filter, setFilter]=useState();
+  const [tableParamChanged, setTableParamChanged]=useState(false);
   
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
@@ -68,7 +70,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     getTableData(tableName);
     lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
     //setPkColumn(pkColumns); 
-  }, [tableName]);
+  }, [tableName, tableParamChanged]);
 
   // getTableData
   /*
@@ -104,9 +106,10 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       if(order && order.length > 0) {
         queryParams.append("order_by", order);
       }
+      if(filter && filter.length > 0) {
+        queryParams.append("filter", filter);
+      }
       console.log("queryParams: " + queryParams.toString());
-
-      queryParams.append("filterx", "");
 
       await Axios.get(api+tableName+'?'+queryParams, {headers: {Authorization: token}}).then(
         (res) => {
@@ -141,7 +144,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       if (!sorter.length) {
         // if only 1 sort column, then take the props directly
         console.log("one sorter order");
-        order = sorter.field + (sorter.order == "descend" ? " desc" : "");
+        order = sorter.field + (sorter.order == "descend" ? " desc" : " asc");
       } 
     }
     if (sorter.length > 1) {
@@ -160,7 +163,10 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     setOffset(offset);
     setLimit(limit);
     setOrder(order);
-    getTableData(tableName);
+
+    //auto refresh of table data because table params where changed - see useEffect()
+    setTableParamChanged(!tableParamChanged);
+    
   };
 
   // removeTableRow
@@ -382,6 +388,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       };
     }
 
+    /*
     const searchData = (value) => {
       console.log("searching value: " + value );
       console.log(tableData);
@@ -396,6 +403,14 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
 
       setFilteredTableData( tmpFilteredTableData );
     };
+    */
+
+    const searchData = (value) => {
+      console.log("setting filter: " + value );
+      setFilter(value);
+      //auto refresh of table data because table params where changed - see useEffect()
+      setTableParamChanged(!tableParamChanged);
+    }
 
     return (
       <React.Fragment>
@@ -423,7 +438,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                       placeholder="Suche ..."
                       //enterButton
                       onSearch={(value) => {searchData(value)}}
-                      onChange={(e) => {searchData(e.target.value)}}
+                      //onChange={(e) => {searchData(e.target.value)}}
                       style={{marginBottom:20,width:500}}
                       allowClear 
                     />
