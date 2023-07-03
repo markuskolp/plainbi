@@ -645,10 +645,11 @@ def get_all_repos(tokdata,tab):
     prof=get_profile(repoengine,tokdata['username'])
     out={}
     offset = request.args.get('offset')
+    myfilter = request.args.get('filter')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,with_total_count=True,is_repo=True,user_id=prof["user_id"])
+    items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,filter=myfilter,with_total_count=True,is_repo=True,user_id=prof["user_id"])
     log.debug("get_all_repos sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -1085,7 +1086,7 @@ def load_repo_users():
     if last_stmt_has_errors(e,out):
         log.error('error in select users %s', str(e))
         return False
-    users = {u["username"]: u["password_hash"] for u in plainbi_users}
+    users = {u["username"]: { "password_hash": u["password_hash"], "rolename" : "Admin" if u["role_id"]==1 else "User" } for u in plainbi_users}
     
 def authenticate_local(username,password):
     log.debug("++++++++++ entering authenticate_local")
@@ -1099,7 +1100,7 @@ def authenticate_local(username,password):
     pwd_hashed=p.decode()
     log.debug("login: hashed input pwd is %s",pwd_hashed)
     if username in users.keys():
-        if config.bcrypt.check_password_hash(users[username], password):
+        if config.bcrypt.check_password_hash(users[username]["password_hash"], password):
             log.debug("login: pwd ok")
             return True
     else:
@@ -1166,7 +1167,7 @@ def login():
     if authenticated:
         log.debug("login authenticated")
         token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
-        return jsonify({'access_token': token}), 200
+        return jsonify({'access_token': token, 'role': users[username]["rolename"]}), 200
 
     return jsonify({'message': 'Invalid credentials'}), 401
 

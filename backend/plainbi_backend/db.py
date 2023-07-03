@@ -179,6 +179,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     log.debug("sql_select: param versioned is <%s>",str(versioned))
     log.debug("sql_select: param is_repo is <%s>",str(is_repo))
     log.debug("sql_select: param user_id is <%s>",str(user_id))
+    db_typ = get_db_type(dbengine)
     total_count=None
     my_where_clause=""
     w=where_clause
@@ -189,31 +190,36 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     else:                               # ein komplettes select statement expected
         sql=tab
         tab_is_sql_stmt = True
-    if versioned:
-        if w is not None:
-            if len(my_where_clause)==0: my_where_clause=" WHERE "
-            my_where_clause += "("+w+") AND is_current_and_active = 'Y'"
+    if w is not None:
+        # a where clause is specified as parameter
+        if len(my_where_clause.strip())==0: 
+            my_where_clause=" WHERE "
         else:
-            if len(my_where_clause)==0: my_where_clause=" WHERE "
-            my_where_clause += "is_current_and_active = 'Y'"
-    else:
-        if w is not None:
-            if len(my_where_clause)==0: my_where_clause=" WHERE "
-            my_where_clause += " ("+w+") "
+            my_where_clause+=" AND "
+        my_where_clause += "("+w+")"
+    if versioned:
+        if len(my_where_clause.strip())==0: 
+            my_where_clause=" WHERE "
+        else:
+            my_where_clause+=" AND "
+        my_where_clause += "is_current_and_active = 'Y'"
+    if filter is not None:
+        metadata=get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=versioned)
+        if len(my_where_clause.strip())==0: 
+            my_where_clause=" WHERE "
+        else:
+            my_where_clause+=" AND "
+        my_where_clause = add_filter_to_where_clause(db_typ,tab, my_where_clause, filter, metadata["columns"],is_versioned=versioned )
     # check repo rights
     if is_repo and user_id is not None:
         my_where_clause = add_auth_to_where_clause(tab, my_where_clause, user_id)
         log.debug("sql_select auth added:%s",my_where_clause)
     # filter
-    if filter is not None:
-        metadata=get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=versioned)
-        if len(my_where_clause)==0: my_where_clause=" WHERE "
-        my_where_clause = add_filter_to_where_clause(tab, my_where_clause, filter, metadata["columns"],is_versioned=versioned )
     # now add where clause
     if len(my_where_clause)>0:
         sql+=my_where_clause
     sql_without_orderby_offset_limit=sql
-    sql+=add_offset_limit(get_db_type(dbengine),offset,limit,order_by)
+    sql+=add_offset_limit(db_typ,offset,limit,order_by)
     log.debug("sql_select: %s",sql)
 
     try:
@@ -980,25 +986,48 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq="user")
     return x
 
-def add_filter_to_where_clause(tab,where_clause,filter,columns,is_versioned=False):
+def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
     log.debug("++++++++++ entering add_filter_to_where_clause")
+    log.debug("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
     log.debug("add_filter_to_where_clause: param tab is <%s>",str(tab))
     log.debug("add_filter_to_where_clause: param filter is <%s>",str(filter))
     log.debug("add_filter_to_where_clause: param columns is <%s>",str(columns))
+    if dbtyp=="mssql":
+        concat_operator="+"
+    else:
+        concat_operator="||"
     w = where_clause
     if w is None: w=""
     filter_tokens=filter.split(" ")
     w+="("
     cnt=0
-    for ftok in filter_tokens:
-        lftok=ftok.lower()
+    cnttok=0
+    if True: # method with string concate all columns
+        csep="|#|#|-|"
+        cexp=""
         for c in columns:
             lc=c.lower()
-            # do not filter in version columns
             if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
             cnt=cnt+1
-            if cnt>1: w+=" or "
-            w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
+            if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
+            cexp+="lower(cast(coalesce("+lc+",'') as varchar))"
+        log.debug("filter cexp:%s",cexp)
+        for i,ftok in enumerate(filter_tokens):
+            lftok=ftok.lower()
+            if i>0:
+                w+=" AND "
+            w+=cexp+" like lower('%"+lftok+"%')"
+    else:
+        for ftok in filter_tokens:
+            cnttok+=1
+            lftok=ftok.lower()
+            for c in columns:
+                lc=c.lower()
+                # do not filter in version columns
+                if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
+                cnt=cnt+1
+                if cnt>1: w+=" or "
+                w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
     w+=")"
     log.debug("++++++++++ leaving add_filter_to_where_clause with: %s",w)
     return w

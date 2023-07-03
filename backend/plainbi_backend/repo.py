@@ -498,7 +498,31 @@ create table plainbi_audit (
  ,request_method varchar
  ,request_body varchar
 )
+""",
 """
+DROP VIEW IF EXISTS plainbi_audit_adhoc;
+""",
+"""
+create view plainbi_audit_adhoc
+as
+select 
+coalesce(u.fullname, u.username) as user
+, a.t as datum
+, a.id as adhoc_id
+, pa.name as adhoc_name
+, case 
+when a.url like '%XLSX' then 'Excel'
+when a.url like '%CSV' then 'CSV'
+when a.url like '%HTML' then 'HTML'
+else 'HTML' 
+end as ausgabe_format
+from plainbi_audit a, plainbi_user u, plainbi_adhoc pa 
+where 1=1
+and a.username = u.username
+and a.id = pa.id
+and url like '%/api/repo/adhoc/%/data%'
+order by a.t desc;
+""",
     ]
     print("******************************")
     for sql in sql_create_list[:]:

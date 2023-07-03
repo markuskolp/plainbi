@@ -175,6 +175,7 @@ def test_000_login(test_client):
     #headers = { 'Authorization': '{}'.format(token), "Accept": "application/json", "Content-Type" : "application/json; charset=utf8" }
     headers = { 'Authorization': '{}'.format(token)}
     log.info("Headers set to: %s",str(headers))
+    assert json_out["role"] == "Admin"
 
 def test_000_version(test_client):
     """
@@ -717,6 +718,24 @@ def test_3031_vgetall(test_client):
     print("got=",json_out)
     #row1=(json_out["data"])[0]
     assert json_out["total_count"]==1
+    
+def test_3032_vgetall_filter(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/crud/'+tv+"?v&filter=item"
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==1
+  
 
 def test_3040_vdel(test_client):
     """
@@ -749,6 +768,7 @@ def test_3041_vgetall(test_client):
     print("got=",json_out)
     #row1=(json_out["data"])[0]
     assert json_out["total_count"]==0
+
 
 def test_3050_vtab_reins(test_client):
     """
@@ -1007,6 +1027,40 @@ def test_4050_vtab_reins(test_client):
     print("got=",json_out)
     row1=(json_out["data"])[0]
     assert row1["name"]==nam
+    
+def test_4100_repo_get_apps(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/repo/application'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    json_out = response.get_json()
+    print("got=",json_out)
+    assert response.status_code == 200
+    assert json_out["total_count"] == 5
+
+def test_4101_repo_get_apps_filter(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/repo/application?filter=testapp'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    json_out = response.get_json()
+    print("got=",json_out)
+    assert response.status_code == 200
+    assert json_out["total_count"] == 1
+    
+
 
 ### auth testing
 
@@ -1045,6 +1099,8 @@ def test_5001_testuser_login(test_client):
     testuser_token=json_out["access_token"]
     print("Testuser token=",testuser_token)
     testuser_headers = { 'Authorization': '{}'.format(testuser_token)}
+    assert json_out["role"] == "User"
+
 
 def test_5008_repo_ins_app_to_grp(test_client):
     """
@@ -1129,5 +1185,5 @@ def test_5020_repo_get_resource(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     assert response.status_code == 200
-    assert response.status_code == 200
     assert json_out["total_count"] == 1
+
