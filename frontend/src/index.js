@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ThemeLayout from "./pages/ThemeLayout";
@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 
 const App = () => {
   const { token, removeToken, setToken } = useToken();
+  const userRole = localStorage.getItem('role');
 
   return (
     <BrowserRouter>
@@ -27,9 +28,9 @@ const App = () => {
       ) :
       (
         <Routes>
-          <Route path="/" element={<ThemeLayout removeToken={removeToken}/>}>
+          <Route path="/" element={<ThemeLayout removeToken={removeToken} />} >
             <Route index element={<Home token={token} setToken={setToken} removeToken={removeToken}/>} />
-            <Route path="settings" element={<Settings token={token} setToken={setToken} />} />
+            {userRole == 'ADMIN' && <Route path="settings" element={<Settings token={token} setToken={setToken} />} /> }
             <Route path="myprofile" element={<UserProfile token={token} setToken={setToken} />} />
             <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} />} />
             <Route path="apps" element={<Apps token={token} setToken={setToken} />} />

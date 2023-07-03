@@ -27,6 +27,10 @@ const Login = (props) => {
     })
     .then((response) => {
       props.setToken(response.data.access_token)
+      //props.setRole(response.data.role ? response.data.role.toUpperCase() : 'ADMIN')
+      localStorage.setItem('role', response.data.role ? response.data.role.toUpperCase() : 'USER')
+      //localStorage.setItem('role', 'ADMIN');
+      //props.setRole('ADMIN');
   
     }).catch((error) => {
       if (error.response) {

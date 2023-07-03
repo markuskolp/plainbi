@@ -13,6 +13,10 @@ import {
 } from "antd";
 import Table from "./Table";
 import {Sorter} from "../utils/sorter";
+import {
+  CaretUpFilled,
+  CaretDownFilled
+} from '@ant-design/icons';
 import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import CRUDModal from "./CRUDModal";
@@ -53,8 +57,11 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [modalMode, setModalMode] = useState("new"); // new/edit
   const [offset, setOffset]=useState(0);
   const [limit, setLimit]=useState(20);
-  const [params, setParams]=useState({});
+  const [order, setOrder]=useState("");
   const [totalCount, setTotalCount]=useState();
+  const [filter, setFilter]=useState();
+  const [tableParamChanged, setTableParamChanged]=useState(false);
+  const [typingTimeout, setTypingTimeout]=useState(null);
   
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
@@ -68,7 +75,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     getTableData(tableName);
     lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
     //setPkColumn(pkColumns); 
-  }, [tableName]);
+  }, [tableName, tableParamChanged]);
 
   // getTableData
   /*
@@ -97,24 +104,27 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
 
       const queryParams = new URLSearchParams();
       if(versioned) {
-        queryParams.append("v", offset);
+        queryParams.append("v", 1);
       }
       queryParams.append("offset", offset);
       queryParams.append("limit", limit);
-      if(params && params.order) {
-        queryParams.append("order_by", JSON.stringify(params.order));
+      if(order && order.length > 0) {
+        queryParams.append("order_by", order);
+      }
+      if(filter && filter.length > 0) {
+        queryParams.append("filter", filter);
       }
       console.log("queryParams: " + queryParams.toString());
-      
+
       await Axios.get(api+tableName+'?'+queryParams, {headers: {Authorization: token}}).then(
         (res) => {
           const tc = (res.data.length === 0 || res.data.length === undefined ? res.data.total_count : res.total_count); // take data directly if exists, otherwise take "data" part in JSON response
           setTotalCount(tc);
           console.log("totalCount: " + tc);
           const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
-          console.log(JSON.stringify(resData));
+          //console.log(JSON.stringify(resData));
           setTableData(resData);
-          console.log(JSON.stringify(tableData));
+          //console.log(JSON.stringify(tableData));
           setLoading(false);
         }
         ).catch(function (error) {
@@ -131,15 +141,40 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     console.log("offset: " + offset);
     console.log("limit: " + limit);
     console.log("sorter: " + JSON.stringify(sorter));
-  
+    var order = "";
+    console.log("order sorter.length: " + sorter.length);
+    console.log("order sorter hasproperty column: " + sorter.hasOwnProperty("column"));
+    console.log("order sorter.order: " + sorter.order);
     if (sorter.hasOwnProperty("column")) {
-      params.order = { field: sorter.field, dir: sorter.order };
+      //params.order = { field: sorter.field, dir: sorter.order };
+      if (!sorter.length) {
+        if(sorter.order) { // only if sorter order is not undefined
+          // if only 1 sort column, then take the props directly
+          console.log("one sorter order");
+          order = sorter.field + (sorter.order == "descend" ? " desc" : "");
+        }
+      } 
     }
-  
+    if (sorter.length > 1) {
+      // if more than 1 sort column, then loop through them and get props
+      console.log("more than one sorter order");
+      for (var i = 0; i < sorter.length; i++) {
+        order += sorter[i].field;
+        if (sorter[i].order == "descend") { // only append descend if defined - ascend is default and does not need to be set explicitly
+          order += " desc";
+        }
+        order += ",";
+      }
+      order = order.slice(0,-1); // eliminate the last comma
+    }
+    console.log("sort order: " + order);
     setOffset(offset);
     setLimit(limit);
-    setParams(params);
-    getTableData(tableName);
+    setOrder(order);
+
+    //auto refresh of table data because table params where changed - see useEffect()
+    setTableParamChanged(!tableParamChanged);
+    
   };
 
   // removeTableRow
@@ -285,7 +320,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const getLookupDataAll = () => {
     Promise.all(lookups.map(getLookupData)).then( (data) => {
       console.log("data length: " + data.length);
-      console.log("data: " + JSON.stringify(data));
+      //console.log("data: " + JSON.stringify(data));
       /*
       var tmpArray = [];
       for(var i = 0; i< data.length; i++) {
@@ -306,15 +341,15 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     //getLookupData(lookupid);
     //console.log("getLookupValue for column: " + column_name + " / lookupreturnid: " + lookupreturnid + " / lookupid: " + lookupid);
     console.log("lookupData length: " + lookupData.length);   
-    console.log("lookupData: " + JSON.stringify(lookupData));   
+    //console.log("lookupData: " + JSON.stringify(lookupData));   
     //var relevantLookupData = lookupData; //[0].values; //.filter((row) => row.lookup == lookupid).values;   //
     var relevantLookupData = lookupData.filter((row) => row.lookup == lookupid)[0]; //.values;   //
-    console.log("relevantLookup: " + JSON.stringify(relevantLookupData));   
-    console.log("relevantLookupData data length: " + relevantLookupData.lookupdata);   
+    //console.log("relevantLookup: " + JSON.stringify(relevantLookupData));   
+    //console.log("relevantLookupData data length: " + relevantLookupData.lookupdata);   
     for (var i = 0; i < relevantLookupData.lookupdata.length; i++) {
-      console.log("r: " + relevantLookupData.lookupdata[i].r + " / d: " + relevantLookupData.lookupdata[i].d);
+      //console.log("r: " + relevantLookupData.lookupdata[i].r + " / d: " + relevantLookupData.lookupdata[i].d);
       if (relevantLookupData.lookupdata[i].r == lookupreturnid) {
-        console.log("found - label:" + relevantLookupData.lookupdata[i].d);
+        //console.log("found - label:" + relevantLookupData.lookupdata[i].d);
         displayValue = relevantLookupData.lookupdata[i].d;
         break;
       }
@@ -329,7 +364,26 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   // return a column to be used as metadata for a Table component
   function getColumn(column_label, column_name, datatype) {
     return {
-      title: column_label,
+      //title: column_label
+      title: ({ sortColumns }) => {
+        const sortedColumn = sortColumns?.find(({ column }) => column.key === column_name);
+        return (
+          <div class="th-div-custom">
+            <span class="th-div-custom-title">{column_label}</span>
+            <span>{sortedColumn ? (
+              sortedColumn.order === "ascend" ? (
+                <CaretUpFilled style={{fontSize: '14px'}}/>
+              ) : (
+                sortedColumn.order === "descend" ? (
+                  <CaretDownFilled style={{fontSize: '14px'}}/>
+                ) :  <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />
+              )
+            ) : <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />}
+            </span>
+          </div>
+        )
+      }
+      ,
       dataIndex: column_name,
       sorter: {
         compare: Sorter.DEFAULT,
@@ -338,7 +392,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       render: (text, record) => (
         (datatype === "datetime" && text) ? text.substring(0,19) : text // trim milliseconds
       )
-      //key: column_name
+      , key: column_name
       //width: 50,
     };
   }
@@ -347,13 +401,32 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
     // this is from the type "lookup"
     const getLookupColumn = (column_label, column_name, lookupid) => {
       return {
-        title: column_label,
+        //title: column_label
+      title: ({ sortColumns }) => {
+        const sortedColumn = sortColumns?.find(({ column }) => column.key === column_name);
+        return (
+          <div class="th-div-custom">
+            <span class="th-div-custom-title">{column_label}</span>
+            <span>{sortedColumn ? (
+              sortedColumn.order === "ascend" ? (
+                <CaretUpFilled style={{fontSize: '14px'}}/>
+              ) : (
+                sortedColumn.order === "descend" ? (
+                  <CaretDownFilled style={{fontSize: '14px'}}/>
+                ) :  <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />
+              )
+            ) : <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />}
+            </span>
+          </div>
+        )
+      }
+      ,
         dataIndex: column_name,
         sorter: {
           compare: Sorter.DEFAULT,
           multiple: 3,
         },
-        //key: column_name
+        key: column_name,
         //width: 50,
         render: (text, record, column_name) => (
           <Text>{getLookupValue(text, lookupid, column_name)}</Text>
@@ -361,6 +434,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
       };
     }
 
+    /*
     const searchData = (value) => {
       console.log("searching value: " + value );
       console.log(tableData);
@@ -375,6 +449,26 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
 
       setFilteredTableData( tmpFilteredTableData );
     };
+    */
+
+    const searchData = (value) => {
+      console.log("setting filter: " + value );
+      setFilter(value);
+      //auto refresh of table data because table params where changed - see useEffect()
+      setTableParamChanged(!tableParamChanged);
+    }
+
+    const searchDataWithTimeout = (value) => {
+      console.log("setting filter: " + value );
+      if(typingTimeout) clearTimeout(typingTimeout);
+      setTypingTimeout( 
+        setTimeout(() => {
+          setFilter(value);
+          //auto refresh of table data because table params where changed - see useEffect()
+          setTableParamChanged(!tableParamChanged);
+        }, 600)
+      );
+    }
 
     return (
       <React.Fragment>
@@ -402,7 +496,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                       placeholder="Suche ..."
                       //enterButton
                       onSearch={(value) => {searchData(value)}}
-                      onChange={(e) => {searchData(e.target.value)}}
+                      onChange={(e) => {searchDataWithTimeout(e.target.value)}}
                       style={{marginBottom:20,width:500}}
                       allowClear 
                     />
