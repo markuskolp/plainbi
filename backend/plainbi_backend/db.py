@@ -61,9 +61,10 @@ repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource
 config.conn={}
 
 def db_exec(engine,sql,params=None):
-    log.debug("++++++++++ entering db_exec")
-    log.debug("db_exec: param sql is <%s>",str(sql))
-    log.debug("db_exec: params is <%s>",str(params))
+    dbgindent="    "
+    log.debug(dbgindent+"++++++++++ entering db_exec")
+    log.debug(dbgindent+"db_exec: param sql is <%s>",str(sql))
+    log.debug(dbgindent+"db_exec: params is <%s>",str(params))
     #
     is_select=False
     if not engine.url in config.conn.keys():
@@ -73,23 +74,23 @@ def db_exec(engine,sql,params=None):
     #    return res
     if params is not None:
         if not isinstance(params, dict):
-            log.warning("db_exec called with params WITHOUT dict")
+            log.warning(dbgindent+"db_exec called with params WITHOUT dict")
     #sqlalchemy 2.0
     mysql=sqlalchemy.text(sql)
 
     with config.database_lock:
-        log.debug("db_exec: check connection")
+        log.debug(dbgindent+"db_exec: check connection")
         if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
-            log.debug("db_exec: connect")
+            log.debug(dbgindent+"db_exec: connect")
             config.conn[engine.url] = engine.connect()
     
         if config.conn[engine.url].closed:
-            log.debug("db_exec: open connection")
+            log.debug(dbgindent+"db_exec: open connection")
             config.conn[engine.url] = engine.connect()
-        log.debug("db_exec: execute")
+        log.debug(dbgindent+"db_exec: execute")
     
         if sql.lower().strip().startswith("select"):
-            log.debug("db_exec: sql is a select")
+            log.debug(dbgindent+"db_exec: sql is a select")
             is_select=True
         try:
             if params is not None:
@@ -104,29 +105,29 @@ def db_exec(engine,sql,params=None):
                 if not is_select:
                     config.conn[engine.url].commit()
         except Exception as e:
-            log.error("db_exec ERROR: %s",str(e))
-            log.error("db_exec ERROR: SQL is %s",str(sql))
-            log.error("db_exec ERROR: params are %s",str(params))
+            log.error(dbgindent+"db_exec ERROR: %s",str(e))
+            log.error(dbgindent+"db_exec ERROR: SQL is %s",str(sql))
+            log.error(dbgindent+"db_exec ERROR: params are %s",str(params))
             raise e
         if is_select:
-            log.debug("db_exec: is select and returns data")
+            log.debug(dbgindent+"db_exec: is select and returns data")
             items = [row._asdict() for row in res]
-            log.debug("db_exec: anz rows=%d",len(items))
+            log.debug(dbgindent+"db_exec: anz rows=%d",len(items))
             columns = list(res.keys())
         #close connection
         if isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
             if not config.conn[engine.url].closed:
                 config.conn[engine.url].close()
-                log.debug("db_exec: connection closed")
+                log.debug(dbgindent+"db_exec: connection closed")
             else:
-                log.debug("db_exec: connection is already closed")
+                log.debug(dbgindent+"db_exec: connection is already closed")
         else:
-                log.debug("db_exec: connection is not sqlalchemy connection for closing")
+                log.debug(dbgindent+"db_exec: connection is not sqlalchemy connection for closing")
         if is_select:
-            log.debug("++++++++++ leaving db_exec with data result")
+            log.debug(dbgindent+"++++++++++ leaving db_exec with data result")
             return items, columns
         else:
-            log.debug("++++++++++ leaving db_exec with dml result status")
+            log.debug(dbgindent+"++++++++++ leaving db_exec with dml result status")
             return res
 
 def get_db_type(dbengine):
@@ -160,7 +161,7 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
     return sql
 
 
-def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False,is_repo=False,user_id=None):
+def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False,is_repo=False,user_id=None, customsql=None):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -185,7 +186,12 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     w=where_clause
     tab_is_sql_stmt=False
     if len(tab.split(" "))==1:          # nur ein wort
-        sql=f'SELECT * FROM {tab}'
+        if customsql is not None:
+            log.debug("get_item_raw get custom sql id=%s",customsql)
+            csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
+            sql=f'SELECT * FROM ({csql})'
+        else:
+            sql=f'SELECT * FROM {tab}'
         tab_is_sql_stmt = False
     else:                               # ein komplettes select statement expected
         sql=tab
@@ -314,7 +320,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
     return out
 
-def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None):
+def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle ub der Datenbank
 
@@ -325,53 +331,62 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     pk_column_list : Wert des Datensatz Identifier (Primary Key)
     version : table is versioned
     version_deleted : return also delete item
-    
 
     Returns
     -------
     dict mit den keys "data" ggf "errors"
 
     """
-    log.debug("++++++++++ entering get_item_raw")
-    log.debug("get_item_raw: param tab is <%s>",str(tab))
-    log.debug("get_item_raw: param pk is <%s>",str(pk))
-    log.debug("get_item_raw: param pk_column_list is <%s>",str(pk_column_list))
-    log.debug("get_item_raw: param versioned is <%s>",str(versioned))
-    log.debug("get_item_raw: param version_deleted is <%s>",str(version_deleted))
+    log.debug("++++++++++ entering get_item_raw[%s]")
+    log.debug("get_item_raw[%s]: param tab is <%s>",str(tab),str(tab))
+    log.debug("get_item_raw[%s]: param pk is <%s>",str(tab),str(pk))
+    log.debug("get_item_raw[%s]: param pk_column_list is <%s>",str(tab),str(pk_column_list))
+    log.debug("get_item_raw[%s]: param versioned is <%s>",str(tab),str(versioned))
+    log.debug("get_item_raw[%s]: param version_deleted is <%s>",str(tab),str(version_deleted))
+    log.debug("get_item_raw[%s]: param is_repo is <%s>",str(tab),str(is_repo))
+    log.debug("get_item_raw[%s]: param user_id is <%s>",str(tab),str(user_id))
+    log.debug("get_item_raw[%s]: param customsql is <%s>",str(tab),str(customsql))
     out={}
-    log.debug("in get_item raw")
     metadata=get_metadata_raw(dbengine,tab,pk_column_list,versioned)
     if "error" in metadata.keys():
-        return metadata        
+        return metadata
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
-        log.warning("implicit pk first column")
-    print("get_item_raw: pk_columns",str(pkcols))
+        log.warning("get_item_raw[%s]: implicit pk first column",str(tab))
+    log.debug("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
     pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted)
+    log.debug("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
         # check repo rights
         pkwhere = add_auth_to_where_clause(tab, pkwhere, user_id)
-        log.debug("sql_select auth added:%s",pkwhere)
-    sql=f'SELECT * FROM {tab} {pkwhere}'
-    log.debug("sql=%s",sql)
+        log.debug("get_item_raw[%s]: sql_select auth added: %s",str(tab),pkwhere)
+    print("get_item_raw[%s]: pkwhere2 <%s>",str(tab),str(pkwhere))
+    if customsql is not None:
+        log.debug("get_item_raw[%s]: get custom sql id=%s",str(tab),customsql)
+        csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
+        log.debug("get_item_raw[%s]: got custom sql id=%s",str(tab),csql)
+        sql=f'SELECT * FROM ({csql}) {pkwhere}'
+    else:    
+        sql=f'SELECT * FROM {tab} {pkwhere}'
+    log.debug("get_item_raw[%s]: sql=%s",str(tab),sql)
     try:
         items, columns = db_exec(dbengine,sql,pkwhere_params)
     except SQLAlchemyError as e_sqlalchemy:
-        log.error("sqlalchemy exception in get_item_raw: %s",str(e_sqlalchemy))
+        log.error("get_item_raw[%s]: sqlalchemy exception: %s",str(tab),str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
         return out
     except Exception as e:
-        log.debug("exception in get_item_raw: %s ",str(e))
+        log.debug("get_item_raw[%s]: exception: %s ",str(tab),str(e))
         last_stmt_has_errors(e, out)
         return out
 
-    log.debug("columns: %s",columns)
+    log.debug("get_item_raw[%s]: columns: %s",str(tab),columns)
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=len(items)
-    log.debug("++++++++++ leaving get_item_raw returning %s",str(out))
+    log.debug("++++++++++ leaving get_item_raw[%s]:  returning %s",str(tab),str(out))
     return out
 
 def get_next_seq(dbengine,seq):
@@ -587,6 +602,48 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
         items, columns =db_exec(dbengine,sql)
     return items, columns
 
+## repo customsql 
+def get_repo_customsql_sql_stmt(repoengine,id):
+    """
+    führt ein sql aus und gibt zurück
+      items .. List von dicts pro zeile
+      columns .. spaltenname
+      total_count .. anzahl der rows in der Tabelle (count*)
+      msg ... ggf error code sonst "ok"
+    """
+    out={}
+    log.debug("++++++++++entering get_repo_customsql_sql_stmt")
+    log.debug("get_repo_customsql_sql_stmt: param id is <%s>",str(id))
+    if is_id(id):
+        reposql_params={ "id" : id}
+        reposql="select * from plainbi_customsql where id=:id"
+    else:
+        reposql_params={ "alias" : id}
+        reposql="select * from plainbi_customsql where alias=:alias"
+    log.debug("get_repo_customsql_sql_stmt: repo sql is <%s>",reposql)
+    try:
+        lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("sqlalchemy exception in get_repo_customsql_sql_stmt: %s",str(e_sqlalchemy))
+        last_stmt_has_errors(e_sqlalchemy, out)
+        return out
+    except Exception as e:
+        log.debug("exception in get_repo_customsql_sql_stmt: %s ",str(e))
+        last_stmt_has_errors(e, out)
+        return out
+    sql=None
+    execute_in_repodb=None
+    if isinstance(lkp,list):
+        if len(lkp)==1:
+            if isinstance(lkp[0],dict):
+                sql=lkp[0]["sql_query"]
+        else:
+            log.debug("lkp list len is not 1, it is %d",len(lkp))
+    else:
+        log.debug("lkp is not a dict, it is a %s",str(lkp.__class__))
+    log.debug("++++++++++leaving get_repo_customsql_sql_stmt with sql=%s",sql)
+    return sql, execute_in_repodb
+
 
 def check_hash_columns(tab,item):
     log.debug("check_hash_columns for %s item %s",tab,item)
@@ -599,7 +656,7 @@ def check_hash_columns(tab,item):
                 log.debug("check_hash_columns: hashed %s.%s",tab,c)
 
 ## crud ops
-def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False, user_id=None):
+def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False, user_id=None, customsql=None):
     """ 
     insert record
     """
@@ -713,12 +770,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         last_stmt_has_errors(e, out)
         return out
     # read new record from database and send it back
-    out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id)
+    out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
     log.debug("++++++++++ leaving db_ins returning %s", str(out))
     return out
 
 ## crud ops
-def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, user_id=None):
+def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, user_id=None,customsql=None):
     log.debug("++++++++++ entering db_upd")
     log.debug("db_upd: param tab is <%s>",str(tab))
     log.debug("db_upd: param pk is <%s>",str(pk))
@@ -821,7 +878,7 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, 
             log.debug("++++++++++ leaving db_upd returning %s", str(out))
             return out
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
-    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id)
+    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
     log.debug("++++++++++ leaving db_upd returning %s", str(out))
     return out
 

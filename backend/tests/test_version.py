@@ -371,6 +371,7 @@ def test_1050_repo_get_app(test_client):
     print("got=",json_out)
     assert response.status_code == 204
 
+
 # test mit compound keys
 def test_1100_repo_ins_app_to_grp(test_client):
     """
@@ -389,6 +390,7 @@ def test_1100_repo_ins_app_to_grp(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     row1=(json_out["data"])[0]
+    assert row1["application_id"]==-9
     assert row1["group_id"]==-3
 
 def test_1101_repo_compound_get(test_client):
@@ -1060,6 +1062,93 @@ def test_4101_repo_get_apps_filter(test_client):
     assert response.status_code == 200
     assert json_out["total_count"] == 1
     
+### customsql testing
+
+# customsql
+def test_4500_repo_ins_customsql(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/repo/customsql'
+    test_data={ "name" : "test customsql" , "alias" : "application_to_group:1", "sql_query": "select ag.application_id, a.name as application_name, ag.group_id, g.name as group_name from plainbi_application_to_group ag join plainbi_application a on ag.application_id =a.id join plainbi_group g on ag.group_id = g.id" }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["alias"]=="application_to_group:1"
+
+def test_4510_repo_ins_app_to_grp_customsql(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"
+    test_url='/api/repo/application_to_group'
+    test_data={ "application_id" : -15, "group_id": -3 }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["application_id"]==-15
+    assert row1["group_id"]==-3
+    
+def test_4511_repo_ins_app(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    appnam = 'testapp3'
+    test_url = '/api/repo/application'
+    test_data = {"name" : appnam, "id" : -15  }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==appnam
+
+
+def test_4520_repo_compound_get(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/repo/application_to_group/(application_id:-15:group_id:-3)'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["application_id"]==-15
+    assert row1["group_id"]==-3
+
+def test_4521_repo_compound_get_customsql(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/repo/application_to_group/(application_id:-15:group_id:-3)?customsql=application_to_group:1'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["application_id"]==-15
+    assert row1["group_id"]==-3
+    assert row1["group_name"]=="testgroup"
 
 
 ### auth testing
@@ -1185,5 +1274,5 @@ def test_5020_repo_get_resource(test_client):
     json_out = response.get_json()
     print("got=",json_out)
     assert response.status_code == 200
-    assert json_out["total_count"] == 1
+    assert json_out["total_count"] == 2
 

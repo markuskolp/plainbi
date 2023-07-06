@@ -113,7 +113,7 @@ from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec,audit,db_adduser
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec,audit,db_adduser
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -231,8 +231,9 @@ def get_all_items(tokdata,tab):
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
+    mycustomsql = request.args.get('customsql')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter)
+    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
     log.debug("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -282,11 +283,12 @@ def get_item(tokdata,tab,pk):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
+    mycustomsql = request.args.get('customsql')
     log.debug("tab %s pk %s")
     # check if pk is compound
     pk=prep_pk_from_url(pk)
     #
-    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -344,6 +346,7 @@ def create_item(tokdata,tab):
                 is_versioned=True
                 log.debug("versions enabled")
     log.debug("create_item tab %s pkcols %s seq %s",tab,pkcols,seq)
+    mycustomsql = request.args.get('customsql')
 
     data_bytes = request.get_data()
     log.debug("create_item 7")
@@ -352,7 +355,7 @@ def create_item(tokdata,tab):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
-    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'])
+    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
     return jsonify(out)
 
 
@@ -392,6 +395,7 @@ def update_item(tokdata,tab,pk):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
+    mycustomsql = request.args.get('customsql')
     # check if pk is compound
     pk=prep_pk_from_url(pk)
     # check pk from compound key 
@@ -412,7 +416,7 @@ def update_item(tokdata,tab,pk):
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
     
-    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'])
+    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
 
     #return 'Item updated successfully', 200
     return jsonify(out)
@@ -648,8 +652,9 @@ def get_all_repos(tokdata,tab):
     myfilter = request.args.get('filter')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
+    mycustomsql = request.args.get('customsql')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,filter=myfilter,with_total_count=True,is_repo=True,user_id=prof["user_id"])
+    items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,filter=myfilter,with_total_count=True,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     log.debug("get_all_repos sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -694,12 +699,13 @@ def get_repo(tokdata,tab,pk):
                 pkcols=value.split(",")
                 log.debug("pk option %s",pkcols)
     # check if pk is compound
+    mycustomsql = request.args.get('customsql')
     pk=prep_pk_from_url(pk)
     if tab=="application" and (not is_id(pk)):
         # use alias
-        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"],is_repo=True,user_id=prof["user_id"])
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"],is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     else:    
-        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,is_repo=True,user_id=prof["user_id"])
+        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -752,17 +758,18 @@ def create_repo(tokdata,tab):
                 is_versioned=True
                 log.debug("versions enabled")
     log.debug("create_repo tab %s pkcols %s",tab,pkcols)
+    mycustomsql = request.args.get('customsql')
 
     data_bytes = request.get_data()
     log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
-    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group"]:
+    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group","customsql"]:
         seq=tab
     else:
         seq=None
-    out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True)
+    out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True,customsql=mycustomsql)
     return jsonify(out)
 
 
@@ -800,6 +807,7 @@ def update_repo(tokdata,tab,pk):
             if key=="pk":
                 pkcols=value.split(",")
                 log.debug("pk option %s",pkcols)
+    mycustomsql = request.args.get('customsql')
     # check if pk is compound
     pk=prep_pk_from_url(pk)
     # check pk from compound key 
@@ -818,7 +826,7 @@ def update_repo(tokdata,tab,pk):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
-    out = db_upd(repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True)
+    out = db_upd(repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True,customsql=mycustomsql)
     return jsonify(out)
 
 

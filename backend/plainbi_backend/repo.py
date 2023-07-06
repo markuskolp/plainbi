@@ -218,7 +218,6 @@ create table plainbi_external_resource_to_group (
  ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
 )
 """,
-
 """
 drop table if exists plainbi_adhoc
 """,
@@ -522,6 +521,20 @@ and a.username = u.username
 and a.id = pa.id
 and url like '%/api/repo/adhoc/%/data%'
 order by a.t desc;
+""",
+"""
+drop table if exists plainbi_customsql
+""",
+"""
+create table plainbi_customsql (
+  id int primary key not null
+ ,alias text
+ ,name varchar
+ ,sql_query varchar
+)
+""",
+"""
+insert into plainbi_seq (sequence_name,curval) values ('customsql',0)
 """,
     ]
     print("******************************")

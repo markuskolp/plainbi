@@ -63,7 +63,6 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
     log.debug("make_pk_where_clause: param pk is <%s>",str(pk))
     log.debug("make_pk_where_clause: param pkcols is <%s>",str(pkcols))
     w=""
-    val={}
     if isinstance(pk, dict):
         mypk=pk
     else:
@@ -75,8 +74,8 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
 
     if isinstance(pkcols, list):
         if len(pkcols) != len(mypk):
-            log.error("number of pkcols and pk values do not match")
-            return None,None
+            log.warning("make_pk_where_clause: number of pkcols and pk values do not match! pkcols=<%s> vs mypk=<%s>",str(pkcols),str(mypk))
+            #return None,mypk
        
     i=0
     for c,v in mypk.items():
@@ -93,7 +92,7 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
            w+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
        else:
            w+=" AND is_current_and_active = 'Y'" 
-    log.debug("make_pk_where_clause: return whereclause=%s , vallist=%s",w,val)
+    log.debug("++++++++++ leaving make_pk_where_clause return whereclause=%s , vallist=%s",w,str(mypk))
     return w, mypk
 
 def last_stmt_has_errors(e,out):
