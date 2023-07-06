@@ -185,13 +185,14 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     my_where_clause=""
     w=where_clause
     tab_is_sql_stmt=False
+    tabalias="x"
     if len(tab.split(" "))==1:          # nur ein wort
         if customsql is not None:
             log.debug("get_item_raw get custom sql id=%s",customsql)
             csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
-            sql=f'SELECT * FROM ({csql})'
+            sql=f'SELECT {tabalias}.* FROM ({csql}) {tabalias} '
         else:
-            sql=f'SELECT * FROM {tab}'
+            sql=f'SELECT {tabalias}.* FROM {tab} {tabalias} '
         tab_is_sql_stmt = False
     else:                               # ein komplettes select statement expected
         sql=tab
@@ -356,20 +357,21 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         pkcols=[(metadata["columns"])[0]]
         log.warning("get_item_raw[%s]: implicit pk first column",str(tab))
     log.debug("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
-    pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted)
+    tabalias="x"
+    pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias)
     log.debug("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
         # check repo rights
         pkwhere = add_auth_to_where_clause(tab, pkwhere, user_id)
-        log.debug("get_item_raw[%s]: sql_select auth added: %s",str(tab),pkwhere)
+        log.debug("get_item_raw[%s]: sql_select auth added: %s",str(tab), pkwhere)
     print("get_item_raw[%s]: pkwhere2 <%s>",str(tab),str(pkwhere))
     if customsql is not None:
         log.debug("get_item_raw[%s]: get custom sql id=%s",str(tab),customsql)
         csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
         log.debug("get_item_raw[%s]: got custom sql id=%s",str(tab),csql)
-        sql=f'SELECT * FROM ({csql}) {pkwhere}'
+        sql=f'SELECT {tabalias}.* FROM ({csql}) {tabalias} {pkwhere}'
     else:    
-        sql=f'SELECT * FROM {tab} {pkwhere}'
+        sql=f'SELECT {tabalias}.* FROM {tab} {tabalias} {pkwhere}'
     log.debug("get_item_raw[%s]: sql=%s",str(tab),sql)
     try:
         items, columns = db_exec(dbengine,sql,pkwhere_params)

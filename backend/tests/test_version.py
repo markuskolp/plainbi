@@ -552,6 +552,26 @@ def test_2020_upd(test_client):
     assert row1["name"]==nam
     assert row1["nr"]==id
 
+# customsql
+def test_2025_repo_ins_customsql(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/repo/customsql'
+    test_data={ "name" : "test customsql2" , "alias" : "customsql2", "sql_query": f"select * from {t}" }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["alias"]=="customsql2"
+
+
 def test_2030_get(test_client):
     """
     GIVEN a Flask application configured for testing
@@ -587,6 +607,44 @@ def test_2031_getall(test_client):
     print("got=",json_out)
     #row1=(json_out["data"])[0]
     assert json_out["total_count"]==2
+
+   
+def test_2032_crud_get_customsql(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers,t
+    log.info('TEST: %s',func_name())
+    id=-8
+    test_url='/api/crud/'+t+'/'+str(id)+"?customsql=customsql2"
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]=="item2"
+    assert row1["nr"]==id
+
+def test_2033_crud_getall_customsql(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global t,headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/crud/'+t+"?customsql=customsql2"
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==2
+
 
 def test_2035_getall_filter(test_client):
     """
@@ -1083,6 +1141,8 @@ def test_4500_repo_ins_customsql(test_client):
     row1=(json_out["data"])[0]
     assert row1["alias"]=="application_to_group:1"
 
+
+
 def test_4510_repo_ins_app_to_grp_customsql(test_client):
     global headers
     log.info('TEST: %s',func_name())
@@ -1149,6 +1209,7 @@ def test_4521_repo_compound_get_customsql(test_client):
     assert row1["application_id"]==-15
     assert row1["group_id"]==-3
     assert row1["group_name"]=="testgroup"
+
 
 
 ### auth testing

@@ -53,7 +53,7 @@ def prep_pk_from_url(pk):
     else:
         return pk        
 
-def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
+def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None):
     """
       pk ... werte für primary key whereclause 
       pk ... pk column names
@@ -62,6 +62,11 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
     log.debug("++++++++++ entering make_pk_where_clause")
     log.debug("make_pk_where_clause: param pk is <%s>",str(pk))
     log.debug("make_pk_where_clause: param pkcols is <%s>",str(pkcols))
+    log.debug("make_pk_where_clause: param table_alias is <%s>",str(table_alias))
+    if table_alias is None:
+        alias_prefix=""
+    else:
+        alias_prefix=table_alias+"."
     w=""
     if isinstance(pk, dict):
         mypk=pk
@@ -84,14 +89,14 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False):
             w+=" WHERE "
         else:
             w+=" AND "
-        w+=c+"=:"+c
+        w+=alias_prefix+c+"=:"+c
 
     if versioned:
        if version_deleted:
            # get also last deleted version
-           w+=" AND invalid_from_dt='9999-12-31 00:00:00'" 
+           w+=f" AND {alias_prefix}invalid_from_dt='9999-12-31 00:00:00'" 
        else:
-           w+=" AND is_current_and_active = 'Y'" 
+           w+=f" AND {alias_prefix}is_current_and_active = 'Y'" 
     log.debug("++++++++++ leaving make_pk_where_clause return whereclause=%s , vallist=%s",w,str(mypk))
     return w, mypk
 
