@@ -168,7 +168,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
                   //const dataValue = recordData[column.column_name]; // get record data of the current column or set to nothing
 
                   return (
-                    (type == 'new' || recordData ) ? // only show if type is "new" or the data record could be retrieved (for "editing")
+                    ((type == 'new' || recordData ) && !column.showsummaryonly) ? // only show if type is "new" or the data record could be retrieved (for "editing") AND the if it is not only displayed on summary page (list view)
                     // only make item editable if it is not part of the primary key
                     <CRUDFormItem type={type} name={column.column_name} label={column.column_label} required={column.required} isprimarykey={pkColumns.includes(column.column_name)} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} token={token}/>
                     : ""

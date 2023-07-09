@@ -48,7 +48,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, versioned, isRepo, lookups, token }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, isRepo, lookups, token }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
@@ -63,6 +63,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [filter, setFilter]=useState();
   const [tableParamChanged, setTableParamChanged]=useState(false);
   const [typingTimeout, setTypingTimeout]=useState(null);
+  const [activateLookups, setActivateLookups]=useState(true);
   
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
@@ -71,6 +72,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
   const [filteredTableData, setFilteredTableData] = useState(null);
 
   console.log("lookups: " + lookups);
+  console.log("tableForList: " + tableForList);
 
   useEffect(() => {
     getTableData(tableName);
@@ -116,8 +118,20 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
         queryParams.append("filter", filter);
       }
       console.log("queryParams: " + queryParams.toString());
+      var endpoint = api+tableName+'?'+queryParams;
 
-      await Axios.get(api+tableName+'?'+queryParams, {headers: {Authorization: token}}).then(
+      if(tableForList && tableForList.length > 0) {
+        //queryParams.append("customsql", "select * from " + tableForList);
+        //queryParams.append("customsql", tableForList);
+        setActivateLookups(false);
+        queryParams.delete("v"); // remove versioning
+        endpoint = api+tableForList+'?'+queryParams; // change tableName to tableForList
+      }
+
+      console.log("endpoint: " + endpoint);
+
+      await Axios.get(endpoint, {headers: {Authorization: token}}).then(
+      //await Axios.get(api+tableName+'?'+queryParams, {headers: {Authorization: token}}).then(
         (res) => {
           const tc = (res.data.length === 0 || res.data.length === undefined ? res.data.total_count : res.total_count); // take data directly if exists, otherwise take "data" part in JSON response
           setTotalCount(tc);
@@ -518,7 +532,7 @@ const CRUDPage = ({ name, tableName, tableColumns, pkColumns, allowedActions, ve
                           size="small"
                           columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
                             .map((column) => {
-                              return (column.ui === "lookup" ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype));
+                              return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype));
                             })
                             .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
 

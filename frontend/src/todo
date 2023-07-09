@@ -5,8 +5,16 @@
 testen auf portal server: filter, order by, pagination
   -> adhoc audit view fehlt !
 
-warten auf Joe auf customsql !
-  -> dann MesseStat fertig machen !!
+View anstatt customsql testen
+  -> MesseStat fertig machen !!
+
+frontend nochmal auf portal server bringen -> auch Veranstaltungs- und MesseStat-Applikationen
+
+totalCount anzeigen !
+
+customsql testen
+
+Filter in Spaltentitel erlauben
 
 asap
 - POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück
@@ -36,7 +44,11 @@ Joe:
 
 CRUD field validation before save (especially required fields) !
 
-/api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt
+
+
+# Views für Portal Homepage
+
+      /api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt,ende_dt
 
       use dwh;
 
@@ -59,8 +71,7 @@ CRUD field validation before save (especially required fields) !
                     , case             	
                       when vr.kategorie  = 'EV' and vl.in_ausland = 'Inland' then 'Eigenveranstaltung'
                       when vr.kategorie  = 'EV' and vl.in_ausland = 'Ausland' then 'Eigenveranstaltung Ausland'
-                      when vr.kategorie  = 'GV' and vl.in_ausland = 'Inland' then 'Gastveranstaltung'
-                      when vr.kategorie  = 'GV' and vl.in_ausland = 'Ausland' then 'Gastv. Ausland'
+                      when vr.kategorie  = 'GV' then 'Gastveranstaltung'
                       else 'Sonst'
                       end as kategorie
               , vl.land
@@ -84,6 +95,85 @@ CRUD field validation before save (especially required fields) !
                   and vv.ist_terminal = 'N'
                   and vv.veranstaltung_id != -1
                   ;
+
+# Views für Applikation "Veranstaltung"
+
+        use dwh;
+        drop view if exists config.v_portal_kfg_veranstaltungsreihe;
+        create view config.v_portal_kfg_veranstaltungsreihe
+        as
+        select 
+          kfg.veranstaltungsreihe_nr
+          , vr.name as veranstaltungsreihe
+          , kfg.code
+          , 'Geschäftsbereich (' + kfg.geschaeftsbereich + ')' as geschaeftsbereich
+          , case when kfg.kategorie = 'EV' then 'Eigenveranstaltung' when kfg.kategorie = 'GV' then 'Gastveranstaltung' else kfg.kategorie end as kategorie
+          , kfg.ist_konfiguriert  
+        from DWH.config.vv_kfg_veranstaltungsreihe kfg
+          left outer join DWH.core.vv_veranstaltungsreihe vr on kfg.veranstaltungsreihe_nr = vr.veranstaltungsreihe_nr  
+        ;
+
+        drop view if exists config.v_portal_kfg_veranstaltung;
+        create view config.v_portal_kfg_veranstaltung
+        as
+        select 
+          kfg.veranstaltung_nr
+          , va.name as veranstaltung
+          , kfg.code
+          , kfg.veranstalter_nr 
+          , l.land
+          , kfg.ist_terminal 
+          , vva.name as relevante_vorveranstaltung 
+          , kfg.ist_konfiguriert 
+        from DWH.config.vv_kfg_veranstaltung kfg
+          left outer join DWH.core.vv_veranstaltung va on kfg.veranstaltung_nr = va.veranstaltung_nr  
+          left outer join DWH.core.vv_veranstaltung vva on kfg.relevante_vorveranstaltung_nr = vva.veranstaltung_nr  
+          left outer join DWH.core.vv_land l on kfg.land_iso2 = l.land_iso2 
+        ;
+
+        select * from config.v_portal_kfg_veranstaltungsreihe
+        ;
+        select * from config.v_portal_kfg_veranstaltung
+        ;
+
+
+
+# Views für Applikation "Messe Statistiken"
+
+        drop view if exists config.v_portal_messe_statistik_status;
+        create view config.v_portal_messe_statistik_status
+        as
+        select 
+          m.veranstaltung_nr 
+          , va.name as veranstaltung
+          , case when m.status = 'VORLAEUFIG' then 'vorläufig' when m.status = 'FINAL' then 'final' when m.status = 'FINAL_FKM_GEPRUEFT' then 'final (FKM geprüft)' else m.status end as status
+        from DWH.config.vv_messe_statistik_status m
+                  left outer join DWH.core.vv_veranstaltung va on m.veranstaltung_nr = va.veranstaltung_nr  
+        ;
+
+
+        drop view if exists config.v_portal_messe_statistik_daten;
+        create view config.v_portal_messe_statistik_daten
+        as
+        select 
+          m.veranstaltung_nr 
+          , va.name as veranstaltung
+          , m.land_iso2 
+          , l.land
+          , m.besucher_anzahl
+          , m.fachbesucher_anteil_in_proz 
+          , m.aussteller_anzahl 
+          , m.zusaetzlich_vertretene_unternehmen 
+          , m.flaeche_aussteller_halle 
+          , m.flaeche_aussteller_freigelaende 
+          , m.flaeche_sonderschau 
+          , m.flaeche_netto 
+          , m.flaeche_brutto 
+        from DWH.config.vv_messe_statistik_daten m
+                  left outer join DWH.core.vv_veranstaltung va on m.veranstaltung_nr = va.veranstaltung_nr  
+                  left outer join DWH.core.vv_land l on m.land_iso2 = l.land_iso2 
+        ;
+
 
 auf "errors" im body reagieren !
 
@@ -116,6 +206,7 @@ API enhancements:
 # Backlog
 # ------------------------------------------------
 
+- optimize CRUDPage.js customsql and lookup -> better define when which one is active ...
 - finish dark mode switch
   - put it in user profile page or as menu option when clicking on avatar in upper right corner
   - make 3 options: yes / no / browser default
