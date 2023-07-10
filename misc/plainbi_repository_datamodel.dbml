@@ -117,3 +117,51 @@ Table adhoc_to_group as AG {
   group_id int [pk, ref: > G.id]
 }
 
+/**
+* Others
+*/
+
+
+Table audit {
+username varchar [ref: > U.username]
+ t TIMESTAMP
+ url varchar
+ id varchar
+ remark varchar
+ request_method varchar
+ request_body varchar
+}
+
+
+
+Table audit_adhoc [note: '''
+  CREATE VIEW plainbi_audit_adhoc
+as
+select 
+	coalesce(u.fullname, u.username) as user
+	, a.t as datum
+	, a.id as adhoc_id
+	, pa.name as adhoc_name
+	, case 
+		when a.url like '%XLSX' then 'Excel'
+		when a.url like '%CSV' then 'CSV'
+		when a.url like '%HTML' then 'HTML'
+		else 'HTML'		
+	end as ausgabe_format
+from plainbi_audit a, plainbi_user u, plainbi_adhoc pa 
+where 1=1
+and a.username = u.username
+and a.id = pa.id
+and url like '%/api/repo/adhoc/%/data%'
+order by a.t desc
+''', headercolor: #6724BB] {
+ user varchar
+ datum TIMESTAMP
+ adhoc_id varchar
+ adhoc_name varchar
+ ausgabe_format varchar
+}
+
+Tablegroup views {
+  audit_adhoc
+}
