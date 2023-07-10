@@ -1237,7 +1237,10 @@ def hash_passwd(pwd):
 @token_required
 def clear_cache(tokdata):
     config.metadataraw_cache={}
-    log.debug("get_metadata_raw: cache created")
+    config.profile_cache={}
+    log.debug("clear_cache: get_metadata_raw: cache created")
+    log.debug("clear_cache: get_profile: cache created")
+    return 'caches cleared', 200
 
 @api.route('/protected', methods=['GET'])
 @token_required

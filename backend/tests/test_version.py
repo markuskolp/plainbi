@@ -696,6 +696,22 @@ def test_2040_del(test_client):
     assert response.status_code == 200
 
 
+def test_2050_clear_cache(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    test_url='/clear_cache'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    json_out = response.get_json()
+    print("got=",json_out)
+    assert response.status_code == 200
+
+
 
 ##############################################################
 # versioned table crud tests
@@ -1336,4 +1352,5 @@ def test_5020_repo_get_resource(test_client):
     print("got=",json_out)
     assert response.status_code == 200
     assert json_out["total_count"] == 2
+
 
