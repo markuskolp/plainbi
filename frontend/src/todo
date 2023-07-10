@@ -2,19 +2,12 @@
 # asap
 # ------------------------------------------------
 
-testen auf portal server: filter, order by, pagination
-  -> adhoc audit view fehlt !
-
-View anstatt customsql testen
-  -> MesseStat fertig machen !!
-
-frontend nochmal auf portal server bringen -> auch Veranstaltungs- und MesseStat-Applikationen
-
-totalCount anzeigen !
+Joe: adhoc audit view fehlt !
 
 customsql testen
 
 Filter in Spaltentitel erlauben
+  - get distinct values of each column -> heavy loading ?! or just do it with pulled dataset (even if it just has a pagination of 20) ?
 
 asap
 - POST - erkennt nicht, dass es einen Eintrag schon gab -> meldet erfolgreich zurück

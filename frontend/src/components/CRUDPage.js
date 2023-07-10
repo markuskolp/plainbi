@@ -541,7 +541,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                           //dataSource={pageMetadataRelevant.name.table_columns}
                           //pagination={<Pagination  total={25} showTotal={(total) => `Gesamt ${total} Einträge`} defaultPageSize={25}/>}
                           //pagination={{position: 'topRight'}}
-                          pagination={{ total: totalCount}}
+                          pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
                           scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
                           //pagination={false}
                           //scroll={{ y: 500 }}
