@@ -1233,6 +1233,12 @@ def hash_passwd(pwd):
     print(pwd_hashed)
     return jsonify(out)
 
+@api.route('/clear_cache', methods=['GET'])
+@token_required
+def clear_cache(tokdata):
+    config.metadataraw_cache={}
+    log.debug("get_metadata_raw: cache created")
+
 @api.route('/protected', methods=['GET'])
 @token_required
 def protected(tokdata):

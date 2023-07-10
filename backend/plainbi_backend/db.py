@@ -8,10 +8,8 @@ import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-import base64
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from urllib.parse import unquote
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause
 #import bcrypt
 from plainbi_backend.config import config
@@ -135,6 +133,7 @@ def get_db_type(dbengine):
         return "sqlite"
     else:
         return "mssql"
+
 def add_offset_limit(dbtyp,offset,limit,order_by):
     log.debug("++++++++++ entering add_offset_limit")
     sql=""
@@ -180,6 +179,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     log.debug("sql_select: param versioned is <%s>",str(versioned))
     log.debug("sql_select: param is_repo is <%s>",str(is_repo))
     log.debug("sql_select: param user_id is <%s>",str(user_id))
+    log.debug("sql_select: param customsql is <%s>",str(customsql))
     db_typ = get_db_type(dbengine)
     total_count=None
     my_where_clause=""
@@ -256,6 +256,22 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     log.debug("++++++++++ entering get_metadata_raw")
     log.debug("get_metadata_raw: param tab is <%s>",str(tab))
     log.debug("get_metadata_raw: param pk_column_list (override) is <%s>",str(pk_column_list))
+    log.debug("get_metadata_raw: param versioned is <%s>",str(versioned))
+    cache_key=str(dbengine.url)+"||||"+str(tab)+'||||'
+    if versioned: cache_key+= "v|||"
+    log.debug("get_metadata_raw: cache key prefix is %s",cache_key)
+    if isinstance(pk_column_list,list):
+         cache_key+= ";".join(pk_column_list) if pk_column_list is not None else "-"
+    else:
+        cache_key+=pk_column_list if pk_column_list is not None else ""
+    log.debug("get_metadata_raw: cache key is %s",cache_key)
+    if hasattr(config,"metadataraw_cache"):
+        if cache_key in config.metadataraw_cache.keys():
+            log.debug("get_metadata_raw: metadataraw_cache hit")
+            return config.metadataraw_cache[cache_key]
+    else:
+        config.metadataraw_cache={}
+        log.debug("get_metadata_raw: cache created")
     out={}
     dbtype=get_db_type(dbengine)
     pkcols=[]
@@ -285,6 +301,33 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             collist=[i["column_name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
+    elif dbtype == "sqlite":
+        # for sqlite try metadata search
+        log.debug("get_metadata_raw-sqlite: sqlite")
+        metadata_col_query_sqlite="select * from pragma_table_info('<fulltablename>')"
+        collist=[]
+        items,columns,total_count,e=sql_select(dbengine,metadata_col_query_sqlite.replace('<fulltablename>',tab))
+        log.debug("get_metadata_raw-sqlite: returned %s",str(e))
+        if last_stmt_has_errors(e, out):
+            log.debug("++++++++++ leaving get_metadata_raw-sqlite returning for %s data %s",tab,out)
+            return out
+        #    
+        log.debug("get_metadata_raw-sqlite: 1")
+        log.debug("get_metadata_raw-sqlite: 1 items=%s",str(items))
+        if items is not None and len(items)>0:
+            # got some metadata
+            log.debug("get_metadata_raw-sqlite: got some metadata from sqlite")
+            # es gibt etwas in den sqlserver metadaten
+            if versioned:
+                pkcols=[i["name"] for i in items if i["pk"]==1 and i["name"] != "invalid_from_dt"]
+            else:
+                pkcols=[i["name"] for i in items if i["pk"]==1]
+            log.debug("get_metadata_raw from sqlite: pkcols %s",str(pkcols))
+            log.debug("get_metadata_raw from sqlite: columns %s",str(columns))
+            collist=[i["name"] for i in items]
+            out["columns"]=collist
+            out["column_data"]=items
+        
     if "columns" not in out.keys():
         # nothing in metadata - get columns from query
         log.debug("get_metadata_raw: nothing in metadata - get columns from query")
@@ -305,6 +348,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             last_stmt_has_errors(e, out)
             log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
+    
     log.debug("sql_select in get_metadata_raw 4")
     out["pk_columns"]=pkcols
     log.debug("sql_select in get_metadata_raw 4 pk_column_list=%s",str(pk_column_list))
@@ -317,8 +361,9 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
                 out["pk_columns"]=pk_column_list
                 log.debug("get_metadata_raw returns parameter pk_column_list")
     else:
-        log.debug("get_metadata_raw returns computedd column_list")
+        log.debug("get_metadata_raw returns computed column_list")
     log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+    config.metadataraw_cache[cache_key] = out
     return out
 
 def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None):
@@ -997,10 +1042,22 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
     return out
 
 def get_profile(repoengine,u):
+    """
+    profile eines Users
+    """
+    if hasattr(config,"profile_cache"):
+        if u in config.profile_cache.keys():
+            log.debug("get_profile: cache hit")
+            return config.profile_cache[u]
+    else:
+        config.profile_cache={}
+        log.debug("get_profile: cache created")
+
     usr_sql = "select * from plainbi_user where username=:username"
     usr_items, usr_columns = db_exec(repoengine,usr_sql,{ "username" : u })
     prof = {}
     if len(usr_items)==1:
+        # user was found in table
         prof["username"] = (usr_items[0])["username"]
         prof["email"] = (usr_items[0])["email"]
         prof["fullname"] = (usr_items[0])["fullname"]
@@ -1018,6 +1075,8 @@ def get_profile(repoengine,u):
         for i in grp_items:
             l_groups.append({ "name" : i["name"], "alias" : i["alias"] })
         prof["groups"] = l_groups
+        # add to cache
+        config.profile_cache[u] = prof
     return prof 
 
     

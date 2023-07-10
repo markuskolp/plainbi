@@ -119,6 +119,9 @@ def last_stmt_has_errors(e,out):
     log.debug("++++++++++ entering last_stmt_has_errors")
     log.debug("last_stmt_has_errors: param e is <%s>",str(e))
     log.debug("last_stmt_has_errors: param out is <%s>",str(out))
+    if str(e)=="ok":
+        log.debug("ok is not an error:")
+        return False
     if isinstance(e, SQLAlchemyError):
         log.error(str(SQLAlchemyError))
         if hasattr(e, 'code'):

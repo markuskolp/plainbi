@@ -32,16 +32,17 @@ GET /api/repo/lookup/<id>/data	The data of a lookup (result of its SQL)
 import sqlite3
 import time
 
-sqlitecon = sqlite3.connect("plainbi_repo.db")
-
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from plainbi_backend.db import db_exec
 
 """
+sqlitecon = sqlite3.connect("plainbi_repo.db")
 repoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi_repo.db")
 repoengine = sqlalchemy.create_engine("sqlite:////opt/app/portal/backend/repo.db")
 
+import sys
+sys.path.insert(0,'C:\\Users\\kribbel\\plainbi\\backend')
 """
 
 
