@@ -76,6 +76,7 @@ def db_exec(engine,sql,params=None):
     #sqlalchemy 2.0
     mysql=sqlalchemy.text(sql)
 
+    # using the flask server with wgsi requires sequential access to the sqlite repo
     with config.database_lock:
         log.debug(dbgindent+"db_exec: check connection")
         if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
@@ -131,6 +132,8 @@ def db_exec(engine,sql,params=None):
 def get_db_type(dbengine):
     if "sqlite" in str(dbengine.url).lower():
         return "sqlite"
+    elif "oracle" in str(dbengine.url).lower():
+        return "oracle"
     else:
         return "mssql"
 
@@ -138,6 +141,7 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
     log.debug("++++++++++ entering add_offset_limit")
     sql=""
     if dbtyp=="mssql":
+        # in Microsoft SQL Server a OFFSET or LIMIT clause requires a ORDER_BY
         if order_by is not None:
             sql+=" ORDER BY "+order_by.replace(":"," ")
         else:
@@ -196,7 +200,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         tab_is_sql_stmt = False
     else:                               # ein komplettes select statement expected
         sql=tab
-        tab_is_sql_stmt = True
+        tab_is_sql_stmt = True          # for later use
     if w is not None:
         # a where clause is specified as parameter
         if len(my_where_clause.strip())==0: 
@@ -281,13 +285,11 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         log.debug("get_metadata_raw: mssql")
         collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
-        log.debug("get_metadata_raw: returned error %s",str(e))
+        #log.debug("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
             log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
-        #    
-        log.debug("get_metadata_raw: 1")
-        log.debug("get_metadata_raw: 1 items=%s",str(items))
+        #log.debug("get_metadata_raw: 1 items=%s",str(items))
         if items is not None and len(items)>0:
             # got some metadata
             log.debug("get_metadata_raw: got some metadata from mssql")
@@ -296,8 +298,8 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
                 pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
             else:
                 pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
-            log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
-            log.debug("get_metadata_raw from mssql: columns %s",str(columns))
+            #log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+            #log.debug("get_metadata_raw from mssql: columns %s",str(columns))
             collist=[i["column_name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
@@ -307,13 +309,12 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         metadata_col_query_sqlite="select * from pragma_table_info('<fulltablename>')"
         collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query_sqlite.replace('<fulltablename>',tab))
-        log.debug("get_metadata_raw-sqlite: returned %s",str(e))
+        #log.debug("get_metadata_raw-sqlite: returned %s",str(e))
         if last_stmt_has_errors(e, out):
             log.debug("++++++++++ leaving get_metadata_raw-sqlite returning for %s data %s",tab,out)
             return out
         #    
-        log.debug("get_metadata_raw-sqlite: 1")
-        log.debug("get_metadata_raw-sqlite: 1 items=%s",str(items))
+        #log.debug("get_metadata_raw-sqlite: 1 items=%s",str(items))
         if items is not None and len(items)>0:
             # got some metadata
             log.debug("get_metadata_raw-sqlite: got some metadata from sqlite")
@@ -322,8 +323,8 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
                 pkcols=[i["name"] for i in items if i["pk"]==1 and i["name"] != "invalid_from_dt"]
             else:
                 pkcols=[i["name"] for i in items if i["pk"]==1]
-            log.debug("get_metadata_raw from sqlite: pkcols %s",str(pkcols))
-            log.debug("get_metadata_raw from sqlite: columns %s",str(columns))
+            #log.debug("get_metadata_raw from sqlite: pkcols %s",str(pkcols))
+            #log.debug("get_metadata_raw from sqlite: columns %s",str(columns))
             collist=[i["name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
@@ -341,12 +342,12 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_metadata:raw: %s",str(e_sqlalchemy))
             last_stmt_has_errors(e_sqlalchemy, out)
-            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+            log.error("++++++++++ leaving get_metadata_raw with error returning for %s data %s",tab,out)
             return out
         except Exception as e:
-            log.debug("exception in get_metadata_raw: error %s",str(e))
+            log.error("exception in get_metadata_raw: error %s",str(e))
             last_stmt_has_errors(e, out)
-            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+            log.error("++++++++++ leaving get_metadata_raw with error returning for %s data %s",tab,out)
             return out
     
     log.debug("sql_select in get_metadata_raw 4")
@@ -409,7 +410,6 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         # check repo rights
         pkwhere = add_auth_to_where_clause(tab, pkwhere, user_id)
         log.debug("get_item_raw[%s]: sql_select auth added: %s",str(tab), pkwhere)
-    print("get_item_raw[%s]: pkwhere2 <%s>",str(tab),str(pkwhere))
     if customsql is not None:
         log.debug("get_item_raw[%s]: get custom sql id=%s",str(tab),customsql)
         csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
@@ -425,7 +425,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         last_stmt_has_errors(e_sqlalchemy, out)
         return out
     except Exception as e:
-        log.debug("get_item_raw[%s]: exception: %s ",str(tab),str(e))
+        log.error("get_item_raw[%s]: exception: %s ",str(tab),str(e))
         last_stmt_has_errors(e, out)
         return out
 
@@ -470,7 +470,7 @@ def get_next_seq(dbengine,seq):
             last_stmt_has_errors(e_sqlalchemy, out)
             return out
         except Exception as e:
-            log.debug("exception in get_next_seq: %s ",str(e))
+            log.error("exception in get_next_seq: %s ",str(e))
             last_stmt_has_errors(e, out)
             return out
         out=nextval
@@ -486,7 +486,7 @@ def get_next_seq(dbengine,seq):
             last_stmt_has_errors(e_sqlalchemy, out)
             return out
         except Exception as e:
-            log.debug("exception in get_next_seq: %s ",str(e))
+            log.error("exception in get_next_seq: %s ",str(e))
             last_stmt_has_errors(e, out)
             return out
 
@@ -521,7 +521,7 @@ def get_current_timestamp(dbengine):
         last_stmt_has_errors(e_sqlalchemy, out)
         return out
     except Exception as e:
-        log.debug("exception in get_next_seq: %s ",str(e))
+        log.error("exception in get_next_seq: %s ",str(e))
         last_stmt_has_errors(e, out)
         return out
     out=items[0]["ts"] 
@@ -597,7 +597,9 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     out={}
     log.debug("++++++++++entering get_repo_adhoc_sql_stmt")
     log.debug("get_repo_adhoc_sql_stmt: param id is <%s>",str(id))
+    adhocid = -999
     if is_id(id):
+        adhocid=id
         reposql_params={ "id" : id}
         reposql="select * from plainbi_adhoc where id=:id"
     else:
@@ -611,7 +613,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
         last_stmt_has_errors(e_sqlalchemy, out)
         return out
     except Exception as e:
-        log.debug("exception in get_next_seq: %s ",str(e))
+        log.error("exception in get_repo_adhoc_sql_stmt: %s ",str(e))
         last_stmt_has_errors(e, out)
         return out
     #lkp=[r._asdict() for r in lkpq]
@@ -621,12 +623,13 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
         if len(lkp)==1:
             if isinstance(lkp[0],dict):
                 sql=lkp[0]["sql_query"]
+                adhocid=lkp[0]["id"]
                 execute_in_repodb = lkp[0]["datasource_id"]==0
         else:
-            log.debug("lkp list len is not 1")
+            log.warn("get_repo_adhoc_sql_stmt:lkp list len is not 1")
     else:
-        log.debug("lkp is not a dict, it is a %s",str(lkp.__class__))
-    return sql, execute_in_repodb
+        log.warn("lkp is not a dict, it is a %s",str(lkp.__class__))
+    return sql, execute_in_repodb, adhocid
 
 
 # repo lookup adhoc
@@ -640,7 +643,7 @@ def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=Non
     """
     log.debug("++++++++++entering repo_adhoc_select")
     log.debug("repo_adhoc_select: param id is <%s>",str(id))
-    sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
+    sql, execute_in_repodb, adhocid = get_repo_adhoc_sql_stmt(repoengine,id)
     if execute_in_repodb:
         log.debug("adhoc query execution in repodb")
         items, columns = db_exec(repoengine,sql)
@@ -675,7 +678,7 @@ def get_repo_customsql_sql_stmt(repoengine,id):
         last_stmt_has_errors(e_sqlalchemy, out)
         return out
     except Exception as e:
-        log.debug("exception in get_repo_customsql_sql_stmt: %s ",str(e))
+        log.error("exception in get_repo_customsql_sql_stmt: %s ",str(e))
         last_stmt_has_errors(e, out)
         return out
     sql=None
@@ -789,12 +792,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                     db_exec(dbeng,dsql,delitem)
                     log.debug("dbins: deleted record terminated")
                 except SQLAlchemyError as e_sqlalchemy:
-                    print("sqlalchemy deleted record terminated",str(e_sqlalchemy))
+                    log.error("sqlalchemy deleted record terminated; %s",str(e_sqlalchemy))
                     last_stmt_has_errors(e_sqlalchemy, out)
                     if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
                     return out
                 except Exception as e:
-                    print("excp deleted record terminated",str(e))
+                    log.error("excp deleted record terminated: %s",str(e))
                     last_stmt_has_errors(e, out)
                     return out
                
@@ -808,12 +811,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     try:
         db_exec(dbeng,sql,myitem)
     except SQLAlchemyError as e_sqlalchemy:
-        print("sqlalchemy",str(e_sqlalchemy))
+        log.error("db_ins: sqlalchemy error: %s",str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
         if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
         return out
     except Exception as e:
-        print("excp",str(e))
+        log.error("db_ins: exception %s",str(e))
         last_stmt_has_errors(e, out)
         return out
     # read new record from database and send it back
@@ -897,11 +900,11 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, 
         except SQLAlchemyError as e_sqlalchemy:
             last_stmt_has_errors(e_sqlalchemy, out)
             if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            log.error("++++++++++ leaving db_upd returning %s", str(out))
             return out
         except Exception as e:
             last_stmt_has_errors(e, out)
-            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            log.error("++++++++++ leaving db_upd returning %s", str(out))
             return out
     else:
         # nicht versionierter Standardfall
@@ -940,11 +943,11 @@ def db_passwd(dbeng,u,p):
     except SQLAlchemyError as e_sqlalchemy:
         last_stmt_has_errors(e_sqlalchemy, out)
         if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        log.debug("++++++++++ leaving db_passwd returning %s", str(out))
+        log.error("++++++++++ leaving db_passwd returning %s", str(out))
         return out
     except Exception as e:
         last_stmt_has_errors(e, out)
-        log.debug("++++++++++ leaving db_passwd returning %s", str(out))
+        log.error("++++++++++ leaving db_passwd returning %s", str(out))
         return out
     return out
 
@@ -1017,11 +1020,11 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         except SQLAlchemyError as e_sqlalchemy:
             last_stmt_has_errors(e_sqlalchemy, out)
             if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
         except Exception as e:
             last_stmt_has_errors(e, out)
-            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
     else:
         sql=f"DELETE FROM {tab} {pkwhere}"
@@ -1032,11 +1035,11 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         except SQLAlchemyError as e_sqlalchemy:
             last_stmt_has_errors(e_sqlalchemy, out)
             if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
         except Exception as e:
             last_stmt_has_errors(e, out)
-            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
     log.debug("++++++++++ leaving db_del returning %s", str(out))
     return out
@@ -1064,7 +1067,6 @@ def get_profile(repoengine,u):
         user_id = (usr_items[0])["id"]
         prof["user_id"] = user_id
         role_id=(usr_items[0])["role_id"]
-        print(role_id)
         role_sql = "select * from plainbi_role where id=:role_id"
         role_items, role_columns = db_exec(repoengine,role_sql,{ "role_id": role_id})
         if len(role_items)==1:
@@ -1116,36 +1118,45 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
         concat_operator="||"
     w = where_clause
     if w is None: w=""
-    filter_tokens=filter.split(" ")
     w+="("
-    cnt=0
-    cnttok=0
-    if True: # method with string concate all columns
-        csep="|#|#|-|"
-        cexp=""
-        for c in columns:
-            lc=c.lower()
-            if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
-            cnt=cnt+1
-            if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
-            cexp+="lower(cast(coalesce("+lc+",'') as varchar))"
-        log.debug("filter cexp:%s",cexp)
-        for i,ftok in enumerate(filter_tokens):
-            lftok=ftok.lower()
-            if i>0:
-                w+=" AND "
-            w+=cexp+" like lower('%"+lftok+"%')"
+    if isinstance(filter,dict):
+        #filter is per column
+        l_cexp=[]
+        for k,v in filter.items():
+            l_cexp.append("lower(cast(coalesce("+k+",'') as varchar)) like lower('%"+v+"%')")
+        cexp="("+" AND ".join(l_cexp)+")"
+        w+=cexp
     else:
-        for ftok in filter_tokens:
-            cnttok+=1
-            lftok=ftok.lower()
+        #filter is global fulltext search over all columns
+        filter_tokens=filter.split(" ")
+        cnt=0
+        cnttok=0
+        if True: # method with string concate all columns
+            csep="|#|#|-|"
+            cexp=""
             for c in columns:
                 lc=c.lower()
-                # do not filter in version columns
                 if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
                 cnt=cnt+1
-                if cnt>1: w+=" or "
-                w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
+                if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
+                cexp+="lower(cast(coalesce("+lc+",'') as varchar))"
+            log.debug("filter cexp:%s",cexp)
+            for i,ftok in enumerate(filter_tokens):
+                lftok=ftok.lower()
+                if i>0:
+                    w+=" AND "
+                w+=cexp+" like lower('%"+lftok+"%')"
+        else:
+            for ftok in filter_tokens:
+                cnttok+=1
+                lftok=ftok.lower()
+                for c in columns:
+                    lc=c.lower()
+                    # do not filter in version columns
+                    if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
+                    cnt=cnt+1
+                    if cnt>1: w+=" or "
+                    w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
     w+=")"
     log.debug("++++++++++ leaving add_filter_to_where_clause with: %s",w)
     return w
@@ -1251,10 +1262,15 @@ def audit(tokdata,req,id=None,msg=None):
     else:
         usrnam=tokdata
     log.debug('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,req.url,str(id),str(msg))
-    #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json())}
-    #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":None}
-    #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json(force=True))}
-    audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data)}
+    if id is not None:
+        log.debug("Audit Adhoc %d",id)
+    if "/login" in req.url: 
+        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body": None}
+    else:
+        #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json())}
+        #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":None}
+        #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json(force=True))}
+        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data)}
     audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body)"
     try:
         log.debug('Audit sql:%s',audit_sql )

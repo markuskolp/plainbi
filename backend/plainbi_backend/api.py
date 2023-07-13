@@ -220,6 +220,7 @@ def get_all_items(tokdata,tab):
     audit(tokdata,request)
     out={}
     is_versioned=False
+    myfilter=None
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -227,7 +228,17 @@ def get_all_items(tokdata,tab):
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
-    myfilter = request.args.get('filter')
+            if key=="q":
+                myfilter = value
+            if key=="filter":
+                myfilter = {}
+                slist=value.split(",")
+                for s in slist:
+                    p=s.split(":")
+                    if len(p)>1:
+                        myfilter[p[0]]=p[1]
+                    else:
+                        myfilter=p[0]
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -938,7 +949,6 @@ def get_lookup(tokdata,id):
 def get_adhoc_data(tokdata,id):
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
-    audit(tokdata,request,id=str(id))
     out={}
     fmt="JSON"
     if len(request.args) > 0:
@@ -951,7 +961,8 @@ def get_adhoc_data(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
-    adhoc_sql, execute_in_repodb = get_repo_adhoc_sql_stmt(repoengine,id)
+    adhoc_sql, execute_in_repodb, adhocid = get_repo_adhoc_sql_stmt(repoengine,id)
+    audit(tokdata,request,id=adhocid)
     if fmt=="JSON":
         if adhoc_sql is None:
             msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"

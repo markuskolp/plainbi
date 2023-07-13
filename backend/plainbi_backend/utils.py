@@ -48,7 +48,7 @@ def prep_pk_from_url(pk):
         while i < len(pkl):
             pkd[pkl[i]]=pkl[i+1]
             i+=2
-        log.debug("compound key:%s",str(pkd))
+        log.debug("prep_pk_from_url: compound key:%s",str(pkd))
         return pkd
     else:
         return pk        
@@ -120,10 +120,10 @@ def last_stmt_has_errors(e,out):
     log.debug("last_stmt_has_errors: param e is <%s>",str(e))
     log.debug("last_stmt_has_errors: param out is <%s>",str(out))
     if str(e)=="ok":
-        log.debug("ok is not an error:")
+        log.debug("last_stmt_has_errors: ok is not an error:")
         return False
     if isinstance(e, SQLAlchemyError):
-        log.error(str(SQLAlchemyError))
+        log.error("last_stmt_has_errors: %s", str(SQLAlchemyError))
         if hasattr(e, 'code'):
             out["error"]=e.code
         else:
@@ -143,7 +143,7 @@ def last_stmt_has_errors(e,out):
         out["detail"]=None
         return True
     if isinstance(e,Exception):
-        log.error(str(e))
+        log.error("last_stmt_has_errors: exception: %s", str(e))
         out["error"]=1
         out["message"]=str(e.__class__)
         out["detail"]=None

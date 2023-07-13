@@ -646,7 +646,7 @@ def test_2033_crud_getall_customsql(test_client):
     assert json_out["total_count"]==2
 
 
-def test_2035_getall_filter(test_client):
+def test_2035_getall_filter_q(test_client):
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
@@ -654,7 +654,7 @@ def test_2035_getall_filter(test_client):
     """
     global t,headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+t+"?filter=item"
+    test_url='/api/crud/'+t+"?q=item"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -663,7 +663,7 @@ def test_2035_getall_filter(test_client):
     #row1=(json_out["data"])[0]
     assert json_out["total_count"]==2
 
-def test_2036_getall_filter2(test_client):
+def test_2036_getall_filter_q_2(test_client):
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
@@ -671,7 +671,7 @@ def test_2036_getall_filter2(test_client):
     """
     global t,headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+t+"?filter=item2"
+    test_url='/api/crud/'+t+"?q=item2"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -679,6 +679,24 @@ def test_2036_getall_filter2(test_client):
     print("got=",json_out)
     #row1=(json_out["data"])[0]
     assert json_out["total_count"]==1
+
+def test_2037_getall_filter2(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global t,headers
+    log.info('TEST: %s',func_name())
+    test_url='/api/crud/'+t+"?filter=name:item2"
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    #row1=(json_out["data"])[0]
+    assert json_out["total_count"]==1
+
 
 def test_2040_del(test_client):
     """
@@ -1225,6 +1243,29 @@ def test_4521_repo_compound_get_customsql(test_client):
     assert row1["application_id"]==-15
     assert row1["group_id"]==-3
     assert row1["group_name"]=="testgroup"
+
+
+def test_4600_repo_ins_adhoc(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    nam = 'adhoc1'
+    test_url = '/api/repo/adhoc'
+    test_data = {"name" : nam, "id" : -18, "sql_query":"select * from plainbi_audit","output_format":"CSV","datasource_id":1  }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+
+def test_4601_repo_adhoc(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    nam = 'adhoc1'
+    test_url = '/api/repo/adhoc/-18/data'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    
 
 
 
