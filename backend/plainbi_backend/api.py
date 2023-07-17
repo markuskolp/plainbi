@@ -950,6 +950,7 @@ def get_adhoc_data(tokdata,id):
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
     out={}
+    myparams=None
     fmt="JSON"
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -957,12 +958,26 @@ def get_adhoc_data(tokdata,id):
             if key=="format":
                 fmt=value
                 log.debug("adhoc format %s",fmt)
+            if key=="params":
+                myparams = {}
+                slist=value.split(",")
+                for s in slist:
+                    p=s.split(":")
+                    if len(p)>1:
+                        myparams[p[0]]=p[1]
+                    else:
+                        return "adhoc json parameter is invalid, does not contain semicolon",500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     adhoc_sql, execute_in_repodb, adhocid = get_repo_adhoc_sql_stmt(repoengine,id)
     audit(tokdata,request,id=adhocid)
+    # substitute params
+    if isinstance(myparams,dict):
+        for p,v in myparams.items():
+            adhoc_sql=adhoc_sql.replace("$("+p+")",v)
+        log.debug("adhoc sql after subsitution: %s",adhoc_sql)
     if fmt=="JSON":
         if adhoc_sql is None:
             msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
