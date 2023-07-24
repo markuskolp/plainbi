@@ -915,7 +915,7 @@ def init_repo(tokdata):
 
 ###########################
 ##
-## Adhoc
+## Lookup
 ##
 ###########################
 
@@ -944,6 +944,13 @@ def get_lookup(tokdata,id):
     out["total_count"]=total_count
     return jsonify(out)
 
+###########################
+##
+## Adhoc
+##
+###########################
+
+
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
 @token_required
 def get_adhoc_data(tokdata,id):
@@ -967,6 +974,20 @@ def get_adhoc_data(tokdata,id):
                         myparams[p[0]]=p[1]
                     else:
                         return "adhoc json parameter is invalid, does not contain semicolon",500
+
+    data_bytes = request.get_data()
+    log.debug("get_adhoc_data: databytes: %s",data_bytes)
+    dataitem = None
+    if data_bytes is not None:
+        log.debug("get_adhoc_data: databytes is not None: %s",data_bytes)
+        if len(data_bytes)>0:
+            log.debug("get_adhoc_data: databytes len > 0: %s",data_bytes)
+            data_string = data_bytes.decode('utf-8')
+            log.debug("get_adhoc_data: datastring: %s",data_string)
+            if data_string is not None:
+                dataitem = json.loads(data_string)
+                log.debug("get_adhoc_data: dataitem: %s",str(dataitem))
+
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -978,6 +999,12 @@ def get_adhoc_data(tokdata,id):
         for p,v in myparams.items():
             adhoc_sql=adhoc_sql.replace("$("+p+")",v)
         log.debug("adhoc sql after subsitution: %s",adhoc_sql)
+    # substitute request data
+    if isinstance(dataitem,dict):
+        for p,v in dataitem.items():
+            adhoc_sql=adhoc_sql.replace("$("+p+")",v)
+        log.debug("adhoc sql after data subsitution: %s",adhoc_sql)
+    # handle formats
     if fmt=="JSON":
         if adhoc_sql is None:
             msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"

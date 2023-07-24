@@ -1287,6 +1287,19 @@ def test_4606_repo_adhoc2(test_client):
     json_out = response.get_json()
     print("got=",json_out)
 
+def test_4607_repo_adhoc2(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    nam = 'adhoc2'
+    test_url = '/api/repo/adhoc/-19/data'
+    format_url("get", test_url, testname=func_name())
+    test_data = {"id" : "3" }
+    log.info('adhoc with data params: %s',test_data)
+    response = test_client.get(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+
 
 
 ### auth testing
