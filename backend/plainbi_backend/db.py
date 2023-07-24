@@ -631,27 +631,6 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
         log.warn("lkp is not a dict, it is a %s",str(lkp.__class__))
     return sql, execute_in_repodb, adhocid
 
-
-# repo lookup adhoc
-def repo_adhoc_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None):
-    """
-    führt ein sql aus und gibt zurück
-      items .. List von dicts pro zeile
-      columns .. spaltenname
-      total_count .. anzahl der rows in der Tabelle (count*)
-      msg ... ggf error code sonst "ok"
-    """
-    log.debug("++++++++++entering repo_adhoc_select")
-    log.debug("repo_adhoc_select: param id is <%s>",str(id))
-    sql, execute_in_repodb, adhocid = get_repo_adhoc_sql_stmt(repoengine,id)
-    if execute_in_repodb:
-        log.debug("adhoc query execution in repodb")
-        items, columns = db_exec(repoengine,sql)
-    else:
-        log.debug("adhoc query execution")
-        items, columns =db_exec(dbengine,sql)
-    return items, columns
-
 ## repo customsql 
 def get_repo_customsql_sql_stmt(repoengine,id):
     """

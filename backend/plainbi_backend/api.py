@@ -96,6 +96,7 @@ from flask_bcrypt import Bcrypt
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
+import pandas.io.formats.excel as fmt_xl
 
 try:
     import ldap3
@@ -112,8 +113,8 @@ from flask import Flask, jsonify, request, Response, Blueprint
 from json import JSONEncoder
 import jwt
 
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, repo_adhoc_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause,db_passwd,db_exec,audit,db_adduser
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type 
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -959,6 +960,7 @@ def get_adhoc_data(tokdata,id):
     out={}
     myparams=None
     fmt="JSON"
+    log.debug("get_adhoc_data: check request arguments")
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
@@ -975,6 +977,7 @@ def get_adhoc_data(tokdata,id):
                     else:
                         return "adhoc json parameter is invalid, does not contain semicolon",500
 
+    log.debug("get_adhoc_data: get request data")
     data_bytes = request.get_data()
     log.debug("get_adhoc_data: databytes: %s",data_bytes)
     dataitem = None
@@ -992,62 +995,105 @@ def get_adhoc_data(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+    log.debug("get_adhoc_data pagination order_by=%s",order_by)
+    log.debug("get_adhoc_data: get adhoc stmt")
     adhoc_sql, execute_in_repodb, adhocid = get_repo_adhoc_sql_stmt(repoengine,id)
     audit(tokdata,request,id=adhocid)
+    log.debug("get_adhoc_data: parameter substitution")
     # substitute params
     if isinstance(myparams,dict):
         for p,v in myparams.items():
             adhoc_sql=adhoc_sql.replace("$("+p+")",v)
-        log.debug("adhoc sql after subsitution: %s",adhoc_sql)
+        log.debug("get_adhoc_data: adhoc sql after subsitution: %s",adhoc_sql)
     # substitute request data
     if isinstance(dataitem,dict):
         for p,v in dataitem.items():
             adhoc_sql=adhoc_sql.replace("$("+p+")",v)
-        log.debug("adhoc sql after data subsitution: %s",adhoc_sql)
-    # handle formats
+    log.debug("get_adhoc_data: adhoc sql after data subsitution: %s",adhoc_sql)
+    if adhoc_sql is None:
+        msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
+        log.error(msg)
+        return msg, 500
+    log.debug("get_adhoc_data: get db type")
+    # handle pagination for adhoc JSON format
+    if execute_in_repodb:
+       db_typ = get_db_type(repoengine)
+    else:
+       db_typ = get_db_type(dbengine)
+    log.debug("get_adhoc_data: prepare json pagination")
     if fmt=="JSON":
-        if adhoc_sql is None:
-            msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
-            log.error(msg)
-            return msg, 500
+        log.debug("get_adhoc_data: fmt JSON")
+        adhoc_sql= f"select x.* from ({adhoc_sql}) x"
+        adhoc_sql += add_offset_limit(db_typ,offset,limit,order_by)
+        log.debug("get_adhoc_data JSON pagination: %s",adhoc_sql)
+        log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+    # execute adhoc sql
+    log.debug("get_adhoc_data: execute adhoc sql")
+    try:
         if execute_in_repodb:
-            log.debug("adhoc query execution in repodb")
+            log.debug("get_adhoc_data: adhoc query execution in repodb")
             items, columns = db_exec(repoengine,adhoc_sql)
         else:
-            log.debug("adhoc query execution")
+            log.debug("get_adhoc_data: adhoc query execution in db")
             items, columns = db_exec(dbengine,adhoc_sql)
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("get_adhoc_data sqlalchemy exception: %s",str(e_sqlalchemy))
+        #last_stmt_has_errors(e_sqlalchemy, out)
+        msg="adhoc sql execution error"
+        return msg, 500
+    except Exception as e:
+        log.error("get_adhoc_data exception: %s ",str(e))
+        #last_stmt_has_errors(e, out)
+        msg="adhoc sql execution exception"
+        return msg, 500
+    #
+    # handle formats
+    log.debug("get_adhoc_data: fmt= %s",fmt)
+    if fmt=="JSON":
+        log.debug("get_adhoc_data: fmt JSON")
         if not isinstance(items,list):
             return "adhoc json result error",500
-        offset = request.args.get('offset')
-        limit = request.args.get('limit')
-        order_by = request.args.get('order_by')
-        log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
         total_count=len(items)
         out["data"]=items
         out["columns"]=columns
         out["total_count"]=total_count
         return jsonify(out)
     else:
-        items, columns=repo_adhoc_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
+        log.debug("get_adhoc_data: other formats")
+        log.debug("get_adhoc_data: items=%s",str(items))
         if isinstance(items,list):
             if len(items)==0:
                 out["message"] = "adhoc returns no rows"
+                log.debug("get_adhoc_data: no rows result")
                 return jsonify(out),500
             else:
                 df = pd.DataFrame(items, columns=columns)
                 # Save the DataFrame to an Excel file
                 if fmt=="XLSX":
+                    log.debug("get_adhoc_data: XLSX format")
                     log.debug("adhoc excel")
                     tmpfile='mydata.xlsx'
                     datasheet_name="daten"
                     infosheet_name="info"
                     output = pd.ExcelWriter(tmpfile)
+                    fmt_xl.header_style = None
+                    #pd.formats.format.header_style = None
+                    log.debug("get_adhoc_data: df to excel")
                     df.to_excel(output, index=False, sheet_name=datasheet_name)
                     output.close()
                     # add sheet with sql
                     book = load_workbook(tmpfile)
                     #autofit columns
+                    log.debug("get_adhoc_data: add autofit volumns")
                     sheet = book[datasheet_name]
+                    #default font
+                    log.debug("get_adhoc_data: default xls font")
+                    deffont = Font(name='Arial', size=9, bold=False, italic=False)
+                    for row in sheet.iter_rows():
+                        for cell in row:
+                            cell.font = deffont
+                    #header font
+                    log.debug("get_adhoc_data: header xls font")
                     font = Font(name='Arial', size=9, bold=True, italic=False)
                     for column in sheet.columns:
                         max_length = 0
@@ -1061,14 +1107,14 @@ def get_adhoc_data(tokdata,id):
                         adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
                         sheet.column_dimensions[column_letter].width = adjusted_width
                         sheet[f'{column_letter}1'].font = font
-
                     # Iterate over each column and set the filter
                     sheet.auto_filter.ref = sheet.dimensions
                     #for col_num in range(1, sheet.max_column + 1):
                     #    column_letter = get_column_letter(col_num)
                     #    column_range = f'{column_letter}1:{column_letter}{sheet.max_row}'
                     #    sheet.auto_filter.ref = column_range
-                    # Create a new sheet
+                    # Create a new sheet "info"
+                    log.debug("get_adhoc_data: add info sheet")
                     book.create_sheet(title=infosheet_name)
                     new_sheet = book[infosheet_name]
                     new_sheet['A1'] = "erstellt am:"
@@ -1088,6 +1134,7 @@ def get_adhoc_data(tokdata,id):
                         adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
                         new_sheet.column_dimensions[column_letter].width = adjusted_width                    
                     # new sql sheet
+                    log.debug("get_adhoc_data: add sql sheet")
                     book.create_sheet(title="sql")
                     sql_sheet = book["sql"]
                     sql_sheet.sheet_state = 'hidden'
@@ -1095,6 +1142,7 @@ def get_adhoc_data(tokdata,id):
                     sql_sheet['A2'] = adhoc_sql
 
                     book.save(tmpfile)                    
+                    log.debug("get_adhoc_data: xlsx saved")
                     # Return the Excel file as a download
                     with open(tmpfile, 'rb') as file:
                         response = Response(
@@ -1102,6 +1150,7 @@ def get_adhoc_data(tokdata,id):
                             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                             headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
                         )
+                        log.debug("get_adhoc_data: return response")
                         return response
                 elif fmt=="CSV":
                     log.debug("adhoc csv")

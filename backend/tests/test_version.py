@@ -1287,7 +1287,7 @@ def test_4606_repo_adhoc2(test_client):
     json_out = response.get_json()
     print("got=",json_out)
 
-def test_4607_repo_adhoc2(test_client):
+def test_4607_repo_adhoc2_param_body(test_client):
     global headers
     log.info('TEST: %s',func_name())
     nam = 'adhoc2'
@@ -1300,7 +1300,78 @@ def test_4607_repo_adhoc2(test_client):
     json_out = response.get_json()
     print("got=",json_out)
 
+def test_4610_repo_ins_adhoc_excel(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    adhocname = 'adhoc29'
+    adhocid=-29
+    nam = 'adhoc3x'
+    test_url = '/api/repo/adhoc'
+    test_data = {"name" : adhocname, "id" : adhocid, "sql_query":"select * from plainbi_audit","output_format":"XLSX","datasource_id":0  }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
 
+def test_4611_repo_download_adhoc_excel(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    adhocname = 'adhoc29'
+    adhocid=-29
+    test_url = f'/api/repo/adhoc/{adhocid}/data?format=XLSX'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    if response.status_code == 200:
+        assert response.headers['Content-Type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        # Assert the response filename in the headers is correct
+        assert response.headers['Content-Disposition'] == 'attachment;filename=mydata.xlsx'
+        #log.info("content: %s",str(response.data))
+        # Replace 'filename.extension' with the desired file name and extension
+        file_path = f'{home_directory}/pytest-{adhocid}.xlsx'
+        # Open the file in binary write mode
+        with open(file_path, 'wb') as file:
+            # Write the binary data to the file
+            file.write(response.data)
+        print(f"File saved successfully at '{file_path}'.")
+
+### adhoc params
+
+def test_4620_repo_ins_adhoc_excel(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    adhocname = 'adhoc39'
+    adhocid=-39
+    test_url = '/api/repo/adhoc'
+    test_data = {"name" : adhocname, "id" : adhocid, "sql_query":"select * from dwh.core.vv_land where 1=1 and lower(land_iso2) = lower('$(LANDISO2)')","output_format":"XLSX"  }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+
+def test_4621_repo_download_adhoc_excel(test_client):
+    global headers
+    log.info('TEST: %s',func_name())
+    adhocname = 'adhoc39'
+    adhocid=-39
+    test_url = f'/api/repo/adhoc/{adhocid}/data?format=XLSX&params=LANDISO2:TR'
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    if response.status_code == 200:
+        assert response.headers['Content-Type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        # Assert the response filename in the headers is correct
+        assert response.headers['Content-Disposition'] == 'attachment;filename=mydata.xlsx'
+        #log.info("content: %s",str(response.data))
+        # Replace 'filename.extension' with the desired file name and extension
+        file_path = f'{home_directory}/pytest-{adhocname}.xlsx'
+        # Open the file in binary write mode
+        with open(file_path, 'wb') as file:
+            # Write the binary data to the file
+            file.write(response.data)
+        print(f"File saved successfully at '{file_path}'.")
 
 ### auth testing
 
