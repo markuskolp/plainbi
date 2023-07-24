@@ -41,6 +41,9 @@ header h1 {
 .ant-table-column-sorter {
   display: none;
 }
+.ant-table-column-title {
+  overflow-wrap: anywhere;
+}
 .th-div-custom {
   display: flex;
   flex: auto;

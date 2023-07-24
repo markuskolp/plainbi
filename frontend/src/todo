@@ -2,7 +2,12 @@
 # asap
 # ------------------------------------------------
 
-Joe: adhoc audit view fehlt !
+Joe wg. order by bei Adhocs -> wie lösen? -> Messe Stat Adhocs anpassen
+
+Adhoc:
+- Params einbauen (ähnlich zu Aditus Selektionsmaske)
+- server side pagination einbauen !
+- sortier icons fehlen ? (CRUDPage.js Sortierung in die Table.js bringen !)
 
 customsql testen
 
