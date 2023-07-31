@@ -42,7 +42,7 @@ header h1 {
   display: none;
 }
 .ant-table-column-title {
-  overflow-wrap: anywhere;
+  /*overflow-wrap: anywhere;*/
 }
 .th-div-custom {
   display: flex;

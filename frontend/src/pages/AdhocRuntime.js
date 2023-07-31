@@ -138,7 +138,7 @@ const AdhocRuntime = (props) => {
           multiple: 3,
         },
         //key: column_name
-        //width: 50,
+        width: column_label.length * 10 // width of column relative to column_label
         //render
       };
     }
@@ -234,7 +234,8 @@ const AdhocRuntime = (props) => {
             }
             dataSource={data}
             pagination={{ pageSize: 50 }}
-            scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+            //scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+            scroll={{ y: 'calc(100vh - 400px)', x: 'max-content'  }} // change later from 400px dynamically to the height of the header, page header and footer
             loading={loading}
             rowKey="id"
           />

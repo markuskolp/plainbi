@@ -2,12 +2,36 @@
 # asap
 # ------------------------------------------------
 
-Joe wg. order by bei Adhocs -> wie lösen? -> Messe Stat Adhocs anpassen
+Adhoc: horizontales Scrollen, wenn die Ausgabe zu viele Spalten hat --> Spaltenköpfe ?!
+
+"alias" müssen in plainbi überall eineindeutig sein -> sonst Fehlermeldung !
+beim Löschen die Kaskade beachten (z.B. user / user_to_group / ...)
+
+Userberechtigung im BI Tool oder durchreichen in DB
+Excel Blatt vs. Tabelle
+sofort Adhocergebnis anschauen
+unterseiten auch per URL aufrufbar machen
+Home -> Link bei Bild
+bei Adhoc Audit ist 2 Stunden-Verzug -> GMT !
+sortierung bei VA-Liste im Dropdown nicht korrekt
+
+Joe: bei AD Anmeldung den vollständigen Namen und E-mail auch auslesen !
+
+Joe wg. order by bei Adhocs -> wie lösen? -> Messe Stat Adhocs anpassen -> Feld "default_order_by" einführen
 
 Adhoc:
 - Params einbauen (ähnlich zu Aditus Selektionsmaske)
 - server side pagination einbauen !
 - sortier icons fehlen ? (CRUDPage.js Sortierung in die Table.js bringen !)
+
+  Pagination in der Live-Anzeige (HTML), damit die Performance bei vielen Datensätzen passt
+  
+  Parameter / Filter einführen
+  bessere Fehlermeldung, warum das Ausführen (SQL) nicht funktioniert
+  "default order by" auslagern in ein eigenes Feld (da sonst die Pagination oben gestört wird)
+  Beschreibung als Feld einführen und im Exceloutput auch im Infoblatt anzeigen / bei Live-Anzeige (HTML) auch anbieten (z.B. Infobutton)
+  Excel-Export auch bei großen Datenmengen beschleunigen und Fehlermeldung verhindern
+  inhaltliche Berechtigung auf Datenebene (row level security)
 
 customsql testen
 
@@ -78,7 +102,7 @@ CRUD field validation before save (especially required fields) !
                       left outer join dwh.core.vv_veranstaltungsreihe vr on vv.veranstaltungsreihe_id = vr.veranstaltungsreihe_id 
                       left outer join dwh.core.vv_land vl on vv.land_id  = vl.land_id 
                   where 1=1
-                  and vv.jahr <= year(getdate() ) + 1 -- max. 1 Jahr in die Zukunft schauen
+                  and vv.jahr <= year(getdate() ) + 2 -- max. 1 Jahr in die Zukunft schauen
                   and vv.jahr >= year(getdate() ) -5 -- max. 5 Jahre in die Vergangenheit schauen
                   and vv.veranstaltung_nr not like '%9999%'
                   and lower(vv.name) not like '%complimentary%'

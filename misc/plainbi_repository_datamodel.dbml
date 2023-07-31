@@ -101,7 +101,9 @@ Table external_resource_to_group as ESG {
 Table adhoc as A {
   id int [pk]
   name varchar
+  description varchar
   sql_query varchar
+  order_by_default varchar
   output_format outputformats
   datasource_id int [ref: > DS.id]
 }
@@ -117,10 +119,26 @@ Table adhoc_to_group as AG {
   group_id int [pk, ref: > G.id]
 }
 
+
+/**
+* custom sql
+*/
+
+Table customsql {
+  id int [pk]
+  alias varchar
+  name varchar
+  sql_query varchar
+}
+
 /**
 * Others
 */
 
+Table seq {
+sequence_name varchar 
+curval int
+}
 
 Table audit {
 username varchar [ref: > U.username]
