@@ -107,6 +107,10 @@ def db_exec(engine,sql,params=None):
             log.error(dbgindent+"db_exec ERROR: %s",str(e))
             log.error(dbgindent+"db_exec ERROR: SQL is %s",str(sql))
             log.error(dbgindent+"db_exec ERROR: params are %s",str(params))
+            if "Can't reconnect until invalid transaction is rolled back.  Please rollback()" in str(e):
+                log.error(dbgindent+"Try to rollback")
+                config.conn[engine.url].rollback()
+                log.error(dbgindent+"Rollback done")
             raise e
         if is_select:
             log.debug(dbgindent+"db_exec: is select and returns data")
@@ -598,6 +602,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     log.debug("++++++++++entering get_repo_adhoc_sql_stmt")
     log.debug("get_repo_adhoc_sql_stmt: param id is <%s>",str(id))
     adhocid = -999
+    order_by_def = None
     if is_id(id):
         adhocid=id
         reposql_params={ "id" : id}
@@ -625,11 +630,12 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
                 sql=lkp[0]["sql_query"]
                 adhocid=lkp[0]["id"]
                 execute_in_repodb = lkp[0]["datasource_id"]==0
+                order_by_def=lkp[0]["order_by_default"]
         else:
             log.warn("get_repo_adhoc_sql_stmt:lkp list len is not 1")
     else:
         log.warn("lkp is not a dict, it is a %s",str(lkp.__class__))
-    return sql, execute_in_repodb, adhocid
+    return sql, execute_in_repodb, adhocid, order_by_def
 
 ## repo customsql 
 def get_repo_customsql_sql_stmt(repoengine,id):
