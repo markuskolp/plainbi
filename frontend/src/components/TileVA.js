@@ -38,7 +38,7 @@ const TileVA = (props) => {
               })
             )
         );
-        // get distinct years from all fair events
+        // get distinct categories from all fair events
         setAvailableCategories(
           getUniqueCategories(resData).map((row) => ({
               value: row,
@@ -66,7 +66,7 @@ const TileVA = (props) => {
     tmpArr = [...new Set(tmpArr.map(item => item.value))]
     //console.log("tmpArr-2: " + JSON.stringify(tmpArr));
     // sort
-    tmpArr = tmpArr.sort((a, b) => a.value - b.value);
+    tmpArr = tmpArr.sort((a, b) => a - b);
     return tmpArr;
   };
 
