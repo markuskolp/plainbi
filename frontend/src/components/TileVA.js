@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Segmented, Select, Image, Table, Tag, message, Space } from "antd";
+import { Segmented, Select, Image, Table, Tag, message, Space , Tooltip} from "antd";
 import { Typography } from 'antd';
 import { PageHeader } from "@ant-design/pro-layout";
 const { Title, Link, Text } = Typography;
@@ -38,7 +38,7 @@ const TileVA = (props) => {
               })
             )
         );
-        // get distinct years from all fair events
+        // get distinct categories from all fair events
         setAvailableCategories(
           getUniqueCategories(resData).map((row) => ({
               value: row,
@@ -66,7 +66,7 @@ const TileVA = (props) => {
     tmpArr = [...new Set(tmpArr.map(item => item.value))]
     //console.log("tmpArr-2: " + JSON.stringify(tmpArr));
     // sort
-    tmpArr = tmpArr.sort((a, b) => a.value - b.value);
+    tmpArr = tmpArr.sort((a, b) => a - b);
     return tmpArr;
   };
 
@@ -108,7 +108,7 @@ const TileVA = (props) => {
       key: "logo_url",
       //width: 140,
       //minwidth: 200,
-      render: (logo_url) => (<Image preview={false} height={30} maxWidth={80} src={logo_url} fallback={"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}/> )
+      render: (logo_url, record) => (<Tooltip title={record.url ? "Klicken, um Homepage aufzurufen" : "keine Homepage hinterlegt"}><Link href={record.url} target='_blank'><Image preview={false} height={30} maxWidth={80} src={logo_url} fallback={"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="}/></Link></Tooltip> )
     },
     {
       title: "Messe",
@@ -117,7 +117,7 @@ const TileVA = (props) => {
       width: 250,
       render: (name, record) => (
         <React.Fragment>
-          <Link href={record.url} target='_blank'><b>{name}</b></Link>
+          <Tooltip title={record.url ? "Klicken, um Homepage aufzurufen" : "keine Homepage hinterlegt"}><Link href={record.url} target='_blank'><b>{name}</b></Link></Tooltip>
         </React.Fragment>
         )
     },

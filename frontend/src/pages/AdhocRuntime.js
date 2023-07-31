@@ -2,13 +2,14 @@ import React from "react";
 import Table from "../components/Table";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Button, notification } from "antd";
+import { Button, notification, Form } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
 import LoadingMessage from "../components/LoadingMessage";
 import { message } from "antd";
 import Axios from "axios";
 import {Sorter} from "../utils/sorter";
+import CRUDFormItem from "../components/CRUDFormItem";
 
 const AdhocRuntime = (props) => {
 
@@ -22,6 +23,9 @@ const AdhocRuntime = (props) => {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  
+  const [paramData, setParamData] = useState([]);
 
   useEffect(() => {
     getAdhoc();
@@ -57,7 +61,14 @@ const AdhocRuntime = (props) => {
 
   const getData = async () => {
     setLoading(true);
-    await Axios.get("/api/repo/adhoc/"+id+"/data", {headers: {Authorization: props.token}}).then(
+    var _adhocparams = "";
+    ///adhoc/<id>/data?params=param1:value1,param2:value2
+    if (id === "20" || id === "22" || id === "1" || id === "10" ) {
+      //_adhocparams = "?params=LANDISO2:TR,LAND:Deutschland^Italien"; // LANDISO2, LAND
+      _adhocparams = "?params=LANDISO2:"+paramData["land"]+",VERANSTALTUNG_NR:"+paramData["veranstaltung"]+",VERANSTALTUNGSREIHE_NR:"+paramData["veranstaltungsreihe"]+",JAHR:"+paramData["jahr"]; 
+    }
+    console.log("getData uri: " + "/api/repo/adhoc/"+id+"/data"+_adhocparams);
+    await Axios.get("/api/repo/adhoc/"+id+"/data"+_adhocparams, {headers: {Authorization: props.token}}).then(
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
@@ -79,7 +90,16 @@ const AdhocRuntime = (props) => {
   
   const getBlobData = async (_format) => {
     const dt = new Date().toISOString().substring(0,19);
-    await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format, {responseType: 'blob', headers: {Authorization: props.token}}).then(
+
+    var _adhocparams = "";
+    ///adhoc/<id>/data?params=param1:value1,param2:value2
+    if (id === "20" || id === "22" || id === "1" || id === "10" ) {
+      //_adhocparams = "?params=LANDISO2:TR,LAND:Deutschland^Italien"; // LANDISO2, LAND
+      _adhocparams = "&params=LANDISO2:"+paramData["land"]+",VERANSTALTUNG_NR:"+paramData["veranstaltung"]+",VERANSTALTUNGSREIHE_NR:"+paramData["veranstaltungsreihe"]+",JAHR:"+paramData["jahr"]; 
+    }
+    console.log("getBlobData uri: " + "/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams);
+
+    await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams, {responseType: 'blob', headers: {Authorization: props.token}}).then(
       (res) => {
         // create file link in browser's memory
         const href = URL.createObjectURL(res.data);
@@ -118,12 +138,28 @@ const AdhocRuntime = (props) => {
           multiple: 3,
         },
         //key: column_name
-        //width: 50,
+        width: column_label.length * 10 // width of column relative to column_label
         //render
       };
     }
 
 //    let title = "A_" + id + ": t.b.d.";
+
+  const handleParamChange = (key, value) =>{
+    setParamData({...paramData, [key]: value}); 
+    console.log("paramData: " + JSON.stringify(paramData));
+    console.log("handleParamChange - key: " + key + " / value: " + value);
+  }
+
+  
+  const handleOk = () => {
+    getData();
+  };
+
+  const layoutpage = {
+    labelCol: { span: 4 },
+    wrapperCol: { span: 8 }
+  };
 
   return (
     <React.Fragment>
@@ -142,6 +178,49 @@ const AdhocRuntime = (props) => {
       />
       <br />
       <div>
+      { (id === "20" || id === "22" || id === "1" || id === "10" ) ? (
+        <Form {...layoutpage} layout="horizontal">
+          {
+            (id === "20" ) ? (
+              <React.Fragment>
+                <CRUDFormItem type="new" name="veranstaltung" label="Veranstaltung" required="false" isprimarykey="true" editable="true" lookupid="veranstaltung_fuer_av" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                <CRUDFormItem type="new" name="land" label="Land" required="false" isprimarykey="true" editable="true" lookupid="land_gesichert" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+              </React.Fragment>
+            ) : ""
+          }
+          {
+            (id === "22" ) ? (
+              <React.Fragment>
+                <CRUDFormItem type="new" name="land" label="Land" required="false" isprimarykey="true" editable="true" lookupid="land" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+              </React.Fragment>
+            ) : ""
+          }
+          {
+            (id === "1" ) ? (
+              <React.Fragment>
+                <CRUDFormItem type="new" name="veranstaltungsreihe" label="Veranstaltungsreihe" required="false" isprimarykey="true" editable="true" lookupid="veranstaltungsreihe_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+              </React.Fragment>
+            ) : ""
+          }
+          {
+            (id === "10" ) ? (
+              <React.Fragment>
+                <CRUDFormItem type="new" name="veranstaltungsreihe" label="Veranstaltungsreihe" required="false" isprimarykey="true" editable="true" lookupid="veranstaltungsreihe_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                <CRUDFormItem type="new" name="jahr" label="Jahr" required="false" isprimarykey="true" editable="true" lookupid="jahr_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+              </React.Fragment>
+            ) : ""
+          }
+          <Form.Item
+            wrapperCol={{
+              offset: 4,
+              span: 8,
+            }}
+          >
+            <Button type="primary" htmlType="submit" onClick={handleOk}>Ausführen</Button>
+          </Form.Item>
+        </Form>
+        ) : ""
+      }
         {loading ? (
           <LoadingMessage />
         ) : ( data && columns && 
@@ -155,7 +234,8 @@ const AdhocRuntime = (props) => {
             }
             dataSource={data}
             pagination={{ pageSize: 50 }}
-            scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+            //scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+            scroll={{ y: 'calc(100vh - 400px)', x: 'max-content'  }} // change later from 400px dynamically to the height of the header, page header and footer
             loading={loading}
             rowKey="id"
           />
