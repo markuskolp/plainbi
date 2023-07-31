@@ -60,7 +60,7 @@ const Settings = (props) => {
         { column_name: "db_port", column_label: "Port", datatype: "text", ui: "textinput", editable: true, required: true },
         { column_name: "db_name", column_label: "Datenbank", datatype: "text", ui: "textinput", editable: true, required: true },
         { column_name: "db_user", column_label: "User", datatype: "text", ui: "textinput", editable: true, required: true },
-        { column_name: "db_pass_hash", column_label: "Passwort", datatype: "text", ui: "password", editable: true, required: true, showdetailsonly:true  },
+        { column_name: "db_pass_hash", column_label: "Passwort", datatype: "text", ui: "password_nomem", editable: true, required: true, showdetailsonly:true  },
       ]
     }, 
     {
@@ -113,7 +113,7 @@ const Settings = (props) => {
         { column_name: "username", column_label: "Username", datatype: "text", ui: "textinput", editable: true, required: true },
         { column_name: "email", column_label: "E-Mail", datatype: "text", ui: "email", editable: true, required: true },
         { column_name: "fullname", column_label: "Name (vollständig)", datatype: "text", ui: "textinput", editable: true, required: true },
-        { column_name: "password_hash", column_label: "Passwort", datatype: "text", ui: "password", editable: true, required: true, showdetailsonly:true  },
+        { column_name: "password_hash", column_label: "Passwort", datatype: "text", ui: "password_nomem", editable: true, required: true, showdetailsonly:true  },
         { column_name: "role_id", column_label: "Rolle", datatype: "number", ui: "lookup",  lookup: "role", editable: true, required: true },
       ]
     }, 
