@@ -248,13 +248,21 @@ def get_all_items(tokdata,tab):
     items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
     log.debug("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        try:
+            json_out2 = jsonify(out)
+        except Exception as ej2:
+            log.error("get_all_items: jsonify Error 2: %s",str(ej2))
+        return json_out2,500
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
     log.debug("leaving get_all_items and return json result")
     log.debug("out=%s",str(out))
-    return jsonify(out)
+    try:
+        json_out = jsonify(out)
+    except Exception as ej:
+        log.error("get_all_items: jsonify Error: %s",str(ej))
+    return json_out
 
 # Define routes for CRUD operations
 
@@ -921,8 +929,6 @@ def init_repo(tokdata):
 ###########################
 
 """
-GET /api/repo/adhoc/<id>/data	The data of a adhoc (result of its SQL)
-GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file
 GET /api/repo/lookup/<id>/data
 """
 @api.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
@@ -950,7 +956,10 @@ def get_lookup(tokdata,id):
 ## Adhoc
 ##
 ###########################
-
+"""
+GET /api/repo/adhoc/<id>/data	The data of a adhoc (result of its SQL)
+GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file
+"""
 
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
 @token_required
@@ -997,7 +1006,7 @@ def get_adhoc_data(tokdata,id):
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     log.debug("get_adhoc_data pagination order_by=%s",order_by)
     log.debug("get_adhoc_data: get adhoc stmt")
-    adhoc_sql, execute_in_repodb, adhocid = get_repo_adhoc_sql_stmt(repoengine,id)
+    adhoc_sql, execute_in_repodb, adhocid, order_by_def = get_repo_adhoc_sql_stmt(repoengine,id)
     audit(tokdata,request,id=adhocid)
     log.debug("get_adhoc_data: parameter substitution")
     # substitute params
@@ -1027,6 +1036,10 @@ def get_adhoc_data(tokdata,id):
         adhoc_sql += add_offset_limit(db_typ,offset,limit,order_by)
         log.debug("get_adhoc_data JSON pagination: %s",adhoc_sql)
         log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+    else:
+        if order_by_def is not None:
+            log.debug("get_adhoc_data: apply default order by")
+            adhoc_sql+=" "+order_by_def
     # execute adhoc sql
     log.debug("get_adhoc_data: execute adhoc sql")
     try:
@@ -1221,6 +1234,8 @@ def authenticate_local(username,password):
 def authenticate_ldap(username,password):
     log.debug("++++++++++ entering authenticate_ldap")
     global pbi_env,users
+    mail=None
+    full_name=None
     load_repo_users()
     authenticated=False
     s = ldap3.Server(host=pbi_env["LDAP_HOST"], port=int(pbi_env["LDAP_PORT"]), use_ssl=False, get_info=ldap3.ALL)
@@ -1240,7 +1255,24 @@ def authenticate_ldap(username,password):
             authenticated=True
             if username not in users.keys():
                 log.warning("new user %s from ldap registered",username)
-                db_adduser(config.repoengine,username,pwd="x",is_admin=False)
+                try:
+                    # get full username and password
+                    # Define the LDAP search filter (modify 'username_to_search' with the desired username)
+                    search_filter = f'(sAMAccountName={username})'
+                    # Specify the attributes to retrieve
+                    attributes = ['mail', 'displayName']
+                    # Perform the LDAP search
+                    conn_bind.search(pbi_env["LDAP_BASE_DN"], search_filter, attributes=attributes)
+                    # Retrieve and display the results
+                    if conn_bind.entries:
+                        entry = conn_bind.entries[0]
+                        mail = entry.mail.value if 'mail' in entry else None
+                        full_name = entry.displayName.value if 'displayName' in entry else None
+                    else:
+                        log.warning("cannot get email and full name for  %s from ldap",username)
+                except Exception as em:
+                        log.error("cannot get email and full name from ldap msg=%s",username,str(em))
+                db_adduser(config.repoengine,username,pwd="x",is_admin=False,email=mail,fullname=full_name)
             break
     log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
     return authenticated
@@ -1277,6 +1309,9 @@ def login():
     if authenticated:
         log.debug("login authenticated")
         token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
+        if username not in users.keys():
+            log.debug('refresh users array')
+            load_repo_users()
         return jsonify({'access_token': token, 'role': users[username]["rolename"]}), 200
 
     return jsonify({'message': 'Invalid credentials'}), 401

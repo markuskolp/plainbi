@@ -1250,7 +1250,7 @@ def test_4600_repo_ins_adhoc(test_client):
     log.info('TEST: %s',func_name())
     nam = 'adhoc1'
     test_url = '/api/repo/adhoc'
-    test_data = {"name" : nam, "id" : -18, "sql_query":"select * from plainbi_audit","output_format":"CSV","datasource_id":1  }
+    test_data = {"name" : nam, "id" : -18, "sql_query":"select * from plainbi_audit","output_format":"CSV","datasource_id":0  }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
     assert response.status_code == 200
@@ -1271,7 +1271,7 @@ def test_4605_repo_ins_adhoc(test_client):
     log.info('TEST: %s',func_name())
     nam = 'adhoc2'
     test_url = '/api/repo/adhoc'
-    test_data = {"name" : nam, "id" : -19, "sql_query":"select * from plainbi_audit where id=$(id)","output_format":"CSV","datasource_id":1  }
+    test_data = {"name" : nam, "id" : -19, "sql_query":"select * from plainbi_audit where id=$(id)","output_format":"CSV","datasource_id":0  }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
     assert response.status_code == 200

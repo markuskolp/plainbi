@@ -231,6 +231,8 @@ create table plainbi_adhoc (
  ,output_format text -- enum outputformats -- HTML Excel CSV
  ,datasource_id int
  ,owner_user_id int
+ ,order_by_default varchar
+ ,description varchar
  ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
 )
 """,
