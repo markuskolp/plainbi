@@ -2,8 +2,6 @@
 # asap
 # ------------------------------------------------
 
-Adhoc: horizontales Scrollen, wenn die Ausgabe zu viele Spalten hat --> Spaltenköpfe ?!
-
 "alias" müssen in plainbi überall eineindeutig sein -> sonst Fehlermeldung !
 beim Löschen die Kaskade beachten (z.B. user / user_to_group / ...)
 
