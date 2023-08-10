@@ -122,6 +122,13 @@ const TileVA = (props) => {
         )
     },
     {
+      title: "Nr",
+      dataIndex: "veranstaltung_nr",
+      key: "veranstaltung_nr",
+      width: 50,
+      render: (veranstaltung_nr,) => (<React.Fragment><Tag>{veranstaltung_nr}</Tag></React.Fragment>)
+    },
+    {
       title: "Status",
       dataIndex: "status",
       key: "status",

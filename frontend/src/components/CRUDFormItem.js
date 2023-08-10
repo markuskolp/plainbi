@@ -149,6 +149,8 @@ const handleSwitchChange = (checked, e) => {
                     //editorDidMount={::this.editorDidMount}
                     />
                   </div>
+                ) : ui === "password_nomem" ? (
+                  <Input.Password name={name} defaultValue={defaultValue} onChange={handleChange} autocomplete="off"/>
                 ) : ui === "password" ? (
                   <Input.Password name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "email" ? (
