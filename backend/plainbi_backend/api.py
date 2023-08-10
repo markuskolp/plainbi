@@ -615,7 +615,7 @@ select
 , '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
 , '_self' as target
 , coalesce(output_format, 'HTML') output_format
-, null as description
+, description
 , 'Adhoc' as source
 , null as dataset
 , 'adhoc' as resource_type
@@ -1006,7 +1006,7 @@ def get_adhoc_data(tokdata,id):
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     log.debug("get_adhoc_data pagination order_by=%s",order_by)
     log.debug("get_adhoc_data: get adhoc stmt")
-    adhoc_sql, execute_in_repodb, adhocid, order_by_def = get_repo_adhoc_sql_stmt(repoengine,id)
+    adhoc_sql, execute_in_repodb, adhocid, order_by_def, adhoc_desc = get_repo_adhoc_sql_stmt(repoengine,id)
     audit(tokdata,request,id=adhocid)
     log.debug("get_adhoc_data: parameter substitution")
     # substitute params
@@ -1133,8 +1133,10 @@ def get_adhoc_data(tokdata,id):
                     new_sheet = book[infosheet_name]
                     new_sheet['A1'] = "erstellt am:"
                     new_sheet['A2'] = "adhoc:"
+                    new_sheet['A3'] = "description:"
                     new_sheet['B1'] = str(datetime.now())
                     new_sheet['B2'] = id
+                    new_sheet['B3'] = adhoc_desc
                     #autofit columns
                     for column in new_sheet.columns:
                         max_length = 0
@@ -1372,6 +1374,40 @@ def hash_passwd(pwd):
     out["hashed"]=pwd_hashed
     print(pwd_hashed)
     return jsonify(out)
+
+@api.route('/cache', methods=['GET'])
+@token_required
+def cache(tokdata):
+    config.metadataraw_cache={}
+    config.profile_cache={}
+    log.debug("clear_cache: get_metadata_raw: cache created")
+    log.debug("clear_cache: get_profile: cache created")
+    if len(request.args) > 0:
+        for key, value in request.args.items():
+            log.info("arg: %s val: %s",key,value)
+            if key=="on":
+                config.use_cache=True
+                log.debug("caching enabled")
+                config.metadataraw_cache = {}
+                config.profile_cache = {}
+                return 'cacheing endabled', 200
+            if key=="off":
+                config.use_cache=False
+                log.debug("caching disabled")
+                return 'cacheing disabled', 200
+            if key=="clear":
+                config.metadataraw_cache={}
+                config.profile_cache={}
+                log.debug("clear_cache: get_metadata_raw: cache created")
+                log.debug("clear_cache: get_profile: cache created")
+                return 'caches cleared', 200
+            if key=="status":
+                if config.use_cache:
+                    return 'cache is enabled', 200
+                else:
+                    return 'cache is disabled', 200
+
+    return 'caches cleared', 200
 
 @api.route('/clear_cache', methods=['GET'])
 @token_required

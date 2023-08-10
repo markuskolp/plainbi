@@ -273,13 +273,14 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     else:
         cache_key+=pk_column_list if pk_column_list is not None else ""
     log.debug("get_metadata_raw: cache key is %s",cache_key)
-    if hasattr(config,"metadataraw_cache"):
-        if cache_key in config.metadataraw_cache.keys():
-            log.debug("get_metadata_raw: metadataraw_cache hit")
-            return config.metadataraw_cache[cache_key]
-    else:
-        config.metadataraw_cache={}
-        log.debug("get_metadata_raw: cache created")
+    if config.use_cache:
+        if hasattr(config,"metadataraw_cache"):
+            if cache_key in config.metadataraw_cache.keys():
+                log.debug("get_metadata_raw: metadataraw_cache hit")
+                return config.metadataraw_cache[cache_key]
+        else:
+            config.metadataraw_cache={}
+            log.debug("get_metadata_raw: cache created")
     out={}
     dbtype=get_db_type(dbengine)
     pkcols=[]
@@ -606,6 +607,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     log.debug("get_repo_adhoc_sql_stmt: param id is <%s>",str(id))
     adhocid = -999
     order_by_def = None
+    adhocdesc = None
     if is_id(id):
         adhocid=id
         reposql_params={ "id" : id}
@@ -634,11 +636,12 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
                 adhocid=lkp[0]["id"]
                 execute_in_repodb = lkp[0]["datasource_id"]==0
                 order_by_def=lkp[0]["order_by_default"]
+                adhocdesc=lkp[0]["description"]
         else:
             log.warn("get_repo_adhoc_sql_stmt:lkp list len is not 1")
     else:
         log.warn("lkp is not a dict, it is a %s",str(lkp.__class__))
-    return sql, execute_in_repodb, adhocid, order_by_def
+    return sql, execute_in_repodb, adhocid, order_by_def, adhocdesc
 
 ## repo customsql 
 def get_repo_customsql_sql_stmt(repoengine,id):
@@ -1036,13 +1039,14 @@ def get_profile(repoengine,u):
     """
     profile eines Users
     """
-    if hasattr(config,"profile_cache"):
-        if u in config.profile_cache.keys():
-            log.debug("get_profile: cache hit")
-            return config.profile_cache[u]
-    else:
-        config.profile_cache={}
-        log.debug("get_profile: cache created")
+    if config.use_cache:
+        if hasattr(config,"profile_cache"):
+            if u in config.profile_cache.keys():
+                log.debug("get_profile: cache hit")
+                return config.profile_cache[u]
+        else:
+            config.profile_cache={}
+            log.debug("get_profile: cache created")
 
     usr_sql = "select * from plainbi_user where username=:username"
     usr_items, usr_columns = db_exec(repoengine,usr_sql,{ "username" : u })

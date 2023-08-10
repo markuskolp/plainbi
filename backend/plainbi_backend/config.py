@@ -22,6 +22,9 @@ config = MyConfig()
 config.version="0.3 01.06.2023"
 config.SECRET_KEY=os.urandom(24)
 print("secret key generated")
+config.use_cache = False
+config.metadataraw_cache = {}
+config.profile_cache = {}
 
 def load_pbi_env():
     log.debug("++++++++++ entering load_pbi_env")

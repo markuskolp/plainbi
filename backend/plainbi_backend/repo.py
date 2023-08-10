@@ -105,7 +105,7 @@ drop table if exists plainbi_group
 create table plainbi_group (
   id int primary key not null
  ,name text
- ,alias text
+ ,alias text UNIQUE
 )
 """,
 """
@@ -132,7 +132,7 @@ drop table if exists plainbi_datasource
 create table plainbi_datasource (
   id int primary key not null
  ,name text
- ,alias text
+ ,alias text UNIQUE
  ,db_type text  -- db_types enum mssql,postgres,mysql,oracle,sqllite
  ,db_host text 
  ,db_port text 
@@ -155,7 +155,7 @@ drop table if exists plainbi_application
 create table plainbi_application(
   id int primary key not null
  ,name text
- ,alias text
+ ,alias text UNIQUE
  ,spec_json text
  ,datasource_id int
 )
@@ -181,7 +181,7 @@ drop table if exists plainbi_lookup
 create table plainbi_lookup (
   id int primary key not null
  ,name text
- ,alias text
+ ,alias text UNIQUE
  ,sql_query text
  ,datasource_id int
  ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
@@ -198,7 +198,7 @@ drop table if exists plainbi_external_resource
 create table plainbi_external_resource (
   id int primary key not null
  ,name text
- ,alias text
+ ,alias text UNIQUE
  ,url text
  ,description text
  ,source text
@@ -228,7 +228,7 @@ drop table if exists plainbi_adhoc
 create table plainbi_adhoc (
   id int primary key not null
  ,name varchar
- ,alias text
+ ,alias text UNIQUE
  ,sql_query varchar
  ,output_format text -- enum outputformats -- HTML Excel CSV
  ,datasource_id int
@@ -533,7 +533,7 @@ drop table if exists plainbi_customsql
 """
 create table plainbi_customsql (
   id int primary key not null
- ,alias text
+ ,alias text UNIQUE
  ,name varchar
  ,sql_query varchar
 )
@@ -623,7 +623,7 @@ drop table if exists plainbi_group
 create table plainbi_group (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100)
+ ,alias varchar(100) UNIQUE
 )
 """,
 """
@@ -651,7 +651,7 @@ drop table if exists plainbi_datasource
 create table plainbi_datasource (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100)
+ ,alias varchar(100) UNIQUE
  ,db_type varchar(100)  -- db_types enum mssql,postgres,mysql,oracle,sqllite
  ,db_host varchar(100) 
  ,db_port varchar(100) 
@@ -676,7 +676,7 @@ drop table if exists plainbi_application
 create table plainbi_application(
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100)
+ ,alias varchar(100) UNIQUE
  ,spec_json varchar(4000)
  ,datasource_id int
 )
@@ -705,7 +705,7 @@ drop table if exists plainbi_lookup
 create table plainbi_lookup (
   id int primary key not null
  ,name text
- ,alias text
+ ,alias text UNIQUE
  ,sql_query text
  ,datasource_id int
  ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
@@ -725,7 +725,7 @@ drop table if exists plainbi_external_resource
 create table plainbi_external_resource (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100)
+ ,alias varchar(100) UNIQUE
  ,url varchar(100)
  ,description varchar(100)
  ,source varchar(100)
@@ -738,7 +738,6 @@ drop sequence if exists plainbi_external_resource_seq
 """
 create sequence plainbi_external_resource_seq start with 1;
 """,
-
 """
 drop table if exists plainbi_external_resource_to_group
 """,
@@ -758,7 +757,7 @@ drop table if exists plainbi_adhoc
 create table plainbi_adhoc (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100)
+ ,alias varchar(100) UNIQUE
  ,sql_query varchar(4000)
  ,output_format varchar(100) -- enum outputformats -- HTML Excel CSV
  ,datasource_id int
@@ -1063,7 +1062,7 @@ drop table if exists plainbi_customsql
 """
 create table plainbi_customsql (
   id int primary key not null
- ,alias varchar2(100)
+ ,alias varchar2(100) UNIQUE
  ,name varchar(100)
  ,sql_query varchar(4000)
 )
@@ -1073,6 +1072,37 @@ drop sequence if exists plainbi_customsql_seq
 """,
 """
 create sequence plainbi_customsql_seq start with 1;
+""",
+"""
+drop table if exists plainbi_adhoc_parameter
+""",
+"""
+CREATE TABLE plainbi_adhoc_parameter (
+  id int primary key not null,
+  name varchar,
+  name_technical varchar,
+  adhoc_id int,
+  datatype varchar,
+  ui varchar,
+  lookup varchar,
+  default_value varchar,
+  required varchar
+);
+""",
+"""
+drop sequence if exists plainbi_adhoc_parameter_seq
+""",
+"""
+create sequence plainbi_adhoc_parameter_seq start with 1;
+""",
+"""
+insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-110, null, 'ui_for_parameter', 'select ''textinput'' as r, ''Eingabefeld (Text)'' as d union select ''numberinput'' as r, ''Eingabefeld (Zahl)'' as d union select ''datepicker'' as r, ''Datumsauswahl'' as d union select ''lookup'' as r, ''Lookup'' as d', 0);
+""",
+"""
+insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-111, null, 'lookup_for_parameter', 'select case when name is null then alias else name || '' ('' || alias || '')'' end as d, alias as r from plainbi_lookup', 0);
+""",
+"""
+insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0);
 """,
     ]
 
