@@ -785,7 +785,7 @@ def create_repo(tokdata,tab):
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
-    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group","customsql"]:
+    if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group","customsql","adhoc_parameter"]:
         seq=tab
     else:
         seq=None
@@ -942,7 +942,7 @@ def get_lookup(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=repo_lookup_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True)
+    items,columns,total_count,e=repo_lookup_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
     log.debug("get_lookup sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -1013,6 +1013,7 @@ def get_adhoc_data(tokdata,id):
     if isinstance(myparams,dict):
         for p,v in myparams.items():
             adhoc_sql=adhoc_sql.replace("$("+p+")",v)
+        adhoc_sql=adhoc_sql.replace("$(APP_USER)",tokdata['username'])
         log.debug("get_adhoc_data: adhoc sql after subsitution: %s",adhoc_sql)
     # substitute request data
     if isinstance(dataitem,dict):
@@ -1273,6 +1274,8 @@ def authenticate_ldap(username,password):
                 except Exception as em:
                         log.error("cannot get email and full name from ldap msg=%s",username,str(em))
                 db_adduser(config.repoengine,username,pwd="x",is_admin=False,email=mail,fullname=full_name)
+                log.debug("refresh profile cache")
+                config.profile_cache={}
             break
     log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
     return authenticated

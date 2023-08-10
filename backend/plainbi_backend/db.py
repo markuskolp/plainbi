@@ -535,7 +535,7 @@ def get_current_timestamp(dbengine):
     return out
 
 ## repo lookup adhoc
-def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None):
+def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -571,6 +571,9 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
         msg="no sql in repo_lookup_select"
         log.error(msg)
         return None,None,None,msg
+    if username is not None:
+        sql=sql.replace("$(APP_USER)",username)
+        log.debug("lkp sql username replaced")
     try:
         if execute_in_repodb:
             log.debug("lookup query execution in repodb")
