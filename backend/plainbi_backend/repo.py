@@ -34,7 +34,11 @@ import time
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from plainbi_backend.db import db_exec,get_db_type
+from plainbi_backend.db import db_exec,get_db_type,sql_select
+
+import logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 """
 sqlitecon = sqlite3.connect("plainbi_repo.db")
@@ -570,7 +574,23 @@ insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-
 insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0);
 """,
     ]
+
+           
+           
+           
+
     if dbtyp=="mssql":
+        print("--- use plainbi")
+        presql="use PLAINBI"
+        db_exec(engine,presql)
+        print("---")
+        sql="SELECT 'ALTER TABLE ' + TABLE_SCHEMA + '.[' + TABLE_NAME + '] DROP CONSTRAINT [' + CONSTRAINT_NAME + ']' as cmd FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_TYPE = 'FOREIGN KEY' AND TABLE_NAME LIKE 'plainbi%' AND CONSTRAINT_NAME LIKE '%FK__%'"
+        items,columns=db_exec(engine,sql)
+        for i in items:
+            print(i["cmd"])
+            db_exec(engine,i["cmd"])
+        print(str(items))
+        print("----------") 
         sql_create_list=[
 """
 drop table if exists plainbi_role
@@ -623,7 +643,7 @@ drop table if exists plainbi_group
 create table plainbi_group (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100) UNIQUE
+ ,alias varchar(100) --UNIQUE
 )
 """,
 """
@@ -651,7 +671,7 @@ drop table if exists plainbi_datasource
 create table plainbi_datasource (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100) UNIQUE
+ ,alias varchar(100) --UNIQUE
  ,db_type varchar(100)  -- db_types enum mssql,postgres,mysql,oracle,sqllite
  ,db_host varchar(100) 
  ,db_port varchar(100) 
@@ -676,7 +696,7 @@ drop table if exists plainbi_application
 create table plainbi_application(
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100) UNIQUE
+ ,alias varchar(100) --UNIQUE
  ,spec_json varchar(4000)
  ,datasource_id int
 )
@@ -704,9 +724,9 @@ drop table if exists plainbi_lookup
 """
 create table plainbi_lookup (
   id int primary key not null
- ,name text
- ,alias text UNIQUE
- ,sql_query text
+ ,name varchar(100)
+ ,alias varchar(100) --UNIQUE
+ ,sql_query varchar(4000)
  ,datasource_id int
  ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
 )
@@ -725,9 +745,9 @@ drop table if exists plainbi_external_resource
 create table plainbi_external_resource (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100) UNIQUE
+ ,alias varchar(100) --UNIQUE
  ,url varchar(100)
- ,description varchar(100)
+ ,description varchar(1000)
  ,source varchar(100)
  ,dataset varchar(100)
 )
@@ -757,7 +777,7 @@ drop table if exists plainbi_adhoc
 create table plainbi_adhoc (
   id int primary key not null
  ,name varchar(100)
- ,alias varchar(100) UNIQUE
+ ,alias varchar(100) --UNIQUE
  ,sql_query varchar(4000)
  ,output_format varchar(100) -- enum outputformats -- HTML Excel CSV
  ,datasource_id int
@@ -786,7 +806,6 @@ create table plainbi_adhoc_to_group (
 )
 """,
 """
--- application: adhoc, external_resource
 INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
        (-100,'Adhoc Konfiguration','adhoc','{
    "pages":[
@@ -886,7 +905,10 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
          ]
       }
    ]
-}',0),
+}',0);
+""",
+"""
+INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
        (-101,'externe Ressourcen','ext_res','{
    "pages":[
       {
@@ -998,7 +1020,7 @@ insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-101,
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-102, 'db_type', 'select ''SQLite'' as d, ''sqlite'' as r union select ''MS SQL Server'' as d, ''mssql'' as r', 0);
 """,
 """
-insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select coalesce(fullname || ''('' || username || '')'', username) as d, id as r from plainbi_user', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select coalesce(fullname + ''('' + username + '')'', username) as d, id as r from plainbi_user', 0);
 """,
 """
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-104, 'group', 'select name as d, id as r from plainbi_group', 0);
@@ -1016,7 +1038,7 @@ insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-107,
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-108, 'external_resource', 'select name as d, id as r from plainbi_external_resource', 0);
 """,
 """
-insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-109, 'username', 'select fullname || ''('' || username || '')'' as d, username as r from plainbi_user where username != ''admin'';', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-109, 'username', 'select fullname + ''('' + username + '')'' as d, username as r from plainbi_user where username != ''admin'';', 0);
 """,
 """
 drop table if exists plainbi_audit
@@ -1024,7 +1046,7 @@ drop table if exists plainbi_audit
 """
 create table plainbi_audit (
   username varchar(100)
- ,t TIMESTAMP
+ ,t datetime
  ,url varchar(250)
  ,id varchar(100)
  ,remark varchar(1000)
@@ -1039,7 +1061,7 @@ DROP VIEW IF EXISTS plainbi_audit_adhoc;
 create view plainbi_audit_adhoc
 as
 select 
-coalesce(u.fullname, u.username) as user
+coalesce(u.fullname, u.username) as "user"
 , a.t as datum
 , a.id as adhoc_id
 , pa.name as adhoc_name
@@ -1054,7 +1076,6 @@ where 1=1
 and a.username = u.username
 and a.id = pa.id
 and url like '%/api/repo/adhoc/%/data%'
-order by a.t desc;
 """,
 """
 drop table if exists plainbi_customsql
@@ -1062,7 +1083,7 @@ drop table if exists plainbi_customsql
 """
 create table plainbi_customsql (
   id int primary key not null
- ,alias varchar2(100) UNIQUE
+ ,alias varchar(100) --UNIQUE
  ,name varchar(100)
  ,sql_query varchar(4000)
 )
@@ -1099,18 +1120,32 @@ create sequence plainbi_adhoc_parameter_seq start with 1;
 insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-110, null, 'ui_for_parameter', 'select ''textinput'' as r, ''Eingabefeld (Text)'' as d union select ''numberinput'' as r, ''Eingabefeld (Zahl)'' as d union select ''datepicker'' as r, ''Datumsauswahl'' as d union select ''lookup'' as r, ''Lookup'' as d', 0);
 """,
 """
-insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-111, null, 'lookup_for_parameter', 'select case when name is null then alias else name || '' ('' || alias || '')'' end as d, alias as r from plainbi_lookup', 0);
+insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-111, null, 'lookup_for_parameter', 'select case when name is null then alias else name + '' ('' + alias + '')'' end as d, alias as r from plainbi_lookup', 0);
 """,
 """
 insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0);
 """,
     ]
-
+    i=0
     print("******************************")
+    print("List Len", len(sql_create_list))
     for sql in sql_create_list[:]:
+       i+=1
+       log.info("----------------------------------------------------------------------------------------------------")
+       print("-- Repo SQL %d",i)
+       log.info("-- Repo SQL %d",i)
+       log.info("----------------------------------------------------------------------------------------------------")
+       log.info(sql)
        print(sql)
+       log.info("----------------------------------------------------------------------------------------------------")
        db_exec(engine,sql)
+       log.info("----------------------------------------------------------------------------------------------------")
        #time.sleep(1)
+    items,columns,total_count,e=sql_select(engine,"select * from plainbi_application",with_total_count=True,is_repo=True)
+    log.info("HUGO %s",str(items))
+    log.info("HUGOTOD %s",str(total_count))
+    print("HUGO %s",str(items))
+    print("HUGOTOD %s",str(total_count))
     #con.close()
    
 """

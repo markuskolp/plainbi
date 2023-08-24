@@ -594,11 +594,15 @@ def get_resource(tokdata):
     w_app=add_auth_to_where_clause("plainbi_application",None,user_id)
     w_adhoc=add_auth_to_where_clause("plainbi_adhoc",None,user_id)
     w_ext_res=add_auth_to_where_clause("plainbi_external_resource",None,user_id)
+    if config.repo_db_type == 'mssql':
+        concat_op='+'
+    else:
+        concat_op='||'
     
     resource_sql=f"""select
-'application_'||id as id
+'application_'{concat_op}cast(id as varchar) as id
 , name
-, '/apps/'||alias as url
+, '/apps/'{concat_op}alias as url
 , '_self' as target
 , null as output_format
 , null as description
@@ -610,9 +614,9 @@ from plainbi_application pa
 {w_app}
 union all
 select
-'adhoc_'||id as id
+'adhoc_'{concat_op}cast(id as varchar) as id
 , name
-, '/adhoc/' || id || case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='||output_format else '' end as url
+, '/adhoc/' {concat_op} cast(id as varchar) {concat_op} case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='{concat_op}output_format else '' end as url
 , '_self' as target
 , coalesce(output_format, 'HTML') output_format
 , description
@@ -624,7 +628,7 @@ from plainbi_adhoc padh
 {w_adhoc}
 union all
 select
-'external_resource_'||id as id
+'external_resource_'{concat_op}cast(id as varchar) as id
 , name
 , url
 , '_blank' as target
@@ -785,8 +789,15 @@ def create_repo(tokdata,tab):
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
+    db_typ = get_db_type(repoengine)
     if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group","customsql","adhoc_parameter"]:
-        seq=tab
+        if db_typ=="sqlite":
+           seq=tab
+        elif db_typ=="mssql":
+           seq="plainbi_"+tab+"_seq"
+        else:
+           log.error("create_repo: unknown repo database type")
+           seq=None
     else:
         seq=None
     out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True,customsql=mycustomsql)
@@ -1453,6 +1464,7 @@ def create_app(config_filename=None,p_repository=None):
         repoengine = db_connect(pbi_env["repo_engine"], pbi_env["repo_params"] if "repo_params" in pbi_env.keys() else None)
     log.info("repoengine %s",repoengine.url)
     config.repoengine=repoengine
+    config.repo_db_type = get_db_type(repoengine)
     log.info("config.repoengine set to %s",repoengine.url)
 
     dbengine = db_connect(pbi_env["db_engine"], pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)

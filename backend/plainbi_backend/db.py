@@ -17,15 +17,6 @@ from threading import Lock
 
 config.database_lock = Lock()
 
-"""
-import urllib
-repoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi_repo.db")
-params = urllib.parse.quote_plus("DSN=DWH_DEV_PORTAL;UID=portal;PWD=s7haPsjrnl3")
-dbengine = sqlalchemy.create_engine("mssql+pyodbc:///?odbc_connect=%s" % params)
-
-
-"""
-
 metadata_col_query="""
 SELECT 
     DB_NAME() AS database_name,
@@ -503,15 +494,11 @@ def get_next_seq(dbengine,seq):
 
 def get_current_timestamp(dbengine):
     """
-    Hole den nächsten wert einer sequence
-
-    Parameters
-    ----------
-    seq : Name der Sequence
+    Hole die aktuelle Zeit
 
     Returns
     -------
-    sequence wert als int
+    aktuelle Zeit
 
     """
     out={}
@@ -522,11 +509,11 @@ def get_current_timestamp(dbengine):
         #cursor = cnxn.cursor()
         items, columns = db_exec(dbengine,sql)
     except SQLAlchemyError as e_sqlalchemy:
-        log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
+        log.error("sqlalchemy exception in get_current_timestamp: %s",str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
         return out
     except Exception as e:
-        log.error("exception in get_next_seq: %s ",str(e))
+        log.error("exception in get_current_timestamp: %s ",str(e))
         last_stmt_has_errors(e, out)
         return out
     out=items[0]["ts"] 
@@ -619,7 +606,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     try:
         lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
     except SQLAlchemyError as e_sqlalchemy:
-        log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
+        log.error("sqlalchemy exception in get_repo_adhoc_sql_stmt: %s",str(e_sqlalchemy))
         last_stmt_has_errors(e_sqlalchemy, out)
         return out
     except Exception as e:
@@ -1095,7 +1082,16 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
         #p=bcrypt.hashpw(pwd.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
         p=config.bcrypt.generate_password_hash(pwd)
         item["password_hash"]=p.decode()
-    x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq="user")
+
+    db_typ = get_db_type(dbeng)
+    if db_typ=="sqlite":
+        sequenz="user"
+    elif db_typ=="mssql":
+        sequenz="plainbi_user_seq"
+    else:
+        log.error("db_adduser: unknown repo database type")
+        sequenz=None
+    x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq=sequenz)
     return x
 
 def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):

@@ -75,6 +75,7 @@ def load_pbi_env():
     
     pbi_env["repo_engine"] = os.environ.get("repo_engine")
     pbi_env["repo_engine"] = db_subs_env(pbi_env["repo_engine"],pbi_env) 
+    config.repo_db_type = None
     
     pbi_env["LDAP_HOST"] = os.environ.get("LDAP_HOST")
     pbi_env["LDAP_PORT"] = int(os.environ.get("LDAP_PORT"))

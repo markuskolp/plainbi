@@ -42,9 +42,17 @@ log.info("dbengine %s",dbengine.url)
 
 from sys import platform
 if platform == "win32":
-    x=f"{home_directory}".replace("\\","/")
-    x=x.replace("C:/","")
-    test_repo_engine_str=f"sqlite:////{x}/plainbi_repo_pytests.db"
+    if True: # test against sql server repo
+        repo_server="VNTSV147"
+        repo_username="PLAINBI"
+        repo_password="3434hGWe3jah,.43H§$ehjfbB"
+        repo_params=f"DSN=DWH_DEV_PLAINBI;UID={repo_username};PWD={repo_password}"
+        repo_engine="mssql+pyodbc:///?odbc_connect=%s"
+        test_repo_engine_str="mssql+pyodbc:///?odbc_connect=%s" % repo_params
+    else:    
+        x=f"{home_directory}".replace("\\","/")
+        x=x.replace("C:/","")
+        test_repo_engine_str=f"sqlite:////{x}/plainbi_repo_pytests.db"
 else:
     test_repo_engine_str=f"sqlite:///{home_directory}/plainbi_repo_pytests.db"
 log.info("pytests repo db str = %s",test_repo_engine_str)
@@ -244,7 +252,7 @@ def test_1010_repo_ins_app2(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    appnam='testapp'
+    appnam='testapp2'
     test_url='/api/repo/application'
     test_data={ "name" : appnam, "id" : -9 }
     format_url("post", test_url, data=test_data, testname=func_name())
@@ -256,7 +264,7 @@ def test_1010_repo_ins_app2(test_client):
     assert row1["name"]==appnam
     assert row1["id"]==-9
 
-def test_1011_repo_ins_testapp(test_client):
+def test_1011_repo_ins_testuser_app(test_client):
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
@@ -276,7 +284,7 @@ def test_1011_repo_ins_testapp(test_client):
     assert row1["name"]==appnam
     assert row1["id"]==-10
 
-def test_1012_repo_ins_testnoapp(test_client):
+def test_1012_repo_ins_testuser_noapp(test_client):
     """
     GIVEN a Flask application configured for testing
     WHEN the '/' page is requested (GET)
