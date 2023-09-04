@@ -41,12 +41,32 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 """
+import sys
+sys.path.insert(0,'C:\\Users\\kribbel\\plainbi\\backend')
+import os
+from dotenv import load_dotenv
+
+
+home_directory = os.path.expanduser( '~' )
+dotenv_path = os.path.join(home_directory, '.env')
+load_dotenv(dotenv_path)
+
 sqlitecon = sqlite3.connect("plainbi_repo.db")
 repoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi_repo.db")
 repoengine = sqlalchemy.create_engine("sqlite:////opt/app/portal/backend/repo.db")
 
-import sys
-sys.path.insert(0,'C:\\Users\\kribbel\\plainbi\\backend')
+repo_env=""
+repo_env="_test"
+repo_env="_prod"
+repo_server=os.environ.get("repo_server"+repo_env)
+repo_username=os.environ.get("repo_username"+repo_env)
+repo_password=os.environ.get("repo_password"+repo_env)
+repo_database=os.environ.get("repo_database"+repo_env)
+repo_engine_str=f"mssql+pymssql://{repo_username}:{repo_password}@{repo_server}/{repo_database}"
+
+from plainbi_backend.db import db_connect
+repo_engine=db_connect(repo_engine_str)
+
 """
 
 
@@ -1132,8 +1152,8 @@ insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-
     for sql in sql_create_list[:]:
        i+=1
        log.info("----------------------------------------------------------------------------------------------------")
-       print("-- Repo SQL %d",i)
-       log.info("-- Repo SQL %d",i)
+       print("-- Repo SQL %d" % (i))
+       log.info("-- Repo SQL %d" %(i))
        log.info("----------------------------------------------------------------------------------------------------")
        log.info(sql)
        print(sql)
@@ -1142,10 +1162,8 @@ insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-
        log.info("----------------------------------------------------------------------------------------------------")
        #time.sleep(1)
     items,columns,total_count,e=sql_select(engine,"select * from plainbi_application",with_total_count=True,is_repo=True)
-    log.info("HUGO %s",str(items))
-    log.info("HUGOTOD %s",str(total_count))
-    print("HUGO %s",str(items))
-    print("HUGOTOD %s",str(total_count))
+    log.info("Anzahl Applications %s" % (str(total_count)))
+    print("Anzahl Applications %s" % (str(total_count)))
     #con.close()
    
 """

@@ -1084,6 +1084,7 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
         item["password_hash"]=p.decode()
 
     db_typ = get_db_type(dbeng)
+    log.debug("db_adduser: database type is %s",db_typ)
     if db_typ=="sqlite":
         sequenz="user"
     elif db_typ=="mssql":
@@ -1091,6 +1092,7 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     else:
         log.error("db_adduser: unknown repo database type")
         sequenz=None
+    log.debug("db_adduser: database seq is %s",sequenz)
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq=sequenz)
     return x
 

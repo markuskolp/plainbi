@@ -594,10 +594,12 @@ def get_resource(tokdata):
     w_app=add_auth_to_where_clause("plainbi_application",None,user_id)
     w_adhoc=add_auth_to_where_clause("plainbi_adhoc",None,user_id)
     w_ext_res=add_auth_to_where_clause("plainbi_external_resource",None,user_id)
+    log.debug("get_resource config.repo_db_type=%s",config.repo_db_type)
     if config.repo_db_type == 'mssql':
         concat_op='+'
     else:
         concat_op='||'
+    log.debug("get_resource concat_op=%s",concat_op)
     
     resource_sql=f"""select
 'application_'{concat_op}cast(id as varchar) as id

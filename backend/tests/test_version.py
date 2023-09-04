@@ -13,6 +13,8 @@ import logging
 import urllib
 import sqlalchemy
 import os
+from sys import platform
+
 
 from plainbi_backend.config import config,load_pbi_env
 from plainbi_backend.db import db_connect
@@ -40,21 +42,42 @@ def func_name():
 dbengine = db_connect(pbi_env["db_engine"],pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
 log.info("dbengine %s",dbengine.url)
 
-from sys import platform
-if platform == "win32":
-    if True: # test against sql server repo
-        repo_server="VNTSV147"
-        repo_username="PLAINBI"
-        repo_password="3434hGWe3jah,.43H§$ehjfbB"
-        repo_params=f"DSN=DWH_DEV_PLAINBI;UID={repo_username};PWD={repo_password}"
-        repo_engine="mssql+pyodbc:///?odbc_connect=%s"
-        test_repo_engine_str="mssql+pyodbc:///?odbc_connect=%s" % repo_params
-    else:    
-        x=f"{home_directory}".replace("\\","/")
-        x=x.replace("C:/","")
-        test_repo_engine_str=f"sqlite:////{x}/plainbi_repo_pytests.db"
+
+# check if repo engine pytest is configured
+log.info("check if pytest db is configured")
+repo_engine_pytest = os.environ.get("repo_engine_pytest")
+if repo_engine_pytest is not None:
+    log.info("pytest db is configured: %s",repo_engine_pytest)
+    repo_server = os.environ.get("repo_server_pytest")
+    repo_username = os.environ.get("repo_username_pytest")
+    repo_password = os.environ.get("repo_password_pytest")
+    repo_database = os.environ.get("repo_database_pytest")
+    repo_params = os.environ.get("repo_params_pytest")
+    if repo_params is not None:
+        if repo_username is not None:
+           repo_params = repo_params.replace("{repo_username}",repo_username)
+        if repo_password is not None:
+           repo_params = repo_params.replace("{repo_password}",repo_password)
+        if repo_database is not None:
+           repo_params = repo_params.replace("{repo_database}",repo_database)
+        if repo_server is not None:
+           repo_params = repo_params.replace("{repo_server}",repo_server)
+
+    test_repo_engine_str = repo_engine_pytest
 else:
-    test_repo_engine_str=f"sqlite:///{home_directory}/plainbi_repo_pytests.db"
+    # pytest is not configured
+    log.info("pytest db is not configured: use sqlite db in home directory")
+    home_directory = os.path.expanduser( '~' )
+    x=f"{home_directory}".replace("\\","/")
+    x=x.replace("C:/","")
+    test_repo_engine_str=f"sqlite:////{x}/plainbi_repo_pytests.db"
+    log.info("pytest db default is: %s",test_repo_engine_str)
+
+if "%s" in test_repo_engine_str:
+    # contains a parameter
+    log.info("pytest db default with param: %s",repo_params)
+    test_repo_engine_str=test_repo_engine_str % repo_params
+   
 log.info("pytests repo db str = %s",test_repo_engine_str)
 repoengine = db_connect(test_repo_engine_str)
 log.info("repoengine %s",repoengine.url)
