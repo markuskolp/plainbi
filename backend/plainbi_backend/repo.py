@@ -717,7 +717,7 @@ create table plainbi_application(
   id int primary key not null
  ,name varchar(100)
  ,alias varchar(100) --UNIQUE
- ,spec_json varchar(4000)
+ ,spec_json varchar(max)
  ,datasource_id int
 )
 """,
@@ -766,10 +766,10 @@ create table plainbi_external_resource (
   id int primary key not null
  ,name varchar(100)
  ,alias varchar(100) --UNIQUE
- ,url varchar(100)
- ,description varchar(1000)
- ,source varchar(100)
- ,dataset varchar(100)
+ ,url varchar(1000)
+ ,description varchar(4000)
+ ,source varchar(1000)
+ ,dataset varchar(1000)
 )
 """,
 """
@@ -803,7 +803,7 @@ create table plainbi_adhoc (
  ,datasource_id int
  ,owner_user_id int
  ,order_by_default varchar(1000)
- ,description varchar
+ ,description varchar(4000)
  ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
 )
 """,
