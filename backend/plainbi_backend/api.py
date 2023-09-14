@@ -1053,7 +1053,7 @@ def get_adhoc_data(tokdata,id):
     else:
         if order_by_def is not None:
             log.debug("get_adhoc_data: apply default order by")
-            adhoc_sql+=" "+order_by_def
+            adhoc_sql+=" "+order_by_def.replace(":"," ")
     # execute adhoc sql
     log.debug("get_adhoc_data: execute adhoc sql")
     try:
