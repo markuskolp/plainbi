@@ -1064,15 +1064,36 @@ def get_adhoc_data(tokdata,id):
             log.debug("get_adhoc_data: adhoc query execution in db")
             items, columns = db_exec(dbengine,adhoc_sql)
     except SQLAlchemyError as e_sqlalchemy:
-        log.error("get_adhoc_data sqlalchemy exception: %s",str(e_sqlalchemy))
-        #last_stmt_has_errors(e_sqlalchemy, out)
-        msg="adhoc sql execution error"
-        return msg, 500
+        log.error("adhoc_sql_errors: %s", str(e_sqlalchemy))
+        if hasattr(e_sqlalchemy, 'code'):
+            out["error"]=e_sqlalchemy.code
+        else:
+            out["error"]="error"
+        if hasattr(e_sqlalchemy,"__dict__"):
+            if isinstance(e_sqlalchemy.__dict__,dict):
+                if "orig" in e_sqlalchemy.__dict__.keys():
+                    out["message"]=e_sqlalchemy.__dict__['orig']
+                else:
+                    out["message"]=str(e_sqlalchemy)
+                if "sql" in e_sqlalchemy.__dict__.keys():
+                    out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            else:
+                out["message"]=str(e_sqlalchemy)
+        else:
+            out["message"]=str(e_sqlalchemy)
+        out["detail"]=None
+        #msg="adhoc sql execution error"
+        #out["message"] = msg
+        return jsonify(out), 500
     except Exception as e:
         log.error("get_adhoc_data exception: %s ",str(e))
-        #last_stmt_has_errors(e, out)
+        out["error"]=1
+        out["message"]=str(e.__class__)
+        out["detail"]=None
+        if hasattr(e, "__dict__"):
+             if "message" in e.__dict__.keys(): out["message"]=str(e.__dict__['message'])
         msg="adhoc sql execution exception"
-        return msg, 500
+        return jsonify(out), 500
     #
     # handle formats
     log.debug("get_adhoc_data: fmt= %s",fmt)
