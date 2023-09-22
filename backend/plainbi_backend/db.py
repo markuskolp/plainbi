@@ -283,6 +283,8 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
         #log.debug("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
+            out["error"]+="-get_metadata_raw"
+            out["message"]+=" beim Lesen der Tabellen Metadaten"
             log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
         #log.debug("get_metadata_raw: 1 items=%s",str(items))
@@ -307,6 +309,8 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query_sqlite.replace('<fulltablename>',tab))
         #log.debug("get_metadata_raw-sqlite: returned %s",str(e))
         if last_stmt_has_errors(e, out):
+            out["error"]+="-get_metadata_raw"
+            out["message"]+=" beim Lesen der Tabellen Metadaten"
             log.debug("++++++++++ leaving get_metadata_raw-sqlite returning for %s data %s",tab,out)
             return out
         #    
@@ -337,12 +341,16 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             #out["metadata"]=mitems
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_metadata:raw: %s",str(e_sqlalchemy))
-            last_stmt_has_errors(e_sqlalchemy, out)
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-get_metadata_raw-columns"
+                out["message"]+=" beim Lesen der Tabellenspalten Metadaten"
             log.error("++++++++++ leaving get_metadata_raw with error returning for %s data %s",tab,out)
             return out
         except Exception as e:
             log.error("exception in get_metadata_raw: error %s",str(e))
-            last_stmt_has_errors(e, out)
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-get_metadata_raw-columns"
+                out["message"]+=" beim Lesen der Tabellenspalten Metadaten"
             log.error("++++++++++ leaving get_metadata_raw with error returning for %s data %s",tab,out)
             return out
     
@@ -418,11 +426,15 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         items, columns = db_exec(dbengine,sql,pkwhere_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("get_item_raw[%s]: sqlalchemy exception: %s",str(tab),str(e_sqlalchemy))
-        last_stmt_has_errors(e_sqlalchemy, out)
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-get_item_raw"
+            out["message"]+=" beim Lesen einer Tabelle"
         return out
     except Exception as e:
         log.error("get_item_raw[%s]: exception: %s ",str(tab),str(e))
-        last_stmt_has_errors(e, out)
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_item_raw"
+            out["message"]+=" beim Lesen einer Tabelle"
         return out
 
     log.debug("get_item_raw[%s]: columns: %s",str(tab),columns)
@@ -463,11 +475,15 @@ def get_next_seq(dbengine,seq):
             _=db_exec(dbengine,sql)    
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
-            last_stmt_has_errors(e_sqlalchemy, out)
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-get_next_seq"
+                out["message"]+=" beim Erzeugen einer Sequenz-Id"
             return out
         except Exception as e:
             log.error("exception in get_next_seq: %s ",str(e))
-            last_stmt_has_errors(e, out)
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-get_next_seq"
+                out["message"]+=" beim Erzeugen einer Sequenz-Id"
             return out
         out=nextval
     else:
@@ -479,11 +495,15 @@ def get_next_seq(dbengine,seq):
             items, columns = db_exec(dbengine,sql)
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
-            last_stmt_has_errors(e_sqlalchemy, out)
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-get_next_seq-sqlite"
+                out["message"]+=" beim Erzeugen einer Sequenz-Id"
             return out
         except Exception as e:
             log.error("exception in get_next_seq: %s ",str(e))
-            last_stmt_has_errors(e, out)
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-get_next_seq-sqlite"
+                out["message"]+=" beim Erzeugen einer Sequenz-Id"
             return out
 
         out=items[0]["nextval"] 
@@ -510,11 +530,15 @@ def get_current_timestamp(dbengine):
         items, columns = db_exec(dbengine,sql)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in get_current_timestamp: %s",str(e_sqlalchemy))
-        last_stmt_has_errors(e_sqlalchemy, out)
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-get_current_timestamp"
+            out["message"]+=" beim Erzeugen eines aktuellen Timestamps"
         return out
     except Exception as e:
         log.error("exception in get_current_timestamp: %s ",str(e))
-        last_stmt_has_errors(e, out)
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_current_timestamp"
+            out["message"]+=" beim Erzeugen eines aktuellen Timestamps"
         return out
     out=items[0]["ts"] 
     #for row in data:
@@ -607,11 +631,15 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
         lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in get_repo_adhoc_sql_stmt: %s",str(e_sqlalchemy))
-        last_stmt_has_errors(e_sqlalchemy, out)
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-get_repo_adhoc_sql_stmt"
+            out["message"]+=" beim Lesen der Adhoc-Abfrage"
         return out
     except Exception as e:
         log.error("exception in get_repo_adhoc_sql_stmt: %s ",str(e))
-        last_stmt_has_errors(e, out)
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_repo_adhoc_sql_stmt"
+            out["message"]+=" beim Lesen der Adhoc-Abfrage"
         return out
     #lkp=[r._asdict() for r in lkpq]
     sql=None
@@ -653,11 +681,15 @@ def get_repo_customsql_sql_stmt(repoengine,id):
         lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in get_repo_customsql_sql_stmt: %s",str(e_sqlalchemy))
-        last_stmt_has_errors(e_sqlalchemy, out)
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-get_repo_customsql_sql_stmt"
+            out["message"]+=" beim Lesen der CustomSQL-Abfrage"
         return out
     except Exception as e:
         log.error("exception in get_repo_customsql_sql_stmt: %s ",str(e))
-        last_stmt_has_errors(e, out)
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_repo_customsql_sql_stmt"
+            out["message"]+=" beim Lesen der CustomSQL-Abfrage"
         return out
     sql=None
     execute_in_repodb=None
@@ -741,7 +773,9 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
             if seq is not None:
                 # override none valued sequence pk column with seq 
                 if len(pkcols)>1:
-                    out["error"]="sequences are only allowed for single column primary keys"
+                    out["error"]="sequences-only-allowed-for-single-column-pk"
+                    out["message"]="Sequenzen sind nur beim Primary Keys mit einer Spalte erlaubt"
+                    out["detail"]="sequences are only allowed for single column primary keys"
                     return out
                 s=get_next_seq(dbeng,seq)
                 log.debug("db_ins: got seq %d",s)
@@ -771,12 +805,15 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                     log.debug("dbins: deleted record terminated")
                 except SQLAlchemyError as e_sqlalchemy:
                     log.error("sqlalchemy deleted record terminated; %s",str(e_sqlalchemy))
-                    last_stmt_has_errors(e_sqlalchemy, out)
-                    if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+                    if last_stmt_has_errors(e_sqlalchemy, out):
+                        out["error"]+="-db_ins-vers"
+                        out["message"]+=" beim Einfügen eines neuen versionierten Datensatzes"
                     return out
                 except Exception as e:
                     log.error("excp deleted record terminated: %s",str(e))
-                    last_stmt_has_errors(e, out)
+                    if last_stmt_has_errors(e, out):
+                        out["error"]+="-db_ins-vers"
+                        out["message"]+=" beim Einfügen eines neuen versionierten Datensatzes"
                     return out
                
     param_list=[":"+k for k in myitem.keys()]
@@ -790,12 +827,15 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         db_exec(dbeng,sql,myitem)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("db_ins: sqlalchemy error: %s",str(e_sqlalchemy))
-        last_stmt_has_errors(e_sqlalchemy, out)
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-db_ins"
+            out["message"]+=" beim Einfügen eines neuen Datensatzes"
         return out
     except Exception as e:
         log.error("db_ins: exception %s",str(e))
-        last_stmt_has_errors(e, out)
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-db_ins"
+            out["message"]+=" beim Einfügen eines neuen Datensatzes"
         return out
     # read new record from database and send it back
     out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
@@ -825,10 +865,12 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, 
     chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
-            out["error"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+            out["error"]="db_upd-id-not-found"
+            out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
             return out
     else:
-        out["error"]="PK check nicht erfolgreich"
+        out["error"]="db_upd-pk-check-failed"
+        out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
         return out
     
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
@@ -852,7 +894,20 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, 
         log.debug("marker values length is %d",len(upditem))
         updsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
         log.debug("db_upd newrec sql: %s", updsql)
-        db_exec(dbeng, updsql, upditem)
+        try:
+            db_exec(dbeng, updsql, upditem)
+        except SQLAlchemyError as e_sqlalchemy:
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-db_upd-old-vers"
+                out["message"]+=" beim Aktualisieren des alten versionierten Datensatzes"
+            log.error("++++++++++ leaving db_upd returning %s", str(out))
+            return out
+        except Exception as e:
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-db_upd-old-vers"
+                out["message"]+=" beim Aktualisieren des alten versionierten Datensatzes"
+            log.error("++++++++++ leaving db_upd returning %s", str(out))
+            return out
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
@@ -876,12 +931,15 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, 
         try:
             db_exec(dbeng,newsql,newrec)
         except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-db_upd-vers"
+                out["message"]+=" beim Aktualisieren eines versionierten Datensatzes"
             log.error("++++++++++ leaving db_upd returning %s", str(out))
             return out
         except Exception as e:
-            last_stmt_has_errors(e, out)
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-db_upd-vers"
+                out["message"]+=" beim Aktualisieren eines versionierten Datensatzes"
             log.error("++++++++++ leaving db_upd returning %s", str(out))
             return out
     else:
@@ -897,12 +955,15 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, 
         try:
             db_exec(dbeng,sql,myitem)
         except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-db_upd"
+                out["message"]+=" beim Aktualisieren eines Datensatzes"
             log.debug("++++++++++ leaving db_upd returning %s", str(out))
             return out
         except Exception as e:
-            last_stmt_has_errors(e, out)
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-db_upd"
+                out["message"]+=" beim Aktualisieren eines Datensatzes"
             log.debug("++++++++++ leaving db_upd returning %s", str(out))
             return out
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
@@ -919,12 +980,16 @@ def db_passwd(dbeng,u,p):
     try:
         db_exec(dbeng,sql,{ "password_hash":p,"username":u})
     except SQLAlchemyError as e_sqlalchemy:
-        last_stmt_has_errors(e_sqlalchemy, out)
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-db_passwd"
+            out["message"]+=" beim Aktualisieren des Passwortes"
         if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
         log.error("++++++++++ leaving db_passwd returning %s", str(out))
         return out
     except Exception as e:
-        last_stmt_has_errors(e, out)
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-db_passwd"
+            out["message"]+=" beim Aktualisieren des Passwortes"
         log.error("++++++++++ leaving db_passwd returning %s", str(out))
         return out
     return out
@@ -951,11 +1016,13 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
     chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
-            out["error"]="PK ist nicht vorhanden"
+            out["error"]="db_del-pk-id-not-found"
+            out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
             log.debug("++++++++++ leaving db_del returning %s", str(out))
             return out
     else:
-        out["error"]="PK check nicht erfolgreich"
+        out["error"]="db_del-pk-check-id-not-found"
+        out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
         log.debug("++++++++++ leaving db_del returning %s", str(out))
         return out
 
@@ -973,7 +1040,20 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         upditem.update(pkwhere_params)
         log.debug("marker values length is %d",len(upditem))
         sql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
-        db_exec(dbeng,sql,upditem)
+        try:
+            db_exec(dbeng,sql,upditem)
+        except SQLAlchemyError as e_sqlalchemy:
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-db_del-old-vers"
+                out["message"]+=" beim Löschen des alten versionierten Datensatzes"
+            log.error("++++++++++ leaving db_del returning %s", str(out))
+            return out
+        except Exception as e:
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-db_del-old-vers"
+                out["message"]+=" beim Löschen des alten versionierten Datensatzes"
+            log.error("++++++++++ leaving db_del returning %s", str(out))
+            return out
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
@@ -996,12 +1076,15 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         try:
             db_exec(dbeng,newsql,newrec)
         except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
-            if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-db_del-vers"
+                out["message"]+=" beim Löschen eines versionierten Datensatzes"
             log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
         except Exception as e:
-            last_stmt_has_errors(e, out)
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-db_del-vers"
+                out["message"]+=" beim Löschen eines versionierten Datensatzes"
             log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
     else:
@@ -1011,12 +1094,16 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         try:
             db_exec(dbeng,sql,pkwhere_params)
         except SQLAlchemyError as e_sqlalchemy:
-            last_stmt_has_errors(e_sqlalchemy, out)
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-db_del-vers"
+                out["message"]+=" beim Löschen eines Datensatzes"
             if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
             log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
         except Exception as e:
-            last_stmt_has_errors(e, out)
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-db_del-vers"
+                out["message"]+=" beim Löschen eines Datensatzes"
             log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
     log.debug("++++++++++ leaving db_del returning %s", str(out))

@@ -124,30 +124,30 @@ def last_stmt_has_errors(e,out):
         return False
     if isinstance(e, SQLAlchemyError):
         log.error("last_stmt_has_errors: %s", str(SQLAlchemyError))
+        out["error"]="sql-error"
+        out["message"]="SQL Exception"
         if hasattr(e, 'code'):
-            out["error"]=e.code
-        else:
-            out["error"]="error"
+            out["code"]=e.code
         if hasattr(e,"__dict__"):
             if isinstance(e.__dict__,dict):
                 if "orig" in e.__dict__.keys():
-                    out["message"]=e.__dict__['orig']
+                    out["detail"]=e.__dict__['orig']
                 else:
-                    out["message"]=str(e)
+                    out["detail"]=str(e)
                 if "sql" in e.__dict__.keys():
                     out["error_sql"]=e.__dict__['sql']
             else:
-                out["message"]=str(e)
+                out["detail"]=str(e)
         else:
-            out["message"]=str(e)
-        out["detail"]=None
+            out["detail"]=str(e)
         return True
     if isinstance(e,Exception):
         log.error("last_stmt_has_errors: exception: %s", str(e))
-        out["error"]=1
-        out["message"]=str(e.__class__)
-        out["detail"]=None
+        out["error"]="python-error"
+        out["message"]="Python Exception"
+        out["detail"]=str(e.__class__)
         if hasattr(e, "__dict__"):
-             if "message" in e.__dict__.keys(): out["message"]=str(e.__dict__['message'])
+             if "message" in e.__dict__.keys(): out["detail"]+="/"+str(e.__dict__['message'])
         return True
     return False
+

@@ -20,6 +20,8 @@ sys.path.insert(0,'C:\\Users\\kribbel\\plainbi\\backend')
 log.addHandler(logging.StreamHandler())
 
 repoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi_repo.db")
+srcrepoengine = sqlalchemy.create_engine("sqlite:////Users/kribbel/plainbi/repo20230907_dev.db")
+
 """
 
 def repo_export_appl(repoengine,id=None,alias=None):
