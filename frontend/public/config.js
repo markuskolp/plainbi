@@ -4,6 +4,9 @@ var APP_TITLE = 'MM BI'
 var HEADER_TITLE = 'Messe München - Data & BI';
 var FOOTER = '©2023 plainbi';
 
+// environment banner
+var ENVIRONMENT_BANNER_TEXT = ''; // e.g. DEV, TEST - leave empty for PROD, as you mostly don't need a banner there
+
 // theme
 var THEME_COLOR_PRIMARY = 'rgb(106, 145, 206)';
 var THEME_COLOR_SUCCESS = '#91c311';

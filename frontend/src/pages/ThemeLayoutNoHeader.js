@@ -10,6 +10,7 @@ import {
 import "antd/dist/reset.css";
 import "../css/index.css";
 import { Outlet } from "react-router-dom";
+import EnvironmentBanner from "../components/EnvironmentBanner";
 //import logo from "./logo";
 
 const { Title, Link } = Typography;
@@ -48,6 +49,7 @@ const ThemeLayout = () => {
         }}
       >
         <Layout className="layout">
+          <EnvironmentBanner />
           <Content style={{ padding: "0 50px" }}>
             <div
               className="site-layout-content"

@@ -2,12 +2,16 @@ import React, { useRef, useEffect, useState } from "react";
 import { Form, Input, Button, Checkbox,Image, Space, message, Typography  } from 'antd';
 import Icon from '@ant-design/icons';
 import axios from "axios";
+import EnvironmentBanner from "../components/EnvironmentBanner";
 const { Title } = Typography;
+
 
 const Login = (props) => {
 
   const header_title = window.HEADER_TITLE;
-
+  const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
+  const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
+  
   const [loading, setLoading] = useState(false);
 
   const [loginForm, setloginForm] = useState({
@@ -77,6 +81,8 @@ const Login = (props) => {
 */
 
   return (
+    <React.Fragment>
+      { environment_banner_text ? <EnvironmentBanner text={environment_banner_text} backgroundColor={environment_banner_color} /> : ""}
       <div className="login">
         <div>
           <Space size={"middle"}>
@@ -124,6 +130,7 @@ const Login = (props) => {
           </Form.Item>
         </Form>
       </div>
+      </React.Fragment>
   );
 };
 

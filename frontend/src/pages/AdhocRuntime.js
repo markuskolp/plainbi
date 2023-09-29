@@ -2,7 +2,7 @@ import React from "react";
 import Table from "../components/Table";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Button, notification, Form } from "antd";
+import { Button, notification, Form, Collapse } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
 import LoadingMessage from "../components/LoadingMessage";
@@ -50,13 +50,17 @@ const AdhocRuntime = (props) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
         setAdhoc(resData);
+        //console.log(res);
       }
       ).catch(
         function (error) {
           setLoading(false);
           message.error('Es gab einen Fehler beim Laden des Adhoc.');
+          console.log("error.message: " + error.message);
+          console.log("error.response: " + error.response);
+          console.error('Request Failed:', error.config);
         }
-      );  
+      );
   };
 
   const getData = async () => {
@@ -82,7 +86,14 @@ const AdhocRuntime = (props) => {
       ).catch(
         function (error) {
           setLoading(false);
-          message.error('Es gab einen Fehler beim Laden der Daten.');
+          message.error('Es gab einen Fehler beim Laden der Daten: ' + error.response.data.message);
+          //console.log("error.message: " + error.message);
+          //console.log(error);
+          //console.log(error.message);
+          //console.log("error.response: " + error.response);
+          console.log(error.response.data.message);
+          //console.log("error.config: " + error.config);
+          //console.log(error.config);
         }
       );  
   };
@@ -117,8 +128,10 @@ const AdhocRuntime = (props) => {
       }
       ).catch(
         function (error) {
-            message.error('Es gab einen Fehler beim Laden der Daten als ' + _format);
-        }
+            message.error('Es gab einen Fehler beim Laden der Daten als ' + _format + ': ' + error.response.data.message);
+            console.log(error);
+            console.log(error.response.data.message);
+          }
       );  
   };
 
@@ -161,6 +174,16 @@ const AdhocRuntime = (props) => {
     wrapperCol: { span: 8 }
   };
 
+  const filterCollapse = [
+    {
+      key: '1',
+      label: 'Filter',
+      children: 'text',
+    }
+  ];
+  //<Collapse items={filterCollapse} bordered={false} defaultActiveKey={['1']} />
+
+
   return (
     <React.Fragment>
       <PageHeader
@@ -179,46 +202,46 @@ const AdhocRuntime = (props) => {
       <br />
       <div>
       { (id === "20" || id === "22" || id === "1" || id === "10" ) ? (
-        <Form {...layoutpage} layout="horizontal">
-          {
-            (id === "20" ) ? (
-              <React.Fragment>
-                <CRUDFormItem type="new" name="veranstaltung" label="Veranstaltung" required="false" isprimarykey="true" editable="true" lookupid="veranstaltung_fuer_av" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
-                <CRUDFormItem type="new" name="land" label="Land" required="false" isprimarykey="true" editable="true" lookupid="land_gesichert" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
-              </React.Fragment>
-            ) : ""
-          }
-          {
-            (id === "22" ) ? (
-              <React.Fragment>
-                <CRUDFormItem type="new" name="land" label="Land" required="false" isprimarykey="true" editable="true" lookupid="land" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
-              </React.Fragment>
-            ) : ""
-          }
-          {
-            (id === "1" ) ? (
-              <React.Fragment>
-                <CRUDFormItem type="new" name="veranstaltungsreihe" label="Veranstaltungsreihe" required="false" isprimarykey="true" editable="true" lookupid="veranstaltungsreihe_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
-              </React.Fragment>
-            ) : ""
-          }
-          {
-            (id === "10" ) ? (
-              <React.Fragment>
-                <CRUDFormItem type="new" name="veranstaltungsreihe" label="Veranstaltungsreihe" required="false" isprimarykey="true" editable="true" lookupid="veranstaltungsreihe_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
-                <CRUDFormItem type="new" name="jahr" label="Jahr" required="false" isprimarykey="true" editable="true" lookupid="jahr_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
-              </React.Fragment>
-            ) : ""
-          }
-          <Form.Item
-            wrapperCol={{
-              offset: 4,
-              span: 8,
-            }}
-          >
-            <Button type="primary" htmlType="submit" onClick={handleOk}>Ausführen</Button>
-          </Form.Item>
-        </Form>
+          <Form {...layoutpage} layout="horizontal">
+            {
+              (id === "20" ) ? (
+                <React.Fragment>
+                  <CRUDFormItem type="new" name="veranstaltung" label="Veranstaltung" required="false" isprimarykey="true" editable="true" lookupid="veranstaltung_fuer_av" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                  <CRUDFormItem type="new" name="land" label="Land" required="false" isprimarykey="true" editable="true" lookupid="land_gesichert" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                </React.Fragment>
+              ) : ""
+            }
+            {
+              (id === "22" ) ? (
+                <React.Fragment>
+                  <CRUDFormItem type="new" name="land" label="Land" required="false" isprimarykey="true" editable="true" lookupid="land" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                </React.Fragment>
+              ) : ""
+            }
+            {
+              (id === "1" ) ? (
+                <React.Fragment>
+                  <CRUDFormItem type="new" name="veranstaltungsreihe" label="Veranstaltungsreihe" required="false" isprimarykey="true" editable="true" lookupid="veranstaltungsreihe_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                </React.Fragment>
+              ) : ""
+            }
+            {
+              (id === "10" ) ? (
+                <React.Fragment>
+                  <CRUDFormItem type="new" name="veranstaltungsreihe" label="Veranstaltungsreihe" required="false" isprimarykey="true" editable="true" lookupid="veranstaltungsreihe_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                  <CRUDFormItem type="new" name="jahr" label="Jahr" required="false" isprimarykey="true" editable="true" lookupid="jahr_fuer_messestat" ui="lookup" defaultValue="" onChange={handleParamChange} tooltip="" token={props.token}/>
+                </React.Fragment>
+              ) : ""
+            }
+            <Form.Item
+              wrapperCol={{
+                offset: 4,
+                span: 8,
+              }}
+            >
+              <Button type="primary" htmlType="submit" onClick={handleOk}>Ausführen</Button>
+            </Form.Item>
+          </Form>
         ) : ""
       }
         {loading ? (

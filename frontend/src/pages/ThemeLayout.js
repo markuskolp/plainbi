@@ -14,9 +14,10 @@ import {
 import "antd/dist/reset.css";
 import "../css/index.css";
 import { Outlet } from "react-router-dom";
+import EnvironmentBanner from "../components/EnvironmentBanner";
 //import logo from "./logo";
 
-const { Title, Link } = Typography;
+const { Title, Link, Text } = Typography;
 const { Header, Content, Footer } = Layout;
 
 // config.js
@@ -28,6 +29,8 @@ const color_success = window.THEME_COLOR_SUCCESS;
 const color_error = window.THEME_COLOR_ERROR;
 const color_info = window.THEME_COLOR_INFO;
 const font_size = window.THEME_FONT_SIZE;
+const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
+const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
 
 // set document title if given
 document.title = app_title ? app_title : 'plainbi';
@@ -122,6 +125,7 @@ const ThemeLayout = (props) => {
         }}
       >
         <Layout className="layout">
+         { environment_banner_text ? <EnvironmentBanner text={environment_banner_text} backgroundColor={environment_banner_color} /> : ""}
           <Header>
             <Space size={"middle"}>
               <Link href="/">
