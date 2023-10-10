@@ -60,18 +60,8 @@ const Resources = (props) => {
           message.error('Es gab einen Fehler beim Laden der berechtigten Ressourcen.');
 
         }
-        console.log("error.message: " + error.message);
         console.log("error.response: " + error.response);
         console.error('Request Failed:', error.config);
-        /*
-        if (error.response) {
-            console.error('Status:',  error.response.status);
-            console.error('Data:',    error.response.data);
-            console.error('Headers:', error.response.headers);
-        } else {
-            console.error('Error Message:', error.message);
-        }
-        */
       }
     );
   };

@@ -67,10 +67,12 @@ const AdhocRuntime = (props) => {
     setLoading(true);
     var _adhocparams = "";
     ///adhoc/<id>/data?params=param1:value1,param2:value2
+    /* kurz auskommentiert
     if (id === "20" || id === "22" || id === "1" || id === "10" ) {
       //_adhocparams = "?params=LANDISO2:TR,LAND:Deutschland^Italien"; // LANDISO2, LAND
       _adhocparams = "?params=LANDISO2:"+paramData["land"]+",VERANSTALTUNG_NR:"+paramData["veranstaltung"]+",VERANSTALTUNGSREIHE_NR:"+paramData["veranstaltungsreihe"]+",JAHR:"+paramData["jahr"]; 
     }
+    */
     console.log("getData uri: " + "/api/repo/adhoc/"+id+"/data"+_adhocparams);
     await Axios.get("/api/repo/adhoc/"+id+"/data"+_adhocparams, {headers: {Authorization: props.token}}).then(
       (res) => {
@@ -86,14 +88,9 @@ const AdhocRuntime = (props) => {
       ).catch(
         function (error) {
           setLoading(false);
-          message.error('Es gab einen Fehler beim Laden der Daten: ' + error.response.data.message);
-          //console.log("error.message: " + error.message);
-          //console.log(error);
-          //console.log(error.message);
-          //console.log("error.response: " + error.response);
+          message.error('Es gab einen Fehler beim Laden der Daten: ' + error.response.data.detail);
+          console.log(error);
           console.log(error.response.data.message);
-          //console.log("error.config: " + error.config);
-          //console.log(error.config);
         }
       );  
   };
@@ -104,10 +101,12 @@ const AdhocRuntime = (props) => {
 
     var _adhocparams = "";
     ///adhoc/<id>/data?params=param1:value1,param2:value2
+    /* kurz auskommentiert
     if (id === "20" || id === "22" || id === "1" || id === "10" ) {
       //_adhocparams = "?params=LANDISO2:TR,LAND:Deutschland^Italien"; // LANDISO2, LAND
       _adhocparams = "&params=LANDISO2:"+paramData["land"]+",VERANSTALTUNG_NR:"+paramData["veranstaltung"]+",VERANSTALTUNGSREIHE_NR:"+paramData["veranstaltungsreihe"]+",JAHR:"+paramData["jahr"]; 
     }
+    */
     console.log("getBlobData uri: " + "/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams);
 
     await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams, {responseType: 'blob', headers: {Authorization: props.token}}).then(
@@ -128,8 +127,8 @@ const AdhocRuntime = (props) => {
       }
       ).catch(
         function (error) {
-            message.error('Es gab einen Fehler beim Laden der Daten als ' + _format + ': ' + error.response.data.message);
-            console.log(error);
+            message.error('Es gab einen Fehler beim Laden der Daten als ' + _format + ': ' + error.response.data.detail);
+            console.log("getBlobData - error: " + error);
             console.log(error.response.data.message);
           }
       );  
@@ -201,6 +200,34 @@ const AdhocRuntime = (props) => {
       />
       <br />
       <div>
+        {loading ? (
+          <LoadingMessage />
+        ) : ( data && columns && 
+          
+          <Table 
+            size="small"
+            //columns={columns}
+            columns={columns.map((column) => {
+                return getColumn(column, column); 
+              })
+            }
+            dataSource={data}
+            pagination={{ pageSize: 50 }}
+            //scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+            scroll={{ y: 'calc(100vh - 400px)', x: 'max-content'  }} // change later from 400px dynamically to the height of the header, page header and footer
+            loading={loading}
+            rowKey="id"
+          />
+        )}
+      </div>
+    </React.Fragment>
+  );
+};
+
+export default AdhocRuntime;
+
+/*
+
       { (id === "20" || id === "22" || id === "1" || id === "10" ) ? (
           <Form {...layoutpage} layout="horizontal">
             {
@@ -244,28 +271,4 @@ const AdhocRuntime = (props) => {
           </Form>
         ) : ""
       }
-        {loading ? (
-          <LoadingMessage />
-        ) : ( data && columns && 
-          
-          <Table 
-            size="small"
-            //columns={columns}
-            columns={columns.map((column) => {
-                return getColumn(column, column); 
-              })
-            }
-            dataSource={data}
-            pagination={{ pageSize: 50 }}
-            //scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
-            scroll={{ y: 'calc(100vh - 400px)', x: 'max-content'  }} // change later from 400px dynamically to the height of the header, page header and footer
-            loading={loading}
-            rowKey="id"
-          />
-        )}
-      </div>
-    </React.Fragment>
-  );
-};
-
-export default AdhocRuntime;
+      */
