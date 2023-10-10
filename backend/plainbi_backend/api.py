@@ -1188,6 +1188,7 @@ def get_adhoc_data(tokdata,id):
                                 headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
                             )
                             log.debug("get_adhoc_data: return response")
+                            log.debug(response)
                             return response
                     elif fmt=="CSV":
                         log.debug("adhoc csv")
@@ -1201,6 +1202,7 @@ def get_adhoc_data(tokdata,id):
                                 mimetype='text/csv',
                                 headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
                             )
+                            log.debug(response)
                             return response
                     elif fmt=="TXT":
                         log.debug("adhoc txt separated with tabs")
@@ -1214,6 +1216,7 @@ def get_adhoc_data(tokdata,id):
                                 mimetype='text/csv',
                                 headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
                             )
+                            log.debug(response)
                             return response
                     else: 
                         out["error"]="adhoc-invalid-format"
