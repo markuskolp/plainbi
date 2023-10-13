@@ -1188,6 +1188,7 @@ def get_adhoc_data(tokdata,id):
                                 headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
                             )
                             log.debug("get_adhoc_data: return response")
+                            log.debug(response)
                             return response
                     elif fmt=="CSV":
                         log.debug("adhoc csv")
@@ -1201,6 +1202,7 @@ def get_adhoc_data(tokdata,id):
                                 mimetype='text/csv',
                                 headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
                             )
+                            log.debug(response)
                             return response
                     elif fmt=="TXT":
                         log.debug("adhoc txt separated with tabs")
@@ -1214,6 +1216,7 @@ def get_adhoc_data(tokdata,id):
                                 mimetype='text/csv',
                                 headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
                             )
+                            log.debug(response)
                             return response
                     else: 
                         out["error"]="adhoc-invalid-format"
@@ -1318,6 +1321,7 @@ def authenticate_ldap(username,password):
 
 @api.route('/login', methods=['POST'])
 def login():
+    out={}
     log.debug("++++++++++ entering login")
     log.debug("login")
     data_bytes = request.get_data()
@@ -1325,16 +1329,20 @@ def login():
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
-    print("login items ",str(item))
+    #print("login items ",str(item))
 
     username = item['username']
     log.debug("login: username=%s",username)
     password = item['password']
-    log.debug("login: password=%s",password)
+    #log.debug("login: password=%s",password)
+    #audit(item['username'],request)
     audit(item['username'],request)
 
+    used_ldap=False
+    used_local=False
     authenticated = False
     if "LDAP_HOST" in pbi_env.keys():  # if LDAP is defined in config environment
+        used_ldap=True
         authenticated = authenticate_ldap(username,password)
         log.debug("login authenticated by ldap = %s",authenticated)
         if not authenticated:
@@ -1342,6 +1350,7 @@ def login():
             authenticated = authenticate_local(username,password)
             log.debug("login authenticated local = %s",authenticated)
     else: 
+        used_local=True
         authenticated = authenticate_local(username,password)
         log.debug("login authenticated local = %s",authenticated)
     if authenticated:
@@ -1350,9 +1359,19 @@ def login():
         if username not in users.keys():
             log.debug('refresh users array')
             load_repo_users()
-        return jsonify({'access_token': token, 'role': users[username]["rolename"]}), 200
-
-    return jsonify({'message': 'Invalid credentials'}), 401
+        return jsonify({'access_token': token, "message":"Login erfolgreich", 'role': users[username]["rolename"]}), 200
+    else:
+        out["message"]='Benutzername oder Passwort ist falsch'
+        out["error"]="invalid-credentials"
+        if used_ldap and used_local:
+            out["detail"]="invalid-credentials in ldap and local auth"
+        elif used_ldap:
+            out["detail"]="invalid-credentials in ldap auth"
+        elif used_local:
+            out["detail"]="invalid-credentials in local auth"
+        else:
+            out["detail"]="invalid-credentials without ldap and local"
+    return jsonify(out), 401
 
 @api.route('/passwd', methods=['POST'])
 @token_required
