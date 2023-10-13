@@ -2,21 +2,61 @@
 # asap
 # ------------------------------------------------
 
-VAs sortieren absteigend
-auch VA-Tile sortierbar machen -> warten auf Joe wg. "order_by desc"
+Joe: Oracle als Repsitory und Datenverbindung ermöglichen
+  -> dann bei M-net testen
+  -> Feedback einarbeiten, damit man das Portal dort einsetzen könnte
 
-Cognosinhalte unterscheidbar machen -> eigener Ressourcentyp "Cognos Bericht/Berichtsansicht" -> Pfad + ID/Quell-Nr + URL angeben (oder aus Metadaten mal auslesen)
+Adhoc Fehlermeldungen
+	- was wenn direkt aufgerufen - wie anzeigen dann: Message vs. Alert
+allgemein Fehlermeldungen
+	- Joe: keine Fehlermeldung bei CVS/XLSX
+	- Joe: Login (nur "invalid credentials")
 
-wie die inhaltliche Berechtigung machen z.B. bei "Besucherdaten AV"
-  - SQL joinen mit Berechtigungstabelle -> OK
-  - Parameterauswahl (Lookup) auch nur erlauben z.B. auf erlaubte Länder -> wie den USERNAMEN durchreichen -> evtl. als definierte PLAINBI-Parameter wie z.B. $(APP_USER)
+VA-Tile sortierbar machen
+
+Live setzen!
+
+Optimierungen:
+- besser Spaltenbreiten ! (z.B. bei Pflege von Veranstaltungen)
+	- mindestens so breit wie Spaltenkopf, höchstens bestimmte Breite (z.B. 300 px)
+	- wenn nötig dann nach rechts scrollen
+
+dann Parameter abschliessen
+
+dann Master/Detail realisieren
+
+dann "custom sql" besser machen und änder auf "anzeige" vs "editieren" z.B.
+- table: "..."
+- summary_source: "..."
+- summary_source_type: "table|sql"
+
+dann Buttons mit SQL code hinterlegbar machen
+	...
+	, additional_buttons: {
+		{
+			type: "primary|secondary",
+			label: "",
+			icon: "",
+			action_sql: ""
+		},
+		{
+			type: "primary|secondary",
+			label: "",
+			icon: "",
+			action_sql: ""
+		}
+	}
+	...
+
+Ressource Type einführen (damit man z.B Cognos als Typ hinterlegen kann)
+  Cognosinhalte unterscheidbar machen -> eigener Ressourcentyp "Cognos Bericht/Berichtsansicht" -> Pfad + ID/Quell-Nr + URL angeben (oder aus Metadaten mal auslesen)
 
 "alias" müssen in plainbi überall eineindeutig sein -> sonst Fehlermeldung !
 beim Löschen die Kaskade beachten (z.B. user / user_to_group / ...)
 
 Userberechtigung im BI Tool oder durchreichen in DB
 Excel Blatt vs. Tabelle
-sofort Adhocergebnis anschauen
+sofort Adhocergebnis anschauen/ausführen können beim Anlegen eines Adhoc (oder ein Prüf-Knopf)
 unterseiten auch per URL aufrufbar machen
 bei Adhoc Audit ist 2 Stunden-Verzug -> GMT !
 

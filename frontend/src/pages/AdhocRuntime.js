@@ -2,7 +2,7 @@ import React from "react";
 import Table from "../components/Table";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Button, notification, Form, Collapse } from "antd";
+import { Alert, Button, notification, Form, Collapse } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined } from "@ant-design/icons";
 import LoadingMessage from "../components/LoadingMessage";
@@ -23,7 +23,9 @@ const AdhocRuntime = (props) => {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
   
   const [paramData, setParamData] = useState([]);
 
@@ -55,7 +57,8 @@ const AdhocRuntime = (props) => {
       ).catch(
         function (error) {
           setLoading(false);
-          message.error('Es gab einen Fehler beim Laden des Adhoc.');
+          setError(true);
+          setErrorMessage('Es gab einen Fehler beim Laden des Adhoc.');
           console.log("error.message: " + error.message);
           console.log("error.response: " + error.response);
           console.error('Request Failed:', error.config);
@@ -65,6 +68,7 @@ const AdhocRuntime = (props) => {
 
   const getData = async () => {
     setLoading(true);
+    setError(false);
     var _adhocparams = "";
     ///adhoc/<id>/data?params=param1:value1,param2:value2
     /* kurz auskommentiert
@@ -88,7 +92,9 @@ const AdhocRuntime = (props) => {
       ).catch(
         function (error) {
           setLoading(false);
-          message.error('Es gab einen Fehler beim Laden der Daten: ' + error.response.data.detail);
+          setError(true);
+          setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+          setErrorDetail(error.response.data.detail);
           console.log(error);
           console.log(error.response.data.message);
         }
@@ -109,8 +115,11 @@ const AdhocRuntime = (props) => {
     */
     console.log("getBlobData uri: " + "/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams);
 
+    console.log("111");
     await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams, {responseType: 'blob', headers: {Authorization: props.token}}).then(
       (res) => {
+        console.log("aaa");
+        console.log(res.data);
         // create file link in browser's memory
         const href = URL.createObjectURL(res.data);
     
@@ -127,10 +136,13 @@ const AdhocRuntime = (props) => {
       }
       ).catch(
         function (error) {
-            message.error('Es gab einen Fehler beim Laden der Daten als ' + _format + ': ' + error.response.data.detail);
-            console.log("getBlobData - error: " + error);
-            console.log(error.response.data.message);
-          }
+          setError(true);
+          setErrorMessage('Es gab einen Fehler beim Laden der Daten als ' + _format);
+          setErrorDetail(error.response.data.detail);
+          console.log("getBlobData - error: " + error);
+          console.log(error);
+          console.log(error.response.data.message);
+        }
       );  
   };
 
@@ -185,6 +197,7 @@ const AdhocRuntime = (props) => {
 
   return (
     <React.Fragment>
+       
       <PageHeader
         onBack={() => (window.location.href = "/")}
         title={adhoc.name}
@@ -200,25 +213,39 @@ const AdhocRuntime = (props) => {
       />
       <br />
       <div>
-        {loading ? (
+        {loading ? 
+        (
           <LoadingMessage />
-        ) : ( data && columns && 
-          
-          <Table 
-            size="small"
-            //columns={columns}
-            columns={columns.map((column) => {
-                return getColumn(column, column); 
-              })
-            }
-            dataSource={data}
-            pagination={{ pageSize: 50 }}
-            //scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
-            scroll={{ y: 'calc(100vh - 400px)', x: 'max-content'  }} // change later from 400px dynamically to the height of the header, page header and footer
-            loading={loading}
-            rowKey="id"
-          />
-        )}
+        ) : 
+        (
+          error ? 
+          (
+            <Alert
+              message={errorMessage}
+              description={errorDetail}
+              type="error"
+              showIcon
+            />
+          ) : 
+          ( data && columns && 
+            
+            <Table 
+              size="small"
+              //columns={columns}
+              columns={columns.map((column) => {
+                  return getColumn(column, column); 
+                })
+              }
+              dataSource={data}
+              pagination={{ pageSize: 50 }}
+              //scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+              scroll={{ y: 'calc(100vh - 400px)', x: 'max-content'  }} // change later from 400px dynamically to the height of the header, page header and footer
+              loading={loading}
+              rowKey="id"
+            />
+            )
+        )
+        }
       </div>
     </React.Fragment>
   );

@@ -542,7 +542,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                           //pagination={<Pagination  total={25} showTotal={(total) => `Gesamt ${total} Einträge`} defaultPageSize={25}/>}
                           //pagination={{position: 'topRight'}}
                           pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
-                          scroll={{ y: 'calc(100vh - 400px)' }} // change later from 400px dynamically to the height of the header, page header and footer
+                          scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }} // change later from 400px dynamically to the height of the header, page header and footer
+                          tableLayout="auto"
                           //pagination={false}
                           //scroll={{ y: 500 }}
                           //scroll={{ x: 300 }}
