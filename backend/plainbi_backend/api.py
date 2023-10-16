@@ -1029,8 +1029,9 @@ def get_adhoc_data(tokdata,id):
     if isinstance(myparams,dict):
         for p,v in myparams.items():
             adhoc_sql=adhoc_sql.replace("$("+p+")",v)
-        adhoc_sql=adhoc_sql.replace("$(APP_USER)",tokdata['username'])
         log.debug("get_adhoc_data: adhoc sql after subsitution: %s",adhoc_sql)
+    # substitute global environment params
+    adhoc_sql=adhoc_sql.replace("$(APP_USER)",tokdata['username'])
     # substitute request data
     if isinstance(dataitem,dict):
         for p,v in dataitem.items():
