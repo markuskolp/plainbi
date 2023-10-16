@@ -6,7 +6,7 @@ frontend/node_modules
 frontend/coverage
 
 # production
-frontend/build
+# frontend/build
 
 # misc
 .DS_Store
