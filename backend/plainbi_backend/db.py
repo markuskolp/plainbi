@@ -512,6 +512,35 @@ def get_next_seq(dbengine,seq):
         log.debug("got sequence value %d",out)    
     return out
 
+def get_dbversion(dbengine):
+    out={}
+    log.debug("in get_dbversion")
+    db_typ = get_db_type(dbengine)
+    if db_typ=="mssql":
+        sql="Select @@version as version"
+    elif db_typ=="sqllite":
+        sql="select sqlite_version() as version"
+    elif db_typ=="oracle":
+        sql="select version from v$instance"
+    else:
+        return None
+    try:
+        items, columns = db_exec(dbengine,sql)
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("sqlalchemy exception in get_dbversion: %s",str(e_sqlalchemy))
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-get_dbversion"
+            out["message"]+=" beim Abfragen der Datenbankversion"
+        return out
+    except Exception as e:
+        log.error("exception in get_dbversion: %s ",str(e))
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_dbversion"
+            out["message"]+=" beim Abfragen der Datenbankversion"
+        return out
+    out=items[0]["version"]
+    return out
+
 def get_current_timestamp(dbengine):
     """
     Hole die aktuelle Zeit

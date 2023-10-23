@@ -4,6 +4,12 @@ Created on Thu Mar  9 11:19:08 2023
 
 @author: kribbel
 
+how to run
+first window
+~/plainbi> npm start
+second window
+~/plainbi/backend> python plainbi_backend.py
+
 
 # login
 curl -H "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe123\"}' "localhost:3002/login" -w "%{http_code}\n"
@@ -114,7 +120,7 @@ from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type 
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type, get_dbversion
 from plainbi_backend.repo import create_repo_db
 
 from plainbi_backend.config import config,load_pbi_env
@@ -192,6 +198,11 @@ ORDER BY database_name, schema_name, table_name
 @api.route(api_root+'/version', methods=['GET'])
 def get_version():
     return config.version
+
+@api.route(api_root+'/backend_version', methods=['GET'])
+def get_backend_version():
+    dbversion=get_dbversion(repoengine)
+    return "Plainbi Backend: "+config.version+"\nRepository: "+dbversion
 
 ###########################
 ##

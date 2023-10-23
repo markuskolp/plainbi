@@ -19,7 +19,7 @@ class MyConfig:
     
 config = MyConfig()
 
-config.version="0.3 01.06.2023"
+config.version="0.4 23.10.2023"
 config.SECRET_KEY=os.urandom(24)
 print("secret key generated")
 config.use_cache = False
