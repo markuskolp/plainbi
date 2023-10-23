@@ -202,7 +202,7 @@ def get_version():
 @api.route(api_root+'/backend_version', methods=['GET'])
 def get_backend_version():
     dbversion=get_dbversion(repoengine)
-    return "Plainbi Backend: "+config.version+"\nRepository: "+dbversion
+    return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
 
 ###########################
 ##
