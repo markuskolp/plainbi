@@ -102,6 +102,8 @@ from flask_bcrypt import Bcrypt
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
+from openpyxl.worksheet.table import Table, TableStyleInfo
+
 import pandas.io.formats.excel as fmt_xl
 
 try:
@@ -1133,6 +1135,7 @@ def get_adhoc_data(tokdata,id):
                         #autofit columns
                         log.debug("get_adhoc_data: add autofit volumns")
                         sheet = book[datasheet_name]
+                        sheet_tab = Table(displayName="daten", ref=sheet.dimensions)
                         #default font
                         log.debug("get_adhoc_data: default xls font")
                         deffont = Font(name='Arial', size=9, bold=False, italic=False)
@@ -1155,7 +1158,8 @@ def get_adhoc_data(tokdata,id):
                             sheet.column_dimensions[column_letter].width = adjusted_width
                             sheet[f'{column_letter}1'].font = font
                         # Iterate over each column and set the filter
-                        sheet.auto_filter.ref = sheet.dimensions
+                        #sheet.auto_filter.ref = sheet.dimensions
+                        sheet.add_table(sheet_tab)
                         #for col_num in range(1, sheet.max_column + 1):
                         #    column_letter = get_column_letter(col_num)
                         #    column_range = f'{column_letter}1:{column_letter}{sheet.max_row}'
