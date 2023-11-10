@@ -156,7 +156,7 @@ const handleSwitchChange = (checked, e) => {
                 ) : ui === "email" ? (
                   <Input name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "textinput" ? (
-                  <Input name={name} defaultValue={defaultValue} onChange={handleChange}/> 
+                  <Input name={name} defaultValue={defaultValue} onChange={handleChange}/>
                 ) : ui === "datepicker" ? (
                   defaultValue ?
                   <DatePicker defaultValue={dayjs(defaultValue,{dateFormat})} format={dateFormat} onChange={handleDatePickerChange} /> 

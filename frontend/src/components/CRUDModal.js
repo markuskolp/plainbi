@@ -163,8 +163,10 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
           <Form {...layoutpage} layout="horizontal">
                 { tableColumns && tableColumns.map((column) => {
-
-                  const dataValue = (recordData ? recordData[column.column_name] : ""); // get record data of the current column or set to nothing
+                  //console.log("recordData: " + recordData);
+                  let dataValue = (recordData ? recordData[column.column_name] : ""); // get record data of the current column or set to nothing
+                  if (typeof dataValue === 'function') { dataValue = ""; } // if column names are keywords like "sort" then it returns a function - here we get rid of it, otherwise it causes an error later on
+                  //console.log("column: " + column.column_name + " | value: " + dataValue);
                   //const dataValue = recordData[column.column_name]; // get record data of the current column or set to nothing
 
                   return (
