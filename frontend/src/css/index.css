@@ -68,6 +68,13 @@ header a .anticon {
   font-size: 18px; /* overwrite icon size in header */
   color: rgba(0, 0, 0, 0.88);
 }
+a .anticon {
+  font-size: 18px; /* overwrite icon size in header */
+  color: rgba(0, 0, 0, 0.88);
+}
+a:hover .anticon {
+  color: rgb(106, 145, 206); /* rgba(24, 144, 255, 0.88); */
+}
 .pageheader {
   padding-inline: 0px;
   color: rgba(0, 0, 0, 0.88);
