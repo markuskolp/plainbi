@@ -1,14 +1,8 @@
 import React from "react";
 import Table from "../components/Table";
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Alert, Button, notification, Form, Collapse, Typography,Tooltip, Card , Col, Row, Select, Space, DatePicker, Menu, Dropdown, Input} from "antd";
+import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, DatePicker, Menu, Dropdown, Input} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { FullscreenOutlined, MoreOutlined, HistoryOutlined } from "@ant-design/icons";
-import LoadingMessage from "../components/LoadingMessage";
-import { message } from "antd";
-import Axios from "axios";
-import GridLayout from "react-grid-layout";
 import DashboardItem from "../components/DashboardItem";
 import ChartRenderer from "../components/ChartRenderer";
 import Dashboard from "../components/Dashboard";
@@ -54,7 +48,7 @@ const defaultLayout = i => ({
   w: i.layout.w || 4,
   h: i.layout.h || 8,
   minW: 4,
-  minH: 8
+  minH: 3
 });
 
 const DashboardPage = (props) => {
@@ -95,7 +89,7 @@ const DashboardPage = (props) => {
             },
             name: "Onlinebestellungen",
             id: 10,
-            layout: {x:9,y:8,w:15,h:8}
+            layout: {x:0,y:0,w:4,h:4}
         },
         {
             vizState: {
@@ -129,7 +123,7 @@ const DashboardPage = (props) => {
             },
             name: "Verlauf nach Tagen vor VA-Ende",
             id: 14,
-            layout: {x:0,y:0,w:13,h:8}
+            layout: {x:5,y:0,w:20,h:8}
         },
         {
             vizState: {
@@ -163,7 +157,7 @@ const DashboardPage = (props) => {
             },
             name: "Länderranking",
             id: 15,
-            layout: {x:13,y:0,w:11,h:8}
+            layout: {x:16,y:8,w:8,h:8}
         },
         {
             vizState: {
@@ -197,7 +191,40 @@ const DashboardPage = (props) => {
             },
             name: "Länderranking",
             id: 16,
-            layout: {x:0,y:16,w:24,h:8}
+            layout: {x:8,y:8,w:8,h:8}
+        },
+        {
+            vizState: {
+              query:{
+                "measures": [
+                  "Tickets.ticketsOrdered"
+                ],
+                "order": {
+                  "Tickets.ticketsOrdered": "desc"
+                },
+                "segments": [
+                  "Tickets.onlineBestellungen"
+                ],
+                "dimensions": [
+                  "Artikel.articleNameDe",
+                  "Artikel.articleNumber",
+                  "Artikel.ticketCategoryDe"
+                ],
+                "filters": [
+                  {
+                    "member": "Veranstaltung.faireventNameYear",
+                    "operator": "equals",
+                    "values": [
+                      "EXPO REAL 2023"
+                    ]
+                  }
+                ]
+              },
+              chartType:"table"
+            },
+            name: "Produktranking",
+            id: 18,
+            layout: {x:0,y:8,w:8,h:8}
         }
       ]
     }
