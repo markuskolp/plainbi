@@ -319,7 +319,16 @@ def get_item(tokdata,tab,pk):
     mycustomsql = request.args.get('customsql')
     log.debug("tab %s pk %s")
     # check if pk is compound
-    pk=prep_pk_from_url(pk)
+    if pk == '#':
+        data_bytes = request.get_data()
+        log.debug("get_item: data")
+        log.debug("get_item: databytes: %s",data_bytes)
+        data_string = data_bytes.decode('utf-8')
+        log.debug("datastring: %s",data_string)
+        pk = json.loads(data_string.strip("'"))
+    else:
+        pk=prep_pk_from_url(pk)
+
     #
     out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
     if "data" in out.keys():
