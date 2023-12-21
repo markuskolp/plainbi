@@ -1,7 +1,8 @@
 import React from "react";
+import { useState, useEffect, useRef, useLayoutEffect  } from "react";
 import PropTypes from "prop-types";
 import { useCubeQuery } from "@cubejs-client/react";
-import { Spin, Row, Col, Statistic, Table } from "antd";
+import { Spin, Row, Col, Statistic } from "antd";
 import {
   CartesianGrid,
   PieChart,
@@ -20,10 +21,10 @@ import {
   Line
 } from "recharts";
 import styled from 'styled-components';
-
 import "./recharts-theme.less";
 import moment from "moment";
 import numeral from "numeral";
+import Table from "./Table";
 
 const numberFormatter = item => numeral(item).format("0,0");
 const dateFormatter = item => moment(item).format("MMM YY");
@@ -41,7 +42,7 @@ const CartesianChart = ({ resultSet, children, ChartComponent, height }) => (
     <ChartComponent margin={{ left: -10 }} data={resultSet.chartPivot()}>
       <XAxis axisLine={false} tickLine={false} tickFormatter={xAxisFormatter} dataKey="x" minTickGap={20} />
       <YAxis axisLine={false} tickLine={false} tickFormatter={numberFormatter} />
-      <CartesianGrid vertical={false} />
+      <CartesianGrid vertical={false}/>
       { children }
       <Legend />
       <Tooltip labelFormatter={dateFormatter} formatter={numberFormatter} />
@@ -71,6 +72,20 @@ const TypeToChartComponent = {
           dataKey={series.key}
           name={series.title}
           fill={colors[i]}
+        />
+      ))}
+    </CartesianChart>
+  ),
+  verticalbar: ({ resultSet, height }) => (
+    <CartesianChart resultSet={resultSet} height={height} ChartComponent={BarChart}>
+      {resultSet.seriesNames().map((series, i) => (
+        <Bar
+          key={series.key}
+          stackId="a"
+          dataKey={series.key}
+          name={series.title}
+          fill={colors[i]}
+          
         />
       ))}
     </CartesianChart>
@@ -113,6 +128,12 @@ const TypeToChartComponent = {
       pagination={false}
       columns={resultSet.tableColumns().map(c => ({ ...c, dataIndex: c.key }))}
       dataSource={resultSet.tablePivot()}
+      size="small"
+      //scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
+      //scroll={{ x: true }}
+      //scroll={{ y: tableHeight }}
+      scroll={{ y: '100%' }}
+      //tableLayout="auto"
     />
   ),
   number: ({ resultSet }) => (
@@ -157,6 +178,21 @@ const ChartRenderer = ({ vizState, chartHeight }) => {
   const { query, chartType } = vizState;
   const component = TypeToMemoChartComponent[chartType];
   const renderProps = useCubeQuery(query);
+  
+  /*
+  const [tableHeight, setTableHeight] = useState(600);
+  // ref is the Table ref.
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    const { top } = node.getBoundingClientRect();
+
+    // normally TABLE_HEADER_HEIGHT would be 55.
+    setTableHeight(window.innerHeight - top - 55); //TABLE_HEADER_HEIGHT);
+  }, [ref]);
+  */
+
   return component && renderChart(component)({ height: chartHeight, ...renderProps });
 };
 

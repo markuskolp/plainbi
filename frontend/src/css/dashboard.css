@@ -2,3 +2,41 @@
 main {
   padding: 0px !important;
 }
+
+/* stop table from exceeding the size of the surrounding card */
+.react-grid-item {
+  display:flex;
+}
+.ant-card-body {
+  height:calc(100% - 50px);
+}
+.ant-table-wrapper {
+  height: 100%;
+}
+.ant-spin-nested-loading {
+  height: 100%;
+}
+.ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+}
+.ant-table {
+  flex: auto;
+  overflow: hidden;
+}
+.ant-table-container {
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+}
+.ant-table-header {
+  flex: none;
+}
+.ant-table-body {
+  flex: auto;
+  overflow: scroll;
+}
+.ant-table-pagination {
+flex: none;
+}

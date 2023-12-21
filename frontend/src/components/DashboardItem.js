@@ -66,6 +66,8 @@ const DashboardItem = ({ itemId, children, title }) => (
       height: "100%",
       width: "100%"
     }}
+    //className="limitable"
+    //bodyStyle={{ padding: "0px", marginTop: 20, width: "100%", height:"300px" }}
     extra={<DashboardItemDropdown itemId={itemId} />}
   >
     {children}

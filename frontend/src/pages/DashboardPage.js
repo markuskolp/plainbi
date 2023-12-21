@@ -133,30 +133,71 @@ const DashboardPage = (props) => {
         },
         {
             vizState: {
-              query:"", //{measures:[Orders.count],timeDimensions:[{dimension:Orders.completedAt,granularity:day,dateRange:"Last 30 days"}],filters:[{dimension:Orders.status,operator:equals,values:[completed]}]},
-              chartType:"line"
+              query:{
+                "order": [
+                  [
+                    "Tickets.ticketsOrdered",
+                    "desc"
+                  ]
+                ],
+                "segments": [
+                  "Tickets.onlineBestellungen"
+                ],
+                "dimensions": [
+                  "Land.countryDe"
+                ],
+                "filters": [
+                  {
+                    "member": "Veranstaltung.faireventNameYear",
+                    "operator": "equals",
+                    "values": [
+                      "EXPO REAL 2023"
+                    ]
+                  }
+                ],
+                "measures": [
+                  "Tickets.ticketsOrdered"
+                ]
+              },
+              chartType:"verticalbar"
             },
-            name: "Completed Orders Last 30 days",
+            name: "Länderranking",
             id: 15,
             layout: {x:13,y:0,w:11,h:8}
         },
         {
             vizState: {
-              query:"", //{measures:[Orders.count],timeDimensions:[{dimension:Orders.completedAt}],dimensions:[ProductCategories.name]},
-              chartType:"bar"
+              query:{
+                "order": [
+                  [
+                    "Tickets.ticketsOrdered",
+                    "desc"
+                  ]
+                ],
+                "segments": [
+                  "Tickets.onlineBestellungen"
+                ],
+                "dimensions": [
+                  "Land.countryDe"
+                ],
+                "filters": [
+                  {
+                    "member": "Veranstaltung.faireventNameYear",
+                    "operator": "equals",
+                    "values": [
+                      "EXPO REAL 2023"
+                    ]
+                  }
+                ],
+                "measures": [
+                  "Tickets.ticketsOrdered"
+                ]
+              },
+              chartType:"table"
             },
-            name: "Orders by Product Category Name",
+            name: "Länderranking",
             id: 16,
             layout: {x:0,y:16,w:24,h:8}
-        },
-        {
-            vizState: {
-              query:"", //{dimensions:[Orders.amountTier],timeDimensions:[{dimension:Orders.completedAt}],measures:[Orders.count],filters:[{dimension:Orders.amountTier,operator:notEquals,values:[$0 - $100]}]},
-              chartType:"pie"
-            },
-            name: "Orders by Price Tiers",
-            id: 17,
-            layout: {x:0,y:8,w:9,h:8}
         }
       ]
     }
