@@ -57,7 +57,7 @@ const Dashboard = ({ children, dashboardItems }) => {
             }
           }
         });*/
-        console.log("must update item: " + item + " to layout: " + toUpdate);
+        //console.log("must update item: " + item + " to layout: " + toUpdate);
       }
     });
   };

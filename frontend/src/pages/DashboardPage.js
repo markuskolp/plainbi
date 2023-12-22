@@ -185,7 +185,7 @@ const DashboardPage = (props) => {
             },
             name: "Länderranking",
             id: 15,
-            layout: {x:16,y:8,w:8,h:8}
+            layout: {x:0,y:8,w:12,h:8}
         },
         {
             vizState: {
@@ -219,7 +219,7 @@ const DashboardPage = (props) => {
             },
             name: "Länderranking",
             id: 16,
-            layout: {x:8,y:8,w:8,h:8}
+            layout: {x:12,y:8,w:12,h:8}
         },
         {
             vizState: {
@@ -248,11 +248,23 @@ const DashboardPage = (props) => {
                   }
                 ]
               },
-              chartType:"table"
+              pivotConfig: {
+                "x": [
+                  "Artikel.articleNameDe",
+                  "Artikel.articleNumber"
+                ],
+                "y": [
+                  "Artikel.ticketCategoryDe",
+                  "measures"
+                ],
+                "fillMissingDates": true,
+                "joinDateRange": false
+              },
+              chartType:"pivottable"
             },
             name: "Produktranking",
             id: 18,
-            layout: {x:0,y:8,w:8,h:8}
+            layout: {x:0,y:16,w:24,h:8}
         }
       ]
     }
