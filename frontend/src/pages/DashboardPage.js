@@ -1,4 +1,5 @@
 import React from "react";
+import { useState, useEffect } from "react";
 import Table from "../components/Table";
 import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, DatePicker, Menu, Dropdown, Input} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
@@ -61,6 +62,7 @@ const DashboardPage = (props) => {
   //const { loading, error, data } = useQuery(GET_DASHBOARD_ITEMS);
   const loading = false;
   const error = false;
+  const [selectVAKey, setSelectVAKey] = useState([]);
 
   const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
 
@@ -122,6 +124,13 @@ const DashboardPage = (props) => {
     </div>
   );
 
+  
+  const handleChangeSelectVA = (key) =>{
+    console.log("handleChangeSelectVA - key: " + key);
+    setSelectVAKey(key); 
+  }
+
+
   return !data || data.dashboardItems.length ? (
       <CubeProvider cubejsApi={cubejsApi}>
         <React.Fragment>
@@ -154,7 +163,7 @@ const DashboardPage = (props) => {
           <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
             <Col span={24} style={{textAlign:"right"}}>
               <Space style={{textAlign:"left"}}>
-                <MemberSelect />
+                <MemberSelect onChange={handleChangeSelectVA} />
               </Space>
             </Col>
           </Row>

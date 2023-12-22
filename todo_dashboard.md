@@ -1,10 +1,19 @@
 TOP
 - Filter in Queries anwenden
+
+	findet "filter" der zu VA passt
+	query.filters.filter(x => x.member === "Veranstaltung.veranstaltungName")
+	
+	position nehmen und diesen ersetzen !
+	t.b.d.
+
+
 - Karte
 - Vertical Bar
+=> Dashboard 1+2 fertigmachen
 - Drill zu Daten
 - Explore d.h. Dashboard erstellen/editieren, SQL anzeigen
-
+=> bereit für Vorstellung im Team
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 1

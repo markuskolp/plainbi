@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Typography, Select } from "antd";
 const { Text } = Typography;
 
-const MemberSelect = () => {
+const MemberSelect = ({onChange}) => {
 
     const [resultSet, setResultSet] = useState([]); // metadata of all apps
   
@@ -59,9 +59,23 @@ const MemberSelect = () => {
 
     console.log("MemberSelect - renderProps");
     console.log(renderProps);
-    
-    //console.log("resultSet.tablePivot()");    
-    //console.log(renderProps.resultSet.tablePivot());
+    /*
+    console.log("resultSet.tablePivot()");    
+    console.log(renderProps.resultSet.tableColumns({
+        x: [],
+        y: ['Veranstaltung.veranstaltungJahr', 'Veranstaltung.veranstaltungName', 'measures']
+      }))
+    ;
+    */
+
+    const handleChange = (name, option) => {
+        //const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+        //console.log("MemberSelect change: " + JSON.stringify(emuEvent));
+        console.log("option: ");
+        console.log(option); 
+        console.log(option.key);
+        onChange(option.key);
+      };
 
     return (
         <Select
@@ -71,7 +85,7 @@ const MemberSelect = () => {
             size='small'
             disabled={false}
             defaultValue={'EXPO REAL 2023'}
-            //onChange={handleChange}
+            onChange={handleChange}
             //onSearch={onSearch}
             name={'va'}
             style={{ minWidth: 250 }}
@@ -89,8 +103,17 @@ const MemberSelect = () => {
 export default MemberSelect;
 
 /*
+    -- zuerst gruppiert nach Jahren und erst danach die Veranstaltungen in Select darstellen
+    -- t.b.d.
+            {renderProps.resultSet && renderProps.resultSet.tableColumns({
+                                                                            x: [],
+                                                                            y: ['Veranstaltung.veranstaltungJahr', 'Veranstaltung.veranstaltungName', 'measures']
+                                                                        }).map((data) => (
 
-            
+    -- nur Veranstaltungen als einfache Select darstellen
+            {renderProps.resultSet && renderProps.resultSet.tablePivot().map((data) => (
+                <Select.Option key={data["Veranstaltung.veranstaltungName"]} value={data["Veranstaltung.veranstaltungName"]} label={data["Veranstaltung.veranstaltungName"]} />
+            ))}
 
     console.log("resultSet.tableColumns(pivotConfig)");    
     console.log(renderProps.resultSet.tableColumns(pivotConfig));
