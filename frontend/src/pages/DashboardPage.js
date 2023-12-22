@@ -66,18 +66,19 @@ const DashboardPage = (props) => {
           {
             vizState: {
               query:{
+                "limit": 5000,
+                "segments": [
+                  "Ticket.onlineBestellungen"
+                ],
                 "measures": [
-                  "Tickets.ticketsOrdered"
+                  "Ticket.anzahlTickets"
                 ],
                 "order": {
-                  "Tickets.dateRegistration": "asc"
+                  "Ticket.registrierungDt": "asc"
                 },
-                "segments": [
-                  "Tickets.onlineBestellungen"
-                ],
                 "filters": [
                   {
-                    "member": "Veranstaltung.faireventNameYear",
+                    "member": "Veranstaltung.veranstaltungName",
                     "operator": "equals",
                     "values": [
                       "EXPO REAL 2023"
@@ -94,18 +95,19 @@ const DashboardPage = (props) => {
         {
           vizState: {
             query:{
+              "limit": 5000,
+              "segments": [
+                "Ticket.onlineBestellungen"
+              ],
               "measures": [
-                "Tickets.ticketsOrdered"
+                "Ticket.anzahlTickets"
               ],
               "order": {
-                "Tickets.dateRegistration": "asc"
+                "Ticket.registrierungDt": "asc"
               },
-              "segments": [
-                "Tickets.onlineBestellungen"
-              ],
               "filters": [
                 {
-                  "member": "Veranstaltung.faireventNameYear",
+                  "member": "Veranstaltung.veranstaltungName",
                   "operator": "equals",
                   "values": [
                     "EXPO REAL 2023"
@@ -122,30 +124,42 @@ const DashboardPage = (props) => {
         {
             vizState: {
               query:{
-                "measures": [
-                  "Tickets.ticketsOrderedCumulativeSQL"
-                ],
-                "order": [
-                  [
-                    "Tickets.ticketsOrderedCumulativeSQL",
-                    "asc"
-                  ]
-                ],
-                "segments": [
-                  "Tickets.onlineBestellungen"
-                ],
                 "filters": [
                   {
-                    "member": "Veranstaltung.faireventNameYear",
+                    "member": "Veranstaltung.veranstaltungName",
                     "operator": "equals",
                     "values": [
                       "EXPO REAL 2023"
                     ]
                   }
                 ],
+                "limit": 5000,
+                "segments": [
+                  "Ticket.onlineBestellungen"
+                ],
                 "dimensions": [
-                  "Tickets.dayBeforeEnd"
+                  "Ticket.dayBeforeEnd"
+                ],
+                "order": [
+                  [
+                    "Ticket.dayBeforeEnd",
+                    "desc"
+                  ]
+                ],
+                "measures": [
+                  "Ticket.anzahlTicketsKumuliert"
                 ]
+              },
+              pivotConfig:
+              {
+                "x": [
+                  "Ticket.dayBeforeEnd"
+                ],
+                "y": [
+                  "measures"
+                ],
+                "fillMissingDates": true,
+                "joinDateRange": false
               },
               chartType:"bar"
             },
@@ -156,30 +170,29 @@ const DashboardPage = (props) => {
         {
             vizState: {
               query:{
-                "order": [
-                  [
-                    "Tickets.ticketsOrdered",
-                    "desc"
-                  ]
-                ],
+                "limit": 5000,
                 "segments": [
-                  "Tickets.onlineBestellungen"
+                  "Ticket.onlineBestellungen"
                 ],
-                "dimensions": [
-                  "Land.countryDe"
+                "measures": [
+                  "Ticket.anzahlTickets"
                 ],
+                "order": {
+                  "Ticket.anzahlTickets": "desc"
+                },
                 "filters": [
                   {
-                    "member": "Veranstaltung.faireventNameYear",
+                    "member": "Veranstaltung.veranstaltungName",
                     "operator": "equals",
                     "values": [
                       "EXPO REAL 2023"
                     ]
                   }
                 ],
-                "measures": [
-                  "Tickets.ticketsOrdered"
-                ]
+                "dimensions": [
+                  "Land.land"
+                ],
+                "timeDimensions": []
               },
               chartType:"verticalbar"
             },
@@ -190,30 +203,29 @@ const DashboardPage = (props) => {
         {
             vizState: {
               query:{
-                "order": [
-                  [
-                    "Tickets.ticketsOrdered",
-                    "desc"
-                  ]
-                ],
+                "limit": 5000,
                 "segments": [
-                  "Tickets.onlineBestellungen"
+                  "Ticket.onlineBestellungen"
                 ],
-                "dimensions": [
-                  "Land.countryDe"
+                "measures": [
+                  "Ticket.anzahlTickets"
                 ],
+                "order": {
+                  "Ticket.anzahlTickets": "desc"
+                },
                 "filters": [
                   {
-                    "member": "Veranstaltung.faireventNameYear",
+                    "member": "Veranstaltung.veranstaltungName",
                     "operator": "equals",
                     "values": [
                       "EXPO REAL 2023"
                     ]
                   }
                 ],
-                "measures": [
-                  "Tickets.ticketsOrdered"
-                ]
+                "dimensions": [
+                  "Land.land"
+                ],
+                "timeDimensions": []
               },
               chartType:"table"
             },
@@ -224,37 +236,38 @@ const DashboardPage = (props) => {
         {
             vizState: {
               query:{
-                "measures": [
-                  "Tickets.ticketsOrdered"
-                ],
-                "order": {
-                  "Tickets.ticketsOrdered": "desc"
-                },
+                "limit": 5000,
                 "segments": [
-                  "Tickets.onlineBestellungen"
+                  "Ticket.onlineBestellungen"
                 ],
-                "dimensions": [
-                  "Artikel.articleNameDe",
-                  "Artikel.articleNumber",
-                  "Artikel.ticketCategoryDe"
+                "measures": [
+                  "Ticket.anzahlTickets"
                 ],
                 "filters": [
                   {
-                    "member": "Veranstaltung.faireventNameYear",
+                    "member": "Veranstaltung.veranstaltungName",
                     "operator": "equals",
                     "values": [
                       "EXPO REAL 2023"
                     ]
                   }
-                ]
+                ],
+                "dimensions": [
+                  "Produkt.vaProduktName",
+                  "Produkt.vaProduktCode",
+                  "Vertriebskanal.vertriebskanalName"
+                ],
+                "order": {
+                  "Ticket.anzahlTickets": "desc"
+                }
               },
               pivotConfig: {
                 "x": [
-                  "Artikel.articleNameDe",
-                  "Artikel.articleNumber"
+                  "Produkt.vaProduktName",
+                  "Produkt.vaProduktCode"
                 ],
                 "y": [
-                  "Artikel.ticketCategoryDe",
+                  "Vertriebskanal.vertriebskanalName",
                   "measures"
                 ],
                 "fillMissingDates": true,

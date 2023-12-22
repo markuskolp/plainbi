@@ -23,13 +23,13 @@ import {
 import styled from 'styled-components';
 import "./recharts-theme.less";
 import moment from "moment";
-import numeral from "numeral";
 import Table from "./Table";
 
-const numberFormatter = item => numeral(item).format("0,0");
+const numberFormatter = item => item.toLocaleString("de-DE"); 
 const dateFormatter = item => moment(item).format("MMM YY");
 const colors = ["#7DB3FF", "#49457B", "#FF7C78"];
 const xAxisFormatter = (item) => {
+  return item;
   if (moment(item).isValid()) {
     return dateFormatter(item)
   } else {
@@ -112,8 +112,12 @@ const TypeToChartComponent = {
       ))}
     </CartesianChart>
   ),
-  bar: ({ resultSet, height }) => (
-    <CartesianChart resultSet={resultSet} height={height} ChartComponent={BarChart}>
+  bar: ({ resultSet, height, pivotConfig  }) => (
+    //columns={resultSet.tableColumns(pivotConfig).map(c => ({ ...c, dataIndex: c.key, title: c.shortTitle, sorter: true}))}
+    //dataSource={formatTableData(resultSet.tableColumns(pivotConfig), resultSet.tablePivot(pivotConfig))}
+    //{resultSet.series(pivotConfig).map((series, i) => (
+      //{resultSet.seriesNames().map((series, i) => (
+        <CartesianChart resultSet={resultSet} height={height} ChartComponent={BarChart}>
       {resultSet.seriesNames().map((series, i) => (
         <Bar
           key={series.key}
@@ -206,7 +210,7 @@ const TypeToChartComponent = {
     >
       <Col>
         {resultSet.seriesNames().map(s => (
-          <Statistic value={resultSet.totalRow()[s.key]} />
+          <Statistic value={numberFormatter(resultSet.totalRow()[s.key])} />
         ))}
       </Col>
     </Row>

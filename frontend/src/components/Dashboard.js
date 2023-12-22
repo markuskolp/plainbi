@@ -70,6 +70,8 @@ const Dashboard = ({ children, dashboardItems }) => {
       onDragStop={() => setIsDragging(false)}
       onResizeStart={() => setIsDragging(true)}
       onResizeStop={() => setIsDragging(false)}
+      onMouseDown={() => setIsDragging(true)}
+      onMouseUp={() => setIsDragging(false)}
       cols={24}
       rowHeight={40}
       onLayoutChange={onLayoutChange}

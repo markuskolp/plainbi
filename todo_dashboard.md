@@ -2,10 +2,6 @@
 # Prio 1
 #-----------------------------------------------------------------------------------------------------
 
-Darstellungen
-	- "Verlauf nach VA-Tagen": pivotConfig (z.B. wg. Tage vor VA-Ende)
-	- die drei Pünktchen beim Card gehen nicht mehr ?!
-
 Modellierung
 	- Cube.js Modell umstellen auf "Neu-DWH"
 	- auch kumuliert hinbekommen
@@ -38,6 +34,9 @@ Abrunden Version 1:
 # Prio 2
 #-----------------------------------------------------------------------------------------------------
 
+- Interaktion (Click) in Card geht nicht z.B. die drei Pünktchen ?!
+
+- Zahlen in Tabellen auf DE formatieren -> Spalten mit Werten erkennen und numberFormatter() einsetzen
 - Fullscreen umsetzen
 - "Refresh" umsetzen
 - Switch einbauen (z.B. von kumuliert zu nicht kumuliert)
@@ -61,6 +60,9 @@ Abrunden Version 1:
 # Prio 3
 #-----------------------------------------------------------------------------------------------------
 
+- Charts
+	- stacked bar chart
+	- grouped bar chart
 - Table
 	- analog wie bei CRUDPage.js mit Sortierung
 	- Pagination angebbar
@@ -101,28 +103,4 @@ Abrunden Version 1:
 - Berechtigungen umsetzen (zuerst auf Cube/View Ebene (Datensätze), dann auf Spalten, dann auf Zeilen)
 
 
-pivotConfig:
-{
-  "x": [
-    "Tickets.dayBeforeEnd"
-  ],
-  "y": [
-    "measures"
-  ],
-  "fillMissingDates": true,
-  "joinDateRange": false
-}
 
-
-  pivotConfig: {
-  "x": [
-    "Artikel.articleNameDe",
-    "Artikel.articleNumber"
-  ],
-  "y": [
-    "Artikel.ticketCategoryDe",
-    "measures"
-  ],
-  "fillMissingDates": true,
-  "joinDateRange": false
-}
