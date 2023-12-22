@@ -1,20 +1,22 @@
+TOP
+- Filter in Queries anwenden
+- Karte
+- Vertical Bar
+- Drill zu Daten
+- Explore d.h. Dashboard erstellen/editieren, SQL anzeigen
+
+
 #-----------------------------------------------------------------------------------------------------
 # Prio 1
 #-----------------------------------------------------------------------------------------------------
 
-Modellierung
-	- Cube.js Modell umstellen auf "Neu-DWH"
-	- auch kumuliert hinbekommen
-	- evtl. Cube Core auf neueste Version umstellen
-
 Filter:
-	- Auswahl von Veranstaltungsfilter in die Queries übernehmen !
-	- Select beladen aus Cube.js (VA-Liste, nur wo es Ticketzahlen (Onlinebestellungen) gibt)
-	- Default setzen beim Einstieg
+	- Fehler beheben, dass die Select-Liste manchmal nicht beladen wird bzw. es 3x durch die Stelle läuft
+	- Gruppierung nach Jahren options -> label options -> label value
+	- Auswahl von Veranstaltungsfilter in die Queries übernehmen ! (default bei Einstieg verwenden !)
 
 Darstellungen ergänzen:
 	- Datenstand von Cube.js bekommen
-	- "Tage vor VA-Ende"
 	- dann Kartenkomponente ergänzen
 		- starten mit React-Leaflet und Länder GeoJSON -> CartoDB.PositronNoLabels
 		- ISO-Code oder Name verwenden zum Mappen mit GeoJSON
@@ -26,7 +28,8 @@ Darstellungen ergänzen:
 		- evtl. auch Heatmap
 
 Abrunden Version 1:
-	- Dashboard "Tickets" fertigmachen, dann "Zutritte" (erstmal Definition fest hinterlegen)
+	- Dashboard "Tickets" fertigmachen
+	- dann "Zutritte" (Datenmodell in Cube.js + erstmal Dashboard-Definition fest hinterlegen)
 	- über "id" oder "alias" aufrufbar machen ../dashboard/1, ../dashboard/2 
 
 
@@ -87,6 +90,8 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- pre-aggregates mal konfigurieren (falls es irgendwo langsam ist)
+- evtl. Cube Core auf neueste Version umstellen und "running-total" davon ausprobieren
 - Dashboardwidget für "Markdown"
 - Drillthrough von einem Dashboard zu einem anderen Dashboard
 - Pivot Tabelle beginnen

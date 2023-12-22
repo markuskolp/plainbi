@@ -6,8 +6,12 @@ import { FullscreenOutlined, MoreOutlined, HistoryOutlined } from "@ant-design/i
 import DashboardItem from "../components/DashboardItem";
 import ChartRenderer from "../components/ChartRenderer";
 import Dashboard from "../components/Dashboard";
+import MemberSelect from "../components/MemberSelect";
 import cubejs from "@cubejs-client/core";
 import { CubeProvider } from "@cubejs-client/react";
+import { dashboards } from "../api/dashboards";
+
+import { useCubeQuery } from "@cubejs-client/react";
 
 import dayjs from 'dayjs';
 
@@ -16,6 +20,7 @@ import "../css/dashboard.css";
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
 const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
+
 
 const { RangePicker } = DatePicker;
 
@@ -56,235 +61,8 @@ const DashboardPage = (props) => {
   //const { loading, error, data } = useQuery(GET_DASHBOARD_ITEMS);
   const loading = false;
   const error = false;
-  const dashboard = { name: 'Tickets'};
-  
-    
-  const defaultDashboard = 
-    {
-      dashboardName: "Tickets",
-      dashboardItems: [
-          {
-            vizState: {
-              query:{
-                "limit": 5000,
-                "segments": [
-                  "Ticket.onlineBestellungen"
-                ],
-                "measures": [
-                  "Ticket.anzahlTickets"
-                ],
-                "order": {
-                  "Ticket.registrierungDt": "asc"
-                },
-                "filters": [
-                  {
-                    "member": "Veranstaltung.veranstaltungName",
-                    "operator": "equals",
-                    "values": [
-                      "EXPO REAL 2023"
-                    ]
-                  }
-                ]
-              },
-              chartType:"number"
-            },
-            name: "Onlinebestellungen",
-            id: 10,
-            layout: {x:0,y:0,w:4,h:4}
-        },
-        {
-          vizState: {
-            query:{
-              "limit": 5000,
-              "segments": [
-                "Ticket.onlineBestellungen"
-              ],
-              "measures": [
-                "Ticket.anzahlTickets"
-              ],
-              "order": {
-                "Ticket.registrierungDt": "asc"
-              },
-              "filters": [
-                {
-                  "member": "Veranstaltung.veranstaltungName",
-                  "operator": "equals",
-                  "values": [
-                    "EXPO REAL 2023"
-                  ]
-                }
-              ]
-            },
-            chartType:"number"
-          },
-          name: "Tage vor VA-Ende",
-          id: 11,
-          layout: {x:0,y:4,w:4,h:4}
-      },
-        {
-            vizState: {
-              query:{
-                "filters": [
-                  {
-                    "member": "Veranstaltung.veranstaltungName",
-                    "operator": "equals",
-                    "values": [
-                      "EXPO REAL 2023"
-                    ]
-                  }
-                ],
-                "limit": 5000,
-                "segments": [
-                  "Ticket.onlineBestellungen"
-                ],
-                "dimensions": [
-                  "Ticket.dayBeforeEnd"
-                ],
-                "order": [
-                  [
-                    "Ticket.dayBeforeEnd",
-                    "desc"
-                  ]
-                ],
-                "measures": [
-                  "Ticket.anzahlTicketsKumuliert"
-                ]
-              },
-              pivotConfig:
-              {
-                "x": [
-                  "Ticket.dayBeforeEnd"
-                ],
-                "y": [
-                  "measures"
-                ],
-                "fillMissingDates": true,
-                "joinDateRange": false
-              },
-              chartType:"bar"
-            },
-            name: "Verlauf nach Tagen vor VA-Ende",
-            id: 14,
-            layout: {x:5,y:0,w:20,h:8}
-        },
-        {
-            vizState: {
-              query:{
-                "limit": 5000,
-                "segments": [
-                  "Ticket.onlineBestellungen"
-                ],
-                "measures": [
-                  "Ticket.anzahlTickets"
-                ],
-                "order": {
-                  "Ticket.anzahlTickets": "desc"
-                },
-                "filters": [
-                  {
-                    "member": "Veranstaltung.veranstaltungName",
-                    "operator": "equals",
-                    "values": [
-                      "EXPO REAL 2023"
-                    ]
-                  }
-                ],
-                "dimensions": [
-                  "Land.land"
-                ],
-                "timeDimensions": []
-              },
-              chartType:"verticalbar"
-            },
-            name: "Länderranking",
-            id: 15,
-            layout: {x:0,y:8,w:12,h:8}
-        },
-        {
-            vizState: {
-              query:{
-                "limit": 5000,
-                "segments": [
-                  "Ticket.onlineBestellungen"
-                ],
-                "measures": [
-                  "Ticket.anzahlTickets"
-                ],
-                "order": {
-                  "Ticket.anzahlTickets": "desc"
-                },
-                "filters": [
-                  {
-                    "member": "Veranstaltung.veranstaltungName",
-                    "operator": "equals",
-                    "values": [
-                      "EXPO REAL 2023"
-                    ]
-                  }
-                ],
-                "dimensions": [
-                  "Land.land"
-                ],
-                "timeDimensions": []
-              },
-              chartType:"table"
-            },
-            name: "Länderranking",
-            id: 16,
-            layout: {x:12,y:8,w:12,h:8}
-        },
-        {
-            vizState: {
-              query:{
-                "limit": 5000,
-                "segments": [
-                  "Ticket.onlineBestellungen"
-                ],
-                "measures": [
-                  "Ticket.anzahlTickets"
-                ],
-                "filters": [
-                  {
-                    "member": "Veranstaltung.veranstaltungName",
-                    "operator": "equals",
-                    "values": [
-                      "EXPO REAL 2023"
-                    ]
-                  }
-                ],
-                "dimensions": [
-                  "Produkt.vaProduktName",
-                  "Produkt.vaProduktCode",
-                  "Vertriebskanal.vertriebskanalName"
-                ],
-                "order": {
-                  "Ticket.anzahlTickets": "desc"
-                }
-              },
-              pivotConfig: {
-                "x": [
-                  "Produkt.vaProduktName",
-                  "Produkt.vaProduktCode"
-                ],
-                "y": [
-                  "Vertriebskanal.vertriebskanalName",
-                  "measures"
-                ],
-                "fillMissingDates": true,
-                "joinDateRange": false
-              },
-              chartType:"pivottable"
-            },
-            name: "Produktranking",
-            id: 18,
-            layout: {x:0,y:16,w:24,h:8}
-        }
-      ]
-    }
-  ;
-  
 
-  const data = defaultDashboard; //JSON.parse(defaultDashboardItems);
+  const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
 
   if (loading) {
     return <Spin />;
@@ -349,7 +127,7 @@ const DashboardPage = (props) => {
         <React.Fragment>
           <PageHeader
             //onBack={() => (window.location.href = "/")}
-            title={dashboard.name}
+            title={data.dashboardName}
             subTitle=""
             //style={{ background: 'white' }}
             extra={[
@@ -376,35 +154,7 @@ const DashboardPage = (props) => {
           <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
             <Col span={24} style={{textAlign:"right"}}>
               <Space style={{textAlign:"left"}}>
-                <Select
-                    placeholder="bitte auswählen ..."
-                    allowClear
-                    showSearch
-                    size='small'
-                    disabled={false}
-                    options={[
-                              { 
-                                label: '2023',
-                                options: [
-                                  { value: 'EXR2023', label: 'EXPO REAL 2023' },
-                                  { value: 'AUT2023', label: 'automatica 2023' },
-                                  { value: 'FRE2023', label: 'f.re.e 2023' },
-                                ]
-                              },
-                              { 
-                                label: '2022',
-                                options: [
-                                  { value: 'XXX2022', label: 'automatica | analytica | ceramitec 2022' },
-                                ]
-                              }
-                            ]}
-                    defaultValue={'EXPO REAL 2023'}
-                    //onChange={handleChange}
-                    //onSearch={onSearch}
-                    name={'va'}
-                    style={{ minWidth: 150 }}
-                    optionFilterProp="label" // filter by label (not by value/key)
-                  />
+                <MemberSelect />
               </Space>
             </Col>
           </Row>
@@ -457,4 +207,44 @@ key={item.id} itemId={item.id} title={item.name}>
               head-title
               card-extra
             body
-              chart/statistic/...*/
+              chart/statistic/...
+              
+              
+              
+              
+
+                <Select
+                    placeholder="bitte auswählen ..."
+                    allowClear
+                    showSearch
+                    size='small'
+                    disabled={false}
+                    options={[
+                              { 
+                                label: '2023',
+                                options: [
+                                  { value: 'EXR2023', label: 'EXPO REAL 2023' },
+                                  { value: 'AUT2023', label: 'automatica 2023' },
+                                  { value: 'FRE2023', label: 'f.re.e 2023' },
+                                ]
+                              },
+                              { 
+                                label: '2022',
+                                options: [
+                                  { value: 'XXX2022', label: 'automatica | analytica | ceramitec 2022' },
+                                ]
+                              }
+                            ]}
+                    defaultValue={'EXPO REAL 2023'}
+                    //onChange={handleChange}
+                    //onSearch={onSearch}
+                    name={'va'}
+                    style={{ minWidth: 150 }}
+                    optionFilterProp="label" // filter by label (not by value/key)
+                  />              
+              
+              
+              
+              
+              
+*/
