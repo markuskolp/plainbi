@@ -63,7 +63,7 @@ const DashboardPage = (props) => {
     {
       dashboardName: "Tickets",
       dashboardItems: [
-        {
+          {
             vizState: {
               query:{
                 "measures": [
@@ -91,6 +91,34 @@ const DashboardPage = (props) => {
             id: 10,
             layout: {x:0,y:0,w:4,h:4}
         },
+        {
+          vizState: {
+            query:{
+              "measures": [
+                "Tickets.ticketsOrdered"
+              ],
+              "order": {
+                "Tickets.dateRegistration": "asc"
+              },
+              "segments": [
+                "Tickets.onlineBestellungen"
+              ],
+              "filters": [
+                {
+                  "member": "Veranstaltung.faireventNameYear",
+                  "operator": "equals",
+                  "values": [
+                    "EXPO REAL 2023"
+                  ]
+                }
+              ]
+            },
+            chartType:"number"
+          },
+          name: "Tage vor VA-Ende",
+          id: 11,
+          layout: {x:0,y:4,w:4,h:4}
+      },
         {
             vizState: {
               query:{

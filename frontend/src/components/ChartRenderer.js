@@ -124,15 +124,17 @@ const TypeToChartComponent = {
     </ResponsiveContainer>
   ),
   table: ({ resultSet }) => (
+    console.log(resultSet.tableColumns()),
     <Table
       pagination={false}
-      columns={resultSet.tableColumns().map(c => ({ ...c, dataIndex: c.key }))}
+      columns={resultSet.tableColumns().map(c => ({ ...c, dataIndex: c.key, title: c.shortTitle, sorter: true}))} // take shortTitle (that means without name of data model (cube))
       dataSource={resultSet.tablePivot()}
       size="small"
       //scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
       //scroll={{ x: true }}
       //scroll={{ y: tableHeight }}
-      scroll={{ y: '100%' }}
+      scroll={{ y: 'auto', x: '100%' }}
+      //scroll={{ y: 'auto', x: 'auto' }}
       //tableLayout="auto"
     />
   ),
@@ -177,7 +179,8 @@ const renderChart = Component => ({ resultSet, error, height }) =>
 const ChartRenderer = ({ vizState, chartHeight }) => {
   const { query, chartType } = vizState;
   const component = TypeToMemoChartComponent[chartType];
-  const renderProps = useCubeQuery(query);
+  const renderProps = useCubeQuery(query); // const { resultSet, isLoading, error, progress }
+  
   
   /*
   const [tableHeight, setTableHeight] = useState(600);
@@ -203,7 +206,7 @@ ChartRenderer.propTypes = {
 
 ChartRenderer.defaultProps = {
   vizState: {},
-  chartHeight: 300,
+  chartHeight: '100%', // 300
   cubejsApi: null
 };
 
