@@ -216,6 +216,39 @@ export const dashboard_tickets  =
         name: "Produktranking",
         id: 18,
         layout: {x:0,y:16,w:24,h:8}
+    },
+    {
+        vizState: {
+          query:{
+            "limit": 5000,
+            "segments": [
+              "Ticket.onlineBestellungen"
+            ],
+            "measures": [
+              "Ticket.anzahlTickets"
+            ],
+            "order": {
+              "Ticket.anzahlTickets": "desc"
+            },
+            "filters": [
+              {
+                "member": "Veranstaltung.veranstaltungName",
+                "operator": "equals",
+                "values": [
+                  "EXPO REAL 2023"
+                ]
+              }
+            ],
+            "dimensions": [
+              "Land.land"
+            ],
+            "timeDimensions": []
+          },
+          chartType:"map"
+        },
+        name: "Länderranking",
+        id: 20,
+        layout: {x:0,y:24,w:24,h:12}
     }
   ]
 }

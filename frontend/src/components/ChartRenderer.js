@@ -24,6 +24,7 @@ import styled from 'styled-components';
 import "./recharts-theme.less";
 import moment from "moment";
 import Table from "./Table";
+import Map from "./Map";
 
 const numberFormatter = item => item.toLocaleString("de-DE"); 
 const dateFormatter = item => moment(item).format("MMM YY");
@@ -214,6 +215,9 @@ const TypeToChartComponent = {
         ))}
       </Col>
     </Row>
+  ),
+  map: ({ resultSet }) => (
+    <Map />
   )
 };
 const TypeToMemoChartComponent = Object.keys(TypeToChartComponent)

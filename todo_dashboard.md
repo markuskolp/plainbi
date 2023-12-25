@@ -27,14 +27,13 @@ Filter:
 Darstellungen ergänzen:
 	- Datenstand von Cube.js bekommen
 	- dann Kartenkomponente ergänzen
-		- starten mit React-Leaflet und Länder GeoJSON -> CartoDB.PositronNoLabels
-		- ISO-Code oder Name verwenden zum Mappen mit GeoJSON
-		- Zahl darstellen und evtl. auch Ländername bei Mouseover
-		- evtl. Einfärben nach Abstufungen
-		- nicht gematchte Einträge anzeigen
-		- +/- Zoom
-		- Startpunkt der Karte angeben (z.B. DE)
-		- evtl. auch Heatmap
+		- Karte mit React-Map-GL 
+		- Anpassen auf Größenveränderung
+		- Zoombuttons gehen nicht weil RGL dazwischen funkt
+		- GeoJSON von Countries mal zeigen
+		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
+		- Startposition fix auf München erstmal und so das man Europa ganz sieht
+		- ResultSet von Cube.js nehmen 
 
 Abrunden Version 1:
 	- Dashboard "Tickets" fertigmachen
@@ -99,6 +98,7 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- PDF Export von Dashboard (serverseitig generieren)
 - pre-aggregates mal konfigurieren (falls es irgendwo langsam ist)
 - evtl. Cube Core auf neueste Version umstellen und "running-total" davon ausprobieren
 - Dashboardwidget für "Markdown"
@@ -111,10 +111,17 @@ Abrunden Version 1:
 - Tooltip bei Diagrammen konfigurieren
 - PoP (Period over Period) comparison
 - CSV/Excel Export bei Tabellen
-- PDF Export von Dashboard (serverseitig generieren)
 - Crossdrill (temporäre übergreifende Filter) -> z.B. Artikel auswählen
 - Cube Datenmodell im Web editieren in plainbi
 - Berechtigungen umsetzen (zuerst auf Cube/View Ebene (Datensätze), dann auf Spalten, dann auf Zeilen)
 
+- Mapkomponente 
+		- bei React-Map-GL bleiben oder doch auf Leaflet umstellen ?
+		- ISO-Code oder Name verwenden zum Mappen mit GeoJSON
+		- Zahl darstellen und evtl. auch Ländername bei Mouseover
+		- evtl. Einfärben nach Abstufungen
+		- nicht gematchte Einträge anzeigen
+		- Startpunkt der Karte angeben (z.B. DE)
+		- evtl. auch Heatmap
 
 
