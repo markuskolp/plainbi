@@ -27,8 +27,6 @@ Filter:
 Darstellungen ergänzen:
 	- Datenstand von Cube.js bekommen
 	- dann Kartenkomponente ergänzen
-		- Karte mit React-Map-GL 
-		- Anpassen auf Größenveränderung
 		- Zoombuttons gehen nicht weil RGL dazwischen funkt
 		- GeoJSON von Countries mal zeigen
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"

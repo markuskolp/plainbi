@@ -60,6 +60,9 @@ const Dashboard = ({ children, dashboardItems }) => {
         //console.log("must update item: " + item + " to layout: " + toUpdate);
       }
     });
+
+    // call resize event e.g. for resizing certain components like the map
+    window.dispatchEvent(new Event('resize'));
   };
 
   return (
