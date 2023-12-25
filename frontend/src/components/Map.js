@@ -1,19 +1,38 @@
-import React, {useState} from "react";
-import { Button, Empty } from "antd";
+import React from "react";
 import { Map as ReactMapGl, NavigationControl} from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-
 
 const mapboxtoken = 'pk.eyJ1IjoibWFya3Vza29scDMwNDMwIiwiYSI6ImNscWhxNWVqYTFjdDAya3RrZnUyc2trZ2IifQ.29kFpGDemWCOwA8DUMqJ5w';
 
 const Map = () => {
-  
-  const [viewport, setViewport] = useState();
 
+  useEffect(() => {
+    initialize();
+  }, []);
+
+  const initialize = async () => {
+
+    await Axios.get("/api/repo/application", {headers: {Authorization: props.token}}).then(
+      (res) => {
+        //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
+        const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
+        console.log(JSON.stringify(resData));
+        setApps(resData);
+        setLoading(false);
+      }
+    ).catch(
+      function (error) {
+        setError(true);
+        setLoading(false);
+        message.error('Es gab einen Fehler beim Laden der Applikationen.');
+      }
+    );
+    
+  };
+  
   return (
-    <React.Fragment>
+      <div style={{height: "100%"}}>
       <ReactMapGl
-        {...viewport}
         mapboxAccessToken={mapboxtoken}
         initialViewState={{
           longitude: 11.576124,
@@ -23,40 +42,13 @@ const Map = () => {
         mapStyle="mapbox://styles/mapbox/light-v9"
         width="100%"
         height="100%"
-        onViewportChange={viewport => setViewport(viewport)}
+
       >
         <NavigationControl />
       </ReactMapGl>
-    </React.Fragment>
+    </div>
   );
 };
 
 export default Map;
 
-
-/*
-
-  const [view, setViewport] = useState({
-    longitude: 11.576124,
-    latitude: 48.137154,
-    zoom: 3 
-  }); // start with Munich in Zoomlevel 5
-
-  return (
-    <React.Fragment>
-      <ReactMapGl
-        {...view}
-        mapboxAccessToken={mapboxtoken}
-        style={{width: '100%', height: '100%'}}
-        //mapStyle="mapbox://styles/mapbox/streets-v9"
-        mapStyle="mapbox://styles/mapbox/light-v9"
-        //onViewportChange={viewport => setViewport(viewport)}
-      >
-        <NavigationControl />
-      </ReactMapGl>
-    </React.Fragment>
-  );
-};
-
-
-*/
