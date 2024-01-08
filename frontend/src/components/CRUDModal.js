@@ -25,8 +25,22 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   // getRecordData
   const getRecordData = async (tableName) => {
     setRecordData(null);
+
+    const queryParams = new URLSearchParams();
+    if(versioned) {
+      queryParams.append("v", 1);
+    }
+    queryParams.append("pk", getPKParamForURL(pkColumns));
+    console.log("queryParams: " + queryParams.toString());
+    //var endpoint = api+tableName+'/' + encodeURIComponent(encodeURIComponent(pk)) + '?'+queryParams;
+    //var endpoint = api+tableName+'/' + pk + '?'+queryParams;
+    var endpoint = api+tableName+'/' + pk.replace("/", "%2F") + '?'+queryParams;
+    console.log("GET endpoint: " + endpoint);
+
     //await Axios.get("/api/crud/"+tableName+"/"+pk).then(
-    await Axios.get(api+tableName+"/"+pk+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns)), {headers: {Authorization: token}}).then(
+    //await Axios.get(api+tableName+"/"+ pk +(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns)), {headers: {Authorization: token}}).then(
+    //await Axios.get(api+tableName+"/"+ pk.replace("/", encodeURIComponent(encodeURIComponent("/"))) +(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns)), {headers: {Authorization: token}}).then(
+    await Axios.get(endpoint, {headers: {Authorization: token}}).then(
         (res) => {
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));

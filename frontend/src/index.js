@@ -9,6 +9,7 @@ import AppRuntime from "./pages/AppRuntime";
 import AdhocRuntime from "./pages/AdhocRuntime";
 import NoPage from "./pages/NoPage";
 import Settings from "./pages/Settings";
+import DashboardPage from "./pages/DashboardPage";
 import UserProfile from "./pages/UserProfile";
 import useToken from "./components/useToken";
 import "antd/dist/reset.css";
@@ -38,6 +39,7 @@ const App = () => {
               <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} />} />
               <Route path="apps" element={<Apps token={token} setToken={setToken} />} />
               <Route path="apps/:id" element={<AppRuntime token={token} setToken={setToken} />} />
+              <Route path="dashboard" element={<DashboardPage token={token} setToken={setToken} />} />
               <Route path="*" element={<NoPage />} />
             </Route>
           </Routes>

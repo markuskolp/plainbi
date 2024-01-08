@@ -156,7 +156,7 @@ const ThemeLayout = (props) => {
           <Content style={{ padding: "0px 50px" }}>
             <div
               className="site-layout-content"
-              style={{ background: colorBgContainer }}
+              //style={{ background: colorBgContainer }}
             >
               <Outlet />
             </div>
