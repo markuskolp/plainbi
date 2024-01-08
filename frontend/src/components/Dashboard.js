@@ -79,6 +79,8 @@ const Dashboard = ({ children, dashboardItems }) => {
       rowHeight={40}
       onLayoutChange={onLayoutChange}
       isDragging={isDragging}
+      isDraggable={false}
+      isResizable={false}
      >
       {children}
     </DragField>

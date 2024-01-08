@@ -27,11 +27,11 @@ Filter:
 Darstellungen ergänzen:
 	- Datenstand von Cube.js bekommen
 	- dann Kartenkomponente ergänzen
-		- Zoombuttons gehen nicht weil RGL dazwischen funkt
-		- GeoJSON von Countries mal zeigen
+		- Zoombuttons gehen nicht weil RGL dazwischenfunkt
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
 		- Startposition fix auf München erstmal und so das man Europa ganz sieht
 		- ResultSet von Cube.js nehmen 
+		- Sprache der Karte auf Deutsch einstellen
 
 Abrunden Version 1:
 	- Dashboard "Tickets" fertigmachen
