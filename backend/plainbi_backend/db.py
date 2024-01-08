@@ -821,17 +821,18 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
             if delrec["total_count"]>0:
                 # check if is_deleted="N"
                 try:
-                    if delrec["data"]["is_deleted"] == "N":
+                    if delrec["data"][0]["is_deleted"] == "N":
                         out["error"]="insert-to-versioned-table-with-existing-pk"
                         out["message"]="Datensatz ist bereits vorhanden"
                         out["detail"]="es wurde versucht, einen Datensatz in einer versionierten Tabelle neu anzulegen, obwohl bereits einer existiert (der nicht bereits gelöscht wurde)"
                         log.error(out["detail"])
                         return out
-                except:
+                except Exception as e2:
                     out["error"]="insert-to-versioned-table-with-existing-pk-error"
                     out["message"]="Datensatz ist bereits vorhanden - error"
                     out["detail"]="es wurde versucht, einen Datensatz in einer versionierten Tabelle neu anzulegen, obwohl bereits einer existiert (der nicht bereits gelöscht wurde) - Error"
                     log.error(out["error"])
+                    log.error("e2: %s",str(e2))
                     return out
                 # there is an existing record -> terminate id
                 pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)

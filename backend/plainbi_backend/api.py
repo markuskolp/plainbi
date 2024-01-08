@@ -275,6 +275,7 @@ def get_all_items(tokdata,tab):
         json_out = jsonify(out)
     except Exception as ej:
         log.error("get_all_items: jsonify Error: %s",str(ej))
+        return "get_all_items: jsonify Error",500
     return json_out
 
 # Define routes for CRUD operations
@@ -336,7 +337,12 @@ def get_item(tokdata,tab,pk):
             print("out:"+str(out))
             log.debug("out:%s",str(out))
             log.debug("leaving get_item with success and json result")
-            return jsonify(out)
+            try:
+                json_out = jsonify(out)
+            except Exception as ej:
+                log.error("get_item: jsonify Error: %s",str(ej))
+                return "get_item: jsonify Error",500
+            return json_out
             #return Response(jsonify(out),status=204)
         else:
             log.debug("no record found")
@@ -1362,7 +1368,7 @@ def login():
     item = json.loads(data_string.strip("'"))
     #print("login items ",str(item))
 
-    username = item['username']
+    username = item['username'].lower()
     log.debug("login: username=%s",username)
     password = item['password']
     #log.debug("login: password=%s",password)
