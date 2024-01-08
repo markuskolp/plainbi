@@ -398,6 +398,9 @@ def create_item(tokdata,tab):
     item = json.loads(data_string.strip("'"))
 
     out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
+    if isinstance(out,dict):
+        if "error" in out.keys():
+            return jsonify(out), 400
     return jsonify(out)
 
 
@@ -459,8 +462,9 @@ def update_item(tokdata,tab,pk):
     log.debug("item %s",item)
     
     out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
-
-    #return 'Item updated successfully', 200
+    if isinstance(out,dict):
+        if "error" in out.keys():
+            return jsonify(out), 400
     return jsonify(out)
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
