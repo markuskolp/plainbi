@@ -522,6 +522,8 @@ def delete_item(tokdata,tab,pk):
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
+        else:
+            return jsonify(out), 400
     return jsonify(out)
 
 
