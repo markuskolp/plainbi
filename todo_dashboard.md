@@ -27,7 +27,7 @@ Filter:
 Darstellungen ergänzen:
 	- Datenstand von Cube.js bekommen
 	- dann Kartenkomponente ergänzen
-		- Zoombuttons gehen nicht weil RGL dazwischenfunkt
+		- Zoombuttons gehen nicht weil RGL dazwischenfunkt -> lösen! (kurzfristig mit draggable/resizable false bei RGL)
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
 		- Startposition fix auf München erstmal und so das man Europa ganz sieht
 		- ResultSet von Cube.js nehmen 
