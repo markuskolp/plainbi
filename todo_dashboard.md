@@ -20,7 +20,6 @@ TOP
 #-----------------------------------------------------------------------------------------------------
 
 Filter:
-	- Fehler beheben, dass die Select-Liste manchmal nicht beladen wird bzw. es 3x durch die Stelle läuft
 	- Gruppierung nach Jahren options -> label options -> label value
 	- Auswahl von Veranstaltungsfilter in die Queries übernehmen ! (default bei Einstieg verwenden !)
 
@@ -99,6 +98,7 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- Dashboardfilter: Fehler beheben, dass die Select-Liste manchmal nicht beladen wird bzw. es 3x durch die Stelle läuft
 - Vertical bar chart mit Vega
 	- y-achse genug Platz für Labels (siehe Länderranking)
 	- was tun wenn die Anzahl zu hoch ist (z.B. 100 Länder -> Labels von y-Achse nur zum Teil zeigen ? Diagramm scrollbar machen ?)

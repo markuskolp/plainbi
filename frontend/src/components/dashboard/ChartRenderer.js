@@ -45,22 +45,22 @@ const xAxisFormatter = (item) => {
 const CartesianChart = ({ resultSet, children, ChartComponent, height, layout }) => (
   <ResponsiveContainer width="100%" height={height}>
     {layout === "vertical" ? ( 
-      <ChartComponent margin={{ left: -10 }} data={resultSet.chartPivot()} layout="vertical" overflow="visible" margin={{ top: 0, right: 40, left: 40, bottom: 0 }}>
+      <ChartComponent data={resultSet.chartPivot()} layout="vertical" overflow="visible" margin={{ top: 0, right: 40, left: 40, bottom: 0 }} >
+        <Tooltip cursor={{ fill:  'rgba(206, 206, 206, 0.5)' }} />
         <YAxis dataKey="x" type="category"  interval={0}/> 
         <XAxis type="number" />
         <CartesianGrid vertical={true} horizontal={false} />
         { children }
         <Legend />
-        <Tooltip />
       </ChartComponent>
     ) : (
       <ChartComponent margin={{ left: -10 }} data={resultSet.chartPivot()}>
+        <Tooltip cursor={{ fill:  'rgba(206, 206, 206, 0.5)' }} />
         <XAxis axisLine={false} tickLine={false} tickFormatter={xAxisFormatter} dataKey="x" minTickGap={20} />
         <YAxis axisLine={false} tickLine={false} tickFormatter={numberFormatter} />
         <CartesianGrid vertical={false}/>
         { children }
         <Legend />
-        <Tooltip />
       </ChartComponent>
     )
     }
