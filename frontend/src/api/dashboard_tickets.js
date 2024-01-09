@@ -108,7 +108,7 @@ export const dashboard_tickets  =
     {
         vizState: {
           query:{
-            "limit": 5000,
+            "limit": 10,
             "segments": [
               "Ticket.onlineBestellungen"
             ],
@@ -134,7 +134,7 @@ export const dashboard_tickets  =
           },
           chartType:"verticalbar"
         },
-        name: "Länderranking",
+        name: "Länderranking (Top 10)",
         id: 15,
         layout: {x:0,y:8,w:12,h:8}
     },
@@ -249,7 +249,23 @@ export const dashboard_tickets  =
         name: "Länderranking",
         id: 20,
         layout: {x:0,y:24,w:24,h:12}
-    }
+    },
+    {
+      vizState: {
+        query:{
+          "measures": [
+            "Ticket.aktuellsteDaten"
+          ],
+          "order": {
+            "Ticket.registrierungDt": "asc"
+          }
+        },
+        chartType:"number"
+      },
+      name: "Stand",
+      id: 21,
+      layout: {x:0,y:36,w:4,h:3}
+  }
   ]
 }
 

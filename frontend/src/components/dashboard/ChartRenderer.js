@@ -18,12 +18,13 @@ import {
   BarChart,
   Bar,
   LineChart,
-  Line
+  Line,
+  LabelList
 } from "recharts";
 import styled from 'styled-components';
 import "./recharts-theme.less";
 import moment from "moment";
-import Table from "./Table";
+import Table from "../Table";
 import Map from "./Map";
 
 const numberFormatter = item => item.toLocaleString("de-DE"); 
@@ -38,18 +39,36 @@ const xAxisFormatter = (item) => {
   }
 }
 
-const CartesianChart = ({ resultSet, children, ChartComponent, height }) => (
+//  interval=0 = draw all labels
+// todo: margin bei verticalbar nur, damit die labels bei der y-achse links genug platz haben ?!
+
+const CartesianChart = ({ resultSet, children, ChartComponent, height, layout }) => (
   <ResponsiveContainer width="100%" height={height}>
-    <ChartComponent margin={{ left: -10 }} data={resultSet.chartPivot()}>
-      <XAxis axisLine={false} tickLine={false} tickFormatter={xAxisFormatter} dataKey="x" minTickGap={20} />
-      <YAxis axisLine={false} tickLine={false} tickFormatter={numberFormatter} />
-      <CartesianGrid vertical={false}/>
-      { children }
-      <Legend />
-      <Tooltip labelFormatter={dateFormatter} formatter={numberFormatter} />
-    </ChartComponent>
+    {layout === "vertical" ? ( 
+      <ChartComponent margin={{ left: -10 }} data={resultSet.chartPivot()} layout="vertical" overflow="visible" margin={{ top: 0, right: 40, left: 40, bottom: 0 }}>
+        <YAxis dataKey="x" type="category"  interval={0}/> 
+        <XAxis type="number" />
+        <CartesianGrid vertical={true} horizontal={false} />
+        { children }
+        <Legend />
+        <Tooltip />
+      </ChartComponent>
+    ) : (
+      <ChartComponent margin={{ left: -10 }} data={resultSet.chartPivot()}>
+        <XAxis axisLine={false} tickLine={false} tickFormatter={xAxisFormatter} dataKey="x" minTickGap={20} />
+        <YAxis axisLine={false} tickLine={false} tickFormatter={numberFormatter} />
+        <CartesianGrid vertical={false}/>
+        { children }
+        <Legend />
+        <Tooltip />
+      </ChartComponent>
+    )
+    }
   </ResponsiveContainer>
 );
+
+//<Tooltip labelFormatter={dateFormatter} formatter={numberFormatter} />
+
 
 const formatTableData = (columns, data) => {
   function flatten(columns = []) {
@@ -130,17 +149,18 @@ const TypeToChartComponent = {
       ))}
     </CartesianChart>
   ),
-  verticalbar: ({ resultSet, height }) => (
-    <CartesianChart resultSet={resultSet} height={height} ChartComponent={BarChart}>
+  verticalbar: ({ resultSet, height, pivotConfig }) => (
+    <CartesianChart resultSet={resultSet} height={height} ChartComponent={BarChart} layout="vertical">
       {resultSet.seriesNames().map((series, i) => (
         <Bar
           key={series.key}
-          stackId="a"
+          //stackId="a"
           dataKey={series.key}
           name={series.title}
           fill={colors[i]}
-          
-        />
+        >
+          <LabelList dataKey={series.key} position="right" />
+        </Bar>
       ))}
     </CartesianChart>
   ),
@@ -245,7 +265,6 @@ const ChartRenderer = ({ vizState, chartHeight }) => {
   const { query, chartType, pivotConfig } = vizState;
   const component = TypeToMemoChartComponent[chartType];
   const renderProps = useCubeQuery(query); // const { resultSet, isLoading, error, progress }
-  
   
   /*
   const [tableHeight, setTableHeight] = useState(600);
