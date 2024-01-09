@@ -21,7 +21,6 @@ TOP
 #-----------------------------------------------------------------------------------------------------
 
 Filter:
-	- Gruppierung nach Jahren options -> label options -> label value
 	- Auswahl von Veranstaltungsfilter in die Queries übernehmen ! (default bei Einstieg verwenden !)
 
 Darstellungen ergänzen:
@@ -29,7 +28,7 @@ Darstellungen ergänzen:
 		- geht grundsätzlich -> aber auch Filter mitgeben ! -> Anzeige verbessern (nicht als Kachel, sondern evtl. als Teil von Dashboard-Funktionalität: d.h. Datenstand von "Datensatz" (Tickets) bekommen
 	- dann Kartenkomponente ergänzen
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
-		- ResultSet von Cube.js nehmen 
+		- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
 
 Abrunden Version 1:
 	- Dashboard "Tickets" fertigmachen
@@ -99,7 +98,10 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
-- geojson von Countries nicht vollständig (ISO2)
+- Filter:
+	- Gruppierung nach Jahren options -> label options -> label value
+- Karte
+	- geojson von Countries nicht vollständig (ISO2)
 	- geojson Daten grundsätzlich mal in eine DB laden und daraus erzeugen !
 	- oder auch über cube.js holen (analog zu blogartikel)
 	- auch die Mittelpunkte

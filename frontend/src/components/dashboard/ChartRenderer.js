@@ -237,7 +237,7 @@ const TypeToChartComponent = {
     </Row>
   ),
   map: ({ resultSet }) => (
-    <Map />
+    <Map resultSet={resultSet} />
   )
 };
 const TypeToMemoChartComponent = Object.keys(TypeToChartComponent)

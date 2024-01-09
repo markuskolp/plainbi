@@ -1,18 +1,15 @@
 import React, {useRef, useCallback} from "react";
-import { message } from "antd";
-import Axios from "axios";
 import { Map as ReactMapGl, NavigationControl, Source, Layer, FullscreenControl} from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { geojsonCountries } from './geojsonCountries.js'; 
 import { geojsonCountriesCentroids } from './geojsonCountriesCentroids.js'; 
-import {defaultFillLayer, defaultLineLayer} from './map-style.js';
-import {MapRef} from 'react-map-gl';
-import { useCubeQuery } from "@cubejs-client/react";
+//import {defaultFillLayer, defaultLineLayer} from './map-style.js';
+//import {MapRef} from 'react-map-gl';
 //import * as turf from '@turf/turf';
 
 const mapboxtoken = 'pk.eyJ1IjoibWFya3Vza29scDMwNDMwIiwiYSI6ImNscWhxNWVqYTFjdDAya3RrZnUyc2trZ2IifQ.29kFpGDemWCOwA8DUMqJ5w';
 
-const Map = () => {
+const Map = ( { resultSet }) => {
 
   let geoData = geojsonCountries;
 
@@ -73,34 +70,6 @@ const Map = () => {
     features: [],
   };  
 
-  const { resultSet } = useCubeQuery(  
-    {
-      "limit": 5000,
-      "segments": [
-        "Ticket.onlineBestellungen"
-      ],
-      "measures": [
-        "Ticket.anzahlTickets"
-      ],
-      "order": {
-        "Ticket.anzahlTickets": "desc"
-      },
-      "filters": [
-        {
-          "member": "Veranstaltung.veranstaltungName",
-          "operator": "equals",
-          "values": [
-            "EXPO REAL 2023"
-          ]
-        }
-      ],
-      "dimensions": [
-        "Land.land",
-        "Land.landIso2"
-      ],
-      "timeDimensions": []
-    }
-  );
 
   const getGeometry = (type, key) => {
     try {

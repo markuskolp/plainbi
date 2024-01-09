@@ -240,7 +240,8 @@ export const dashboard_tickets  =
               }
             ],
             "dimensions": [
-              "Land.land"
+              "Land.land",
+              "Land.landIso2"
             ],
             "timeDimensions": []
           },

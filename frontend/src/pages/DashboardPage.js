@@ -62,7 +62,7 @@ const DashboardPage = (props) => {
   //const { loading, error, data } = useQuery(GET_DASHBOARD_ITEMS);
   const loading = false;
   const error = false;
-  const [selectVAKey, setSelectVAKey] = useState([]);
+  const [dashboardFilter, setDashboardFilter] = useState([]);
   const [editable, setEditable] = useState(false);
 
   const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
@@ -120,15 +120,43 @@ const DashboardPage = (props) => {
   const dashboardItem = item => (
     <div key={item.id} data-grid={defaultLayout(item)}>
       <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
-        <ChartRenderer vizState={item.vizState} />
+        <ChartRenderer vizState={item.vizState} /> 
       </DashboardItem>
     </div>
   );
+  //<ChartRenderer vizState={item.vizState} /> 
+
+  const replaceVizStateFilters = (vizState, filterName, filterValue) => {
+    
+    // check if filter exists
+    // if filter exists, delete it
+    let filtersReplaced = vizState.query.filters.filter((el) => el.member != {filterName});
+
+    // add dashboard filter
+    filtersReplaced.push({
+                    "member": {filterName},
+                    "operator": "equals",
+                    "values": [
+                      {filterValue}
+                    ]
+                  });
+            
+
+    // take vizState from beginning and delete all filters and add newly created filter array
+    delete vizState.query.filters;
+    vizState.query.filters = filtersReplaced;
+
+    return vizState;
+
+  }
+
+  //todo: item.vizState -> if dashboardFilter, then put this filter in here or replace an existing one !
 
   
-  const handleChangeSelectVA = (key) =>{
-    console.log("handleChangeSelectVA - key: " + key);
-    setSelectVAKey(key); 
+  const handleChangeSelectVA = (filterName, filterValue) =>{
+    console.log("handleChangeSelectVA - filterName: " + filterName);
+    console.log("handleChangeSelectVA - filterValue: " + filterValue);
+    setDashboardFilter({"name":filterName, "value":filterValue}); 
   }
 
 
@@ -182,7 +210,7 @@ const DashboardPage = (props) => {
               </Space>
             </Col>
           </Row>
-          <Dashboard dashboardItems={data && data.dashboardItems} editable={editable}>
+          <Dashboard dashboardItems={data && data.dashboardItems} editable={editable} >
             {data && data.dashboardItems.map(dashboardItem)}
           </Dashboard>
           <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
