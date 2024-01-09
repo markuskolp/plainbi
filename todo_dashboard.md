@@ -7,13 +7,14 @@ TOP
 	position nehmen und diesen ersetzen !
 	t.b.d.
 
-
-- Karte
-- Vertical Bar
 => Dashboard 1+2 fertigmachen
+
 - Drill zu Daten
 - Explore d.h. Dashboard erstellen/editieren, SQL anzeigen
+
 => bereit für Vorstellung im Team
+
+=> evtl. ein Webanalytics Dashboard auch umsetzen ?
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 1
@@ -29,6 +30,7 @@ Darstellungen ergänzen:
 	- dann Kartenkomponente ergänzen
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
 		- ResultSet von Cube.js nehmen 
+		- nur Label 1x zeigen pro Land ! -> turf.centroid nicht perfekt -> lieber mittelpunkt je land bereits als geojson daten mitgeben !
 
 Abrunden Version 1:
 	- Dashboard "Tickets" fertigmachen
@@ -98,6 +100,9 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- geojson von Countries nicht vollständig (ISO2)
+	- geojson Daten grundsätzlich mal in eine DB laden und daraus erzeugen !
+	- oder auch über cube.js holen (analog zu blogartikel)
 - Dashboardfilter: Fehler beheben, dass die Select-Liste manchmal nicht beladen wird bzw. es 3x durch die Stelle läuft
 - Vertical bar chart mit Vega
 	- y-achse genug Platz für Labels (siehe Länderranking)
