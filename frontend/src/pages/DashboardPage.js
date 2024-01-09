@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Table from "../components/Table";
 import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, DatePicker, Menu, Dropdown, Input} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
-import { FullscreenOutlined, MoreOutlined, HistoryOutlined } from "@ant-design/icons";
+import { FullscreenOutlined, MoreOutlined, HistoryOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import DashboardItem from "../components/dashboard/DashboardItem";
 import ChartRenderer from "../components/dashboard/ChartRenderer";
 import Dashboard from "../components/dashboard/Dashboard";
@@ -63,6 +63,7 @@ const DashboardPage = (props) => {
   const loading = false;
   const error = false;
   const [selectVAKey, setSelectVAKey] = useState([]);
+  const [editable, setEditable] = useState(false);
 
   const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
 
@@ -118,7 +119,7 @@ const DashboardPage = (props) => {
 
   const dashboardItem = item => (
     <div key={item.id} data-grid={defaultLayout(item)}>
-      <DashboardItem key={item.id} itemId={item.id} title={item.name}>
+      <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
         <ChartRenderer vizState={item.vizState} />
       </DashboardItem>
     </div>
@@ -141,6 +142,20 @@ const DashboardPage = (props) => {
             //style={{ background: 'white' }}
             extra={[
               <Space>
+                {!editable ? (
+                    <Link onClick={(e) => { setEditable(true, e); }}>
+                      <Tooltip title="Dashboard bearbeiten">
+                        <EditOutlined />
+                      </Tooltip>
+                    </Link>
+                  ) : (
+                    <Link onClick={(e) => { setEditable(false, e); }}>
+                      <Tooltip title="Änderungen speichern">
+                        <SaveOutlined />
+                      </Tooltip>
+                    </Link>
+                  )
+                }
                 <Link href="#">
                   <Tooltip title="Vollbild">
                     <FullscreenOutlined />
@@ -167,7 +182,7 @@ const DashboardPage = (props) => {
               </Space>
             </Col>
           </Row>
-          <Dashboard dashboardItems={data && data.dashboardItems}>
+          <Dashboard dashboardItems={data && data.dashboardItems} editable={editable}>
             {data && data.dashboardItems.map(dashboardItem)}
           </Dashboard>
           <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>

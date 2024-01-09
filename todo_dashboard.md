@@ -30,7 +30,6 @@ Darstellungen ergänzen:
 	- dann Kartenkomponente ergänzen
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
 		- ResultSet von Cube.js nehmen 
-		- nur Label 1x zeigen pro Land ! -> turf.centroid nicht perfekt -> lieber mittelpunkt je land bereits als geojson daten mitgeben !
 
 Abrunden Version 1:
 	- Dashboard "Tickets" fertigmachen
@@ -103,6 +102,8 @@ Abrunden Version 1:
 - geojson von Countries nicht vollständig (ISO2)
 	- geojson Daten grundsätzlich mal in eine DB laden und daraus erzeugen !
 	- oder auch über cube.js holen (analog zu blogartikel)
+	- auch die Mittelpunkte
+	- zeigen, falls 
 - Dashboardfilter: Fehler beheben, dass die Select-Liste manchmal nicht beladen wird bzw. es 3x durch die Stelle läuft
 - Vertical bar chart mit Vega
 	- y-achse genug Platz für Labels (siehe Länderranking)
