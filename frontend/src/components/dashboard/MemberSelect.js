@@ -29,7 +29,8 @@ const MemberSelect = ({onChange}) => {
         ]
         ],
         "segments": [
-        "Ticket.onlineBestellungen"
+        //"Ticket.onlineBestellungen"
+          "Zutritte.fkmRelevant"
         ],
         "dimensions": [
           "Veranstaltung.veranstaltungNr",
@@ -44,6 +45,13 @@ const MemberSelect = ({onChange}) => {
             "2022"
             ]
         },
+        {
+          "member": "Veranstaltung.veranstaltungJahr",
+          "operator": "lte",
+          "values": [
+          "2024"
+          ]
+      },
         {
             "member": "Veranstaltung.veranstaltungName",
             "operator": "notContains",

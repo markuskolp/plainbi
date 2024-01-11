@@ -27,10 +27,10 @@ Darstellungen ergänzen:
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
 		- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
 
-Abrunden Version 1:
-	- Dashboard "Tickets" fertigmachen
-	- dann "Zutritte" (Datenmodell in Cube.js + erstmal Dashboard-Definition fest hinterlegen)
+Zutritte: Dashboarddefinition anlegen
+- Kachel mit heutigen Tag -> wie ?
 
+Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant sind für Onlinebestellungen/Tickets und für Zutritte)
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 2
@@ -94,6 +94,7 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- Zutrittsdashboard während der VA mal Live testen (auch umstellen auf v_e_zutritt...)
 - Delta-Betrachtung
 	- z.B. zu VVA 
 		- bei BigNumber z.B. VVA + Delta VVA 

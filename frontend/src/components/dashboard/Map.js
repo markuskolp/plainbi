@@ -119,7 +119,8 @@ latitude / longitude -->
           properties: {
             name: item['Land.land'],
             key: item['Land.landIso2'],
-            value: parseInt(item[`Ticket.anzahlTickets`])
+            value: parseInt(item[`Zutritte.anzahlTEE`])
+            //value: parseInt(item[`Ticket.anzahlTickets`])
           }  ,
           geometry: 
             getGeometry('country', item['Land.landIso2']) // get geometry of country
@@ -129,7 +130,7 @@ latitude / longitude -->
           properties: {
             name: item['Land.land'],
             key: item['Land.landIso2'],
-            value: parseInt(item[`Ticket.anzahlTickets`])
+            value: parseInt(item[`Zutritte.anzahlTEE`])
           }  ,
           geometry: 
             getGeometryCentroid('country', item['Land.landIso2']) // get geometry of country
