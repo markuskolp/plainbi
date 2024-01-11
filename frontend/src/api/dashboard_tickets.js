@@ -20,10 +20,10 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ]
@@ -42,10 +42,10 @@ export const dashboard_tickets  =
           },
           "filters": [
             {
-              "member": "Veranstaltung.veranstaltungName",
+              "member": "Veranstaltung.veranstaltungNr",
               "operator": "equals",
               "values": [
-                "EXPO REAL 2023"
+                "4542023"
               ]
             }
           ],
@@ -64,10 +64,10 @@ export const dashboard_tickets  =
           query:{
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
@@ -120,10 +120,10 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
@@ -153,10 +153,10 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
@@ -183,10 +183,10 @@ export const dashboard_tickets  =
             ],
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
@@ -232,10 +232,10 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],

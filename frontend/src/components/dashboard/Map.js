@@ -54,7 +54,7 @@ const Map = ( { resultSet }) => {
     const map = mapRef.current?.getMap();
     map?.getStyle().layers.forEach((thisLayer) => {
       if (thisLayer.id.indexOf("-label") > 0) {
-        console.log("onMapLoad() - change text language of layer: " + thisLayer.id);
+        //console.log("onMapLoad() - change text language of layer: " + thisLayer.id);
         map?.setLayoutProperty(thisLayer.id, "text-field", ["get", "name_de"]); // change to german labels
       }
     });
@@ -88,8 +88,8 @@ const Map = ( { resultSet }) => {
       return turf.centroid(countryGeoJSON)['geometry']; 
       */
       const countryGeoJSON = geojsonCountriesCentroids.filter((item)=>item['alpha2'] === key)[0];
-      console.log("countryGeoJSON");
-      console.log(countryGeoJSON);
+      //console.log("countryGeoJSON");
+      //console.log(countryGeoJSON);
       return {"type":"Point","coordinates":[countryGeoJSON['longitude'], countryGeoJSON['latitude']]}; 
     } catch (err) {
       console.log("getGeometryCentroid(): error for: " + key);
@@ -135,10 +135,12 @@ latitude / longitude -->
             getGeometryCentroid('country', item['Land.landIso2']) // get geometry of country
         });
       });
+    /*
     console.log("data features");
     console.log(data);
     console.log("centroid of data features");
     console.log(dataCentroid);
+    */
 
   }
 

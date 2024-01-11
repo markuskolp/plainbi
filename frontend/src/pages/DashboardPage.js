@@ -62,7 +62,7 @@ const DashboardPage = (props) => {
   //const { loading, error, data } = useQuery(GET_DASHBOARD_ITEMS);
   const loading = false;
   const error = false;
-  const [dashboardFilter, setDashboardFilter] = useState([]);
+  const [dashboardFilter, setDashboardFilter] = useState(null);
   const [editable, setEditable] = useState(false);
 
   const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
@@ -120,37 +120,61 @@ const DashboardPage = (props) => {
   const dashboardItem = item => (
     <div key={item.id} data-grid={defaultLayout(item)}>
       <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
-        <ChartRenderer vizState={item.vizState} /> 
+        {dashboardFilter ? (
+            <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} /> 
+          ) : (
+            <ChartRenderer vizState={item.vizState} /> 
+          )
+        }
       </DashboardItem>
     </div>
   );
+  //<ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} /> 
   //<ChartRenderer vizState={item.vizState} /> 
 
+  //item.vizState -> if dashboardFilter, then put this filter in here or replace an existing one !
   const replaceVizStateFilters = (vizState, filterName, filterValue) => {
-    
-    // check if filter exists
-    // if filter exists, delete it
-    let filtersReplaced = vizState.query.filters.filter((el) => el.member != {filterName});
+    const vizStateNew = vizState;
+    const vizStateOriginal = vizState;
+    try {
+      console.log("replaceVizStateFilters: vizState");
+      console.log(vizState);
+      console.log("replaceVizStateFilters: filterName");
+      console.log(filterName);
+      console.log("replaceVizStateFilters: filterValue");
+      console.log(filterValue);
 
-    // add dashboard filter
-    filtersReplaced.push({
-                    "member": {filterName},
-                    "operator": "equals",
-                    "values": [
-                      {filterValue}
-                    ]
-                  });
-            
+      // check if filter exists
+      // if filter exists, delete it
+      let filtersReplaced = vizState.query.filters.filter((el) => el.member != filterName);
+      console.log("replaceVizStateFilters: filtersReplaced - delete existing");
+      console.log(filtersReplaced);
 
-    // take vizState from beginning and delete all filters and add newly created filter array
-    delete vizState.query.filters;
-    vizState.query.filters = filtersReplaced;
+      // add dashboard filter
+      filtersReplaced.push({
+                      "member": filterName,
+                      "operator": "equals",
+                      "values": [filterValue]
+                    });
+      console.log("replaceVizStateFilters: filtersReplaced - push new one");
+      console.log(filtersReplaced);
+                            
 
-    return vizState;
+      // take vizState from beginning and delete all filters and add newly created filter array
+      //delete vizState.query.filters;
+      vizState.query.filters = filtersReplaced;
+      console.log("replaceVizStateFilters: vizState - new");
+      console.log(vizState);
+      vizStateNew.query = vizState.query;
+      //return vizState;
+      return vizStateNew;
+    } catch (err) {
+      console.log("replaceVizStateFilters: error");
+      console.log(err.message);
+      return vizStateOriginal;
+    }
 
   }
-
-  //todo: item.vizState -> if dashboardFilter, then put this filter in here or replace an existing one !
 
   
   const handleChangeSelectVA = (filterName, filterValue) =>{
@@ -160,7 +184,7 @@ const DashboardPage = (props) => {
   }
 
 
-  return !data || data.dashboardItems.length ? (
+  return !data || data.dashboardItems.length  ? (
       <CubeProvider cubejsApi={cubejsApi}>
         <React.Fragment>
           <PageHeader

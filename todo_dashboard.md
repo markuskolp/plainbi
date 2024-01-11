@@ -20,9 +20,6 @@ TOP
 # Prio 1
 #-----------------------------------------------------------------------------------------------------
 
-Filter:
-	- Auswahl von Veranstaltungsfilter in die Queries übernehmen ! (default bei Einstieg verwenden !)
-
 Darstellungen ergänzen:
 	- Datenstand von Cube.js bekommen
 		- geht grundsätzlich -> aber auch Filter mitgeben ! -> Anzeige verbessern (nicht als Kachel, sondern evtl. als Teil von Dashboard-Funktionalität: d.h. Datenstand von "Datensatz" (Tickets) bekommen
@@ -100,6 +97,8 @@ Abrunden Version 1:
 
 - Filter:
 	- Gruppierung nach Jahren options -> label options -> label value
+- useQuery.js
+	- eigener Wrapper anstatt useCubeQuery.js -> useEffect() kann "query" als Object nicht vergleichen - workaround über Vergleich der Attribute - verbessern !
 - Karte
 	- geojson von Countries nicht vollständig (ISO2)
 	- geojson Daten grundsätzlich mal in eine DB laden und daraus erzeugen !

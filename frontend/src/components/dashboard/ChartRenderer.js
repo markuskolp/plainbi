@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect, useRef, useLayoutEffect  } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useCubeQuery } from "@cubejs-client/react";
 import { Spin, Row, Col, Statistic } from "antd";
@@ -26,6 +26,9 @@ import "./recharts-theme.less";
 import moment from "moment";
 import Table from "../Table";
 import Map from "./Map";
+import cubejs from "@cubejs-client/core";
+import { useQuery } from "./hooks/useQuery.js";
+
 
 const numberFormatter = item => item.toLocaleString("de-DE"); 
 const dateFormatter = item => moment(item).format("MMM YY");
@@ -39,7 +42,9 @@ const xAxisFormatter = (item) => {
   }
 }
 
-//  interval=0 = draw all labels
+  
+
+  //  interval=0 = draw all labels
 // todo: margin bei verticalbar nur, damit die labels bei der y-achse links genug platz haben ?!
 
 const CartesianChart = ({ resultSet, children, ChartComponent, height, layout }) => (
@@ -258,13 +263,20 @@ const Spinner = () => (
 )
 
 const renderChart = Component => ({ resultSet, error, height, pivotConfig }) =>
-  (resultSet && <Component height={height} pivotConfig={pivotConfig} resultSet={resultSet} />) ||
-  (error && error.toString()) || <Spinner />;
+(resultSet && <Component height={height} pivotConfig={pivotConfig} resultSet={resultSet} />) ||
+(error && error.toString()) || <Spinner />;
+
+const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
+const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
 
 const ChartRenderer = ({ vizState, chartHeight }) => {
+
+  const [querystate, setQuerystate] = useState(); 
   const { query, chartType, pivotConfig } = vizState;
+
   const component = TypeToMemoChartComponent[chartType];
-  const renderProps = useCubeQuery(query); // const { resultSet, isLoading, error, progress }
+  //const renderProps = useCubeQuery(query, {resetResultSetOnChange: true}); // const { resultSet, isLoading, error, progress }
+  const renderProps = useQuery(query, {cubejsApi: cubejsApi, resetResultSetOnChange: true}); // const { resultSet, isLoading, error, progress }
   
   /*
   const [tableHeight, setTableHeight] = useState(600);
@@ -295,3 +307,11 @@ ChartRenderer.defaultProps = {
 };
 
 export default ChartRenderer;
+
+/*
+  console.log("ChartRenderer - vizState");
+  console.log(vizState);
+  console.log("ChartRenderer - renderProps");
+  console.log(renderProps.resultSet);
+
+*/
