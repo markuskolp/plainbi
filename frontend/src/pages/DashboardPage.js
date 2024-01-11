@@ -1,5 +1,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import Table from "../components/Table";
 import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, DatePicker, Menu, Dropdown, Input} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
@@ -11,6 +12,8 @@ import MemberSelect from "../components/dashboard/MemberSelect";
 import cubejs from "@cubejs-client/core";
 import { CubeProvider } from "@cubejs-client/react";
 import { dashboards } from "../api/dashboards";
+import NoPage from "./NoPage";
+import { message } from "antd";
 
 import { useCubeQuery } from "@cubejs-client/react";
 
@@ -59,22 +62,36 @@ const defaultLayout = i => ({
 
 const DashboardPage = (props) => {
 
+  let { id } = useParams(); // get URL parameters - here the "id" of a app
+  let id_type = Number.isNaN(id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" of the app or its "alias"
+
+  console.log("DashboardPage - id: " + id);
+  console.log("DashboardPage - id_type: " + id_type);
+  //const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
+  const data = (id_type === 'id' ? dashboards.filter((dashboard)=> dashboard.id === Number(id)) : dashboards.filter((dashboard)=> dashboard.alias === id))[0];
+  console.log(data);
+
   //const { loading, error, data } = useQuery(GET_DASHBOARD_ITEMS);
   const loading = false;
   const error = false;
   const [dashboardFilter, setDashboardFilter] = useState(null);
   const [editable, setEditable] = useState(false);
 
-  const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
-
   if (loading) {
     return <Spin />;
+  }
+
+  if (!data) {
+    message.error('Es gab einen Fehler beim Laden des Dashboards.')
+    return (
+      <NoPage />
+    );
   }
 
   if (error) {
     return (
       <Alert
-        message="Error occured while loading your query"
+        message="Es wurde kein Dashboard gefunden."
         description={error.toString()}
         type="error"
       />

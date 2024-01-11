@@ -29,7 +29,6 @@ Darstellungen ergänzen:
 
 Abrunden Version 1:
 	- Dashboard "Tickets" fertigmachen
-	- über "id" oder "alias" aufrufbar machen ../dashboard/1, ../dashboard/2 
 	- dann "Zutritte" (Datenmodell in Cube.js + erstmal Dashboard-Definition fest hinterlegen)
 
 
