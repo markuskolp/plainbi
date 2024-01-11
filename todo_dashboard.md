@@ -29,8 +29,8 @@ Darstellungen ergänzen:
 
 Abrunden Version 1:
 	- Dashboard "Tickets" fertigmachen
-	- dann "Zutritte" (Datenmodell in Cube.js + erstmal Dashboard-Definition fest hinterlegen)
 	- über "id" oder "alias" aufrufbar machen ../dashboard/1, ../dashboard/2 
+	- dann "Zutritte" (Datenmodell in Cube.js + erstmal Dashboard-Definition fest hinterlegen)
 
 
 #-----------------------------------------------------------------------------------------------------
@@ -95,6 +95,11 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- Delta-Betrachtung
+	- z.B. zu VVA 
+		- bei BigNumber z.B. VVA + Delta VVA 
+		- bei Barchart auch Linie für VVA zeigen
+- Switch in einer Visualisierung z.B. [kumuliert|einzeldaten], [Länder|Kontinente] - siehe https://github.com/cube-js/cube/blob/master/examples/mapbox/dashboard-app/src/components/Choropleth.js
 - Filter:
 	- Gruppierung nach Jahren options -> label options -> label value
 - useQuery.js

@@ -32,7 +32,7 @@ export const dashboard_tickets  =
         },
         name: "Onlinebestellungen",
         id: 10,
-        layout: {x:0,y:0,w:4,h:4}
+        layout: {x:0,y:0,w:4,h:3}
     },
     {
       vizState: {
@@ -57,7 +57,7 @@ export const dashboard_tickets  =
       },
       name: "Tage bis VA-Ende",
       id: 11,
-      layout: {x:0,y:4,w:4,h:4}
+      layout: {x:0,y:4,w:4,h:3}
   },
     {
         vizState: {
@@ -103,7 +103,7 @@ export const dashboard_tickets  =
         },
         name: "Verlauf nach Tagen vor VA-Ende",
         id: 14,
-        layout: {x:5,y:0,w:20,h:8}
+        layout: {x:5,y:0,w:20,h:6}
     },
     {
         vizState: {
@@ -136,9 +136,9 @@ export const dashboard_tickets  =
         },
         name: "Länderranking (Top 10)",
         id: 15,
-        layout: {x:0,y:8,w:12,h:8}
+        layout: {x:12,y:6,w:12,h:8}
     },
-    {
+    /*{
         vizState: {
           query:{
             "limit": 5000,
@@ -162,6 +162,7 @@ export const dashboard_tickets  =
             ],
             "dimensions": [
               "Land.land"
+              //,"Land.landIso2"
             ],
             "timeDimensions": []
           },
@@ -169,8 +170,8 @@ export const dashboard_tickets  =
         },
         name: "Länderranking",
         id: 16,
-        layout: {x:12,y:8,w:12,h:8}
-    },
+        layout: {x:0,y:14,w:12,h:8}
+    },*/
     {
         vizState: {
           query:{
@@ -192,7 +193,7 @@ export const dashboard_tickets  =
             ],
             "dimensions": [
               "Produkt.vaProduktName",
-              "Produkt.vaProduktCode",
+              //"Produkt.vaProduktCode",
               "Vertriebskanal.vertriebskanalName"
             ],
             "order": {
@@ -202,7 +203,7 @@ export const dashboard_tickets  =
           pivotConfig: {
             "x": [
               "Produkt.vaProduktName",
-              "Produkt.vaProduktCode"
+              //Produkt.vaProduktCode",
             ],
             "y": [
               "Vertriebskanal.vertriebskanalName",
@@ -215,7 +216,7 @@ export const dashboard_tickets  =
         },
         name: "Produktranking",
         id: 18,
-        layout: {x:0,y:16,w:24,h:8}
+        layout: {x:0,y:6,w:12,h:8}
     },
     {
         vizState: {
@@ -249,7 +250,7 @@ export const dashboard_tickets  =
         },
         name: "Länderranking",
         id: 20,
-        layout: {x:0,y:24,w:24,h:12}
+        layout: {x:0,y:14,w:24,h:12}
     },
     {
       vizState: {
@@ -265,7 +266,7 @@ export const dashboard_tickets  =
       },
       name: "Stand",
       id: 21,
-      layout: {x:0,y:36,w:4,h:3}
+      layout: {x:0,y:26,w:4,h:3}
   }
   ]
 }
