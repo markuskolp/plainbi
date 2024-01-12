@@ -4,15 +4,15 @@ Created on Thu May  4 08:11:27 2023
 
 @author: kribbel
 """
+from plainbi_backend.config import config
 import logging
+#log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause
 #import bcrypt
-from plainbi_backend.config import config
 from threading import Lock
 
 config.database_lock = Lock()
@@ -49,6 +49,7 @@ repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource
 
 config.conn={}
 
+   
 def db_exec(engine,sql,params=None):
     dbgindent="    "
     log.debug(dbgindent+"++++++++++ entering db_exec")
@@ -129,8 +130,31 @@ def get_db_type(dbengine):
         return "sqlite"
     elif "oracle" in str(dbengine.url).lower():
         return "oracle"
+    elif "post" in str(dbengine.url).lower():
+        return "postgres"
     else:
         return "mssql"
+
+def db_connect_test(d):
+    log.debug("  ++++++++++ entering db_connect_test")
+    ty=get_db_type(d)
+    ok=False
+    if ty=="oracle":
+        sql="SELECT 1 FROM DUAL"
+    else:
+        sql="SELECT 1"
+    try:
+        item_total_count,columns_total_count=db_exec(d,sql,params=None)
+    except Exception as e:
+        log.error("db_connect_test failed %s",str(e))
+        ok=False
+    if item_total_count is not None:
+        ok=True
+    else:
+        log.error("db_connect_test did not return test row")
+        ok=False
+    log.debug("  ++++++++++ leaving db_connect_test")
+    return ok
 
 def add_offset_limit(dbtyp,offset,limit,order_by):
     log.debug("++++++++++ entering add_offset_limit")
@@ -155,6 +179,20 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
             sql+=" LIMIT -1"
         if offset is not None:
             sql+=" OFFSET "+offset
+    elif dbtyp=="postgres":
+        if order_by is not None:
+            sql+=" ORDER BY "+order_by.replace(":"," ")
+        if limit is not None:
+            sql+=" LIMIT "+limit
+        if offset is not None:
+            sql+=" OFFSET "+offset
+    elif dbtyp=="oracle":
+        if order_by is not None:
+            sql+=" ORDER BY "+order_by.replace(":"," ")
+        if offset is not None:
+            sql+=" OFFSET "+offset+" ROWS"
+        if limit is not None:
+            sql+=" FETCH NEXT "+limit+" ROWS ONLY"
     log.debug("++++++++++ leaving add_offset_limit with <%s>",sql)
     return sql
 
@@ -459,7 +497,8 @@ def get_next_seq(dbengine,seq):
     """
     out={}
     log.debug("in get_next_seq")
-    if get_db_type(dbengine)=="sqlite":
+    dbtyp = get_db_type(dbengine)
+    if dbtyp =="sqlite":
         log.debug("in get_next_seq repo sqlite")
         itemseq={ "seq" : seq}
         sql="SELECT curval FROM plainbi_seq WHERE sequence_name=:seq"
@@ -488,7 +527,12 @@ def get_next_seq(dbengine,seq):
         out=nextval
     else:
         log.debug("in get_next_seq not sqlite")
-        sql=f'SELECT NEXT VALUE FOR {seq} AS nextval'
+        if dbtyp == "mssql":
+            sql=f'SELECT NEXT VALUE FOR {seq} AS nextval'
+        elif dbtyp == "postgres":
+            sql=f"SELECT nextval('{seq}') AS nextval"
+        elif dbtyp == "oracle":
+            sql=f"SELECT {seq}.nextval AS nextval from dual"
         log.debug("sql=%s",sql)
         try:
             #cursor = cnxn.cursor()
@@ -522,6 +566,8 @@ def get_dbversion(dbengine):
         sql="select sqlite_version() as version"
     elif db_typ=="oracle":
         sql="select version from v$instance"
+    elif db_typ=="postgres":
+        sql="select version() as version"
     else:
         return None
     try:
@@ -819,21 +865,6 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         delrec=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned,version_deleted=True)
         if "total_count" in delrec.keys():
             if delrec["total_count"]>0:
-                # check if is_deleted="N"
-                try:
-                    if delrec["data"][0]["is_deleted"] == "N":
-                        out["error"]="insert-to-versioned-table-with-existing-pk"
-                        out["message"]="Datensatz ist bereits vorhanden"
-                        out["detail"]="es wurde versucht, einen Datensatz in einer versionierten Tabelle neu anzulegen, obwohl bereits einer existiert (der nicht bereits gelöscht wurde)"
-                        log.error(out["detail"])
-                        return out
-                except Exception as e2:
-                    out["error"]="insert-to-versioned-table-with-existing-pk-error"
-                    out["message"]="Datensatz ist bereits vorhanden - error"
-                    out["detail"]="es wurde versucht, einen Datensatz in einer versionierten Tabelle neu anzulegen, obwohl bereits einer existiert (der nicht bereits gelöscht wurde) - Error"
-                    log.error(out["error"])
-                    log.error("e2: %s",str(e2))
-                    return out
                 # there is an existing record -> terminate id
                 pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)
                 delitem={}
@@ -1218,7 +1249,7 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     log.debug("db_adduser: database type is %s",db_typ)
     if db_typ=="sqlite":
         sequenz="user"
-    elif db_typ=="mssql":
+    elif db_typ in ("mssql","postgres","oracle"):
         sequenz="plainbi_user_seq"
     else:
         log.error("db_adduser: unknown repo database type")
@@ -1260,7 +1291,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
                 cnt=cnt+1
                 if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
-                cexp+="lower(coalesce(cast("+lc+" as varchar),''))"
+                cexp+="lower(cast(coalesce("+lc+",'') as varchar))"
             log.debug("filter cexp:%s",cexp)
             for i,ftok in enumerate(filter_tokens):
                 lftok=ftok.lower()
@@ -1368,6 +1399,9 @@ def db_connect(enginestr, params=None):
     log.debug("++++++++++ entering db_connect")
     log.debug("db_connect: param enginestr is <%s>",str(enginestr))
     log.debug("db_connect: param params is <%s>",str(params))
+    if enginestr is None:
+        log.error("PLAINBI needs a connection string in the .env File to properly connect to a database")
+    
     if params is not None:
         dbengine = sqlalchemy.create_engine(enginestr % params)
     else:
