@@ -1,8 +1,10 @@
 import { useContext, useEffect, useState, useRef } from 'react';
 import { isQueryPresent, areQueriesEqual } from '@cubejs-client/core';
-
 import CubeContext from './CubeContext';
 import { useIsMounted } from './is-mounted';
+
+// based on:
+// https://github.com/cube-js/cube/blob/f29c592931c280f1f1e1b021c7b0cefbbd0c029b/packages/cubejs-client-react/src/hooks/cube-query.js#L8
 
 export function useQuery(query, options = {}) {
   const mutexRef = useRef({});

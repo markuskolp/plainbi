@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useCubeQuery } from "@cubejs-client/react";
-import { Spin, Row, Col, Statistic } from "antd";
+import { Spin, Row, Col, Statistic, Modal } from "antd";
 import {
   CartesianGrid,
   PieChart,
@@ -42,6 +42,27 @@ const xAxisFormatter = (item) => {
   }
 }
 
+
+  
+const handleBarClick = (event, resultSet, yValues) => {
+  console.log("handleBarClick()");
+  if (event.xValues != null) {
+      console.log("event.xValues != null");
+      console.log("event.xValues");
+      console.log(event.xValues);
+      console.log("yValues");
+      console.log(yValues);
+      const drillQuery = resultSet.drillDown(
+        {
+          xValues: event.xValues,
+          yValues
+        }
+      );
+      console.log("drillQuery");
+      console.log(drillQuery);
+      //setOpen(true);
+  }
+};
   
 
   //  interval=0 = draw all labels
@@ -123,6 +144,7 @@ const formatTableData = (columns, data) => {
   return data.map(format);
 };
 
+
 const TypeToChartComponent = {
   line: ({ resultSet, height }) => (
     <CartesianChart resultSet={resultSet} height={height} ChartComponent={LineChart}>
@@ -150,6 +172,7 @@ const TypeToChartComponent = {
           dataKey={series.key}
           name={series.title}
           fill={colors[i]}
+          onClick={event => handleBarClick(event, resultSet, series.yValues)}
         />
       ))}
     </CartesianChart>
@@ -163,6 +186,7 @@ const TypeToChartComponent = {
           dataKey={series.key}
           name={series.title}
           fill={colors[i]}
+          onClick={event => handleBarClick(event, resultSet, series.yValues)}
         >
           <LabelList dataKey={series.key} position="right" />
         </Bar>

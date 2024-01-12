@@ -1,13 +1,4 @@
 TOP
-- Filter in Queries anwenden
-
-	findet "filter" der zu VA passt
-	query.filters.filter(x => x.member === "Veranstaltung.veranstaltungName")
-	
-	position nehmen und diesen ersetzen !
-	t.b.d.
-
-=> Dashboard 1+2 fertigmachen
 
 - Drill zu Daten
 - Explore d.h. Dashboard erstellen/editieren, SQL anzeigen
@@ -26,9 +17,6 @@ Darstellungen ergänzen:
 	- dann Kartenkomponente ergänzen
 		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
 		- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
-
-Zutritte: Dashboarddefinition anlegen
-- Kachel mit heutigen Tag -> wie ?
 
 Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant sind für Onlinebestellungen/Tickets und für Zutritte)
 

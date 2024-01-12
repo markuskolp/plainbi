@@ -33,10 +33,10 @@ const Map = ( { resultSet }) => {
         'text-size': {
           property: 'value',
           stops: [
-            [{ zoom: 0, value: 50 }, 10],
-            [{ zoom: 0, value: 100 }, 12],
-            [{ zoom: 0, value: 5000 }, 14],
-            [{ zoom: 0, value: 10000 }, 16]
+            [{ zoom: 0, value: 50 }, 12],
+            [{ zoom: 0, value: 100 }, 16],
+            [{ zoom: 0, value: 5000 }, 18],
+            [{ zoom: 0, value: 10000 }, 20]
           ]
         }
       },
