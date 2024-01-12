@@ -30,5 +30,6 @@ yarn-error.log*
 
 #python
 venv
+venv_plainbi
 __pycache__
 *.pyc
