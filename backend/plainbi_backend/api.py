@@ -357,7 +357,13 @@ def get_item(tokdata,tab,pk):
             print("out:"+str(out))
             log.debug("out:%s",str(out))
             log.debug("leaving get_item with success and json result")
-            return jsonify(out)
+            try:
+                json_out = jsonify(out)
+            except Exception as ej:
+                log.error("get_item: jsonify Error: %s",str(ej))
+                return "get_item: jsonify Error",500
+
+            return json_out
             #return Response(jsonify(out),status=204)
         else:
             log.debug("no record found")
@@ -419,6 +425,9 @@ def create_item(tokdata,tab):
     item = json.loads(data_string.strip("'"))
 
     out = db_ins(config.dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
+    if isinstance(out,dict):
+        if "error" in out.keys():
+            return jsonify(out), 400
     return jsonify(out)
 
 
@@ -480,8 +489,10 @@ def update_item(tokdata,tab,pk):
     log.debug("item %s",item)
     
     out = db_upd(config.dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
+    if isinstance(out,dict):
+        if "error" in out.keys():
+            return jsonify(out), 400
 
-    #return 'Item updated successfully', 200
     return jsonify(out)
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
@@ -539,6 +550,8 @@ def delete_item(tokdata,tab,pk):
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
+        else:
+            return jsonify(out), 400
     return jsonify(out)
 
 
@@ -1383,7 +1396,7 @@ def login():
     item = json.loads(data_string.strip("'"))
     #print("login items ",str(item))
 
-    username = item['username']
+    username = item['username'].lower()
     log.debug("login: username=%s",username)
     password = item['password']
     #log.debug("login: password=%s",password)
