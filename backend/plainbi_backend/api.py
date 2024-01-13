@@ -95,21 +95,21 @@ curl -H "Content-Type: application/json" --request POST -H "Authorization: %tok%
 """
 
 
-import urllib
+#import urllib
 import logging
 import os
-import sys
+#import sys
 from datetime import date,datetime
 import json
-import sqlalchemy
+#import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 import csv
 import pandas as pd
 from flask_bcrypt import Bcrypt
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
+#from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
-from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.worksheet.table import Table #, TableStyleInfo
 
 import pandas.io.formats.excel as fmt_xl
 
