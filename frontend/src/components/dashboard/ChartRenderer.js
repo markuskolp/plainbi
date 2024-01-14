@@ -34,7 +34,7 @@ const { Title, Link, Text } = Typography;
 const numberFormatter = item => item.toLocaleString("de-DE"); 
 const dateFormatter = item => moment(item).format("MMM YY");
 const datetimeFormatter = item => moment(item).format("DD.MM.YYYY HH:mm");
-const colors = ["#7DB3FF", "#49457B", "#FF7C78"];
+const colors = ["#6a91ce","#7DB3FF", "#49457B", "#FF7C78"];
 const xAxisFormatter = (item) => {
   return item;
   if (moment(item).isValid()) {

@@ -96,6 +96,22 @@ const DashboardPage = (props) => {
     );
   }
 
+  function openFullscreen() {
+    if (document.fullscreenElement) {
+      // If there is a fullscreen element, exit full screen.
+      document.exitFullscreen();
+      return;
+    }
+    var elem = document.getElementsByTagName("main")[0];
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) { /* Safari */
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* IE11 */
+      elem.msRequestFullscreen();
+    }
+  }
+
   const Empty = () => (
     <div
       style={{
@@ -225,7 +241,7 @@ const DashboardPage = (props) => {
                 }
                 <Link href="#">
                   <Tooltip title="Vollbild">
-                    <FullscreenOutlined />
+                    <Button type="text" icon={<FullscreenOutlined />} onClick={openFullscreen}/>
                   </Tooltip>
                 </Link>
                 <Link href="#">

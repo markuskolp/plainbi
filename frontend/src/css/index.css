@@ -18,6 +18,7 @@
 .site-layout-content {
   min-height: 280px;
   padding: 24px;
+  background-color: #f5f5f5;
 }
 .layout {
   min-height: 100vh; /* uses 100% height for the layout component, that brings the footer to the bottom of the page */

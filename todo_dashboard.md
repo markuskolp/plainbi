@@ -1,27 +1,17 @@
 TOP
-
 - Drill zu Daten
-- Explore d.h. Dashboard erstellen/editieren, SQL anzeigen
-
+- Explore d.h. Dashboard erstellen/editieren und speichern in plainbi Repo - auch SQL anzeigen
 => bereit für Vorstellung im Team
-
 => evtl. ein Webanalytics Dashboard auch umsetzen ?
-
-messeblau: #6a91ce
-
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 1
 #-----------------------------------------------------------------------------------------------------
 
-Darstellungen ergänzen:
-	- Datenstand von Cube.js bekommen
-		- geht grundsätzlich -> aber auch Filter mitgeben ! -> Anzeige verbessern (nicht als Kachel, sondern evtl. als Teil von Dashboard-Funktionalität: d.h. Datenstand von "Datensatz" (Tickets) bekommen
-	- dann Kartenkomponente ergänzen
-		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
-		- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
-
-Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant sind für Onlinebestellungen/Tickets und für Zutritte)
+- Karte
+	- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
+	- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
+- Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant sind für Onlinebestellungen/Tickets und für Zutritte)
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 2
@@ -38,6 +28,7 @@ Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant 
 	- auch "Definition" vom Explore anzeigen (JSON mit Name, Viz-Definition, ...)
 	- Speichern in plainbi Repo, auch dann Auflisten z.B. unter ".../dashboards" zum Öffnen oder Löschen
 	- Dashboard "Editiermodus" - sobald man was verändert, dann Speichern Button zeigen <oder> erzwingen das man vorher den "Editiermodus" einschaltet
+- Switch einbauen (z.B. von kumuliert zu nicht kumuliert)
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 3
@@ -47,13 +38,8 @@ Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant 
 - Interaktion (Click) in Card geht nicht z.B. die drei Pünktchen ?! -> erstmal lösen über Umschaltfläche auf "Dashboard editieren" ?
 
 - Zahlen in Tabellen auf DE formatieren -> Spalten mit Werten erkennen und numberFormatter() einsetzen
-- Fullscreen umsetzen
-- "Refresh" umsetzen
-- Switch einbauen (z.B. von kumuliert zu nicht kumuliert)
 - Styling komplett und Objekte als Komponenten abstrahieren
 	Header, Filterbereich, Dashboard, Dashboarditems, ChartRenderer
-- Styling von Charts
-	- die blaue Farbe der Messe nehmen
 - Styling von Tables
 	- Kennzahlspalten rechtsbündig (Titel und Zahlen)
 	- Scrollbar nur zeigen wenn notwendig
@@ -88,6 +74,14 @@ Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant 
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- "Refresh" umsetzen
+- Fullscreen
+	- Button zum Fullscreen verlassen anzeigen
+	- verhindern, dass Diagramme nochmal aktualisiert werden
+- Datenstand:
+	- geht grundsätzlich -> aber auch Filter mitgeben
+	- Titel auch berücksichtigen
+	- Spinner hier verhindern
 - Zutrittsdashboard während der VA mal Live testen (auch umstellen auf v_e_zutritt...)
 - Delta-Betrachtung
 	- z.B. zu VVA 

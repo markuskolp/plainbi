@@ -40,3 +40,10 @@ main {
 .ant-table-pagination {
 flex: none;
 }
+
+/* hide page header buttons on fullscreen */
+@media all and (display-mode: fullscreen) {
+  .ant-page-header-heading-extra {
+    display: none;
+  }
+}
