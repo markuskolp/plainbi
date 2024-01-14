@@ -7,6 +7,9 @@ TOP
 
 => evtl. ein Webanalytics Dashboard auch umsetzen ?
 
+messeblau: #6a91ce
+
+
 #-----------------------------------------------------------------------------------------------------
 # Prio 1
 #-----------------------------------------------------------------------------------------------------
@@ -25,6 +28,9 @@ Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant 
 #-----------------------------------------------------------------------------------------------------
 
 - "Drill zu Daten" probieren: https://cube.dev/blog/introducing-a-drill-down-table-api-in-cubejs
+	- drillQuery -> OK
+	- Daten dazu abfragen und in Modal + Table darstellen !
+	- auch bei "table" den Drill ermöglichen
 - PDF Export von Dashboard (erstmal clientseitig)
 - "Tabs"
 - "Explore" einführen

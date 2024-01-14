@@ -4,6 +4,18 @@ export const dashboard_zutritte  =
   dashboardName: "Zutritte",
   id: 2,
   alias: "zutritte",
+  data_status: {
+    //title: "Datenstand",
+    vizState: {
+      query:{
+        "measures": ["Zutritte.aktuellsteDaten"],
+        //"order": {"Ticket.registrierungDt": "asc"},
+        "limit": 1
+      },
+      chartType:"data_status",
+      //format: "DD.MM.YYYY HH24:MI:SS"
+    }
+  },
   dashboardItems: [
       {
         vizState: {

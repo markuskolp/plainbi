@@ -15,8 +15,6 @@ import { dashboards } from "../api/dashboards";
 import NoPage from "./NoPage";
 import { message } from "antd";
 
-import { useCubeQuery } from "@cubejs-client/react";
-
 import dayjs from 'dayjs';
 
 const { Title, Link, Text } = Typography;
@@ -248,17 +246,13 @@ const DashboardPage = (props) => {
             <Col span={24} style={{textAlign:"right"}}>
               <Space style={{textAlign:"left"}}>
                 <MemberSelect onChange={handleChangeSelectVA} />
+                {data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
               </Space>
             </Col>
           </Row>
           <Dashboard dashboardItems={data && data.dashboardItems} editable={editable} >
             {data && data.dashboardItems.map(dashboardItem)}
           </Dashboard>
-          <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
-            <Col span={24} style={{textAlign:"right"}}>
-              <Text style={{fontSize:"smaller"}}>Stand: 20.12.2023 14:48 Uhr</Text>
-            </Col>
-          </Row>          
         </React.Fragment>
       </CubeProvider>
     ) : <Empty />;

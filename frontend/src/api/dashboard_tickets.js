@@ -4,6 +4,18 @@ export const dashboard_tickets  =
   dashboardName: "Tickets",
   id: 1,
   alias: "tickets",
+  data_status: {
+    //title: "Datenstand",
+    vizState: {
+      query:{
+        "measures": ["Ticket.aktuellsteDaten"],
+        //"order": {"Ticket.registrierungDt": "asc"},
+        "limit": 1
+      },
+      chartType:"data_status",
+      //format: "DD.MM.YYYY HH24:MI:SS"
+    }
+  },
   dashboardItems: [
       {
         vizState: {
@@ -251,23 +263,7 @@ export const dashboard_tickets  =
         name: "Länderranking",
         id: 20,
         layout: {x:0,y:14,w:24,h:12}
-    },
-    {
-      vizState: {
-        query:{
-          "measures": [
-            "Ticket.aktuellsteDaten"
-          ],
-          "order": {
-            "Ticket.registrierungDt": "asc"
-          }
-        },
-        chartType:"number"
-      },
-      name: "Stand",
-      id: 21,
-      layout: {x:0,y:26,w:4,h:3}
-  }
+    }
   ]
 }
 

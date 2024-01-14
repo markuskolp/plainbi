@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useCubeQuery } from "@cubejs-client/react";
-import { Spin, Row, Col, Statistic, Modal } from "antd";
+import { Spin, Row, Col, Statistic, Modal, Typography } from "antd";
 import {
   CartesianGrid,
   PieChart,
@@ -28,10 +28,12 @@ import Table from "../Table";
 import Map from "./Map";
 import cubejs from "@cubejs-client/core";
 import { useQuery } from "./hooks/useQuery.js";
+const { Title, Link, Text } = Typography;
 
 
 const numberFormatter = item => item.toLocaleString("de-DE"); 
 const dateFormatter = item => moment(item).format("MMM YY");
+const datetimeFormatter = item => moment(item).format("DD.MM.YYYY HH:mm");
 const colors = ["#7DB3FF", "#49457B", "#FF7C78"];
 const xAxisFormatter = (item) => {
   return item;
@@ -264,6 +266,9 @@ const TypeToChartComponent = {
         ))}
       </Col>
     </Row>
+  ),
+  data_status: ({ resultSet }) => (
+    <Text style={{fontSize:"smaller"}}>Datenstand: {datetimeFormatter(resultSet.tablePivot()[0][resultSet.seriesNames()[0].key])}</Text>
   ),
   map: ({ resultSet }) => (
     <Map resultSet={resultSet} />
