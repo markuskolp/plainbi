@@ -276,6 +276,9 @@ const DashboardPage = (props) => {
 
 export default DashboardPage;
 
+//{data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
+//{data.data_status ? <ChartRenderer vizState={replaceVizStateFilters(data.data_status.vizState, dashboardFilter.name, dashboardFilter.value)} />  : "" }
+
 /*
 
 {data && data.dashboardItems.map(deserializeItem).map(dashboardItem)}

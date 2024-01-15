@@ -10,6 +10,15 @@ export const dashboard_zutritte  =
       query:{
         "measures": ["Zutritte.aktuellsteDaten"],
         //"order": {"Ticket.registrierungDt": "asc"},
+        /*"filters": [
+          {
+            "member": "Veranstaltung.veranstaltungNr",
+            "operator": "equals",
+            "values": [
+              "4542023"
+            ]
+          }
+        ],*/
         "limit": 1
       },
       chartType:"data_status",
@@ -166,7 +175,7 @@ export const dashboard_zutritte  =
       },
       name: "Eingänge",
       id: 18,
-      layout: {x:0,y:6,w:12,h:8}
+      layout: {x:0,y:6,w:6,h:8}
   },
     {
         vizState: {
@@ -199,7 +208,7 @@ export const dashboard_zutritte  =
         },
         name: "Länderranking (Top 10)",
         id: 15,
-        layout: {x:12,y:6,w:12,h:8}
+        layout: {x:6,y:6,w:10,h:8}
     },
     {
         vizState: {
@@ -233,7 +242,7 @@ export const dashboard_zutritte  =
         },
         name: "Länderranking",
         id: 20,
-        layout: {x:0,y:14,w:24,h:12}
+        layout: {x:16,y:6,w:8,h:8}
     },
   ]
 }

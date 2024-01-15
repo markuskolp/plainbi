@@ -27,6 +27,10 @@ header {
   background: #fff !important; /* change background color of table header row - overwrites default */
   border-bottom: 1pt solid rgb(220, 220, 220, 1) !important; /* add border line to bottom of header / navbar */
 }
+main {
+  background: #f5f5f5 !important; /* change background color of main - overwrites default */
+  padding: 20px 50px !important; /* add 20px padding to top and bottom - overwrites default "0px 50px" */
+}
 header h1 {
   text-transform: uppercase;
   font-size: 14px !important;
@@ -58,9 +62,6 @@ header h1 {
 }
 .right {
   float: right;
-}
-main {
-  padding: 20px 50px !important; /* add 20px padding to top and bottom - overwrites default "0px 50px" */
 }
 header .anticon {
   font-size: 18px; /* overwrite icon size in header */

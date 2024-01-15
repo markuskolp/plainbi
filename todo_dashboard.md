@@ -1,16 +1,15 @@
 TOP
+- Dashboardfilter: die richtigen VA je Dashboard zeigen !
 - Drill zu Daten
-- Explore d.h. Dashboard erstellen/editieren und speichern in plainbi Repo - auch SQL anzeigen
 => bereit für Vorstellung im Team
-=> evtl. ein Webanalytics Dashboard auch umsetzen ?
+
+- Explore d.h. Dashboard erstellen/editieren und speichern in plainbi Repo - auch SQL anzeigen
+- alle Webanalytics-Anforderungen umsetzen, parallel Daten ins DWH bringen und dann versuchen die Dashboards nachzubauen !
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 1
 #-----------------------------------------------------------------------------------------------------
 
-- Karte
-	- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
-	- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
 - Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant sind für Onlinebestellungen/Tickets und für Zutritte)
 
 #-----------------------------------------------------------------------------------------------------
@@ -19,7 +18,7 @@ TOP
 
 - "Drill zu Daten" probieren: https://cube.dev/blog/introducing-a-drill-down-table-api-in-cubejs
 	- drillQuery -> OK
-	- Daten dazu abfragen und in Modal + Table darstellen !
+	- Daten dazu abfragen und in Modal + Table darstellen - inkl. serverseitigem Pagination
 	- auch bei "table" den Drill ermöglichen
 - PDF Export von Dashboard (erstmal clientseitig)
 - "Tabs"
@@ -34,10 +33,10 @@ TOP
 # Prio 3
 #-----------------------------------------------------------------------------------------------------
 
-
 - Interaktion (Click) in Card geht nicht z.B. die drei Pünktchen ?! -> erstmal lösen über Umschaltfläche auf "Dashboard editieren" ?
 
 - Zahlen in Tabellen auf DE formatieren -> Spalten mit Werten erkennen und numberFormatter() einsetzen
+- Achsen in Diagrammen formatieren (z.B. Tage bei Zutritten auf DD.MM, etc.)
 - Styling komplett und Objekte als Komponenten abstrahieren
 	Header, Filterbereich, Dashboard, Dashboarditems, ChartRenderer
 - Styling von Tables
@@ -46,7 +45,6 @@ TOP
 	- Scrollbar optisch anders
 	- Spaltentitel sollten immer passen und nicht umbrechen
 - "Reduzieren", d.h. vieles nur zeigen bei Hover (z.B. die 3 Pünktchen, das kleine Symbol rechts unten in den Cards, die Symbole auf Dashboardebene (Fullscreen, ...)
-
 
 
 #-----------------------------------------------------------------------------------------------------
@@ -74,6 +72,10 @@ TOP
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- Datenstand: Filter übernehmen - aber wann will man es ?! (Datenstand (vom Ladelauf) vs. aktuellste inhaltliche Daten z.B. letzter Zutritt zu einer VA)
+- Karte
+	- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
+	- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
 - "Refresh" umsetzen
 - Fullscreen
 	- Button zum Fullscreen verlassen anzeigen

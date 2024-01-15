@@ -148,7 +148,7 @@ export const dashboard_tickets  =
         },
         name: "Länderranking (Top 10)",
         id: 15,
-        layout: {x:12,y:6,w:12,h:8}
+        layout: {x:8,y:6,w:8,h:8}
     },
     /*{
         vizState: {
@@ -228,7 +228,7 @@ export const dashboard_tickets  =
         },
         name: "Produktranking",
         id: 18,
-        layout: {x:0,y:6,w:12,h:8}
+        layout: {x:0,y:6,w:8,h:8}
     },
     {
         vizState: {
@@ -262,7 +262,7 @@ export const dashboard_tickets  =
         },
         name: "Länderranking",
         id: 20,
-        layout: {x:0,y:14,w:24,h:12}
+        layout: {x:16,y:6,w:8,h:8}
     }
   ]
 }
