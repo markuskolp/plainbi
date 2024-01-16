@@ -1,16 +1,9 @@
 TOP
-- Dashboardfilter: die richtigen VA je Dashboard zeigen !
 - Drill zu Daten
 => bereit für Vorstellung im Team
 
 - Explore d.h. Dashboard erstellen/editieren und speichern in plainbi Repo - auch SQL anzeigen
 - alle Webanalytics-Anforderungen umsetzen, parallel Daten ins DWH bringen und dann versuchen die Dashboards nachzubauen !
-
-#-----------------------------------------------------------------------------------------------------
-# Prio 1
-#-----------------------------------------------------------------------------------------------------
-
-- Dashboardfilter in Dashboard-Definition bringen ! (switchen von VA die relevant sind für Onlinebestellungen/Tickets und für Zutritte)
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 2
@@ -72,6 +65,10 @@ TOP
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- Dashboardfilter: 
+	- defaultValue geht auf label anstatt auf key/id von select list -> warum macht AntD das so?
+	- bisher nur 1 Filter erlaubt -> mehrere erlauben (einfach ein .map() in DashboardPage.js? )
+	- später erweitern das man noch mehr kann (kein defaultvalue, single-/multiselect, typ (dropdown, datum, etc.), ...)
 - Datenstand: Filter übernehmen - aber wann will man es ?! (Datenstand (vom Ladelauf) vs. aktuellste inhaltliche Daten z.B. letzter Zutritt zu einer VA)
 - Karte
 	- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"

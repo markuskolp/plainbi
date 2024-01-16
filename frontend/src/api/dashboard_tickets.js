@@ -16,6 +16,56 @@ export const dashboard_tickets  =
       //format: "DD.MM.YYYY HH24:MI:SS"
     }
   },
+  dashboardFilter : {
+      columnId: "Veranstaltung.veranstaltungNr",
+      columnLabel: "Veranstaltung.veranstaltungName",
+      defaultValue: "EXPO REAL 2023",
+      query : {
+        "order": [
+        [
+            "Veranstaltung.veranstaltungJahr",
+            "desc"
+        ],
+        [
+            "Veranstaltung.veranstaltungName",
+            "asc"
+        ]
+        ],
+        "segments": [
+        "Ticket.onlineBestellungen"
+          //"Zutritte.fkmRelevant"
+        ],
+        "dimensions": [
+          "Veranstaltung.veranstaltungNr",
+          "Veranstaltung.veranstaltungJahr",
+        "Veranstaltung.veranstaltungName"
+        ],
+        "filters": [
+        {
+            "member": "Veranstaltung.veranstaltungJahr",
+            "operator": "gte",
+            "values": [
+            "2022"
+            ]
+        },
+        {
+          "member": "Veranstaltung.veranstaltungJahr",
+          "operator": "lte",
+          "values": [
+          "2024"
+          ]
+      },
+        {
+            "member": "Veranstaltung.veranstaltungName",
+            "operator": "notContains",
+            "values": [
+            "Complimentary Card","Ticketshop"
+            ]
+        }
+        ],
+        "limit": 5000
+    }
+  },
   dashboardItems: [
       {
         vizState: {

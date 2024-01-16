@@ -261,7 +261,7 @@ const DashboardPage = (props) => {
           <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
             <Col span={24} style={{textAlign:"right"}}>
               <Space style={{textAlign:"left"}}>
-                <MemberSelect onChange={handleChangeSelectVA} />
+                {data.dashboardFilter ? <MemberSelect query={data.dashboardFilter.query} columnId={data.dashboardFilter.columnId} columnLabel={data.dashboardFilter.columnLabel} defaultValue={data.dashboardFilter.defaultValue} onChange={handleChangeSelectVA} /> : ""}
                 {data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
               </Space>
             </Col>

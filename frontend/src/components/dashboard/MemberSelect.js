@@ -4,11 +4,15 @@ import { useState, useEffect } from "react";
 import { Typography, Select } from "antd";
 const { Text } = Typography;
 
-const MemberSelect = ({onChange}) => {
+const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange}) => {
 
     const [resultSet, setResultSet] = useState([]); // metadata of all apps
   
     console.log("MemberSelect");
+    console.log("MemberSelect - columnId: " + columnId);
+    console.log("MemberSelect - columnLabel: " + columnLabel);
+    console.log("MemberSelect - query: " + query.toString());
+    console.log("MemberSelect - defaultValue: " + defaultValue);
   
     useEffect(() => {
         console.log("MemberSelect - useEffect");
@@ -16,53 +20,7 @@ const MemberSelect = ({onChange}) => {
   
     const init = async () => {
     };
-
-    const query = {
-        "order": [
-        [
-            "Veranstaltung.veranstaltungJahr",
-            "desc"
-        ],
-        [
-            "Veranstaltung.veranstaltungName",
-            "asc"
-        ]
-        ],
-        "segments": [
-        //"Ticket.onlineBestellungen"
-          "Zutritte.fkmRelevant"
-        ],
-        "dimensions": [
-          "Veranstaltung.veranstaltungNr",
-          "Veranstaltung.veranstaltungJahr",
-        "Veranstaltung.veranstaltungName"
-        ],
-        "filters": [
-        {
-            "member": "Veranstaltung.veranstaltungJahr",
-            "operator": "gte",
-            "values": [
-            "2022"
-            ]
-        },
-        {
-          "member": "Veranstaltung.veranstaltungJahr",
-          "operator": "lte",
-          "values": [
-          "2024"
-          ]
-      },
-        {
-            "member": "Veranstaltung.veranstaltungName",
-            "operator": "notContains",
-            "values": [
-            "Complimentary Card","Ticketshop"
-            ]
-        }
-        ],
-        "limit": 5000
-    };
-
+    
     //setResultSet(useCubeQuery(query));
     const renderProps = useCubeQuery(query); // const { resultSet, isLoading, error, progress }
 
@@ -86,7 +44,7 @@ const MemberSelect = ({onChange}) => {
         console.log(option.key);
         console.log("option.value: ");
         console.log(option.value);
-        onChange("Veranstaltung.veranstaltungNr", option.key); // filterName, filterValue
+        onChange(columnId, option.key); // filterName, filterValue
       };
 
     return (
@@ -96,7 +54,7 @@ const MemberSelect = ({onChange}) => {
             showSearch
             size='small'
             disabled={false}
-            defaultValue={'EXPO REAL 2023'}
+            defaultValue={defaultValue} //{{ key: defaultValue, label: 'def'}}
             onChange={handleChange}
             //onSearch={onSearch}
             name={'va'}
@@ -104,7 +62,7 @@ const MemberSelect = ({onChange}) => {
             optionFilterProp="label" // filter by label (not by value/key)
             >
                 {renderProps.resultSet && renderProps.resultSet.tablePivot().map((data) => (
-                    <Select.Option key={data["Veranstaltung.veranstaltungNr"]} value={data["Veranstaltung.veranstaltungName"]} label={data["Veranstaltung.veranstaltungName"]} />
+                    <Select.Option key={data[columnId]} value={data[columnLabel]} label={data[columnLabel]} />
                 ))}
         </Select>
     )
