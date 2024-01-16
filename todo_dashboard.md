@@ -1,17 +1,17 @@
 TOP
-- Drill zu Daten
-=> bereit für Vorstellung im Team
 
 - Explore d.h. Dashboard erstellen/editieren und speichern in plainbi Repo - auch SQL anzeigen
 - alle Webanalytics-Anforderungen umsetzen, parallel Daten ins DWH bringen und dann versuchen die Dashboards nachzubauen !
+- Explore so bauen, dass vor allem das schnelle Analysieren von Daten geht (Pivot, Drag&Drop, ...) (
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 2
 #-----------------------------------------------------------------------------------------------------
 
 - "Drill zu Daten" probieren: https://cube.dev/blog/introducing-a-drill-down-table-api-in-cubejs
-	- drillQuery -> OK
-	- Daten dazu abfragen und in Modal + Table darstellen - inkl. serverseitigem Pagination
+	- serverseitigem Pagination
+	- Layout anhand meiner Notizen
+	- Höhe nur so hoch wie Seite !
 	- auch bei "table" den Drill ermöglichen
 - PDF Export von Dashboard (erstmal clientseitig)
 - "Tabs"

@@ -46,7 +46,7 @@ const xAxisFormatter = (item) => {
 
 
   
-const handleBarClick = (event, resultSet, yValues) => {
+const handleBarClick = (event, resultSet, yValues, handleDrill) => {
   console.log("handleBarClick()");
   if (event.xValues != null) {
       console.log("event.xValues != null");
@@ -62,6 +62,7 @@ const handleBarClick = (event, resultSet, yValues) => {
       );
       console.log("drillQuery");
       console.log(drillQuery);
+      handleDrill(drillQuery);
       //setOpen(true);
   }
 };
@@ -161,7 +162,7 @@ const TypeToChartComponent = {
       ))}
     </CartesianChart>
   ),
-  bar: ({ resultSet, height, pivotConfig  }) => (
+  bar: ({ resultSet, height, pivotConfig, handleDrill  }) => (
     //columns={resultSet.tableColumns(pivotConfig).map(c => ({ ...c, dataIndex: c.key, title: c.shortTitle, sorter: true}))}
     //dataSource={formatTableData(resultSet.tableColumns(pivotConfig), resultSet.tablePivot(pivotConfig))}
     //{resultSet.series(pivotConfig).map((series, i) => (
@@ -174,12 +175,12 @@ const TypeToChartComponent = {
           dataKey={series.key}
           name={series.title}
           fill={colors[i]}
-          onClick={event => handleBarClick(event, resultSet, series.yValues)}
+          onClick={event => handleBarClick(event, resultSet, series.yValues, handleDrill)}
         />
       ))}
     </CartesianChart>
   ),
-  verticalbar: ({ resultSet, height, pivotConfig }) => (
+  verticalbar: ({ resultSet, height, pivotConfig, handleDrill }) => (
     <CartesianChart resultSet={resultSet} height={height} ChartComponent={BarChart} layout="vertical">
       {resultSet.seriesNames().map((series, i) => (
         <Bar
@@ -188,7 +189,7 @@ const TypeToChartComponent = {
           dataKey={series.key}
           name={series.title}
           fill={colors[i]}
-          onClick={event => handleBarClick(event, resultSet, series.yValues)}
+          onClick={event => handleBarClick(event, resultSet, series.yValues, handleDrill)}
         >
           <LabelList dataKey={series.key} position="right" />
         </Bar>
@@ -291,14 +292,14 @@ const Spinner = () => (
   </SpinContainer>
 )
 
-const renderChart = Component => ({ resultSet, error, height, pivotConfig }) =>
-(resultSet && <Component height={height} pivotConfig={pivotConfig} resultSet={resultSet} />) ||
+const renderChart = Component => ({ resultSet, error, height, pivotConfig, handleDrill }) =>
+(resultSet && <Component height={height} pivotConfig={pivotConfig} resultSet={resultSet} handleDrill={handleDrill} />) ||
 (error && error.toString()) || <Spinner />;
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
 const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
 
-const ChartRenderer = ({ vizState, chartHeight }) => {
+const ChartRenderer = ({ vizState, chartHeight, handleDrill }) => {
 
   const [querystate, setQuerystate] = useState(); 
   const { query, chartType, pivotConfig } = vizState;
@@ -321,7 +322,7 @@ const ChartRenderer = ({ vizState, chartHeight }) => {
   }, [ref]);
   */
 
-  return component && renderChart(component)({ height: chartHeight, pivotConfig: pivotConfig, ...renderProps });
+  return component && renderChart(component)({ height: chartHeight, pivotConfig: pivotConfig, ...renderProps, handleDrill });
 };
 
 ChartRenderer.propTypes = {

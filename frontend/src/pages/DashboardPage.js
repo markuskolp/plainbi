@@ -14,15 +14,13 @@ import { CubeProvider } from "@cubejs-client/react";
 import { dashboards } from "../api/dashboards";
 import NoPage from "./NoPage";
 import { message } from "antd";
-
+import { DrilldownModal } from "../components/dashboard/DrilldownModal/DrilldownModal";
 import dayjs from 'dayjs';
-
 const { Title, Link, Text } = Typography;
 import "../css/dashboard.css";
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
 const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
-
 
 const { RangePicker } = DatePicker;
 
@@ -74,6 +72,8 @@ const DashboardPage = (props) => {
   const error = false;
   const [dashboardFilter, setDashboardFilter] = useState(null);
   const [editable, setEditable] = useState(false);
+  const [drillDownQuery, setDrillDownQuery] = useState();
+  const [open, setOpen] = useState(false);
 
   if (loading) {
     return <Spin />;
@@ -148,13 +148,25 @@ const DashboardPage = (props) => {
     </Menu>
   );
 
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const handleDrill = (drillQuery) => {
+    console.log("handleDrill");
+    console.log("drillQuery");
+    console.log(drillQuery);
+    setDrillDownQuery(drillQuery);
+    setOpen(true);
+  };
+
   const dashboardItem = item => (
     <div key={item.id} data-grid={defaultLayout(item)}>
       <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
         {dashboardFilter ? (
-            <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} /> 
+            <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} handleDrill={handleDrill} /> 
           ) : (
-            <ChartRenderer vizState={item.vizState} /> 
+            <ChartRenderer vizState={item.vizState} handleDrill={handleDrill} /> 
           )
         }
       </DashboardItem>
@@ -269,6 +281,7 @@ const DashboardPage = (props) => {
           <Dashboard dashboardItems={data && data.dashboardItems} editable={editable} >
             {data && data.dashboardItems.map(dashboardItem)}
           </Dashboard>
+          <DrilldownModal query={drillDownQuery} open={open} onClose={handleClose}/>
         </React.Fragment>
       </CubeProvider>
     ) : <Empty />;
