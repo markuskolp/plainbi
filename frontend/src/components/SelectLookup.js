@@ -4,7 +4,7 @@ import Axios from "axios";
 import { Select } from "antd";
 import LoadingMessage from "./LoadingMessage";
 
-const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token, allowNewValues }) => {
+const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token, allowNewValues, multiple = false }) => {
 
   const [loading, setLoading] = useState(true);
   const [lookupData, setLookupData] = useState([]);
@@ -35,8 +35,8 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   };
 
   const handleChange = (value) => {
-    const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
-    console.log("MarkdownEditor - Textarea change: " + JSON.stringify(emuEvent));
+    const emuEvent = { "target": { "name": name, "value": value ? value : null}} // emulate event.target.name/.value object // set value to null if undefined (happens with select list if selecting nothing)
+    console.log("Select change: " + JSON.stringify(emuEvent));
     onChange(emuEvent); 
   };
 
@@ -64,11 +64,13 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
         <React.Fragment>
           <Select
             placeholder="bitte auswählen ..."
+            //mode={multiple ? "multiple" : ""}
             allowClear
             showSearch
             disabled={disabled}
             options={lookupData}
-            defaultValue={defaultValue}
+            //defaultValue={multiple ? (defaultValue || "").split(",") : defaultValue} // if multiple, then split default value
+            defaultValue={defaultValue} // if multiple, then split default value
             onChange={handleChange}
             onSearch={onSearch}
             name={name}

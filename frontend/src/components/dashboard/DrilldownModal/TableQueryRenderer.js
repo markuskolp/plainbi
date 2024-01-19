@@ -55,7 +55,8 @@ const formatTableData = (columns, data) => {
 
 export function TableQueryRenderer({ resultSet, pivotConfig }) {
   const [tableColumns, dataSource] = useDeepMemo(() => {
-    const columns = resultSet.tableColumns(pivotConfig);
+    //const columns = resultSet.tableColumns(pivotConfig);
+    const columns = resultSet.tableColumns(pivotConfig).map(c => ({ ...c, dataIndex: c.key, title: c.shortTitle, sorter: true})); // take shortTitle (that means without name of data model (cube))
     return [
       columns,
       formatTableData(columns, resultSet.tablePivot(pivotConfig)),

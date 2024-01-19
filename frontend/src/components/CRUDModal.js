@@ -33,8 +33,8 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     queryParams.append("pk", getPKParamForURL(pkColumns));
     console.log("queryParams: " + queryParams.toString());
     //var endpoint = api+tableName+'/' + encodeURIComponent(encodeURIComponent(pk)) + '?'+queryParams;
-    //var endpoint = api+tableName+'/' + pk + '?'+queryParams;
-    var endpoint = api+tableName+'/' + pk.replace("/", "%2F") + '?'+queryParams;
+    var endpoint = api+tableName+'/' + pk + '?'+queryParams;
+    //var endpoint = api+tableName+'/' + pk.replace("/", "%2F") + '?'+queryParams;
     console.log("GET endpoint: " + endpoint);
 
     //await Axios.get("/api/crud/"+tableName+"/"+pk).then(
@@ -143,6 +143,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     //console.log("event: " + JSON.stringify(event));
     console.log("recordData: " + JSON.stringify(recordData));
     //const {name, value} = event.target;
+    value = Array.isArray() ? value.join(",") : value; // split Array into 1 string separated by (mulitselect) "," -  otherwise leave value (single)
     console.log("handleChange - key: " + key + " / value: " + value);
     
     setRecordData({...recordData, [key]: value}); 

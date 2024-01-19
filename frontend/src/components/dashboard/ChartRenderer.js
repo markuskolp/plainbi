@@ -229,10 +229,11 @@ const TypeToChartComponent = {
       </PieChart>
     </ResponsiveContainer>
   ),
-  table: ({ resultSet }) => (
+  table: ({ resultSet, handleDrill }) => (
     <Table
       pagination={false}
       columns={resultSet.tableColumns().map(c => ({ ...c, dataIndex: c.key, title: c.shortTitle, sorter: true}))} // take shortTitle (that means without name of data model (cube))
+      //columns={resultSet.tableColumns().map(c => ({ ...c, dataIndex: c.key, title: c.shortTitle, sorter: true, render:(text, row)=><Link>{text + row["Eingang.eingangstorGruppe"]}</Link>}))} // take shortTitle (that means without name of data model (cube))
       dataSource={resultSet.tablePivot()}
       size="small"
       //scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
@@ -240,7 +241,9 @@ const TypeToChartComponent = {
       //scroll={{ y: tableHeight }}
       scroll={{ y: 'auto', x: '100%' }}
       //scroll={{ y: 'auto', x: 'auto' }}
+      //onClick={event => handleBarClick(event, resultSet, series.yValues, handleDrill)}
       //tableLayout="auto"
+      //          
     />
   ),
   pivottable: ({ resultSet, pivotConfig }) => (
