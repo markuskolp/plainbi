@@ -35,7 +35,8 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   };
 
   const handleChange = (value) => {
-    const emuEvent = { "target": { "name": name, "value": value ? value : null}} // emulate event.target.name/.value object // set value to null if undefined (happens with select list if selecting nothing)
+    const valueCleansed = Array.isArray(value) ? value.join(",") : value; // split Array into 1 string separated by (mulitselect) "," -  otherwise leave value (single)
+    const emuEvent = { "target": { "name": name, "value": valueCleansed ? valueCleansed : null}} // emulate event.target.name/.value object // set value to null if undefined (happens with select list if selecting nothing)
     console.log("Select change: " + JSON.stringify(emuEvent));
     onChange(emuEvent); 
   };
@@ -64,13 +65,13 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
         <React.Fragment>
           <Select
             placeholder="bitte auswählen ..."
-            //mode={multiple ? "multiple" : ""}
+            mode={multiple ? "multiple" : ""}
             allowClear
             showSearch
             disabled={disabled}
             options={lookupData}
-            //defaultValue={multiple ? (defaultValue || "").split(",") : defaultValue} // if multiple, then split default value
-            defaultValue={defaultValue} // if multiple, then split default value
+            defaultValue={multiple ? (defaultValue || "").split(",") : defaultValue} // if multiple, then split default value
+            //defaultValue={defaultValue} // if multiple, then split default value
             onChange={handleChange}
             onSearch={onSearch}
             name={name}

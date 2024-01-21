@@ -143,7 +143,6 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     //console.log("event: " + JSON.stringify(event));
     console.log("recordData: " + JSON.stringify(recordData));
     //const {name, value} = event.target;
-    value = Array.isArray() ? value.join(",") : value; // split Array into 1 string separated by (mulitselect) "," -  otherwise leave value (single)
     console.log("handleChange - key: " + key + " / value: " + value);
     
     setRecordData({...recordData, [key]: value}); 
@@ -187,7 +186,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
                   return (
                     ((type == 'new' || recordData ) && !column.showsummaryonly) ? // only show if type is "new" or the data record could be retrieved (for "editing") AND the if it is not only displayed on summary page (list view)
                     // only make item editable if it is not part of the primary key
-                    <CRUDFormItem type={type} name={column.column_name} label={column.column_label} required={column.required} isprimarykey={pkColumns.includes(column.column_name)} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} token={token}/>
+                    <CRUDFormItem type={type} name={column.column_name} label={column.column_label} required={column.required} isprimarykey={pkColumns.includes(column.column_name)} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} multiple={column.multiple} token={token}/>
                     : ""
                   )
 
