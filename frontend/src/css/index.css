@@ -19,6 +19,7 @@
   min-height: 280px;
   padding: 24px;
   /*background-color: #f5f5f5;*/
+  background-color:#fff;
 }
 .layout {
   min-height: 100vh; /* uses 100% height for the layout component, that brings the footer to the bottom of the page */
@@ -28,7 +29,7 @@ header {
   border-bottom: 1pt solid rgb(220, 220, 220, 1) !important; /* add border line to bottom of header / navbar */
 }
 main {
-  background: #fff !important; /* change background color of main - overwrites default */
+  /*background: #fff !important; */ /* change background color of main - overwrites default */
   /*background: #f5f5f5 !important; */
   padding: 20px 50px !important; /* add 20px padding to top and bottom - overwrites default "0px 50px" */
 }
