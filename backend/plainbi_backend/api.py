@@ -1362,9 +1362,9 @@ def login():
     log.debug("++++++++++ entering login")
     log.debug("login")
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    #log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    #log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #print("login items ",str(item))
 
