@@ -1,27 +1,26 @@
 import React from "react";
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import Table from "../components/Table";
 import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, DatePicker, Menu, Dropdown, Input} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
-import { FullscreenOutlined, MoreOutlined, HistoryOutlined } from "@ant-design/icons";
-import DashboardItem from "../components/DashboardItem";
-import ChartRenderer from "../components/ChartRenderer";
-import Dashboard from "../components/Dashboard";
-import MemberSelect from "../components/MemberSelect";
+import { FullscreenOutlined, MoreOutlined, HistoryOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
+import DashboardItem from "../components/dashboard/DashboardItem";
+import ChartRenderer from "../components/dashboard/ChartRenderer";
+import Dashboard from "../components/dashboard/Dashboard";
+import MemberSelect from "../components/dashboard/MemberSelect";
 import cubejs from "@cubejs-client/core";
 import { CubeProvider } from "@cubejs-client/react";
 import { dashboards } from "../api/dashboards";
-
-import { useCubeQuery } from "@cubejs-client/react";
-
+import NoPage from "./NoPage";
+import { message } from "antd";
+import { DrilldownModal } from "../components/dashboard/DrilldownModal/DrilldownModal";
 import dayjs from 'dayjs';
-
 const { Title, Link, Text } = Typography;
 import "../css/dashboard.css";
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
 const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
-
 
 const { RangePicker } = DatePicker;
 
@@ -59,25 +58,58 @@ const defaultLayout = i => ({
 
 const DashboardPage = (props) => {
 
+  let { id } = useParams(); // get URL parameters - here the "id" of a app
+  let id_type = Number.isNaN(id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" of the app or its "alias"
+
+  console.log("DashboardPage - id: " + id);
+  console.log("DashboardPage - id_type: " + id_type);
+  //const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
+  const data = (id_type === 'id' ? dashboards.filter((dashboard)=> dashboard.id === Number(id)) : dashboards.filter((dashboard)=> dashboard.alias === id))[0];
+  console.log(data);
+
   //const { loading, error, data } = useQuery(GET_DASHBOARD_ITEMS);
   const loading = false;
   const error = false;
-  const [selectVAKey, setSelectVAKey] = useState([]);
-
-  const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
+  const [dashboardFilter, setDashboardFilter] = useState(null);
+  const [editable, setEditable] = useState(false);
+  const [drillDownQuery, setDrillDownQuery] = useState();
+  const [open, setOpen] = useState(false);
 
   if (loading) {
     return <Spin />;
   }
 
+  if (!data) {
+    message.error('Es gab einen Fehler beim Laden des Dashboards.')
+    return (
+      <NoPage />
+    );
+  }
+
   if (error) {
     return (
       <Alert
-        message="Error occured while loading your query"
+        message="Es wurde kein Dashboard gefunden."
         description={error.toString()}
         type="error"
       />
     );
+  }
+
+  function openFullscreen() {
+    if (document.fullscreenElement) {
+      // If there is a fullscreen element, exit full screen.
+      document.exitFullscreen();
+      return;
+    }
+    var elem = document.getElementsByTagName("main")[0];
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) { /* Safari */
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* IE11 */
+      elem.msRequestFullscreen();
+    }
   }
 
   const Empty = () => (
@@ -116,22 +148,86 @@ const DashboardPage = (props) => {
     </Menu>
   );
 
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const handleDrill = (drillQuery) => {
+    console.log("handleDrill");
+    console.log("drillQuery");
+    console.log(drillQuery);
+    setDrillDownQuery(drillQuery);
+    setOpen(true);
+  };
+
   const dashboardItem = item => (
     <div key={item.id} data-grid={defaultLayout(item)}>
-      <DashboardItem key={item.id} itemId={item.id} title={item.name}>
-        <ChartRenderer vizState={item.vizState} />
+      <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
+        {dashboardFilter ? (
+            <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} handleDrill={handleDrill} /> 
+          ) : (
+            <ChartRenderer vizState={item.vizState} handleDrill={handleDrill} /> 
+          )
+        }
       </DashboardItem>
     </div>
   );
+  //<ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} /> 
+  //<ChartRenderer vizState={item.vizState} /> 
+
+  //item.vizState -> if dashboardFilter, then put this filter in here or replace an existing one !
+  const replaceVizStateFilters = (vizState, filterName, filterValue) => {
+    const vizStateNew = vizState;
+    const vizStateOriginal = vizState;
+    try {
+      console.log("replaceVizStateFilters: vizState");
+      console.log(vizState);
+      console.log("replaceVizStateFilters: filterName");
+      console.log(filterName);
+      console.log("replaceVizStateFilters: filterValue");
+      console.log(filterValue);
+
+      // check if filter exists
+      // if filter exists, delete it
+      let filtersReplaced = vizState.query.filters.filter((el) => el.member != filterName);
+      console.log("replaceVizStateFilters: filtersReplaced - delete existing");
+      console.log(filtersReplaced);
+
+      // add dashboard filter
+      filtersReplaced.push({
+                      "member": filterName,
+                      "operator": "equals",
+                      "values": [filterValue]
+                    });
+      console.log("replaceVizStateFilters: filtersReplaced - push new one");
+      console.log(filtersReplaced);
+                            
+
+      // take vizState from beginning and delete all filters and add newly created filter array
+      //delete vizState.query.filters;
+      vizState.query.filters = filtersReplaced;
+      console.log("replaceVizStateFilters: vizState - new");
+      console.log(vizState);
+      vizStateNew.query = vizState.query;
+      //return vizState;
+      return vizStateNew;
+    } catch (err) {
+      console.log("replaceVizStateFilters: error");
+      console.log(err.message);
+      return vizStateOriginal;
+    }
+
+  }
 
   
-  const handleChangeSelectVA = (key) =>{
-    console.log("handleChangeSelectVA - key: " + key);
-    setSelectVAKey(key); 
+  const handleChangeSelectVA = (filterName, filterValue) =>{
+    console.log("handleChangeSelectVA - filterName: " + filterName);
+    console.log("handleChangeSelectVA - filterValue: " + filterValue);
+    setDashboardFilter({"name":filterName, "value":filterValue}); 
   }
 
 
-  return !data || data.dashboardItems.length ? (
+  return !data || data.dashboardItems.length  ? (
       <CubeProvider cubejsApi={cubejsApi}>
         <React.Fragment>
           <PageHeader
@@ -141,9 +237,23 @@ const DashboardPage = (props) => {
             //style={{ background: 'white' }}
             extra={[
               <Space>
+                {!editable ? (
+                    <Link onClick={(e) => { setEditable(true, e); }}>
+                      <Tooltip title="Dashboard bearbeiten">
+                        <EditOutlined />
+                      </Tooltip>
+                    </Link>
+                  ) : (
+                    <Link onClick={(e) => { setEditable(false, e); }}>
+                      <Tooltip title="Änderungen speichern">
+                        <SaveOutlined />
+                      </Tooltip>
+                    </Link>
+                  )
+                }
                 <Link href="#">
                   <Tooltip title="Vollbild">
-                    <FullscreenOutlined />
+                    <Button type="text" icon={<FullscreenOutlined />} onClick={openFullscreen}/>
                   </Tooltip>
                 </Link>
                 <Link href="#">
@@ -163,24 +273,24 @@ const DashboardPage = (props) => {
           <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
             <Col span={24} style={{textAlign:"right"}}>
               <Space style={{textAlign:"left"}}>
-                <MemberSelect onChange={handleChangeSelectVA} />
+                {data.dashboardFilter ? <MemberSelect query={data.dashboardFilter.query} columnId={data.dashboardFilter.columnId} columnLabel={data.dashboardFilter.columnLabel} defaultValue={data.dashboardFilter.defaultValue} onChange={handleChangeSelectVA} /> : ""}
+                {data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
               </Space>
             </Col>
           </Row>
-          <Dashboard dashboardItems={data && data.dashboardItems}>
+          <Dashboard dashboardItems={data && data.dashboardItems} editable={editable} >
             {data && data.dashboardItems.map(dashboardItem)}
           </Dashboard>
-          <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
-            <Col span={24} style={{textAlign:"right"}}>
-              <Text style={{fontSize:"smaller"}}>Stand: 20.12.2023 14:48 Uhr</Text>
-            </Col>
-          </Row>          
+          <DrilldownModal query={drillDownQuery} open={open} onClose={handleClose}/>
         </React.Fragment>
       </CubeProvider>
     ) : <Empty />;
 };
 
 export default DashboardPage;
+
+//{data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
+//{data.data_status ? <ChartRenderer vizState={replaceVizStateFilters(data.data_status.vizState, dashboardFilter.name, dashboardFilter.value)} />  : "" }
 
 /*
 

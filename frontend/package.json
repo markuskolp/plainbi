@@ -3,6 +3,7 @@
     "@ant-design/pro-layout": "7.8.3",
     "@cubejs-client/core": "^0.34.37",
     "@cubejs-client/react": "^0.34.37",
+    "@turf/turf": "^6.5.0",
     "antd": "^5.0.0-rc.1",
     "axios": "1.3.4",
     "csbbust": "1.0.1",

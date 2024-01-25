@@ -18,7 +18,7 @@ const { TextArea } = Input;
 const { Text, Link } = Typography;
 
 
-const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token }) => {
+const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token, multiple }) => {
 
   const dateFormat = 'YYYY-MM-DD';
 
@@ -102,15 +102,15 @@ const handleSwitchChange = (checked, e) => {
               >
                 {
                   ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") && ui === "lookupn") ? (
-                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} allowNewValues="true"/>
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} allowNewValues="true" multiple={(multiple === "true" ? true : false)}/>
                 ) : ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") && ui === "lookup") ? (
-                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token}/>
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} multiple={(multiple === "true" ? true : false)}/>
                 ) : (editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookupn" ? (
-                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} allowNewValues="true"/>
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} allowNewValues="true" multiple={(multiple === "true" ? true : false)}/>
                 ) : ui === "lookup" ? (
-                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token}/>
+                  <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} multiple={(multiple === "true" ? true : false)}/>
                 ) : ui === "hidden" ? (
                   ""
                 ) : ui === "numberinput" ? (

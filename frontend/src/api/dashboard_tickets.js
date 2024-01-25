@@ -4,6 +4,68 @@ export const dashboard_tickets  =
   dashboardName: "Tickets",
   id: 1,
   alias: "tickets",
+  data_status: {
+    //title: "Datenstand",
+    vizState: {
+      query:{
+        "measures": ["Ticket.aktuellsteDaten"],
+        //"order": {"Ticket.registrierungDt": "asc"},
+        "limit": 1
+      },
+      chartType:"data_status",
+      //format: "DD.MM.YYYY HH24:MI:SS"
+    }
+  },
+  dashboardFilter : {
+      columnId: "Veranstaltung.veranstaltungNr",
+      columnLabel: "Veranstaltung.veranstaltungName",
+      defaultValue: "EXPO REAL 2023",
+      query : {
+        "order": [
+        [
+            "Veranstaltung.veranstaltungJahr",
+            "desc"
+        ],
+        [
+            "Veranstaltung.veranstaltungName",
+            "asc"
+        ]
+        ],
+        "segments": [
+        "Ticket.onlineBestellungen"
+          //"Zutritte.fkmRelevant"
+        ],
+        "dimensions": [
+          "Veranstaltung.veranstaltungNr",
+          "Veranstaltung.veranstaltungJahr",
+        "Veranstaltung.veranstaltungName"
+        ],
+        "filters": [
+        {
+            "member": "Veranstaltung.veranstaltungJahr",
+            "operator": "gte",
+            "values": [
+            "2022"
+            ]
+        },
+        {
+          "member": "Veranstaltung.veranstaltungJahr",
+          "operator": "lte",
+          "values": [
+          "2024"
+          ]
+      },
+        {
+            "member": "Veranstaltung.veranstaltungName",
+            "operator": "notContains",
+            "values": [
+            "Complimentary Card","Ticketshop"
+            ]
+        }
+        ],
+        "limit": 5000
+    }
+  },
   dashboardItems: [
       {
         vizState: {
@@ -20,10 +82,10 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ]
@@ -32,7 +94,7 @@ export const dashboard_tickets  =
         },
         name: "Onlinebestellungen",
         id: 10,
-        layout: {x:0,y:0,w:4,h:4}
+        layout: {x:0,y:0,w:4,h:3}
     },
     {
       vizState: {
@@ -42,10 +104,10 @@ export const dashboard_tickets  =
           },
           "filters": [
             {
-              "member": "Veranstaltung.veranstaltungName",
+              "member": "Veranstaltung.veranstaltungNr",
               "operator": "equals",
               "values": [
-                "EXPO REAL 2023"
+                "4542023"
               ]
             }
           ],
@@ -57,17 +119,17 @@ export const dashboard_tickets  =
       },
       name: "Tage bis VA-Ende",
       id: 11,
-      layout: {x:0,y:4,w:4,h:4}
+      layout: {x:0,y:4,w:4,h:3}
   },
     {
         vizState: {
           query:{
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
@@ -103,12 +165,12 @@ export const dashboard_tickets  =
         },
         name: "Verlauf nach Tagen vor VA-Ende",
         id: 14,
-        layout: {x:5,y:0,w:20,h:8}
+        layout: {x:5,y:0,w:20,h:6}
     },
     {
         vizState: {
           query:{
-            "limit": 5000,
+            "limit": 10,
             "segments": [
               "Ticket.onlineBestellungen"
             ],
@@ -120,10 +182,10 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
@@ -134,11 +196,11 @@ export const dashboard_tickets  =
           },
           chartType:"verticalbar"
         },
-        name: "Länderranking",
+        name: "Länderranking (Top 10)",
         id: 15,
-        layout: {x:0,y:8,w:12,h:8}
+        layout: {x:8,y:6,w:8,h:8}
     },
-    {
+    /*{
         vizState: {
           query:{
             "limit": 5000,
@@ -153,15 +215,16 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
             "dimensions": [
               "Land.land"
+              //,"Land.landIso2"
             ],
             "timeDimensions": []
           },
@@ -169,8 +232,8 @@ export const dashboard_tickets  =
         },
         name: "Länderranking",
         id: 16,
-        layout: {x:12,y:8,w:12,h:8}
-    },
+        layout: {x:0,y:14,w:12,h:8}
+    },*/
     {
         vizState: {
           query:{
@@ -183,16 +246,16 @@ export const dashboard_tickets  =
             ],
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
             "dimensions": [
               "Produkt.vaProduktName",
-              "Produkt.vaProduktCode",
+              //"Produkt.vaProduktCode",
               "Vertriebskanal.vertriebskanalName"
             ],
             "order": {
@@ -202,7 +265,7 @@ export const dashboard_tickets  =
           pivotConfig: {
             "x": [
               "Produkt.vaProduktName",
-              "Produkt.vaProduktCode"
+              //Produkt.vaProduktCode",
             ],
             "y": [
               "Vertriebskanal.vertriebskanalName",
@@ -215,7 +278,7 @@ export const dashboard_tickets  =
         },
         name: "Produktranking",
         id: 18,
-        layout: {x:0,y:16,w:24,h:8}
+        layout: {x:0,y:6,w:8,h:8}
     },
     {
         vizState: {
@@ -232,15 +295,16 @@ export const dashboard_tickets  =
             },
             "filters": [
               {
-                "member": "Veranstaltung.veranstaltungName",
+                "member": "Veranstaltung.veranstaltungNr",
                 "operator": "equals",
                 "values": [
-                  "EXPO REAL 2023"
+                  "4542023"
                 ]
               }
             ],
             "dimensions": [
-              "Land.land"
+              "Land.land",
+              "Land.landIso2"
             ],
             "timeDimensions": []
           },
@@ -248,7 +312,7 @@ export const dashboard_tickets  =
         },
         name: "Länderranking",
         id: 20,
-        layout: {x:0,y:24,w:24,h:12}
+        layout: {x:16,y:6,w:8,h:8}
     }
   ]
 }

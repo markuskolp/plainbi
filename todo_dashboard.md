@@ -1,72 +1,47 @@
 TOP
-- Filter in Queries anwenden
 
-	findet "filter" der zu VA passt
-	query.filters.filter(x => x.member === "Veranstaltung.veranstaltungName")
-	
-	position nehmen und diesen ersetzen !
-	t.b.d.
-
-
-- Karte
-- Vertical Bar
-=> Dashboard 1+2 fertigmachen
-- Drill zu Daten
-- Explore d.h. Dashboard erstellen/editieren, SQL anzeigen
-=> bereit für Vorstellung im Team
-
-#-----------------------------------------------------------------------------------------------------
-# Prio 1
-#-----------------------------------------------------------------------------------------------------
-
-Filter:
-	- Fehler beheben, dass die Select-Liste manchmal nicht beladen wird bzw. es 3x durch die Stelle läuft
-	- Gruppierung nach Jahren options -> label options -> label value
-	- Auswahl von Veranstaltungsfilter in die Queries übernehmen ! (default bei Einstieg verwenden !)
-
-Darstellungen ergänzen:
-	- Datenstand von Cube.js bekommen
-	- dann Kartenkomponente ergänzen
-		- Zoombuttons gehen nicht weil RGL dazwischenfunkt -> lösen! (kurzfristig mit draggable/resizable false bei RGL)
-		- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
-		- Startposition fix auf München erstmal und so das man Europa ganz sieht
-		- ResultSet von Cube.js nehmen 
-		- Sprache der Karte auf Deutsch einstellen
-
-Abrunden Version 1:
-	- Dashboard "Tickets" fertigmachen
-	- dann "Zutritte" (Datenmodell in Cube.js + erstmal Dashboard-Definition fest hinterlegen)
-	- über "id" oder "alias" aufrufbar machen ../dashboard/1, ../dashboard/2 
-
+- Explore d.h. Dashboard erstellen/editieren und speichern in plainbi Repo - auch SQL anzeigen
+- alle Webanalytics-Anforderungen umsetzen, parallel Daten ins DWH bringen und dann versuchen die Dashboards nachzubauen !
+- Explore so bauen, dass vor allem das schnelle Analysieren von Daten geht (Pivot, Drag&Drop, ...) (
 
 #-----------------------------------------------------------------------------------------------------
 # Prio 2
 #-----------------------------------------------------------------------------------------------------
 
-- Interaktion (Click) in Card geht nicht z.B. die drei Pünktchen ?!
+- "Drill zu Daten" probieren: https://cube.dev/blog/introducing-a-drill-down-table-api-in-cubejs
+	- serverseitigem Pagination
+	- Layout anhand meiner Notizen
+	- Höhe nur so hoch wie Seite !
+	- auch bei "table" den Drill ermöglichen
+- PDF Export von Dashboard (erstmal clientseitig)
+- "Tabs"
+- "Explore" einführen
+	- auch "Generiertes SQL" und "JSON Query" von Cube anzeigen
+	- auch "Definition" vom Explore anzeigen (JSON mit Name, Viz-Definition, ...)
+	- Speichern in plainbi Repo, auch dann Auflisten z.B. unter ".../dashboards" zum Öffnen oder Löschen
+	- Dashboard "Editiermodus" - sobald man was verändert, dann Speichern Button zeigen <oder> erzwingen das man vorher den "Editiermodus" einschaltet
+- Switch einbauen (z.B. von kumuliert zu nicht kumuliert)
+
+#-----------------------------------------------------------------------------------------------------
+# Prio 3
+#-----------------------------------------------------------------------------------------------------
+
+- Interaktion (Click) in Card geht nicht z.B. die drei Pünktchen ?! -> erstmal lösen über Umschaltfläche auf "Dashboard editieren" ?
 
 - Zahlen in Tabellen auf DE formatieren -> Spalten mit Werten erkennen und numberFormatter() einsetzen
-- Fullscreen umsetzen
-- "Refresh" umsetzen
-- Switch einbauen (z.B. von kumuliert zu nicht kumuliert)
+- Achsen in Diagrammen formatieren (z.B. Tage bei Zutritten auf DD.MM, etc.)
 - Styling komplett und Objekte als Komponenten abstrahieren
 	Header, Filterbereich, Dashboard, Dashboarditems, ChartRenderer
-- Styling von Charts
-	- vertical bar chart !
-	- die blaue Farbe der Messe nehmen
 - Styling von Tables
 	- Kennzahlspalten rechtsbündig (Titel und Zahlen)
 	- Scrollbar nur zeigen wenn notwendig
 	- Scrollbar optisch anders
 	- Spaltentitel sollten immer passen und nicht umbrechen
-- "Drill zu Daten" probieren: https://cube.dev/blog/introducing-a-drill-down-table-api-in-cubejs
-- PDF Export von Dashboard (clientseitig)
 - "Reduzieren", d.h. vieles nur zeigen bei Hover (z.B. die 3 Pünktchen, das kleine Symbol rechts unten in den Cards, die Symbole auf Dashboardebene (Fullscreen, ...)
 
 
-
 #-----------------------------------------------------------------------------------------------------
-# Prio 3
+# Prio 4
 #-----------------------------------------------------------------------------------------------------
 
 - Charts
@@ -76,17 +51,11 @@ Abrunden Version 1:
 	- analog wie bei CRUDPage.js mit Sortierung
 	- Pagination angebbar
 	- Gesamtsumme ein/ausschaltbar
-- dann Tabs erlauben
-- "Explore" einführen
-- auch "Generiertes SQL" und "JSON Query" von Cube anzeigen
-- auch "Definition" vom Explore anzeigen (JSON mit Name, Viz-Definition, ...)
-- Speichern in plainbi Repo, auch dann Auflisten z.B. unter ".../dashboards" zum Öffnen oder Löschen
-- Dashboard "Editiermodus" - sobald man was verändert, dann Speichern Button zeigen <oder> erzwingen das man vorher den "Editiermodus" einschaltet
 - Filter auf Ebene "Dashboard" + "Tabs" erlauben
 	- hier diverse Filter wie Mehrfachauswahl, Datumsauswahl (auch mit relativen Zeiträumen), etc.
 
 #-----------------------------------------------------------------------------------------------------
-# Prio 4
+# Prio 5
 #-----------------------------------------------------------------------------------------------------
 
 - Umstellen auf Vega-Charts und ein paar Diagrammtemplates vordefinieren
@@ -96,6 +65,42 @@ Abrunden Version 1:
 # Backlog
 #-----------------------------------------------------------------------------------------------------
 
+- Dashboardfilter: 
+	- defaultValue geht auf label anstatt auf key/id von select list -> warum macht AntD das so?
+	- bisher nur 1 Filter erlaubt -> mehrere erlauben (einfach ein .map() in DashboardPage.js? )
+	- später erweitern das man noch mehr kann (kein defaultvalue, single-/multiselect, typ (dropdown, datum, etc.), ...)
+- Datenstand: Filter übernehmen - aber wann will man es ?! (Datenstand (vom Ladelauf) vs. aktuellste inhaltliche Daten z.B. letzter Zutritt zu einer VA)
+- Karte
+	- als Teil von "ChartRenderer" machen auch mit Query, etc. und Geoentität - hier fix auf "country"
+	- vor allem die Dimension/Kennzahl nicht mehr hartverdrahtet in Map.js !
+- "Refresh" umsetzen
+- Fullscreen
+	- Button zum Fullscreen verlassen anzeigen
+	- verhindern, dass Diagramme nochmal aktualisiert werden
+- Datenstand:
+	- geht grundsätzlich -> aber auch Filter mitgeben
+	- Titel auch berücksichtigen
+	- Spinner hier verhindern
+- Zutrittsdashboard während der VA mal Live testen (auch umstellen auf v_e_zutritt...)
+- Delta-Betrachtung
+	- z.B. zu VVA 
+		- bei BigNumber z.B. VVA + Delta VVA 
+		- bei Barchart auch Linie für VVA zeigen
+- Switch in einer Visualisierung z.B. [kumuliert|einzeldaten], [Länder|Kontinente] - siehe https://github.com/cube-js/cube/blob/master/examples/mapbox/dashboard-app/src/components/Choropleth.js
+- Filter:
+	- Gruppierung nach Jahren options -> label options -> label value
+- useQuery.js
+	- eigener Wrapper anstatt useCubeQuery.js -> useEffect() kann "query" als Object nicht vergleichen - workaround über Vergleich der Attribute - verbessern !
+- Karte
+	- geojson von Countries nicht vollständig (ISO2)
+	- geojson Daten grundsätzlich mal in eine DB laden und daraus erzeugen !
+	- oder auch über cube.js holen (analog zu blogartikel)
+	- auch die Mittelpunkte
+	- zeigen, falls 
+- Dashboardfilter: Fehler beheben, dass die Select-Liste manchmal nicht beladen wird bzw. es 3x durch die Stelle läuft
+- Vertical bar chart mit Vega
+	- y-achse genug Platz für Labels (siehe Länderranking)
+	- was tun wenn die Anzahl zu hoch ist (z.B. 100 Länder -> Labels von y-Achse nur zum Teil zeigen ? Diagramm scrollbar machen ?)
 - PDF Export von Dashboard (serverseitig generieren)
 - pre-aggregates mal konfigurieren (falls es irgendwo langsam ist)
 - evtl. Cube Core auf neueste Version umstellen und "running-total" davon ausprobieren
@@ -121,5 +126,6 @@ Abrunden Version 1:
 		- nicht gematchte Einträge anzeigen
 		- Startpunkt der Karte angeben (z.B. DE)
 		- evtl. auch Heatmap
+		- Zoombuttons gehen nicht weil RGL dazwischenfunkt -> kurzfristig gelöst mit draggable/resizable false bei RGL
 
 
