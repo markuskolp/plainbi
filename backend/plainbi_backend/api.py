@@ -1559,17 +1559,13 @@ def logout(tokdata):
     return jsonify({'message': 'logged out'})
 
 
-def create_app(config_filename=None):
+def create_app():
     global app
     log.info("create flask app")
     app = Flask(__name__)
-    #app.config.from_pyfile(config_filename)
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
     
-    #from yourapplication.model import db
-    #db.init_app(app)
-
     #from yourapplication.views.admin import admin
     #from yourapplication.views.frontend import frontend
     #app.register_blueprint(admin)

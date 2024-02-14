@@ -1411,19 +1411,36 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
 #base64_str = b.decode('utf-8') # convert bytes to string
     
 
-def db_connect(enginestr, params=None):
+def db_connect(p_enginestr, params=None):
     log.debug("++++++++++ entering db_connect")
-    log.debug("db_connect: param enginestr is <%s>",str(enginestr))
+    log.debug("db_connect: param enginestr is <%s>",str(p_enginestr))
     log.debug("db_connect: param params is <%s>",str(params))
-    if enginestr is None:
+    if p_enginestr is None:
         log.error("PLAINBI needs a connection string in the .env File to properly connect to a database")
-    
+    dstr=p_enginestr.split("|")
+    enginestr=dstr[0]
     if params is not None:
         dbengine = sqlalchemy.create_engine(enginestr % params)
     else:
         dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: dbengine url %s",dbengine.url)
     log.debug("++++++++++ leaving db_connect")
+    dbtyp=get_db_type(dbengine)
+    if len(dstr)>1:
+        for kv in dstr[1:]:
+            kl=kv.split("=")
+            if len(kl)>1:
+                if kl[0].lower()=="schema":
+                    # has a schema
+                    if dbtyp == "postgres":
+                        sql="SET search_path TO "+kl[1]
+                        db_exec(dbengine,sql)
+                        log.debug("++++++++++ set schema/search path to %s",kl[1])
+                    elif dbtyp == "mssql":
+                        sql="use "+kl[1]
+                        db_exec(engine,sql)
+                        log.debug("++++++++++ use schema %",kl[1])
+
     return dbengine
 
 def audit(tokdata,req,id=None,msg=None):

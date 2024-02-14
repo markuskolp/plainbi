@@ -43,7 +43,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from plainbi_backend.db import db_exec,get_db_type,sql_select
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 """
 import sys
@@ -89,9 +89,6 @@ def create_repo_db(engine):
         log.debug("repo_init_file contains %d sql statements",len(sql_create_list))
             
         if dbtyp=="mssql":
-            log.debug("--- mssql use plainbi")
-            presql="use PLAINBI"
-            db_exec(engine,presql)
             log.debug("--- mssql drop all constraints if there are some")
             sql="SELECT 'ALTER TABLE ' + TABLE_SCHEMA + '.[' + TABLE_NAME + '] DROP CONSTRAINT [' + CONSTRAINT_NAME + ']' as cmd FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_TYPE = 'FOREIGN KEY' AND TABLE_NAME LIKE 'plainbi%' AND CONSTRAINT_NAME LIKE '%FK__%'"
             items,columns=db_exec(engine,sql)
