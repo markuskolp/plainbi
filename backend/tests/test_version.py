@@ -36,7 +36,15 @@ sys.path.append(home_directory+'/plainbi/backend')
 logging.basicConfig(filename='pytest.log', encoding='utf-8', level=logging.DEBUG)
 
 
-for config_file in [".env","~/.env",]:
+config.config_file=None
+config_file_list = [".env"]
+if os.name=="nt":
+    if "USERPROFILE" in os.environ.keys():
+       config_file_list.append(os.environ["USERPROFILE"]+"/.env")
+else:
+    config_file_list.append("~/.env")
+for config_file in config_file_list:
+    print("testing config file %s",config_file)
     if os.path.isfile(config_file):
         config.config_file=config_file
         print("load config from %s" % (config_file))
@@ -44,6 +52,9 @@ for config_file in [".env","~/.env",]:
         break
 
 #pbi_env = load_pbi_env()
+if config.config_file is None:
+    print("WARNING - no config file")
+    sys.exit(1)
 
 def func_name(): 
     return sys._getframe(1).f_code.co_name
@@ -216,7 +227,7 @@ def test_000_version(test_client):
     format_url("get",test_url, testname=func_name())
     response = test_client.get(test_url)
     assert response.status_code == 200
-    assert b"0.4" in response.data
+    assert b"0.5" in response.data
 
 
 ##############################################################
