@@ -98,7 +98,7 @@ curl -H "Content-Type: application/json" --request POST -H "Authorization: %tok%
 #import urllib
 import logging
 import os
-#import sys
+import sys
 from datetime import date,datetime
 import json
 #import sqlalchemy
@@ -132,7 +132,7 @@ from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stm
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type, get_dbversion, db_connect_test
 from plainbi_backend.repo import create_repo_db
 
-from plainbi_backend.config import config,load_pbi_env
+from plainbi_backend.config import config,init_config
 
 
 #log = logging.getLogger(config.logger_name)
@@ -141,7 +141,7 @@ log = logging.getLogger(__name__)
 
 api = Blueprint('api', __name__)
 
-pbi_env = load_pbi_env()
+#pbi_env = load_pbi_env()
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -653,6 +653,8 @@ def get_resource(tokdata):
     w_app=add_auth_to_where_clause("plainbi_application",None,user_id)
     w_adhoc=add_auth_to_where_clause("plainbi_adhoc",None,user_id)
     w_ext_res=add_auth_to_where_clause("plainbi_external_resource",None,user_id)
+    if not hasattr(config,"repo_db_type"):
+        config.repo_db_type=get_db_type(config.repoengine)
     log.debug("get_resource config.repo_db_type=%s",config.repo_db_type)
     if config.repo_db_type == 'mssql':
         concat_op='+'
@@ -1559,13 +1561,35 @@ def logout(tokdata):
     return jsonify({'message': 'logged out'})
 
 
-def create_app():
+def create_app(p_repository=None, p_database=None):
     global app
     log.info("create flask app")
     app = Flask(__name__)
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
+   
+    init_config(repository=p_repository,database=p_database)
     
+    config.repoengine = db_connect(config.repository)
+    if not db_connect_test(config.repoengine):
+        log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
+        sys.exit(0)
+
+    # get datasources from repository
+    config.datasources={}
+    datasrc_sql = "select * from plainbi_datasource"
+    datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
+    for i in datasrc_items:
+        config.datasources[str(i["id"])]=i["db_type"]
+        config.datasources[i["alias"]]=i["db_type"]
+
+    if config.database is not None:
+        config.dbengine = db_connect(config.database)
+        if not db_connect_test(config.dbengine):
+            log.error("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
+            sys.exit(0)
+        log.info(f"The default database connection description is {config.database}")
+
     #from yourapplication.views.admin import admin
     #from yourapplication.views.frontend import frontend
     #app.register_blueprint(admin)
