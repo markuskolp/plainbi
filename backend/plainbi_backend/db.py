@@ -148,6 +148,7 @@ def db_connect_test(d):
     except Exception as e:
         log.error("db_connect_test failed %s",str(e))
         ok=False
+        return ok
     if item_total_count is not None:
         ok=True
     else:
