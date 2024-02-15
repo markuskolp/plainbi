@@ -142,69 +142,125 @@ repoEngine=sqlalchemy.create_engine('sqlite:////Users/kribbel/plainbi_repo.db.db
 """
 
 def create_pytest_tables(engine):
-    t="dwh.analysis.pytest_api_testtable"
-    tv="dwh.analysis.pytest_tv_api_testtable"
-    tvc="dwh.analysis.pytest_tv_api_testtable_2pk"
-    sq="analysis.pytest_seq"
-    s="dwh."+sq
-    sql_create_list=[
-"""
-use dwh;
-""",
-f"""
-drop sequence if exists {sq};
-""",
-f"""
-create sequence {sq} start with 0;
-""",
-f"""
-DROP TABLE IF EXISTS {t}
-""",
-f"""
-CREATE TABLE {t} (
-    nr int NOT NULL
-  , name varchar(200)
-  , dat date
-  , PRIMARY KEY (nr)
-);
-""",
-f"""
-drop table if exists {tv}
-""",
-f"""
-CREATE TABLE {tv} (
-    nr int NOT NULL
-  , name varchar(200)
-  , dat date
-  , valid_from_dt datetime NOT NULL
-  , invalid_from_dt datetime NOT NULL
-  , last_changed_dt datetime NOT NULL
-  , is_deleted char(1) NOT NULL
-  , is_latest_period char(1) NOT NULL
-  , is_current_and_active char(1) NOT NULL
-  , last_changed_by varchar(120)
-  , PRIMARY KEY (nr, invalid_from_dt)
-);
-""",
-f"""
-drop table if exists {tvc}
-""",
-f"""
-CREATE TABLE {tvc} (
-    nr int NOT NULL
-  , typ int NOT NULL  
-  , name varchar(200)
-  , valid_from_dt datetime NOT NULL
-  , invalid_from_dt datetime NOT NULL
-  , last_changed_dt datetime NOT NULL
-  , is_deleted char(1) NOT NULL
-  , is_latest_period char(1) NOT NULL
-  , is_current_and_active char(1) NOT NULL
-  , last_changed_by varchar(120)
-  , PRIMARY KEY (nr, typ, invalid_from_dt)
-)
-""",
-    ]
+    dbtyp = get_db_type(engine)
+    if dbtyp=="mssql":
+        t="dwh.analysis.pytest_api_testtable"
+        tv="dwh.analysis.pytest_tv_api_testtable"
+        tvc="dwh.analysis.pytest_tv_api_testtable_2pk"
+        sq="analysis.pytest_seq"
+        s="dwh."+sq
+        sql_create_list=[
+    """
+    use dwh;
+    """,
+    f"""
+    drop sequence if exists {sq};
+    """,
+    f"""
+    create sequence {sq} start with 0;
+    """,
+    f"""
+    DROP TABLE IF EXISTS {t}
+    """,
+    f"""
+    CREATE TABLE {t} (
+        nr int NOT NULL
+    , name varchar(200)
+    , dat date
+    , PRIMARY KEY (nr)
+    );
+    """,
+    f"""
+    drop table if exists {tv}
+    """,
+    f"""
+    CREATE TABLE {tv} (
+        nr int NOT NULL
+    , name varchar(200)
+    , dat date
+    , valid_from_dt datetime NOT NULL
+    , invalid_from_dt datetime NOT NULL
+    , last_changed_dt datetime NOT NULL
+    , is_deleted char(1) NOT NULL
+    , is_latest_period char(1) NOT NULL
+    , is_current_and_active char(1) NOT NULL
+    , last_changed_by varchar(120)
+    , PRIMARY KEY (nr, invalid_from_dt)
+    );
+    """,
+    f"""
+    drop table if exists {tvc}
+    """,
+    f"""
+    CREATE TABLE {tvc} (
+        nr int NOT NULL
+    , typ int NOT NULL  
+    , name varchar(200)
+    , valid_from_dt datetime NOT NULL
+    , invalid_from_dt datetime NOT NULL
+    , last_changed_dt datetime NOT NULL
+    , is_deleted char(1) NOT NULL
+    , is_latest_period char(1) NOT NULL
+    , is_current_and_active char(1) NOT NULL
+    , last_changed_by varchar(120)
+    , PRIMARY KEY (nr, typ, invalid_from_dt)
+    )
+    """,
+        ]
+    elif dbtyp=="sqlite":
+        t="pytest_api_testtable"
+        tv="pytest_tv_api_testtable"
+        tvc="pytest_tv_api_testtable_2pk"
+        s="no seq in sqlite"
+        sql_create_list=[
+    f"""
+    DROP TABLE IF EXISTS {t}
+    """,
+    f"""
+    CREATE TABLE {t} (
+        nr int NOT NULL
+    , name varchar(200)
+    , dat date
+    , PRIMARY KEY (nr)
+    );
+    """,
+    f"""
+    drop table if exists {tv}
+    """,
+    f"""
+    CREATE TABLE {tv} (
+      nr int NOT NULL
+    , name varchar(200)
+    , dat date
+    , valid_from_dt datetime NOT NULL
+    , invalid_from_dt datetime NOT NULL
+    , last_changed_dt datetime NOT NULL
+    , is_deleted char(1) NOT NULL
+    , is_latest_period char(1) NOT NULL
+    , is_current_and_active char(1) NOT NULL
+    , last_changed_by varchar(120)
+    , PRIMARY KEY (nr, invalid_from_dt)
+    );
+    """,
+    f"""
+    drop table if exists {tvc}
+    """,
+    f"""
+    CREATE TABLE {tvc} (
+      nr int NOT NULL
+    , typ int NOT NULL  
+    , name varchar(200)
+    , valid_from_dt datetime NOT NULL
+    , invalid_from_dt datetime NOT NULL
+    , last_changed_dt datetime NOT NULL
+    , is_deleted char(1) NOT NULL
+    , is_latest_period char(1) NOT NULL
+    , is_current_and_active char(1) NOT NULL
+    , last_changed_by varchar(120)
+    , PRIMARY KEY (nr, typ, invalid_from_dt)
+    )
+    """,
+        ]
     print("******************************")
     for sql in sql_create_list[:]:
        print(sql)

@@ -1439,7 +1439,7 @@ def db_connect(p_enginestr, params=None):
                         log.debug("++++++++++ set schema/search path to %s",kl[1])
                     elif dbtyp == "mssql":
                         sql="use "+kl[1]
-                        db_exec(engine,sql)
+                        db_exec(dbengine,sql)
                         log.debug("++++++++++ use schema %",kl[1])
 
     return dbengine
