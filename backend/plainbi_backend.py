@@ -58,7 +58,7 @@ log.setLevel(config.loglevel)
 formatter = logging.Formatter('%(message)s')
 logfile_formatter = logging.Formatter('%(asctime)s  %(process)-7s %(module)-20s %(message)s')
 if config.logfile is not None:
-    fh = logging.FileHandler(config.logfile, mode='w', encoding='utf-8')
+    fh = logging.FileHandler(config.logfile, mode='a', encoding='utf-8')
     fh.setFormatter(logfile_formatter)
     fh.setLevel(config.loglevel)
     log.addHandler(fh)
@@ -86,20 +86,34 @@ if args.testdb:
     sys.exit(0)
 
 # get config
+config.config_file = None
 if args.config:
     if os.path.isfile(args.config):
-        load_dotenv(args.config)
         config.config_file=args.config
     else:
         print("Config File %s does not exist" % (args.config))
+        log.error("Config File from command line option %s does not exist",args.config)
         sys.exit(0)
 else:
-    for config_file in [".env","~/.env",]:
-        if os.path.isfile(config_file):
-            config.config_file=config_file
-            print("load config from %s" % (config_file))
-            load_dotenv(config_file)
-            break
+    if "PLAINBI_BACKEND_CONFIG" in os.environ.keys():
+        if os.path.isfile(os.environ["PLAINBI_BACKEND_CONFIG"]):
+            config.config_file = os.environ["PLAINBI_BACKEND_CONFIG"]
+        else:
+            print("Config File %s does not exist" % (os.environ["PLAINBI_BACKEND_CONFIG"]))
+            log.error("Config File from environment %s does not exist",os.environ["PLAINBI_BACKEND_CONFIG"])
+            sys.exit(0)
+    else:
+        log.info("try to find a config file")
+        for config_file in [".env","~/.env",]:
+            log.info("testing file %s",config_file)
+            if os.path.isfile(config_file):
+                config.config_file=config_file
+                log.info("loading file %s",config_file)
+                break
+if config.config_file is not None:
+    print("load config from %s" % (config.config_file))
+    log.info("load config from %s",config.config_file)
+    load_dotenv(config.config_file)
 
 # repository connect
 if args.repository:
