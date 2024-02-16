@@ -1424,7 +1424,7 @@ def db_connect(p_enginestr, params=None):
         dbengine = sqlalchemy.create_engine(enginestr % params)
     else:
         dbengine = sqlalchemy.create_engine(enginestr)
-    log.info("db_connect: dbengine url %s",dbengine.url)
+    log.info("db_connect: engine url %s",dbengine.url)
     log.debug("++++++++++ leaving db_connect")
     dbtyp=get_db_type(dbengine)
     if len(dstr)>1:
