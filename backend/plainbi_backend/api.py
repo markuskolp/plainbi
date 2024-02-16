@@ -132,7 +132,8 @@ from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stm
 from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type, get_dbversion, db_connect_test
 from plainbi_backend.repo import create_repo_db
 
-from plainbi_backend.config import config,init_config
+# import the global variable config
+from plainbi_backend.config import config, get_config
 
 
 #log = logging.getLogger(config.logger_name)
@@ -1562,20 +1563,32 @@ def logout(tokdata):
 
 
 def create_app(p_repository=None, p_database=None):
+    """
+    create app is the standard Flask application definition
+
+    it is called either from 
+      - the standalone plainbi_backend.py 
+      - or from the uwsgi script
+      - unittest scripts (the parameters p_repository and p_database are important here)
+    that's why the get_config handling is necessary
+    """
     global app
-    log.info("create flask app")
+    log.info("creating flask app")
     app = Flask(__name__)
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
    
-    init_config(repository=p_repository,database=p_database)
+    # get the configuration
+    get_config(repository=p_repository,database=p_database)
     
+    # connect to the repository
     config.repoengine = db_connect(config.repository)
     if not db_connect_test(config.repoengine):
         log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
         sys.exit(0)
 
     # get datasources from repository
+    log.info("load datasources from plainbi_datasource")        
     config.datasources={}
     datasrc_sql = "select * from plainbi_datasource"
     datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
@@ -1583,22 +1596,29 @@ def create_app(p_repository=None, p_database=None):
         config.datasources[str(i["id"])]=i["db_type"]
         config.datasources[i["alias"]]=i["db_type"]
 
-    if config.database is not None:
+    if not config.database:
+        try:
+           config.database = config.datasources["1"]
+        except Exception as e:
+            log.warning("config datasource %s",str(e))
+
+    # if there is a database database now connect to it
+    if config.database:
         config.dbengine = db_connect(config.database)
         if not db_connect_test(config.dbengine):
             log.error("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
             sys.exit(0)
         log.info(f"The default database connection description is {config.database}")
-
+    
     #from yourapplication.views.admin import admin
     #from yourapplication.views.frontend import frontend
     #app.register_blueprint(admin)
     #app.register_blueprint(frontend)
 
+    # handle Java Web Tokens
     app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
     config.bcrypt = Bcrypt(app)
 
     #jwt = JWTManager(app)
-
     return app
 
