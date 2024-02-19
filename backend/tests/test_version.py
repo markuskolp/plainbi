@@ -14,75 +14,73 @@ import urllib
 import sqlalchemy
 import os
 from sys import platform
+from dotenv import load_dotenv
 
-
-from plainbi_backend.config import config,load_pbi_env
-from plainbi_backend.db import db_connect
+from plainbi_backend.config import config, get_config
+from plainbi_backend.db import db_connect, get_db_type
 
 #log = logging.getLogger(__name__)
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
+"""
 fh = logging.FileHandler("test_version.log")
 fh_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(fh_formatter)
 fh.setLevel(logging.DEBUG)
 log.addHandler(fh)
+"""
 
 home_directory = os.path.expanduser( '~' )
 sys.path.append(home_directory+'/plainbi/backend')
 
-logging.basicConfig(filename='pytest.log', encoding='utf-8', level=logging.DEBUG)
+get_config(logfile="pytest.log")
 
-pbi_env = load_pbi_env()
+if config.config_file is None:
+    print("WARNING - no config file")
+    sys.exit(1)
+
+# logging.basicConfig(filename='pytest.log', encoding='utf-8', level=logging.DEBUG)
+
+# get the test repository
+if "PLAINBI_TEST_REPOSITORY" in os.environ.keys():
+    config.repository = os.environ["PLAINBI_TEST_REPOSITORY"]
+else:
+    log.warning("No test repository connection description (PLAINBI_TEST_REPOSITORY) is specified in environment or config file")
+    # pytest is not configured
+    log.info("PLAINBI_TEST_REPOSITORY is not configured: use sqlite db in home directory")
+    home_directory = os.path.expanduser( '~' )
+    x=f"{home_directory}".replace("\\","/")
+    x=x.replace("C:/","")
+    config.repository=f"sqlite:////{x}/plainbi_repo_pytests.db"
+    log.info("pytest repo db default is: %s",config.repository)
+
+# connect to the test repository
+config.repoengine = db_connect(config.repository)
+
+# get the test database
+if "PLAINBI_TEST_DATABASE" in os.environ.keys():
+    config.database = os.environ["PLAINBI_TEST_DATABASE"]
+else:
+    log.warning("No test database connection description (PLAINBI_TEST_DATABASE) is specified in environment or config file")
+    # pytest is not configured
+    log.info("PLAINBI_TEST_DATABASE is not configured: use sqlite db in home directory")
+    home_directory = os.path.expanduser( '~' )
+    x=f"{home_directory}".replace("\\","/")
+    x=x.replace("C:/","")
+    config.database=f"sqlite:////{x}/plainbi_db_pytests.db"
+    log.info("pytest repo db default is: %s",config.database)
+
+# connect to the test databse
+config.dbengine = db_connect(config.database)
+
+log.info("repoengine %s",config.repoengine.url)
+log.info("dbengine %s",config.dbengine.url)
 
 def func_name(): 
     return sys._getframe(1).f_code.co_name
 
-dbengine = db_connect(pbi_env["db_engine"],pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
-log.info("dbengine %s",dbengine.url)
-
-
-# check if repo engine pytest is configured
-log.info("check if pytest db is configured")
-repo_engine_pytest = os.environ.get("repo_engine_pytest")
-if repo_engine_pytest is not None:
-    log.info("pytest db is configured: %s",repo_engine_pytest)
-    repo_server = os.environ.get("repo_server_pytest")
-    repo_username = os.environ.get("repo_username_pytest")
-    repo_password = os.environ.get("repo_password_pytest")
-    repo_database = os.environ.get("repo_database_pytest")
-    repo_params = os.environ.get("repo_params_pytest")
-    if repo_params is not None:
-        if repo_username is not None:
-           repo_params = repo_params.replace("{repo_username}",repo_username)
-        if repo_password is not None:
-           repo_params = repo_params.replace("{repo_password}",repo_password)
-        if repo_database is not None:
-           repo_params = repo_params.replace("{repo_database}",repo_database)
-        if repo_server is not None:
-           repo_params = repo_params.replace("{repo_server}",repo_server)
-
-    test_repo_engine_str = repo_engine_pytest
-else:
-    # pytest is not configured
-    log.info("pytest db is not configured: use sqlite db in home directory")
-    home_directory = os.path.expanduser( '~' )
-    x=f"{home_directory}".replace("\\","/")
-    x=x.replace("C:/","")
-    test_repo_engine_str=f"sqlite:////{x}/plainbi_repo_pytests.db"
-    log.info("pytest db default is: %s",test_repo_engine_str)
-
-if "%s" in test_repo_engine_str:
-    # contains a parameter
-    log.info("pytest db default with param: %s",repo_params)
-    test_repo_engine_str=test_repo_engine_str % repo_params
-   
-log.info("pytests repo db str = %s",test_repo_engine_str)
-repoengine = db_connect(test_repo_engine_str)
-log.info("repoengine %s",repoengine.url)
 repo_table_prefix="plainbi_"
-
 
 token=None
 testuser_token=None
@@ -140,26 +138,42 @@ def format_url(method, url, data=None, auth=True, port=3001, testname=None):
 @pytest.fixture
 def setup_and_teardown_for_stuff():
     global t,tv,s,tvc
-    log.info("dbengine %s",dbengine.url)
-    log.info("\nsetting up")
-    create_repo_db(repoengine)
-    t,tv,s,tvc = create_pytest_tables(dbengine)
-    # first add testuser
+    print("\nsetup_and_teardown_for_stuff - setup")
+    log.info("\nsetup_and_teardown_for_stuff - setup")
+    log.info("dbengine %s",config.dbengine.url)
+    log.info("repoengine %s",config.repoengine.url)
+    log.info("\nsetting up initial repository")
+    if get_db_type(config.repoengine) != "sqlite":
+        log.error("\ntest-client - repoengine is not sqlite")
+        sys.exit(2)
+    create_repo_db(config.repoengine)
     print("\nrepo created")
+    t,tv,s,tvc = create_pytest_tables(config.dbengine)
+    print("\ntesttables created")
+    # first add testuser
     print (t,tv,s,tvc)
+    print("\nsetup_and_teardown_for_stuff tearing down")
+    log.info("\nsetup_and_teardown_for_stuff tearing down")
     yield
-    print("\ntearing down")
+    print("\nsetup_and_teardown_for_stuff tearing down2")
+    log.info("\nsetup_and_teardown_for_stuff tearing down2")
 
 @pytest.fixture(scope='module')
 def test_client():
-    flask_app = create_app(config_filename=None,p_repository=test_repo_engine_str)
+    print("\ntest_client - creating app")
+    log.info("\ntest-client - creating app")
+    # config is run above so it is not loaded again
+    flask_app = create_app()
+
+    if get_db_type(config.repoengine) != "sqlite":
+        log.error("\ntest-client - repoengine is not sqlite")
+        sys.exit(2)
 
     # Create a test client using the Flask application configured for testing
     with flask_app.test_client() as testing_client:
         # Establish an application context
         with flask_app.app_context():
             yield testing_client  # this is where the testing happens!
-
 
 #def test_000_add___user_joe(test):
 #    global headers,testuser_id
@@ -184,7 +198,7 @@ def test_000_login(test_client):
     # login with testuser
     global token,headers
     log.info('++++++++++++++++\nTEST: %s++++++++++++++++\n',func_name())
-    db_adduser(repoengine,"joe",fullname="Johannes Kribbel",pwd="joe123",is_admin=True)
+    db_adduser(config.repoengine,"joe",fullname="Johannes Kribbel",pwd="joe123",is_admin=True)
     log.info("++++++++++++++++\ndone add user joe\n++++++++++++++++\n")
     log.info('++++++++++++++++\nlogin joe\n++++++++++++++++\n')
     test_url='/login'
@@ -219,7 +233,7 @@ def test_000_version(test_client):
     format_url("get",test_url, testname=func_name())
     response = test_client.get(test_url)
     assert response.status_code == 200
-    assert b"0.4" in response.data
+    assert b"0.6" in response.data
 
 
 ##############################################################
