@@ -135,8 +135,17 @@ def get_db_type(dbengine):
     else:
         return "mssql"
 
-def db_connect_test(d):
+def db_connect_test(db):
+    """
+    test if a connection string or connection is working
+    """
     log.debug("  ++++++++++ entering db_connect_test")
+    if isinstance(db, str):
+        # parameter is a string so we need to connect first
+        d=db_connect(db)
+    else:
+        # assuming that parameter db is already a sqlalchemy engine object
+        d=db
     ty=get_db_type(d)
     ok=False
     if ty=="oracle":
@@ -622,6 +631,27 @@ def get_current_timestamp(dbengine):
     log.debug("got timestamp value %s",out)    
     return out
 
+def get_db_by_id_or_alias(d):
+    """
+    returns a sqlalchemy eninge object for the specified id or alias from the plainbi_datasource repo table
+    """
+    log.debug("++++++++++ entering get_db_by_id_or_alias")
+    k=str(d)
+    if k == "def":
+        k="1"
+    if k in config.datasources_engine.keys():
+        return config.datasources_engine[k]
+    else:
+        # not found yet - try to connect again
+        log.debug("get_db_by_id_or_alias connection not found -> reload")
+        load_datasources_from_repo()
+        if k in config.datasources_engine.keys():
+            return config.datasources_engine[k]
+        else:
+            log.warning("get_db_by_id_or_alias connection not found after reload")
+            return None
+
+
 ## repo lookup adhoc
 def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None):
     """
@@ -649,7 +679,7 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
         if len(lkp)==1:
             if isinstance(lkp[0],dict):
                 sql=lkp[0]["sql_query"]
-                execute_in_repodb = lkp[0]["datasource_id"]==0
+                datasrc_id=lkp[0]["datasource_id"]
         else:
             log.debug("lkp list len is not 1")
     else:
@@ -662,13 +692,10 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
     if username is not None:
         sql=sql.replace("$(APP_USER)",username)
         log.debug("lkp sql username replaced")
+
+    dbengine=get_db_by_id_or_alias(datasrc_id)
     try:
-        if execute_in_repodb:
-            log.debug("lookup query execution in repodb")
-            items, columns = db_exec(repoengine,sql)
-        else:
-            log.debug("lookup query execution")
-            items, columns = db_exec(dbengine,sql)
+        items, columns = db_exec(dbengine,sql)
         #items = [row._asdict() for row in data]
         #columns = list(data.keys())
         total_count=len(items)
@@ -719,20 +746,20 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
         return out
     #lkp=[r._asdict() for r in lkpq]
     sql=None
-    execute_in_repodb=None
+    datasrc_id=None
     if isinstance(lkp,list):
         if len(lkp)==1:
             if isinstance(lkp[0],dict):
                 sql=lkp[0]["sql_query"]
                 adhocid=lkp[0]["id"]
-                execute_in_repodb = lkp[0]["datasource_id"]==0
+                datasrc_id = lkp[0]["datasource_id"]
                 order_by_def=lkp[0]["order_by_default"]
                 adhocdesc=lkp[0]["description"]
         else:
             log.warn("get_repo_adhoc_sql_stmt:lkp list len is not 1")
     else:
         log.warn("lkp is not a dict, it is a %s",str(lkp.__class__))
-    return sql, execute_in_repodb, adhocid, order_by_def, adhocdesc
+    return sql, datasrc_id, adhocid, order_by_def, adhocdesc
 
 ## repo customsql 
 def get_repo_customsql_sql_stmt(repoengine,id):
@@ -1473,3 +1500,58 @@ def audit(tokdata,req,id=None,msg=None):
         log.error("audit exception: %s",str(e))
         log.debug("continuing")
     log.debug("++++++++++ leaving audit")
+
+def load_datasources_from_repo():
+    """
+    loads all datasources into a config global dictionary config.datasources and connects to config.datasources_engine
+    """
+    log.debug("++++++++++ entering load_datasources_from_repo")
+    config.datasources={}
+    config.datasources_engine={}
+    def nvl(b):
+        return b if b is not None else "{"+b+"}"
+    # first add repo
+    config.datasources_engine["0"] = config.repoengine
+    config.datasources_engine["repo"] = config.repoengine
+    # next load all datasources from repo
+    datasrc_sql = "select * from plainbi_datasource where id <> 0"
+    datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
+    for i in datasrc_items:
+        db_type = i["db_type"]
+        id = i["id"]
+        alias = i["alias"]
+        host = i["db_host"]
+        port = i["db_port"]
+        db_name = i["db_name"]
+        db_user = i["db_user"]
+        if "db_pass_hash" in i.keys():
+            db_pass = i["db_pass_hash"]
+        else:
+            db_pass = i["db_pass"]
+        if db_type == "mssql":
+            sql_dbengine_str=f"mssql+pymssql://{db_user}:{db_pass}@{host}/{db_name}"
+        elif db_type == "sqlite":
+            sql_dbengine_str=f"sqlite://{host}"
+        elif db_type == "postgres":
+            sql_dbengine_str=f"postgresql+psycopg2://{db_user}{db_user}:{db_pass}@{host}/{db_name}"
+        elif db_type == "oracle":
+            sql_dbengine_str=f"oracle+cx_oracle://{db_user}:{db_pass}@{host}:{port}/{db_name}"
+        else:
+            sql_dbengine_str = db_type
+            if "{db_user}" in sql_dbengine_str and db_user is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{db_user}",db_user)
+            if "{db_pass}" in sql_dbengine_str and db_pass is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{db_pass}",db_pass)
+            if "{host}" in sql_dbengine_str and host is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{host}",host)
+            if "{port}" in sql_dbengine_str and port is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{port}",port)
+        log.debug(sql_dbengine_str)
+        config.datasources[str(id)]=sql_dbengine_str
+        config.datasources[alias]=sql_dbengine_str
+        if db_connect_test(sql_dbengine_str):
+            config.datasources_engine[str(id)] = db_connect(sql_dbengine_str)
+            config.datasources_engine[alias] = db_connect(sql_dbengine_str)
+        else:
+            log.warning('cannot connect to %s',sql_dbengine_str)
+

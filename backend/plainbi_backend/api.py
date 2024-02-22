@@ -129,7 +129,7 @@ from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type, get_dbversion, db_connect_test
+from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
 # import the global variable config
@@ -193,6 +193,8 @@ repo_api_prefix=api_root+"/repo"
 api_metadata_prefix=api_root+"/metadata"
 cursor_desc_fields=["name","type_code","display_size","internal_size","precision","scale","null_ok"]
 
+nodb_msg = { "error" :"-no-open-db", "message":"Datenbankverbindung ungültig in datasources, prüfe die Repo Konfiguration" }
+
 metadata_tab_query="""
 SELECT 
     DB_NAME() AS database_name,
@@ -234,11 +236,10 @@ def get_backend_version():
 ##
 ###########################
 
-
 # Define routes for CRUD operations
-@api.route(api_prefix+'/<tab>', methods=['GET'])
+@api.route(api_prefix+'/<db>/<tab>', methods=['GET'])
 @token_required
-def get_all_items(tokdata,tab):
+def get_all_items(tokdata,db,tab):
     """
     Hole (mehrere) Datensätze aus einer Tabelle
 
@@ -254,6 +255,9 @@ def get_all_items(tokdata,tab):
     log.debug("++++++++++ entering get_all_items")
     log.debug("get_all_items: param tab is <%s>",str(tab))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     is_versioned=False
     myfilter=None
@@ -280,7 +284,7 @@ def get_all_items(tokdata,tab):
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(config.dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
+    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
     log.debug("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
@@ -302,9 +306,9 @@ def get_all_items(tokdata,tab):
 # Define routes for CRUD operations
 
 
-@api.route(api_prefix+'/<tab>/<pk>', methods=['GET'])
+@api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['GET'])
 @token_required
-def get_item(tokdata,tab,pk):
+def get_item(tokdata,db,tab,pk):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle
 
@@ -324,6 +328,9 @@ def get_item(tokdata,tab,pk):
     log.debug("++++++++++ entering get_items")
     log.debug("get_items: param tab is <%s>",str(tab))
     log.debug("get_items: param pk/id is <%s>",str(pk))
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     audit(tokdata,request)
     # check options
     out={}
@@ -352,7 +359,7 @@ def get_item(tokdata,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(config.dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
+    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -376,9 +383,9 @@ def get_item(tokdata,tab,pk):
     return jsonify(out),500
 
 
-@api.route(api_prefix+'/<tab>', methods=['POST'])
+@api.route(api_prefix+'/<db>/<tab>', methods=['POST'])
 @token_required
-def create_item(tokdata,tab):
+def create_item(tokdata,db,tab):
     """
     einen neuen Datensatz in einer Tabelle anlegen
 
@@ -398,6 +405,9 @@ def create_item(tokdata,tab):
     log.debug("++++++++++ entering create_item")
     log.debug("create_item: param tab is <%s>",str(tab))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -425,16 +435,16 @@ def create_item(tokdata,tab):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
-    out = db_ins(config.dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
+    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
     return jsonify(out)
 
 
-@api.route(api_prefix+'/<tab>/<pk>', methods=['PUT'])
+@api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['PUT'])
 @token_required
-def update_item(tokdata,tab,pk):
+def update_item(tokdata,db,tab,pk):
     """
     einen bestimmten Datensatz aktualisieren
 
@@ -455,6 +465,9 @@ def update_item(tokdata,tab,pk):
     log.debug("update_item: param tab is <%s>",str(tab))
     log.debug("update_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -489,16 +502,16 @@ def update_item(tokdata,tab,pk):
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
     
-    out = db_upd(config.dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
+    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
 
     return jsonify(out)
 
-@api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
+@api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['DELETE'])
 @token_required
-def delete_item(tokdata,tab,pk):
+def delete_item(tokdata,db,tab,pk):
     """
     einen bestimmten Datensatz löschen
 
@@ -519,6 +532,9 @@ def delete_item(tokdata,tab,pk):
     log.debug("delete_item: param tab is <%s>",str(tab))
     log.debug("delete_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -547,7 +563,7 @@ def delete_item(tokdata,tab,pk):
         log.debug("pk columns explicitly from url parameter")
 
     log.debug("############# pk columns for delete is %s",str(pkcols))
-    out = db_del(config.dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
+    out = db_del(dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
@@ -556,16 +572,19 @@ def delete_item(tokdata,tab,pk):
     return jsonify(out)
 
 
-@api.route(api_metadata_prefix+'/tables', methods=['GET'])
+@api.route(api_metadata_prefix+'/<db>/tables', methods=['GET'])
 @token_required
-def get_metadata_tables(tokdata):
+def get_metadata_tables(tokdata,db):
     log.debug("++++++++++ entering get_metadata_tables")
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     out={}
-    items,columns,total_count,e=sql_select(config.dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
+    items,columns,total_count,e=sql_select(dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
     log.debug("get_metadata_tables sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -574,9 +593,9 @@ def get_metadata_tables(tokdata):
     out["total_count"]=total_count
     return jsonify(out)
 
-@api.route(api_metadata_prefix+'/table/<tab>', methods=['GET'])
+@api.route(api_metadata_prefix+'/<db>/table/<tab>', methods=['GET'])
 @token_required
-def get_metadata_tab_columns(tokdata,tab):
+def get_metadata_tab_columns(tokdata,db,tab):
     """
     Metadaten einer Tabelle holen
 
@@ -593,6 +612,9 @@ def get_metadata_tab_columns(tokdata,tab):
     log.debug("++++++++++ entering get_metadata_tab_columns")
     log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=None
     if len(request.args) > 0:
@@ -603,7 +625,7 @@ def get_metadata_tab_columns(tokdata,tab):
                 log.debug("pk option %s",pkcols)
     log.debug('get_metadata_tab_columns: for %s',tab)
     try:
-        metadata=get_metadata_raw(config.dbengine,tab,pk_column_list=pkcols)
+        metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     except SQLAlchemyError as e_sqlalchemy:
         if last_stmt_has_errors(e_sqlalchemy, out):
             out["error"]+="-get_metadata_tab_columns"
@@ -1018,7 +1040,7 @@ def get_lookup(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=repo_lookup_select(config.repoengine,config.dbengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
+    items,columns,total_count,e=repo_lookup_select(config.repoengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
     log.debug("get_lookup sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -1082,8 +1104,13 @@ def get_adhoc_data(tokdata,id):
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     log.debug("get_adhoc_data pagination order_by=%s",order_by)
     log.debug("get_adhoc_data: get adhoc stmt")
-    adhoc_sql, execute_in_repodb, adhocid, order_by_def, adhoc_desc = get_repo_adhoc_sql_stmt(config.repoengine,id)
+    adhoc_sql, adhoc_datasrc_id, adhocid, order_by_def, adhoc_desc = get_repo_adhoc_sql_stmt(config.repoengine,id)
     audit(tokdata,request,id=adhocid)
+    if adhoc_datasrc_id is None:
+        msg="adhoc datasource_id is not set - assuming 1"
+        adhoc_datasrc_id = 1
+        #log.warning(msg) 
+        #return msg, 500
     log.debug("get_adhoc_data: parameter substitution")
     # substitute params
     if isinstance(myparams,dict):
@@ -1102,11 +1129,8 @@ def get_adhoc_data(tokdata,id):
         log.error(msg)
         return msg, 500
     log.debug("get_adhoc_data: get db type")
-    # handle pagination for adhoc JSON format
-    if execute_in_repodb:
-       db_typ = get_db_type(config.repoengine)
-    else:
-       db_typ = get_db_type(config.dbengine)
+    adhoc_dbengine = get_db_by_id_or_alias(adhoc_datasrc_id)
+    db_typ = get_db_type(adhoc_dbengine)
     log.debug("get_adhoc_data: prepare json pagination")
     if fmt=="JSON":
         log.debug("get_adhoc_data: fmt JSON")
@@ -1121,12 +1145,7 @@ def get_adhoc_data(tokdata,id):
     # execute adhoc sql
     log.debug("get_adhoc_data: execute adhoc sql")
     try:
-        if execute_in_repodb:
-            log.debug("get_adhoc_data: adhoc query execution in repodb")
-            items, columns = db_exec(config.repoengine,adhoc_sql)
-        else:
-            log.debug("get_adhoc_data: adhoc query execution in db")
-            items, columns = db_exec(config.dbengine,adhoc_sql)
+        items, columns = db_exec(adhoc_dbengine,adhoc_sql)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("adhoc_sql_errors: %s", str(e_sqlalchemy))
         if last_stmt_has_errors(e_sqlalchemy, out):
@@ -1393,9 +1412,9 @@ def login():
     log.debug("++++++++++ entering login")
     log.debug("login")
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    #log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    #log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #print("login items ",str(item))
 
@@ -1589,12 +1608,7 @@ def create_app(p_repository=None, p_database=None):
 
     # get datasources from repository
     log.info("load datasources from plainbi_datasource")        
-    config.datasources={}
-    datasrc_sql = "select * from plainbi_datasource"
-    datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
-    for i in datasrc_items:
-        config.datasources[str(i["id"])]=i["db_type"]
-        config.datasources[i["alias"]]=i["db_type"]
+    load_datasources_from_repo()
 
     if not config.database:
         try:

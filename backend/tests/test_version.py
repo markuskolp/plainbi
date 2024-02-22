@@ -260,6 +260,25 @@ def test_1000_repo_ins_app(test_client):
     row1=(json_out["data"])[0]
     assert row1["name"]==appnam
 
+def test_1001_repo_ins_datasource(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"alias\":\"db\"}' "localhost:3002/api/repo/datasource" -w "%{http_code}\n"    
+    test_url = '/api/repo/datasource'
+    test_data = {"alias" : "db", "db_type": config.database}
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["alias"]=="db"
+
 
 def test_1003_repo_ins_group(test_client):
     """
@@ -542,10 +561,10 @@ def test_2000_tab_ins(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_api_testtable" -w "%{http_code}\n"
     nam="item1"
     id=-8
-    test_url='/api/crud/'+t
+    test_url='/api/crud/1/'+t
     test_data={ "name" : nam, "nr" : id }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -565,7 +584,7 @@ def test_2000_tab_ins2(test_client):
     log.info('TEST: %s',func_name())
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\"}' "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable?seq=DWH.analysis.pytest_seq" -w "%{http_code}\n"
     nam="item6"
-    test_url='/api/crud/'+t+"?seq="+s
+    test_url='/api/crud/1/'+t+"?seq="+s
     test_data={ "name" : nam,}
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -583,10 +602,10 @@ def test_2020_upd(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"item2\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"item2\",\"nr\":-8}' "localhost:3002/api/crud/1//dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"
     nam="item2"
     id=-8
-    test_url='/api/crud/'+t+'/'+str(id)
+    test_url='/api/crud/1/'+t+'/'+str(id)
     test_data={ "name" : nam, "nr":-8 }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.put(test_url, json=test_data, headers=headers)
@@ -626,7 +645,7 @@ def test_2030_get(test_client):
     global headers,t
     log.info('TEST: %s',func_name())
     id=-8
-    test_url='/api/crud/'+t+'/'+str(id)
+    test_url='/api/crud/1/'+t+'/'+str(id)
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -644,7 +663,7 @@ def test_2031_getall(test_client):
     """
     global t,headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+t
+    test_url='/api/crud/1/'+t
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -663,7 +682,7 @@ def test_2032_crud_get_customsql(test_client):
     global headers,t
     log.info('TEST: %s',func_name())
     id=-8
-    test_url='/api/crud/'+t+'/'+str(id)+"?customsql=customsql2"
+    test_url='/api/crud/1/'+t+'/'+str(id)+"?customsql=customsql2"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -681,7 +700,7 @@ def test_2033_crud_getall_customsql(test_client):
     """
     global t,headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+t+"?customsql=customsql2"
+    test_url='/api/crud/1/'+t+"?customsql=customsql2"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -699,7 +718,7 @@ def test_2035_getall_filter_q(test_client):
     """
     global t,headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+t+"?q=item"
+    test_url='/api/crud/1/'+t+"?q=item"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -716,7 +735,7 @@ def test_2036_getall_filter_q_2(test_client):
     """
     global t,headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+t+"?q=item2"
+    test_url='/api/crud/1/'+t+"?q=item2"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -733,7 +752,7 @@ def test_2037_getall_filter2(test_client):
     """
     global t,headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+t+"?filter=name:item2"
+    test_url='/api/crud/1/'+t+"?filter=name:item2"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -751,9 +770,9 @@ def test_2040_del(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/1//dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
     id=-8
-    test_url='/api/crud/'+t+'/'+str(id)
+    test_url='/api/crud/1/'+t+'/'+str(id)
     format_url("delete", test_url, testname=func_name())
     response = test_client.delete(test_url, headers=headers)
     assert response.status_code == 200
@@ -787,10 +806,10 @@ def test_3000_vtab_ins(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="item1"
     id=-8
-    test_url='/api/crud/'+tv+"?v"
+    test_url='/api/crud/1/'+tv+"?v"
     test_data={ "name" : nam, "nr" : id }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -808,10 +827,10 @@ def test_3010_vtab_upd(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="item2"
     id=-8
-    test_url='/api/crud/'+tv+"/"+str(id)+"?v&pk=nr"
+    test_url='/api/crud/1/'+tv+"/"+str(id)+"?v&pk=nr"
     test_data= { "name" : nam, "nr" : -8 }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.put(test_url, json=test_data, headers=headers)
@@ -831,7 +850,7 @@ def test_3030_vget(test_client):
     global headers
     log.info('TEST: %s',func_name())
     id=-8
-    test_url='/api/crud/'+tv+'/'+str(id)+"?v&pk=nr"
+    test_url='/api/crud/1/'+tv+'/'+str(id)+"?v&pk=nr"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -849,7 +868,7 @@ def test_3031_vgetall(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+tv+"?v"
+    test_url='/api/crud/1/'+tv+"?v"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -866,7 +885,7 @@ def test_3032_vgetall_filter(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+tv+"?v&filter=item"
+    test_url='/api/crud/1/'+tv+"?v&filter=item"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -884,9 +903,9 @@ def test_3040_vdel(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/1/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
     id=-8
-    test_url='/api/crud/'+tv+'/'+str(id)+"?v"
+    test_url='/api/crud/1/'+tv+'/'+str(id)+"?v"
     format_url("delete", test_url, testname=func_name())
     response = test_client.delete(test_url, headers=headers)
     assert response.status_code == 200
@@ -899,7 +918,7 @@ def test_3041_vgetall(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+tv+"?v"
+    test_url='/api/crud/1/'+tv+"?v"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -917,10 +936,10 @@ def test_3050_vtab_reins(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="item1"
     id=-8
-    test_url='/api/crud/'+tv+"?v"
+    test_url='/api/crud/1/'+tv+"?v"
     test_data={ "name" : nam, "nr" : id }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -938,7 +957,7 @@ def test_3051_vgetall(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+tv+"?v"
+    test_url='/api/crud/1/'+tv+"?v"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -958,11 +977,11 @@ def test_4000_vtab_ins(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="item1"
     id=-8
     typid=-2
-    test_url='/api/crud/'+tvc+"?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"?v&pk=nr,typ"
     test_data={ "name" : nam, "nr" : id, "typ" : typid }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -981,11 +1000,11 @@ def test_4001_vtab_ins_pk1_pk_a(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     id=-10
     typid=-2
     nam="item-"+str(id)+"-"+str(typid)+"_ins"
-    test_url='/api/crud/'+tvc+"?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"?v&pk=nr,typ"
     test_data={ "name" : nam, "nr" : id, "typ" : typid }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -1005,11 +1024,11 @@ def test_4002_vtab_ins_pk1_pk_b(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     id=-10
     typid=-3
     nam="item-"+str(id)+"-"+str(typid)+"_ins"
-    test_url='/api/crud/'+tvc+"?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"?v&pk=nr,typ"
     test_data={ "name" : nam, "nr" : id, "typ" : typid }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -1030,11 +1049,11 @@ def test_4010_vtab_upd(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     id=-8
     typid=-2
     nam="item2"
-    test_url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
     test_data={ "name" : nam, "nr" : -8 }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.put(test_url, json=test_data, headers=headers)
@@ -1053,11 +1072,11 @@ def test_4011_vtab_upd(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     id=-10
     typid=-2
     nam="item-"+str(id)+"-"+str(typid)+"_upd"
-    test_url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
     test_data={ "name" : nam }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.put(test_url, json=test_data, headers=headers)
@@ -1076,11 +1095,11 @@ def test_4012_vtab_upd(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="item-10-3_upd"
     id=-10
     typid=-3
-    test_url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
     test_data={ "name" : nam }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.put(test_url, json=test_data, headers=headers)
@@ -1102,7 +1121,7 @@ def test_4030_vget(test_client):
     log.info('TEST: %s',func_name())
     id=-8
     typid=-2
-    test_url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -1120,7 +1139,7 @@ def test_4031_vgetall(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/'+tvc+"?v"
+    test_url='/api/crud/1/'+tvc+"?v"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200
@@ -1137,10 +1156,10 @@ def test_4040_vdel(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/1/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
     id=-8
     typid=-2
-    test_url='/api/crud/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"/(nr:"+str(id)+":typ:"+str(typid)+")?v&pk=nr,typ"
     format_url("delete", test_url, testname=func_name())
     response = test_client.delete(test_url, headers=headers)
     assert response.status_code == 200
@@ -1153,11 +1172,11 @@ def test_4050_vtab_reins(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="reinsert"
     id=-8
     typid=-2
-    test_url='/api/crud/'+tvc+"?v&pk=nr,typ"
+    test_url='/api/crud/1/'+tvc+"?v&pk=nr,typ"
     test_data= { "name" : nam, "nr" : id, "typ" : typid }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
