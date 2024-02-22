@@ -564,7 +564,7 @@ def test_2000_tab_ins(test_client):
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_api_testtable" -w "%{http_code}\n"
     nam="item1"
     id=-8
-    test_url='/api/crud/1/'+t
+    test_url='/api/crud/db/'+t
     test_data={ "name" : nam, "nr" : id }
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -584,7 +584,7 @@ def test_2000_tab_ins2(test_client):
     log.info('TEST: %s',func_name())
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\"}' "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable?seq=DWH.analysis.pytest_seq" -w "%{http_code}\n"
     nam="item6"
-    test_url='/api/crud/1/'+t+"?seq="+s
+    test_url='/api/crud/db/'+t+"?seq="+s
     test_data={ "name" : nam,}
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)
@@ -605,7 +605,7 @@ def test_2020_upd(test_client):
     #curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"item2\",\"nr\":-8}' "localhost:3002/api/crud/1//dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"
     nam="item2"
     id=-8
-    test_url='/api/crud/1/'+t+'/'+str(id)
+    test_url='/api/crud/db/'+t+'/'+str(id)
     test_data={ "name" : nam, "nr":-8 }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.put(test_url, json=test_data, headers=headers)
