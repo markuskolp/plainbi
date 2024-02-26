@@ -20,7 +20,8 @@ const { Title, Link, Text } = Typography;
 import "../css/dashboard.css";
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
-const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
+const cubejsApi = cubejs(token, { apiUrl: '/cubejs-api/v1' });
+//const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
 
 const { RangePicker } = DatePicker;
 
