@@ -1,0 +1,536 @@
+# mssql repo init, list of commands to be execute in sqlserver db
+[
+'''
+drop table if exists plainbi_role
+''',
+'''
+create table plainbi_role (
+  id int primary key not null
+ ,name varchar(100)  -- Admin User
+)
+''',
+'''
+INSERT INTO plainbi_role (id,name) VALUES (1,'Admin');
+''',
+'''
+INSERT INTO plainbi_role (id,name) VALUES (2,'User');
+''',
+'''
+drop sequence if exists plainbi_role_seq
+''',
+'''
+create sequence plainbi_role_seq start with 3;
+''',
+'''
+drop table if exists plainbi_user
+''',
+'''
+create table plainbi_user (
+  id int primary key not null 
+ ,username varchar(100)
+ ,email varchar(100)
+ ,fullname varchar(100)
+ ,password_hash varchar(100)
+ ,role_id int
+ ,FOREIGN KEY (role_id) REFERENCES plainbi_role(id)
+)
+''',
+'''
+insert into plainbi_user (id,username,password_hash,role_id) values (1,'admin','$2b$12$fb81v4oi7JdcBIofmi/JoeHfAK0WJUo7Mq648C2dAiewztltywHHu',1)
+''',
+'''
+drop sequence if exists plainbi_user_seq
+''',
+'''
+create sequence plainbi_user_seq start with 2;
+''',
+'''
+drop table if exists plainbi_group
+''',
+'''
+create table plainbi_group (
+  id int primary key not null
+ ,name varchar(100)
+ ,alias varchar(100) --UNIQUE
+)
+''',
+'''
+drop sequence if exists plainbi_group_seq
+''',
+'''
+create sequence plainbi_group_seq start with 1;
+''',
+'''
+drop table if exists plainbi_user_to_group
+''',
+'''
+create table plainbi_user_to_group (
+  user_id int not null
+ ,group_id int not null
+ ,primary key (user_id,group_id)
+ ,FOREIGN KEY (user_id) REFERENCES plainbi_user(id)
+ ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
+)
+''',
+'''
+drop table if exists plainbi_datasource
+''',
+'''
+create table plainbi_datasource (
+  id int primary key not null
+ ,name varchar(100)
+ ,alias varchar(100) --UNIQUE
+ ,db_type varchar(100)  -- db_types enum mssql,postgres,mysql,oracle,sqllite
+ ,db_host varchar(100) 
+ ,db_port varchar(100) 
+ ,db_name varchar(100)
+ ,db_user varchar(100)
+ ,db_pass_hash varchar(100)
+)
+''',
+'''
+insert into plainbi_datasource (id,alias,name) values (0,'repo','internal repository')
+''',
+'''
+drop sequence if exists plainbi_datasource_seq
+''',
+'''
+create sequence plainbi_datasource_seq start with 1;
+''',
+'''
+drop table if exists plainbi_application
+''',
+'''
+create table plainbi_application(
+  id int primary key not null
+ ,name varchar(100)
+ ,alias varchar(100) --UNIQUE
+ ,spec_json varchar(max)
+ ,datasource_id int
+)
+''',
+'''
+drop sequence if exists plainbi_application_seq
+''',
+'''
+create sequence plainbi_application_seq start with 1;
+''',
+'''
+drop table if exists plainbi_application_to_group
+''',
+'''
+create table plainbi_application_to_group (
+  application_id int not null
+ ,group_id int not null
+ ,primary key (application_id,group_id)
+ ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
+)
+''',
+'''
+drop table if exists plainbi_lookup
+''',
+'''
+create table plainbi_lookup (
+  id int primary key not null
+ ,name varchar(100)
+ ,alias varchar(100) --UNIQUE
+ ,sql_query varchar(4000)
+ ,datasource_id int
+ ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
+)
+''',
+'''
+drop sequence if exists plainbi_lookup_seq
+''',
+'''
+create sequence plainbi_lookup_seq start with 1;
+''',
+
+'''
+drop table if exists plainbi_external_resource
+''',
+'''
+create table plainbi_external_resource (
+  id int primary key not null
+ ,name varchar(100)
+ ,alias varchar(100) --UNIQUE
+ ,url varchar(1000)
+ ,description varchar(4000)
+ ,source varchar(1000)
+ ,dataset varchar(1000)
+)
+''',
+'''
+drop sequence if exists plainbi_external_resource_seq
+''',
+'''
+create sequence plainbi_external_resource_seq start with 1;
+''',
+'''
+drop table if exists plainbi_external_resource_to_group
+''',
+'''
+create table plainbi_external_resource_to_group (
+  external_resource_id int not null
+ ,group_id int
+ ,primary key (external_resource_id,group_id)
+ ,FOREIGN KEY (external_resource_id) REFERENCES plainbi_external_resource(id)
+ ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
+)
+''',
+'''
+drop table if exists plainbi_adhoc
+''',
+'''
+create table plainbi_adhoc (
+  id int primary key not null
+ ,name varchar(100)
+ ,alias varchar(100) --UNIQUE
+ ,sql_query varchar(4000)
+ ,output_format varchar(100) -- enum outputformats -- HTML Excel CSV
+ ,datasource_id int
+ ,owner_user_id int
+ ,order_by_default varchar(1000)
+ ,description varchar(4000)
+ ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
+)
+''',
+'''
+drop sequence if exists plainbi_adhoc_seq
+''',
+'''
+create sequence plainbi_adhoc_seq start with 1;
+''',
+'''
+drop table if exists plainbi_adhoc_to_group
+''',
+'''
+create table plainbi_adhoc_to_group (
+  adhoc_id int not null 
+ ,group_id int not null
+ ,primary key (adhoc_id,group_id)
+ ,FOREIGN KEY (group_id) REFERENCES plainbi_group(id)
+ ,FOREIGN KEY (adhoc_id) REFERENCES plainbi_adhoc(id)
+)
+''',
+'''
+INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
+       (-100,'Adhoc Konfiguration','adhoc','{
+   "pages":[
+{
+   "id":"2",
+   "name":"Adhoc Konfiguration",
+   "alias":"adhoc",
+   "pages":[
+      {
+         "id":"1",
+         "name":"Adhocs",
+         "alias":"all",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["id"],
+         "table":"adhoc",
+         "table_columns":[
+            {
+               "column_name":"id",
+               "column_label":"ID",
+               "datatype":"number",
+               "editable":"false",
+               "required":"true"
+            },
+            {
+               "column_name":"name",
+               "column_label":"Adhoc Name",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"owner_user_id",
+               "column_label":"Besitzer",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"user",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"sql_query",
+               "column_label":"SQL Abfrage",
+               "datatype":"text",
+               "ui":"textarea",
+               "editable":"true",
+               "required":"true",
+               "showdetailsonly":"true"
+            },
+            {
+               "column_name":"output_format",
+               "column_label":"Ausgabeformat",
+               "ui":"lookup",
+               "lookup":"output_format",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      },
+      {
+         "id":"2",
+         "name":"Berechtigung",
+         "alias":"rights",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["adhoc_id","group_id"],
+         "table":"adhoc_to_group",
+         "table_columns":[
+            {
+               "column_name":"adhoc_id",
+               "column_label":"Adhoc",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"adhoc",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"group_id",
+               "column_label":"Gruppe",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"group",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      }
+   ]
+}',0);
+''',
+'''
+INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
+       (-101,'externe Ressourcen','ext_res','{
+   "pages":[
+      {
+         "id":"1",
+         "name":"externe Ressourcen",
+         "alias":"all",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["id"],
+         "table":"external_resource",
+         "table_columns":[
+            {
+               "column_name":"id",
+               "column_label":"ID",
+               "datatype":"number",
+               "editable":"false",
+               "required":"true"
+            },
+            {
+               "column_name":"name",
+               "column_label":"Name",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"url",
+               "column_label":"Aufruf URL",
+               "datatype":"text",
+               "ui":"textinput",
+               "editable":"true",
+               "required":"true",
+               "showdetailsonly":"true"
+            },
+            {
+               "column_name":"description",
+               "column_label":"Beschreibung",
+               "ui":"textarea_markdown",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"source",
+               "column_label":"Quelle / System",
+               "ui":"textinput",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"dataset",
+               "column_label":"Datensatz",
+               "ui":"textinput",
+               "datatype":"text",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      },
+      {
+         "id":"2",
+         "name":"Berechtigung",
+         "alias":"rights",
+         "allowed_actions":[
+            "create",
+            "update",
+            "delete"
+         ],
+         "datasource":"repo",
+         "pk_columns":["external_resource_id","group_id"],
+         "table":"external_resource_to_group",
+         "table_columns":[
+            {
+               "column_name":"external_resource_id",
+               "column_label":"Ext. Ressource",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"external_resource",
+               "editable":"true",
+               "required":"true"
+            },
+            {
+               "column_name":"group_id",
+               "column_label":"Gruppe",
+               "datatype":"number",
+               "ui":"lookup",
+               "lookup":"group",
+               "editable":"true",
+               "required":"true"
+            }
+         ]
+      }
+   ]
+}',0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-100, 'output_format', 'select ''HTML'' as d, ''HTML'' as r union select ''Excel'' as d, ''XLSX'' as r union select ''CSV'' as d, ''CSV'' as r', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-101, 'datasource', 'select name as d, id as r from plainbi_datasource', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-102, 'db_type', 'select ''SQLite'' as d, ''sqlite'' as r union select ''MS SQL Server'' as d, ''mssql'' as r', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select coalesce(fullname + ''('' + username + '')'', username) as d, id as r from plainbi_user', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-104, 'group', 'select name as d, id as r from plainbi_group', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-105, 'application', 'select name as d, id as r from plainbi_application', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-106, 'role', 'select name as d, id as r from plainbi_role', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-107, 'adhoc', 'select name as d, id as r from plainbi_adhoc', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-108, 'external_resource', 'select name as d, id as r from plainbi_external_resource', 0);
+''',
+'''
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-109, 'username', 'select fullname + ''('' + username + '')'' as d, username as r from plainbi_user where username != ''admin'';', 0);
+''',
+'''
+drop table if exists plainbi_audit
+''',
+'''
+create table plainbi_audit (
+  username varchar(100)
+ ,t datetime
+ ,url varchar(250)
+ ,id varchar(100)
+ ,remark varchar(1000)
+ ,request_method varchar(100)
+ ,request_body varchar(1000)
+)
+''',
+'''
+DROP VIEW IF EXISTS plainbi_audit_adhoc;
+''',
+'''
+create view plainbi_audit_adhoc
+as
+select 
+coalesce(u.fullname, u.username) as "user"
+, a.t as datum
+, a.id as adhoc_id
+, pa.name as adhoc_name
+, case 
+when a.url like '%XLSX' then 'Excel'
+when a.url like '%CSV' then 'CSV'
+when a.url like '%HTML' then 'HTML'
+else 'HTML' 
+end as ausgabe_format
+from plainbi_audit a, plainbi_user u, plainbi_adhoc pa 
+where 1=1
+and a.username = u.username
+and a.id = pa.id
+and url like '%/api/repo/adhoc/%/data%'
+''',
+'''
+drop table if exists plainbi_customsql
+''',
+'''
+create table plainbi_customsql (
+  id int primary key not null
+ ,alias varchar(100) --UNIQUE
+ ,name varchar(100)
+ ,sql_query varchar(4000)
+)
+''',
+'''
+drop sequence if exists plainbi_customsql_seq
+''',
+'''
+create sequence plainbi_customsql_seq start with 1;
+''',
+'''
+drop table if exists plainbi_adhoc_parameter
+''',
+'''
+CREATE TABLE plainbi_adhoc_parameter (
+  id int primary key not null,
+  name varchar(100),
+  name_technical varchar(100),
+  adhoc_id int,
+  datatype varchar(100),
+  ui varchar(100),
+  lookup varchar(100),
+  default_value varchar(100),
+  required char(1)
+);
+''',
+'''
+drop sequence if exists plainbi_adhoc_parameter_seq
+''',
+'''
+create sequence plainbi_adhoc_parameter_seq start with 1;
+''',
+'''
+insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-110, null, 'ui_for_parameter', 'select ''textinput'' as r, ''Eingabefeld (Text)'' as d union select ''numberinput'' as r, ''Eingabefeld (Zahl)'' as d union select ''datepicker'' as r, ''Datumsauswahl'' as d union select ''lookup'' as r, ''Lookup'' as d', 0);
+''',
+'''
+insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-111, null, 'lookup_for_parameter', 'select case when name is null then alias else name + '' ('' + alias + '')'' end as d, alias as r from plainbi_lookup', 0);
+''',
+'''
+insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0);
+''',
+]

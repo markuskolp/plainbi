@@ -10,6 +10,13 @@ first window
 second window
 ~/plainbi/backend> python plainbi_backend.py
 
+in Browser:
+http://localhost:3001/
+
+in Windows/Linux
+# get version
+curl -H "Content-Type: application/json" --request GET "localhost:3001/api/version" -w "%{http_code}\n"
+
 
 # login
 curl -H "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe123\"}' "localhost:3002/login" -w "%{http_code}\n"
@@ -88,21 +95,21 @@ curl -H "Content-Type: application/json" --request POST -H "Authorization: %tok%
 """
 
 
-import urllib
+#import urllib
 import logging
 import os
 import sys
 from datetime import date,datetime
 import json
-import sqlalchemy
+#import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 import csv
 import pandas as pd
 from flask_bcrypt import Bcrypt
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
+#from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
-from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.worksheet.table import Table #, TableStyleInfo
 
 import pandas.io.formats.excel as fmt_xl
 
@@ -122,18 +129,20 @@ from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type, get_dbversion
+from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type, get_dbversion, db_connect_test
 from plainbi_backend.repo import create_repo_db
 
-from plainbi_backend.config import config,load_pbi_env
+# import the global variable config
+from plainbi_backend.config import config, get_config
 
 
+#log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+
 
 api = Blueprint('api', __name__)
 
-pbi_env = load_pbi_env()
+#pbi_env = load_pbi_env()
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -175,8 +184,6 @@ def token_required(f):
 
     return decorated
 
-dbengine=None
-repoengine=None
 
 repo_table_prefix="plainbi_"
 
@@ -197,13 +204,28 @@ ORDER BY database_name, schema_name, table_name
 """
 
 #
+@api.route('/', methods=['GET'])
+def welcome():
+    dbversion=get_dbversion(config.repoengine)
+    p=f"""
+    <html>
+    <body>
+    <h1>Welcome to PLAINBI Backend</h1>
+    <p>Version {config.version}</p>
+    <p>Repo Database version {dbversion}</p>
+    <p>If you want to initialize the repository click <a href="{repo_api_prefix+'/init_repo'}">here</a></p>
+    </body>    
+    </html>    
+    """
+    return p
+
 @api.route(api_root+'/version', methods=['GET'])
 def get_version():
     return config.version
 
 @api.route(api_root+'/backend_version', methods=['GET'])
 def get_backend_version():
-    dbversion=get_dbversion(repoengine)
+    dbversion=get_dbversion(config.repoengine)
     return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
 
 ###########################
@@ -258,7 +280,7 @@ def get_all_items(tokdata,tab):
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
+    items,columns,total_count,e=sql_select(config.dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
     log.debug("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
@@ -275,7 +297,6 @@ def get_all_items(tokdata,tab):
         json_out = jsonify(out)
     except Exception as ej:
         log.error("get_all_items: jsonify Error: %s",str(ej))
-        return "get_all_items: jsonify Error",500
     return json_out
 
 # Define routes for CRUD operations
@@ -331,7 +352,7 @@ def get_item(tokdata,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
+    out=get_item_raw(config.dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -342,6 +363,7 @@ def get_item(tokdata,tab,pk):
             except Exception as ej:
                 log.error("get_item: jsonify Error: %s",str(ej))
                 return "get_item: jsonify Error",500
+
             return json_out
             #return Response(jsonify(out),status=204)
         else:
@@ -403,7 +425,7 @@ def create_item(tokdata,tab):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
-    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
+    out = db_ins(config.dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
@@ -467,10 +489,11 @@ def update_item(tokdata,tab,pk):
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
     
-    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
+    out = db_upd(config.dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
+
     return jsonify(out)
 
 @api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
@@ -524,7 +547,7 @@ def delete_item(tokdata,tab,pk):
         log.debug("pk columns explicitly from url parameter")
 
     log.debug("############# pk columns for delete is %s",str(pkcols))
-    out = db_del(dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
+    out = db_del(config.dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
@@ -542,7 +565,7 @@ def get_metadata_tables(tokdata):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     out={}
-    items,columns,total_count,e=sql_select(dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
+    items,columns,total_count,e=sql_select(config.dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
     log.debug("get_metadata_tables sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -580,7 +603,7 @@ def get_metadata_tab_columns(tokdata,tab):
                 log.debug("pk option %s",pkcols)
     log.debug('get_metadata_tab_columns: for %s',tab)
     try:
-        metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
+        metadata=get_metadata_raw(config.dbengine,tab,pk_column_list=pkcols)
     except SQLAlchemyError as e_sqlalchemy:
         if last_stmt_has_errors(e_sqlalchemy, out):
             out["error"]+="-get_metadata_tab_columns"
@@ -620,7 +643,7 @@ def get_resource(tokdata):
     """
     log.debug("++++++++++ entering get_resource")
     audit(tokdata,request)
-    prof=get_profile(repoengine,tokdata['username'])
+    prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
     out={}
     offset = request.args.get('offset')
@@ -631,6 +654,8 @@ def get_resource(tokdata):
     w_app=add_auth_to_where_clause("plainbi_application",None,user_id)
     w_adhoc=add_auth_to_where_clause("plainbi_adhoc",None,user_id)
     w_ext_res=add_auth_to_where_clause("plainbi_external_resource",None,user_id)
+    if not hasattr(config,"repo_db_type"):
+        config.repo_db_type=get_db_type(config.repoengine)
     log.debug("get_resource config.repo_db_type=%s",config.repo_db_type)
     if config.repo_db_type == 'mssql':
         concat_op='+'
@@ -680,7 +705,7 @@ select
 from plainbi_external_resource per
 {w_ext_res}
 """
-    items,columns,total_count,e=sql_select(repoengine,resource_sql,order_by,offset,limit,with_total_count=True,is_repo=True,user_id=prof["user_id"])
+    items,columns,total_count,e=sql_select(config.repoengine,resource_sql,order_by,offset,limit,with_total_count=True,is_repo=True,user_id=prof["user_id"])
     log.debug("get_resource sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -709,7 +734,7 @@ def get_all_repos(tokdata,tab):
     log.debug("++++++++++ entering get_all_repos")
     log.debug("get_all_repos: param tab is <%s>",str(tab))
     audit(tokdata,request)
-    prof=get_profile(repoengine,tokdata['username'])
+    prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     offset = request.args.get('offset')
     myfilter = request.args.get('filter')
@@ -717,7 +742,7 @@ def get_all_repos(tokdata,tab):
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(repoengine,repo_table_prefix+tab,order_by,offset,limit,filter=myfilter,with_total_count=True,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
+    items,columns,total_count,e=sql_select(config.repoengine,repo_table_prefix+tab,order_by,offset,limit,filter=myfilter,with_total_count=True,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     log.debug("get_all_repos sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -753,7 +778,7 @@ def get_repo(tokdata,tab,pk):
     log.debug("get_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
     # check options
-    prof=get_profile(repoengine,tokdata['username'])
+    prof=get_profile(config.repoengine,tokdata['username'])
     pkcols=[]
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -766,9 +791,9 @@ def get_repo(tokdata,tab,pk):
     pk=prep_pk_from_url(pk)
     if tab=="application" and (not is_id(pk)):
         # use alias
-        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"],is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
+        out=get_item_raw(config.repoengine,repo_table_prefix+tab,pk,pk_column_list=["alias"],is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     else:    
-        out=get_item_raw(repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
+        out=get_item_raw(config.repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -805,7 +830,7 @@ def create_repo(tokdata,tab):
     log.debug("++++++++++ entering create_repo")
     log.debug("create_repo: param tab is <%s>",str(tab))
     audit(tokdata,request)
-    prof=get_profile(repoengine,tokdata['username'])
+    prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     pkcols=[]
     is_versioned=False
@@ -828,18 +853,18 @@ def create_repo(tokdata,tab):
     data_string = data_bytes.decode('utf-8')
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
-    db_typ = get_db_type(repoengine)
+    db_typ = get_db_type(config.repoengine)
     if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group","customsql","adhoc_parameter"]:
         if db_typ=="sqlite":
            seq=tab
-        elif db_typ=="mssql":
+        elif db_typ in ("mssql","postgres","oracle"):
            seq="plainbi_"+tab+"_seq"
         else:
            log.error("create_repo: unknown repo database type")
            seq=None
     else:
         seq=None
-    out = db_ins(repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True,customsql=mycustomsql)
+    out = db_ins(config.repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True,customsql=mycustomsql)
     return jsonify(out)
 
 
@@ -866,7 +891,7 @@ def update_repo(tokdata,tab,pk):
     log.debug("update_repo: param tab is <%s>",str(tab))
     log.debug("update_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
-    prof=get_profile(repoengine,tokdata['username'])
+    prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     pkcols=[]
     is_versioned=False
@@ -896,7 +921,7 @@ def update_repo(tokdata,tab,pk):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
-    out = db_upd(repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True,customsql=mycustomsql)
+    out = db_upd(config.repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True,customsql=mycustomsql)
     return jsonify(out)
 
 
@@ -923,7 +948,7 @@ def delete_repo(tokdata,tab,pk):
     log.debug("delete_repo: param tab is <%s>",str(tab))
     log.debug("delete_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
-    prof=get_profile(repoengine,tokdata['username'])
+    prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     pkcols=[]
     is_versioned=False
@@ -952,7 +977,7 @@ def delete_repo(tokdata,tab,pk):
         log.debug("pk columns explicitly from url parameter")
 
     log.debug("############# pk columns for delete is %s",str(pkcols))
-    out = db_del(repoengine,repo_table_prefix+tab,pk,pkcols,is_versioned,is_repo=True)
+    out = db_del(config.repoengine,repo_table_prefix+tab,pk,pkcols,is_versioned,is_repo=True)
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Repo Record deleted successfully', 200
@@ -961,14 +986,15 @@ def delete_repo(tokdata,tab,pk):
 
 
 
-@api.route(repo_api_prefix+'/init_repo', methods=['POST'])
-@token_required
-def init_repo(tokdata):
+###@token_required
+###put tokdata as arguemnt in function
+@api.route(repo_api_prefix+'/init_repo', methods=['GET'])
+def init_repo():
     log.debug("++++++++++ entering init_repo")
-    audit(tokdata,request)
-    with repoengine.connect() as conn:
+    #audit(tokdata,request)
+    with config.repoengine.connect() as conn:
         pass
-    create_repo_db(repoengine)
+    create_repo_db(config.repoengine)
     return 'Repo initialized successfully', 200
 
 
@@ -992,7 +1018,7 @@ def get_lookup(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=repo_lookup_select(repoengine,dbengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
+    items,columns,total_count,e=repo_lookup_select(config.repoengine,config.dbengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
     log.debug("get_lookup sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -1056,7 +1082,7 @@ def get_adhoc_data(tokdata,id):
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     log.debug("get_adhoc_data pagination order_by=%s",order_by)
     log.debug("get_adhoc_data: get adhoc stmt")
-    adhoc_sql, execute_in_repodb, adhocid, order_by_def, adhoc_desc = get_repo_adhoc_sql_stmt(repoengine,id)
+    adhoc_sql, execute_in_repodb, adhocid, order_by_def, adhoc_desc = get_repo_adhoc_sql_stmt(config.repoengine,id)
     audit(tokdata,request,id=adhocid)
     log.debug("get_adhoc_data: parameter substitution")
     # substitute params
@@ -1078,9 +1104,9 @@ def get_adhoc_data(tokdata,id):
     log.debug("get_adhoc_data: get db type")
     # handle pagination for adhoc JSON format
     if execute_in_repodb:
-       db_typ = get_db_type(repoengine)
+       db_typ = get_db_type(config.repoengine)
     else:
-       db_typ = get_db_type(dbengine)
+       db_typ = get_db_type(config.dbengine)
     log.debug("get_adhoc_data: prepare json pagination")
     if fmt=="JSON":
         log.debug("get_adhoc_data: fmt JSON")
@@ -1097,10 +1123,10 @@ def get_adhoc_data(tokdata,id):
     try:
         if execute_in_repodb:
             log.debug("get_adhoc_data: adhoc query execution in repodb")
-            items, columns = db_exec(repoengine,adhoc_sql)
+            items, columns = db_exec(config.repoengine,adhoc_sql)
         else:
             log.debug("get_adhoc_data: adhoc query execution in db")
-            items, columns = db_exec(dbengine,adhoc_sql)
+            items, columns = db_exec(config.dbengine,adhoc_sql)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("adhoc_sql_errors: %s", str(e_sqlalchemy))
         if last_stmt_has_errors(e_sqlalchemy, out):
@@ -1279,9 +1305,9 @@ users=dict()
 
 def load_repo_users():
     log.debug("++++++++++ entering load_repo_users")
-    global pbi_env,users
+    global users
     out={}
-    plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
+    plainbi_users,columns,cnt,e=sql_select(config.repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
         log.error('error in select users %s', str(e))
         return False
@@ -1289,7 +1315,7 @@ def load_repo_users():
     
 def authenticate_local(username,password):
     log.debug("++++++++++ entering authenticate_local")
-    global pbi_env,users
+    global users
     load_repo_users()
     if not username or not password:
         log.error('error invalid cred')
@@ -1309,18 +1335,23 @@ def authenticate_local(username,password):
     
 def authenticate_ldap(username,password):
     log.debug("++++++++++ entering authenticate_ldap")
-    global pbi_env,users
+    global users
     mail=None
     full_name=None
     load_repo_users()
     authenticated=False
-    s = ldap3.Server(host=pbi_env["LDAP_HOST"], port=int(pbi_env["LDAP_PORT"]), use_ssl=False, get_info=ldap3.ALL)
-    conn_bind = ldap3.Connection(s, user=pbi_env["LDAP_BIND_USER_DN"], password=pbi_env["LDAP_BIND_USER_PASSWORD"], auto_bind='NONE', version=3, authentication='SIMPLE')
+    s = ldap3.Server(host=os.environ.get("LDAP_HOST"), port=int(os.environ.get("LDAP_PORT")), use_ssl=False, get_info=ldap3.ALL)
+    conn_bind = ldap3.Connection(s, user=os.environ.get("LDAP_BIND_USER_DN"), password=os.environ.get("LDAP_BIND_USER_PASSWORD"), auto_bind='NONE', version=3, authentication='SIMPLE')
     if not conn_bind.bind():
         log.error('error in bind %s', str(conn_bind.result))
+        log.error('check environent variables LDAP_HOST=%s LDAP_PORT=%s LDAP_BIND_USER_DN=%s', os.environ.get("LDAP_HOST"),os.environ.get("LDAP_PORT"),os.environ.get("LDAP_BIND_USER_DN"))
+        if "LDAP_BIND_USER_PASSWORD" not in list(dict(os.environ).keys()):
+            log.error("environment variable LDAP_BIND_USER_PASSWORD is missing")
         log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
         return authenticated
-    conn_bind.search(pbi_env["LDAP_BASE_DN"], f'(&(cn={username}))', attributes=['*'])
+    if "LDAP_BASE_DN" not in list(dict(os.environ).keys()):
+        log.error("environment variable LDAP_BASE_DN is missing")
+    conn_bind.search(os.environ.get("LDAP_BASE_DN"), f'(&(cn={username}))', attributes=['*'])
     for entry in conn_bind.entries:
         log.debug("ldap entry=%s",entry.entry_dn)
         conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
@@ -1338,7 +1369,7 @@ def authenticate_ldap(username,password):
                     # Specify the attributes to retrieve
                     attributes = ['mail', 'displayName']
                     # Perform the LDAP search
-                    conn_bind.search(pbi_env["LDAP_BASE_DN"], search_filter, attributes=attributes)
+                    conn_bind.search(os.environ.get("LDAP_BASE_DN"), search_filter, attributes=attributes)
                     # Retrieve and display the results
                     if conn_bind.entries:
                         entry = conn_bind.entries[0]
@@ -1362,9 +1393,9 @@ def login():
     log.debug("++++++++++ entering login")
     log.debug("login")
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    #log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    #log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #print("login items ",str(item))
 
@@ -1378,7 +1409,7 @@ def login():
     used_ldap=False
     used_local=False
     authenticated = False
-    if "LDAP_HOST" in pbi_env.keys():  # if LDAP is defined in config environment
+    if "LDAP_HOST" in list(dict(os.environ).keys()):  # if LDAP is defined in environment
         used_ldap=True
         authenticated = authenticate_ldap(username,password)
         log.debug("login authenticated by ldap = %s",authenticated)
@@ -1387,6 +1418,7 @@ def login():
             authenticated = authenticate_local(username,password)
             log.debug("login authenticated local = %s",authenticated)
     else: 
+        log.debug("ldap authentication skipped because no LDAP_HOST environment variable")
         used_local=True
         authenticated = authenticate_local(username,password)
         log.debug("login authenticated local = %s",authenticated)
@@ -1421,9 +1453,9 @@ def passwd(tokdata):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     print("passwd items ",str(item))
-    prof=get_profile(repoengine,tokdata['username'])
+    prof=get_profile(config.repoengine,tokdata['username'])
     
-    plainbi_users,columns,cnt,e=sql_select(repoengine,'plainbi_user')
+    plainbi_users,columns,cnt,e=sql_select(config.repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
         return jsonify({'error': 'Invalid User collecting'}), 500
     users = {u["username"]: u["password_hash"] for u in plainbi_users}
@@ -1448,7 +1480,7 @@ def passwd(tokdata):
                 out["error"]="old-password-does-not-match"
                 out["message"]="Altes Passwort ist falsch"
                 return jsonify(out)
-    out=db_passwd(repoengine,username,p)
+    out=db_passwd(config.repoengine,username,p)
     log.debug("++++++++++ leaving passwd with %s",out)
     return jsonify(out)
 
@@ -1519,7 +1551,7 @@ def protected(tokdata):
 @token_required
 def profile(tokdata):
     audit(tokdata,request)
-    out=get_profile(repoengine,tokdata['username'])
+    out=get_profile(config.repoengine,tokdata['username'])
     return jsonify(out)
 
 
@@ -1530,42 +1562,63 @@ def logout(tokdata):
     return jsonify({'message': 'logged out'})
 
 
-def create_app(config_filename=None,p_repository=None):
-    global app, dbengine, repoengine
+def create_app(p_repository=None, p_database=None):
+    """
+    create app is the standard Flask application definition
+
+    it is called either from 
+      - the standalone plainbi_backend.py 
+      - or from the uwsgi script
+      - unittest scripts (the parameters p_repository and p_database are important here)
+    that's why the get_config handling is necessary
+    """
+    global app
+    log.info("creating flask app")
     app = Flask(__name__)
-    #app.config.from_pyfile(config_filename)
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
+   
+    # get the configuration
+    get_config(repository=p_repository,database=p_database)
     
-    if p_repository is not None:
-        repoengine = db_connect(p_repository)
-    else:
-        repoengine = db_connect(pbi_env["repo_engine"], pbi_env["repo_params"] if "repo_params" in pbi_env.keys() else None)
-    log.info("repoengine %s",repoengine.url)
-    config.repoengine=repoengine
-    config.repo_db_type = get_db_type(repoengine)
-    log.info("config.repoengine set to %s",repoengine.url)
+    # connect to the repository
+    config.repoengine = db_connect(config.repository)
+    if not db_connect_test(config.repoengine):
+        log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
+        sys.exit(0)
 
-    dbengine = db_connect(pbi_env["db_engine"], pbi_env["db_params"] if "db_params" in pbi_env.keys() else None)
-    log.info("dbengine %s",dbengine.url)
+    # get datasources from repository
+    log.info("load datasources from plainbi_datasource")        
+    config.datasources={}
+    datasrc_sql = "select * from plainbi_datasource"
+    datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
+    for i in datasrc_items:
+        config.datasources[str(i["id"])]=i["db_type"]
+        config.datasources[i["alias"]]=i["db_type"]
 
-    if "repo_engine" not in pbi_env.keys():
-        log.error("repo_engine must be defined")
-        sys.exit(1)
+    if not config.database:
+        try:
+           config.database = config.datasources["1"]
+        except Exception as e:
+            log.warning("config datasource %s",str(e))
 
-
-    #from yourapplication.model import db
-    #db.init_app(app)
-
+    # if there is a database database now connect to it
+    if config.database:
+        config.dbengine = db_connect(config.database)
+        if not db_connect_test(config.dbengine):
+            log.error("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
+            sys.exit(0)
+        log.info(f"The default database connection description is {config.database}")
+    
     #from yourapplication.views.admin import admin
     #from yourapplication.views.frontend import frontend
     #app.register_blueprint(admin)
     #app.register_blueprint(frontend)
 
+    # handle Java Web Tokens
     app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
     config.bcrypt = Bcrypt(app)
 
     #jwt = JWTManager(app)
-
     return app
 
