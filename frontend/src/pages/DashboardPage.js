@@ -21,7 +21,6 @@ import "../css/dashboard.css";
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
 const cubejsApi = cubejs(token, { apiUrl: '/cubejs-api/v1' });
-//const cubejsApi = cubejs(token, { apiUrl: 'http://localhost:4000/cubejs-api/v1' });
 
 const { RangePicker } = DatePicker;
 
@@ -274,7 +273,11 @@ const DashboardPage = (props) => {
           <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
             <Col span={24} style={{textAlign:"right"}}>
               <Space style={{textAlign:"left"}}>
-                {data.dashboardFilter ? <MemberSelect query={data.dashboardFilter.query} columnId={data.dashboardFilter.columnId} columnLabel={data.dashboardFilter.columnLabel} defaultValue={data.dashboardFilter.defaultValue} onChange={handleChangeSelectVA} /> : ""}
+                {data.dashboardFilters && data.dashboardFilters.map((dashboardFilter) => { 
+                  return (
+                    dashboardFilter.type === 'lookup' ? <MemberSelect query={dashboardFilter.query} columnId={dashboardFilter.columnId} columnLabel={dashboardFilter.columnLabel} defaultValue={dashboardFilter.defaultValue} onChange={handleChangeSelectVA} /> : ""
+                  )
+                })}
                 {data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
               </Space>
             </Col>
@@ -289,6 +292,8 @@ const DashboardPage = (props) => {
 };
 
 export default DashboardPage;
+
+// {data.dashboardFilter ? <MemberSelect query={data.dashboardFilter.query} columnId={data.dashboardFilter.columnId} columnLabel={data.dashboardFilter.columnLabel} defaultValue={data.dashboardFilter.defaultValue} onChange={handleChangeSelectVA} /> : ""}
 
 //{data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
 //{data.data_status ? <ChartRenderer vizState={replaceVizStateFilters(data.data_status.vizState, dashboardFilter.name, dashboardFilter.value)} />  : "" }

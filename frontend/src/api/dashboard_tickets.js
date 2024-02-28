@@ -16,10 +16,12 @@ export const dashboard_tickets  =
       //format: "DD.MM.YYYY HH24:MI:SS"
     }
   },
-  dashboardFilter : {
+  dashboardFilters : [
+    {
       columnId: "Veranstaltung.veranstaltungNr",
       columnLabel: "Veranstaltung.veranstaltungName",
       defaultValue: "EXPO REAL 2023",
+      type: "lookup",
       query : {
         "order": [
         [
@@ -64,8 +66,9 @@ export const dashboard_tickets  =
         }
         ],
         "limit": 5000
+      }
     }
-  },
+  ],
   dashboardItems: [
       {
         vizState: {

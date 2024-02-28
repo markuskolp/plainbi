@@ -25,55 +25,58 @@ export const dashboard_zutritte  =
       //format: "DD.MM.YYYY HH24:MI:SS"
     }
   },
-  dashboardFilter : {
-      columnId: "Veranstaltung.veranstaltungNr",
-      columnLabel: "Veranstaltung.veranstaltungName",
-      defaultValue: "EXPO REAL 2023",
-      query : {
-        "order": [
-        [
+  dashboardFilters : [
+      {
+        columnId: "Veranstaltung.veranstaltungNr",
+        columnLabel: "Veranstaltung.veranstaltungName",
+        defaultValue: "EXPO REAL 2023",
+        type: "lookup",
+        query : {
+          "order": [
+          [
+              "Veranstaltung.veranstaltungJahr",
+              "desc"
+          ],
+          [
+              "Veranstaltung.veranstaltungName",
+              "asc"
+          ]
+          ],
+          "segments": [
+            "Zutritte.fkmRelevant"
+          ],
+          "dimensions": [
+            "Veranstaltung.veranstaltungNr",
             "Veranstaltung.veranstaltungJahr",
-            "desc"
-        ],
-        [
-            "Veranstaltung.veranstaltungName",
-            "asc"
-        ]
-        ],
-        "segments": [
-          "Zutritte.fkmRelevant"
-        ],
-        "dimensions": [
-          "Veranstaltung.veranstaltungNr",
-          "Veranstaltung.veranstaltungJahr",
-        "Veranstaltung.veranstaltungName"
-        ],
-        "filters": [
-        {
+          "Veranstaltung.veranstaltungName"
+          ],
+          "filters": [
+          {
+              "member": "Veranstaltung.veranstaltungJahr",
+              "operator": "gte",
+              "values": [
+              "2022"
+              ]
+          },
+          {
             "member": "Veranstaltung.veranstaltungJahr",
-            "operator": "gte",
+            "operator": "lte",
             "values": [
-            "2022"
+            "2024"
             ]
         },
-        {
-          "member": "Veranstaltung.veranstaltungJahr",
-          "operator": "lte",
-          "values": [
-          "2024"
-          ]
-      },
-        {
-            "member": "Veranstaltung.veranstaltungName",
-            "operator": "notContains",
-            "values": [
-            "Complimentary Card","Ticketshop"
-            ]
-        }
-        ],
-        "limit": 5000
+          {
+              "member": "Veranstaltung.veranstaltungName",
+              "operator": "notContains",
+              "values": [
+              "Complimentary Card","Ticketshop"
+              ]
+          }
+          ],
+          "limit": 5000
+      }
     }
-  },
+  ],
   dashboardItems: [
       {
         vizState: {

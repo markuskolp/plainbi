@@ -158,6 +158,8 @@ const TypeToChartComponent = {
           dataKey={series.key}
           name={series.title}
           stroke={colors[i]}
+          dot={false} 
+          strokeWidth={2}
         />
       ))}
     </CartesianChart>

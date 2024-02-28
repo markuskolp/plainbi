@@ -15,10 +15,12 @@ export const dashboard_socialmedia  =
       //format: "DD.MM.YYYY HH24:MI:SS"
     }
   },
-  dashboardFilter : {
-      columnId: "Veranstaltungsreihe.VeranstaltungsreiheNr",
-      columnLabel: "Veranstaltungsreihe.VeranstaltungsreiheName",
-      defaultValue: "EXR",
+  dashboardFilters : [
+    {
+      columnId: "Veranstaltungsreihe.veranstaltungsreiheCode",
+      columnLabel: "Veranstaltungsreihe.veranstaltungsreiheName",
+      defaultValue: "EXPO REAL",
+      type: "lookup",
       query : {
         "order": [
           [
@@ -28,7 +30,7 @@ export const dashboard_socialmedia  =
         ],
         "dimensions": [
           "Veranstaltungsreihe.veranstaltungsreiheName",
-          "Veranstaltungsreihe.veranstaltungsreiheNr"
+          "Veranstaltungsreihe.veranstaltungsreiheCode"
         ],
         "filters": [
           {
@@ -42,7 +44,8 @@ export const dashboard_socialmedia  =
         ,
         "limit": 5000
       }
-  },
+    }
+  ],
   dashboardItems: [
       {
         vizState: {
@@ -216,7 +219,7 @@ export const dashboard_socialmedia  =
     vizState: {
       query:{
       "measures": [
-        "SocialMedia.impressionen"
+        "SocialMedia.followerGewonnen"
       ],
       "timeDimensions": [
         {
@@ -236,7 +239,7 @@ export const dashboard_socialmedia  =
           ]
         },
         {
-          "member": "SocialMedia.impressionen",
+          "member": "SocialMedia.followerGewonnen",
           "operator": "gt",
           "values": [
             "0"
@@ -247,7 +250,7 @@ export const dashboard_socialmedia  =
         "SocialMediaVertriebsweg.socialMediaVertriebsweg"
       ]
       },
-      chartType:"bar"
+      chartType:"line"
     },
     name: "Verlauf",
     id: 100,
