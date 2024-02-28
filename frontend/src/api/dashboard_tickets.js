@@ -20,6 +20,7 @@ export const dashboard_tickets  =
     {
       columnId: "Veranstaltung.veranstaltungNr",
       columnLabel: "Veranstaltung.veranstaltungName",
+      displayName: "Veranstaltung",
       defaultValue: "EXPO REAL 2023",
       type: "lookup",
       query : {

@@ -275,7 +275,13 @@ const DashboardPage = (props) => {
               <Space style={{textAlign:"left"}}>
                 {data.dashboardFilters && data.dashboardFilters.map((dashboardFilter) => { 
                   return (
-                    dashboardFilter.type === 'lookup' ? <MemberSelect query={dashboardFilter.query} columnId={dashboardFilter.columnId} columnLabel={dashboardFilter.columnLabel} defaultValue={dashboardFilter.defaultValue} onChange={handleChangeSelectVA} /> : ""
+                    dashboardFilter.type === 'lookup' ? 
+                      <MemberSelect query={dashboardFilter.query} columnId={dashboardFilter.columnId} columnLabel={dashboardFilter.columnLabel} defaultValue={dashboardFilter.defaultValue} displayName={dashboardFilter.displayName} onChange={handleChangeSelectVA} /> 
+                    : dashboardFilter.type === 'daterange' ?
+                      // todo: von/bis als defaultvalue übernehmen
+                      // todo: falls ein "preset range" angegeben wurde ("last_30_days", etc.), dann diesen übernehmen mit der [dayjs...] Logik
+                      <RangePicker size='small' defaultValue={[dayjs().add(-30, 'd'), dayjs()]} presets={rangePresets} onChange={onRangeChange} />
+                    : ""
                   )
                 })}
                 {data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }

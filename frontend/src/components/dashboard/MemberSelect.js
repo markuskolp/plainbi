@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Typography, Select } from "antd";
 const { Text } = Typography;
 
-const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange}) => {
+const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange, displayName}) => {
 
     const [resultSet, setResultSet] = useState([]); // metadata of all apps
   
@@ -13,7 +13,8 @@ const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange}) =>
     console.log("MemberSelect - columnLabel: " + columnLabel);
     console.log("MemberSelect - query: " + query.toString());
     console.log("MemberSelect - defaultValue: " + defaultValue);
-  
+    console.log("MemberSelect - name: " + name);
+
     useEffect(() => {
         console.log("MemberSelect - useEffect");
     }, [resultSet]);
@@ -61,9 +62,11 @@ const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange}) =>
             style={{ minWidth: 250 }}
             optionFilterProp="label" // filter by label (not by value/key)
             >
+              <Select.OptGroup label={displayName ? displayName.toUpperCase() : "Bitte auswählen ..."}>
                 {renderProps.resultSet && renderProps.resultSet.tablePivot().map((data) => (
                     <Select.Option key={data[columnId]} value={data[columnLabel]} label={data[columnLabel]} />
                 ))}
+              </Select.OptGroup>
         </Select>
     )
 
