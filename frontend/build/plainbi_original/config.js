@@ -1,10 +1,11 @@
-// api
-var BASE_URL = '<API_URL_GOES_HERE>';
 
 // header and footer
-var APP_TITLE = ''; //Data & BI';
-var HEADER_TITLE = ''; //Data & BI';
-var FOOTER = ''; //© 2023 created by Data & BI';
+var APP_TITLE = ''
+var HEADER_TITLE = '';
+var FOOTER = '©2023 plainbi';
+
+// environment banner
+var ENVIRONMENT_BANNER_TEXT = ''; // e.g. DEV, TEST - leave empty for PROD, as you mostly don't need a banner there
 
 // theme
 var THEME_COLOR_PRIMARY = 'rgb(106, 145, 206)';

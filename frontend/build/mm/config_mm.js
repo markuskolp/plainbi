@@ -1,7 +1,7 @@
 
 // header and footer
-var APP_TITLE = ''
-var HEADER_TITLE = '';
+var APP_TITLE = 'MM BI'
+var HEADER_TITLE = 'Messe München - Data & BI';
 var FOOTER = '©2023 plainbi';
 
 // environment banner
