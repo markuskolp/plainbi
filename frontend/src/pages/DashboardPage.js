@@ -2,42 +2,25 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Table from "../components/Table";
-import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, DatePicker, Menu, Dropdown, Input} from "antd";
+import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, Menu, Dropdown, Input} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { FullscreenOutlined, MoreOutlined, HistoryOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import DashboardItem from "../components/dashboard/DashboardItem";
 import ChartRenderer from "../components/dashboard/ChartRenderer";
 import Dashboard from "../components/dashboard/Dashboard";
 import MemberSelect from "../components/dashboard/MemberSelect";
+import DateRange from "../components/dashboard/DateRange";
 import cubejs from "@cubejs-client/core";
 import { CubeProvider } from "@cubejs-client/react";
 import { dashboards } from "../api/dashboards";
 import NoPage from "./NoPage";
 import { message } from "antd";
 import { DrilldownModal } from "../components/dashboard/DrilldownModal/DrilldownModal";
-import dayjs from 'dayjs';
 const { Title, Link, Text } = Typography;
 import "../css/dashboard.css";
 
 const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDI2NjYzNDcsImV4cCI6MTcwMjc1Mjc0N30.D8iCMGAH72GgOjNm6dWuFWHStlrzVVAEpomOk4eKK5Y';
 const cubejsApi = cubejs(token, { apiUrl: '/cubejs-api/v1' });
-
-const { RangePicker } = DatePicker;
-
-const rangePresets = [
-  { label: 'Letzte 7 Tage', value: [dayjs().add(-7, 'd'), dayjs()] },
-  { label: 'Letzte 14 Tage', value: [dayjs().add(-14, 'd'), dayjs()] },
-  { label: 'Letzte 30 Tage', value: [dayjs().add(-30, 'd'), dayjs()] },
-  { label: 'Letzte 90 Tage', value: [dayjs().add(-90, 'd'), dayjs()] },
-];
-const onRangeChange = (dates, dateStrings) => {
-  if (dates) {
-    console.log('From: ', dates[0], ', to: ', dates[1]);
-    console.log('From: ', dateStrings[0], ', to: ', dateStrings[1]);
-  } else {
-    console.log('Clear');
-  }
-};
 
 /*
 const deserializeItem = i => ({
@@ -220,12 +203,19 @@ const DashboardPage = (props) => {
   }
 
   
-  const handleChangeSelectVA = (filterName, filterValue) =>{
-    console.log("handleChangeSelectVA - filterName: " + filterName);
-    console.log("handleChangeSelectVA - filterValue: " + filterValue);
+  const handleChangeSelect = (filterName, filterValue) =>{
+    console.log("handleChangeSelect - filterName: " + filterName);
+    console.log("handleChangeSelect - filterValue: " + filterValue);
     setDashboardFilter({"name":filterName, "value":filterValue}); 
   }
 
+  const handleChangeDateRange = (filterName, filterValue) =>{
+    // todo: handle "clear" of date range
+    console.log("handleChangeDateRange - filterName: " + filterName);
+    console.log("handleChangeDateRange - filterValue[0] - from: " + filterValue[0]);
+    console.log("handleChangeDateRange - filterValue[1] - to: " + filterValue[1]);
+    //setDashboardFilter({"name":filterName, "value":filterValue}); 
+  }
 
   return !data || data.dashboardItems.length  ? (
       <CubeProvider cubejsApi={cubejsApi}>
@@ -276,11 +266,11 @@ const DashboardPage = (props) => {
                 {data.dashboardFilters && data.dashboardFilters.map((dashboardFilter) => { 
                   return (
                     dashboardFilter.type === 'lookup' ? 
-                      <MemberSelect query={dashboardFilter.query} columnId={dashboardFilter.columnId} columnLabel={dashboardFilter.columnLabel} defaultValue={dashboardFilter.defaultValue} displayName={dashboardFilter.displayName} onChange={handleChangeSelectVA} /> 
+                      <MemberSelect query={dashboardFilter.query} columnId={dashboardFilter.columnId} columnLabel={dashboardFilter.columnLabel} defaultValue={dashboardFilter.defaultValue} displayName={dashboardFilter.displayName} onChange={handleChangeSelect} /> 
                     : dashboardFilter.type === 'daterange' ?
                       // todo: von/bis als defaultvalue übernehmen
                       // todo: falls ein "preset range" angegeben wurde ("last_30_days", etc.), dann diesen übernehmen mit der [dayjs...] Logik
-                      <RangePicker size='small' defaultValue={[dayjs().add(-30, 'd'), dayjs()]} presets={rangePresets} onChange={onRangeChange} />
+                      <DateRange columnId={dashboardFilter.columnId} onChange={handleChangeDateRange} />
                     : ""
                   )
                 })}
@@ -299,7 +289,7 @@ const DashboardPage = (props) => {
 
 export default DashboardPage;
 
-// {data.dashboardFilter ? <MemberSelect query={data.dashboardFilter.query} columnId={data.dashboardFilter.columnId} columnLabel={data.dashboardFilter.columnLabel} defaultValue={data.dashboardFilter.defaultValue} onChange={handleChangeSelectVA} /> : ""}
+// {data.dashboardFilter ? <MemberSelect query={data.dashboardFilter.query} columnId={data.dashboardFilter.columnId} columnLabel={data.dashboardFilter.columnLabel} defaultValue={data.dashboardFilter.defaultValue} onChange={handleChangeSelect} /> : ""}
 
 //{data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
 //{data.data_status ? <ChartRenderer vizState={replaceVizStateFilters(data.data_status.vizState, dashboardFilter.name, dashboardFilter.value)} />  : "" }
