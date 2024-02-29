@@ -30,14 +30,6 @@ const deserializeItem = i => ({
 });
 */
 
-const defaultLayout = i => ({
-  x: i.layout.x || 0,
-  y: i.layout.y || 0,
-  w: i.layout.w || 4,
-  h: i.layout.h || 8,
-  minW: 4,
-  minH: 3
-});
 
 const DashboardPage = (props) => {
 
@@ -143,114 +135,128 @@ const DashboardPage = (props) => {
     setOpen(true);
   };
 
-  const handleSwitchChange = (value, vizId, switchType) => {
-    console.log('handleSwitchChange - value: ' + value);
-    console.log('handleSwitchChange - vizId: ' + vizId);
-    console.log('handleSwitchChange - switchType: ' + switchType);
 
-    //setSelectedCategory(value);
+  const dashboardItem =  item  => {
 
-    // todo: measure / timeDimension ersetzen in query -> Viz aktualisieren
-    // 
+    //const [switchMeasure, setSwitchMeasure] = useState(null);
+    const [currentVizState, setCurrentVizState] = useState(item.vizState);
     
+    /*
+    useEffect(() => {
+      setCurrentVizState(item.vizState);
+    }, [currentVizState]);
+    */
+
+    const defaultLayout = i => ({
+      x: i.layout.x || 0,
+      y: i.layout.y || 0,
+      w: i.layout.w || 4,
+      h: i.layout.h || 8,
+      minW: 4,
+      minH: 3
+    });
+    
+  
+    const handleSwitchChange = (value, vizId, switchType) => {
+      console.log('handleSwitchChange - value: ' + value);
+      console.log('handleSwitchChange - vizId: ' + vizId);
+      console.log('handleSwitchChange - switchType: ' + switchType);
+      if(switchType === 'measure') { 
+        const newVizState = replaceVizStateMeasures(currentVizState, value) 
+        setCurrentVizState(newVizState); // value is the new "measure" here
+      }
+      if(switchType === 'timeDimension') { 
+        const newVizState = replaceVizStateTimeDimensions(currentVizState, value) 
+        setCurrentVizState(newVizState); // value is the new "measure" here
+      }
+      console.log('handleSwitchChange - currentVizState: ');
+      console.log(currentVizState);
+    };
+    
+    return (
+      <div key={item.id} data-grid={defaultLayout(item)}>
+        <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
+          {item.vizState.switch ? (
+              <div className="chart_legend">
+                <Space size="middle">
+                {item.vizState.switch.map((switchElement) => {
+                    return (
+                          <Segmented 
+                            defaultValue={switchElement.switchItems[0].label} // todo: geht noch nicht
+                            onChange={(e) => {handleSwitchChange(e, item.id, switchElement.type)}}
+                            options={
+                              switchElement.switchItems.map((switchItemEntry) => ({
+                                  value: switchItemEntry.id,
+                                  label: switchItemEntry.label
+                                })
+                              )
+                            }    
+                          />
+                      )
+                  })
+                }
+                </Space>
+              </div>
+            ) : ""
+          }
+          { dashboardFilter ? (
+              <ChartRenderer vizState={replaceVizStateFilters(currentVizState, dashboardFilter.operator, dashboardFilter.name, dashboardFilter.value)} handleDrill={handleDrill} /> 
+            ) : (
+              <ChartRenderer vizState={currentVizState} handleDrill={handleDrill} /> 
+            )
+          }
+        </DashboardItem>
+      </div>
+    )
   };
 
-  const dashboardItem = item => (
-    <div key={item.id} data-grid={defaultLayout(item)}>
-      <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
-        {item.vizState.switch ? (
-            <div className="chart_legend">
-              <Space size="middle">
-              {item.vizState.switch.map((switchElement) => {
-                  return (
-                        <Segmented 
-                          defaultValue={switchElement.switchItems[0].label} // todo: geht noch nicht
-                          onChange={(e) => {handleSwitchChange(e, item.id, switchElement.type)}}
-                          options={
-                            switchElement.switchItems.map((switchItemEntry) => ({
-                                value: switchItemEntry.id,
-                                label: switchItemEntry.label
-                              })
-                            )
-                          }    
-                        />
-                    )
-                })
-              }
-              </Space>
-            </div>
-          ) : ""
-        }
-        {dashboardFilter ? (
-            <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.operator, dashboardFilter.name, dashboardFilter.value)} handleDrill={handleDrill} /> 
-          ) : (
-            <ChartRenderer vizState={item.vizState} handleDrill={handleDrill} /> 
-          )
-        }
-      </DashboardItem>
-    </div>
-  );
-  //<ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} /> 
-  //<ChartRenderer vizState={item.vizState} /> 
+  const replaceVizStateTimeDimensions = (vizState, timeDimension, replaceAll=true) => {
+    const vizStateNew = vizState;
+    const vizStateOriginal = vizState;
 
-  const replaceVizStateTimeDimensions = (vizState, timeDimensions, replaceAll=true) => {
+    try {
+      console.log("replaceVizStateTimeDimensions: vizState");
+      console.log(vizState);
+      console.log("replaceVizStateTimeDimensions: timeDimension");
+      console.log(timeDimension);
+      console.log("replaceVizStateTimeDimensions: replaceAll" + replaceAll);
+
+      var dimension = timeDimension.substring(0,timeDimension.indexOf('///'));
+      var granularity	= timeDimension.substring(timeDimension.indexOf('///')+3)
+
+      //  replace all timeDimensions with this 1 new timeDimension
+      vizState.query.timeDimensions = [{"dimension": dimension, "granularity": granularity}];
+      console.log("replaceVizStateTimeDimensions: timeDimensionsReplaced");
+      console.log(vizState);
+      vizStateNew = vizState;
+      return vizStateNew;
+    } catch (err) {
+      console.log("replaceVizStateTimeDimensions: error");
+      console.log(err.message);
+      return vizStateOriginal;
+    }
+
   }
   
   const replaceVizStateMeasures = (vizState, measure, replaceAll=true) => {
     const vizStateNew = vizState;
     const vizStateOriginal = vizState;
-    var onlyDelete = false;
-    console.log("replaceVizStateFilters: replaceAll" + replaceAll);
+
     try {
-      console.log("replaceVizStateFilters: vizState");
+      console.log("replaceVizStateMeasures: vizState");
       console.log(vizState);
-      console.log("replaceVizStateFilters: filterName");
-      console.log(filterName);
-      console.log("replaceVizStateFilters: filterValue");
-      console.log(filterValue);
+      console.log("replaceVizStateMeasures: measure");
+      console.log(measure);
+      console.log("replaceVizStateMeasures: replaceAll" + replaceAll);
 
-      // check if filter exists
-      // if filter exists, delete it
-      let filtersReplaced = vizState.query.filters.filter((el) => el.member != filterName);
-      console.log("replaceVizStateFilters: filtersReplaced - delete existing");
-      console.log(filtersReplaced);
-
-      // check if filter has values. If not, then it is blank and no filter should be added
-      if(Array.isArray(filterValue) ) {
-        onlyDelete = (filterValue[0] === '' && filterValue[1] === '' ? true : false);
-      } else {
-        onlyDelete = (filterValue === '' ? true : false);
-      }
-      
-      // add dashboard filter (array of filter values vs. single filter value)
-      if( !onlyDelete ) {
-        Array.isArray(filterValue) ?
-          filtersReplaced.push({
-            "member": filterName,
-            "operator": operator,
-            "values": filterValue.map((filterVal) => { return (filterVal) })
-            
-          }) 
-          :
-          filtersReplaced.push({
-                          "member": filterName,
-                          "operator": operator,
-                          "values": [filterValue]
-                        });
-        console.log("replaceVizStateFilters: filtersReplaced - push new one");
-        console.log(filtersReplaced);
-      }                  
-
-      // take vizState from beginning and delete all filters and add newly created filter array
-      //delete vizState.query.filters;
-      vizState.query.filters = filtersReplaced;
-      console.log("replaceVizStateFilters: vizState - new");
+      //  replace all measures with this 1 new measure
+      vizState.query.measures = [measure];
+      console.log("replaceVizStateMeasures: measuresReplaced");
       console.log(vizState);
-      vizStateNew.query = vizState.query;
-      //return vizState;
+      vizStateNew = vizState;
       return vizStateNew;
     } catch (err) {
-      console.log("replaceVizStateFilters: error");
+      console.log("replaceVizStateMeasures: error");
       console.log(err.message);
       return vizStateOriginal;
     }

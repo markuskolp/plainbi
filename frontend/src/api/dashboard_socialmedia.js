@@ -376,17 +376,17 @@ export const dashboard_socialmedia  =
           type: "timeDimension",
           switchItems: [
             {
-              id: "Socialmedia.datum///day",
+              id: "SocialMedia.datum///day",
               label: "Tag",
               granularity: "day"
             },
             {
-              id: "Socialmedia.datum///week",
+              id: "SocialMedia.datum///week",
               label: "Woche",
               granularity: "week"
             },
             {
-              id: "Socialmedia.datum///month",
+              id: "SocialMedia.datum///month",
               label: "Monat",
               granularity: "month"
             }
