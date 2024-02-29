@@ -3,6 +3,7 @@ import { Map as ReactMapGl, NavigationControl, Source, Layer, FullscreenControl}
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { geojsonCountries } from './geojsonCountries.js'; 
 import { geojsonCountriesCentroids } from './geojsonCountriesCentroids.js'; 
+import { geojsonHalls } from './geojsonHalls.js'; 
 //import {defaultFillLayer, defaultLineLayer} from './map-style.js';
 //import {MapRef} from 'react-map-gl';
 //import * as turf from '@turf/turf';
@@ -14,8 +15,8 @@ const mapboxtoken = 'pk.eyJ1IjoibWFya3Vza29scDMwNDMwIiwiYSI6ImNscWhxNWVqYTFjdDAy
 
 const Map = ( { resultSet }) => {
 
-  let geoData = geojsonCountries;
-
+  //let geoData = geojsonCountries;
+  
   const options = [
     {
       'fill-color': {
@@ -47,6 +48,13 @@ const Map = ( { resultSet }) => {
         'text-color': ['case', ['<', ['get', 'value'], 100000000], '#43436B', '#43436B'],
         'text-halo-color': '#FFFFFF',
         'text-halo-width': 1
+      }
+    },
+    {
+      type: 'fill',
+      paint: {
+        'fill-color': '#0080ff', // blue color fill
+        'fill-opacity': 0.5
       }
     }
   ];
@@ -148,6 +156,7 @@ latitude / longitude -->
 
   }
 
+
   return (
       <div style={{height: "100%"}}>
       <ReactMapGl
@@ -166,11 +175,14 @@ latitude / longitude -->
       >
         <NavigationControl />
         <FullscreenControl />
-        <Source type="geojson" data={data}>
+        <Source id="countries" type="geojson" data={data}>
           <Layer beforeId="country-label" id="countries" type="fill" paint={options[0]} />
         </Source>
-        <Source type="geojson" data={dataCentroid}>
+        <Source id="countriesCentroids" type="geojson" data={dataCentroid}>
           <Layer {...options[1]} />
+        </Source>
+        <Source id="halls" type="geojson" data={geojsonHalls}>
+          <Layer  {...options[2]} />
         </Source>
       </ReactMapGl>
     </div>

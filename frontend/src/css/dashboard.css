@@ -47,3 +47,10 @@ flex: none;
     display: none;
   }
 }
+
+.chart_legend {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+}

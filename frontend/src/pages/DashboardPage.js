@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Table from "../components/Table";
-import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, Menu, Dropdown, Input} from "antd";
+import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, Menu, Dropdown, Input, Segmented} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { FullscreenOutlined, MoreOutlined, HistoryOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import DashboardItem from "../components/dashboard/DashboardItem";
@@ -143,9 +143,40 @@ const DashboardPage = (props) => {
     setOpen(true);
   };
 
+  const handleSwitchChange = (value) => {
+    console.log('handleSwitchChange: ' + value);
+    //setSelectedCategory(value);
+    //todo: type verstehen und dann umsetzen
+    //todo: query anpassen bei Änderung
+  };
+
   const dashboardItem = item => (
     <div key={item.id} data-grid={defaultLayout(item)}>
       <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
+        {item.vizState.switch ? (
+            <div className="chart_legend">
+              <Space size="middle">
+              {item.vizState.switch.map((switchElement) => {
+                  return (
+                        <Segmented 
+                          defaultValue={switchElement.switchItems[0].label} // todo: geht noch nicht
+                          onChange={handleSwitchChange()}
+                          options={
+                            switchElement.switchItems.map((switchItemEntry) => ({
+                                value: switchItemEntry.id,
+                                label: switchItemEntry.label,
+                                type: switchItemEntry.type
+                              })
+                            )
+                          }    
+                        />
+                    )
+                })
+              }
+              </Space>
+            </div>
+          ) : ""
+        }
         {dashboardFilter ? (
             <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.operator, dashboardFilter.name, dashboardFilter.value)} handleDrill={handleDrill} /> 
           ) : (

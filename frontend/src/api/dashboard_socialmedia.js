@@ -340,7 +340,66 @@ export const dashboard_socialmedia  =
         "SocialMediaVertriebsweg.socialMediaVertriebsweg"
       ]
       },
-      chartType:"line"
+      chartType:"line",
+      switch: [
+        {
+          name: 'Kennzahl',
+          switchItems: [
+            {
+              id: "SocialMedia.followerTagesstand",
+              label: "Follower",
+              type: "measure"
+            },{
+              id: "SocialMedia.followerGewonnen",
+              label: "Follower (gewonnen)",
+              type: "measure"
+            },
+            {
+              id: "SocialMedia.impressionen",
+              label: "Impressionen",
+              type: "measure"
+            },
+            {
+              id: "SocialMedia.interaktionen",
+              label: "Interaktionen",
+              type: "measure"
+            },
+            {
+              id: "SocialMedia.klicks",
+              label: "Klicks",
+              type: "measure"
+            },
+            {
+              id: "SocialMedia.likes",
+              label: "Likes",
+              type: "measure"
+            }
+          ]
+        },
+        {
+          name: 'Zeitgranularität',
+          switchItems: [
+            {
+              id: "Socialmedia.datum",
+              label: "Tag",
+              type: "timeDimension",
+              granularity: "day"
+            },
+            {
+              id: "Socialmedia.datum",
+              label: "Woche",
+              type: "timeDimension",
+              granularity: "week"
+            },
+            {
+              id: "Socialmedia.datum",
+              label: "Monat",
+              type: "timeDimension",
+              granularity: "month"
+            }
+          ]
+        }
+      ]
     },
     name: "Verlauf",
     id: 100,
