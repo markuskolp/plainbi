@@ -147,7 +147,7 @@ const DashboardPage = (props) => {
     <div key={item.id} data-grid={defaultLayout(item)}>
       <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
         {dashboardFilter ? (
-            <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} handleDrill={handleDrill} /> 
+            <ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.operator, dashboardFilter.name, dashboardFilter.value)} handleDrill={handleDrill} /> 
           ) : (
             <ChartRenderer vizState={item.vizState} handleDrill={handleDrill} /> 
           )
@@ -159,9 +159,10 @@ const DashboardPage = (props) => {
   //<ChartRenderer vizState={item.vizState} /> 
 
   //item.vizState -> if dashboardFilter, then put this filter in here or replace an existing one !
-  const replaceVizStateFilters = (vizState, filterName, filterValue) => {
+  const replaceVizStateFilters = (vizState, operator, filterName, filterValue) => {
     const vizStateNew = vizState;
     const vizStateOriginal = vizState;
+    var onlyDelete = false;
     try {
       console.log("replaceVizStateFilters: vizState");
       console.log(vizState);
@@ -176,15 +177,31 @@ const DashboardPage = (props) => {
       console.log("replaceVizStateFilters: filtersReplaced - delete existing");
       console.log(filtersReplaced);
 
-      // add dashboard filter
-      filtersReplaced.push({
-                      "member": filterName,
-                      "operator": "equals",
-                      "values": [filterValue]
-                    });
-      console.log("replaceVizStateFilters: filtersReplaced - push new one");
-      console.log(filtersReplaced);
-                            
+      // check if filter has values. If not, then it is blank and no filter should be added
+      if(Array.isArray(filterValue) ) {
+        onlyDelete = (filterValue[0] === '' && filterValue[1] === '' ? true : false);
+      } else {
+        onlyDelete = (filterValue === '' ? true : false);
+      }
+      
+      // add dashboard filter (array of filter values vs. single filter value)
+      if( !onlyDelete ) {
+        Array.isArray(filterValue) ?
+          filtersReplaced.push({
+            "member": filterName,
+            "operator": operator,
+            "values": filterValue.map((filterVal) => { return (filterVal) })
+            
+          }) 
+          :
+          filtersReplaced.push({
+                          "member": filterName,
+                          "operator": operator,
+                          "values": [filterValue]
+                        });
+        console.log("replaceVizStateFilters: filtersReplaced - push new one");
+        console.log(filtersReplaced);
+      }                  
 
       // take vizState from beginning and delete all filters and add newly created filter array
       //delete vizState.query.filters;
@@ -202,19 +219,19 @@ const DashboardPage = (props) => {
 
   }
 
-  
+ 
   const handleChangeSelect = (filterName, filterValue) =>{
     console.log("handleChangeSelect - filterName: " + filterName);
     console.log("handleChangeSelect - filterValue: " + filterValue);
-    setDashboardFilter({"name":filterName, "value":filterValue}); 
+    setDashboardFilter({"name":filterName, "value":filterValue, "operator": "equals"}); 
   }
 
-  const handleChangeDateRange = (filterName, filterValue) =>{
+  const handleChangeDateRange = (filterName, filterValue, filterOperator) =>{
     // todo: handle "clear" of date range
     console.log("handleChangeDateRange - filterName: " + filterName);
     console.log("handleChangeDateRange - filterValue[0] - from: " + filterValue[0]);
     console.log("handleChangeDateRange - filterValue[1] - to: " + filterValue[1]);
-    //setDashboardFilter({"name":filterName, "value":filterValue}); 
+    setDashboardFilter({"name":filterName, "value":filterValue, "operator": "inDateRange"}); 
   }
 
   return !data || data.dashboardItems.length  ? (

@@ -27,7 +27,13 @@ const DateRange = ({columnId, onChange}) => {
     };
 
     return (
-        <RangePicker size='small' defaultValue={[dayjs().add(-30, 'd'), dayjs()]} presets={rangePresets} onChange={onRangeChange} />
+        <RangePicker 
+          size='small' 
+          //defaultValue={[dayjs().add(-30, 'd'), dayjs()]} 
+          presets={rangePresets} 
+          onChange={onRangeChange} 
+          allowEmpty={[true, true]}
+        />
     )
 
 };
