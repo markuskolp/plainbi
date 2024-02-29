@@ -143,11 +143,16 @@ const DashboardPage = (props) => {
     setOpen(true);
   };
 
-  const handleSwitchChange = (value) => {
-    console.log('handleSwitchChange: ' + value);
+  const handleSwitchChange = (value, vizId, switchType) => {
+    console.log('handleSwitchChange - value: ' + value);
+    console.log('handleSwitchChange - vizId: ' + vizId);
+    console.log('handleSwitchChange - switchType: ' + switchType);
+
     //setSelectedCategory(value);
-    //todo: type verstehen und dann umsetzen
-    //todo: query anpassen bei Änderung
+
+    // todo: measure / timeDimension ersetzen in query -> Viz aktualisieren
+    // 
+    
   };
 
   const dashboardItem = item => (
@@ -160,12 +165,11 @@ const DashboardPage = (props) => {
                   return (
                         <Segmented 
                           defaultValue={switchElement.switchItems[0].label} // todo: geht noch nicht
-                          onChange={handleSwitchChange()}
+                          onChange={(e) => {handleSwitchChange(e, item.id, switchElement.type)}}
                           options={
                             switchElement.switchItems.map((switchItemEntry) => ({
                                 value: switchItemEntry.id,
-                                label: switchItemEntry.label,
-                                type: switchItemEntry.type
+                                label: switchItemEntry.label
                               })
                             )
                           }    
@@ -188,6 +192,70 @@ const DashboardPage = (props) => {
   );
   //<ChartRenderer vizState={replaceVizStateFilters(item.vizState, dashboardFilter.name, dashboardFilter.value)} /> 
   //<ChartRenderer vizState={item.vizState} /> 
+
+  const replaceVizStateTimeDimensions = (vizState, timeDimensions, replaceAll=true) => {
+  }
+  
+  const replaceVizStateMeasures = (vizState, measure, replaceAll=true) => {
+    const vizStateNew = vizState;
+    const vizStateOriginal = vizState;
+    var onlyDelete = false;
+    console.log("replaceVizStateFilters: replaceAll" + replaceAll);
+    try {
+      console.log("replaceVizStateFilters: vizState");
+      console.log(vizState);
+      console.log("replaceVizStateFilters: filterName");
+      console.log(filterName);
+      console.log("replaceVizStateFilters: filterValue");
+      console.log(filterValue);
+
+      // check if filter exists
+      // if filter exists, delete it
+      let filtersReplaced = vizState.query.filters.filter((el) => el.member != filterName);
+      console.log("replaceVizStateFilters: filtersReplaced - delete existing");
+      console.log(filtersReplaced);
+
+      // check if filter has values. If not, then it is blank and no filter should be added
+      if(Array.isArray(filterValue) ) {
+        onlyDelete = (filterValue[0] === '' && filterValue[1] === '' ? true : false);
+      } else {
+        onlyDelete = (filterValue === '' ? true : false);
+      }
+      
+      // add dashboard filter (array of filter values vs. single filter value)
+      if( !onlyDelete ) {
+        Array.isArray(filterValue) ?
+          filtersReplaced.push({
+            "member": filterName,
+            "operator": operator,
+            "values": filterValue.map((filterVal) => { return (filterVal) })
+            
+          }) 
+          :
+          filtersReplaced.push({
+                          "member": filterName,
+                          "operator": operator,
+                          "values": [filterValue]
+                        });
+        console.log("replaceVizStateFilters: filtersReplaced - push new one");
+        console.log(filtersReplaced);
+      }                  
+
+      // take vizState from beginning and delete all filters and add newly created filter array
+      //delete vizState.query.filters;
+      vizState.query.filters = filtersReplaced;
+      console.log("replaceVizStateFilters: vizState - new");
+      console.log(vizState);
+      vizStateNew.query = vizState.query;
+      //return vizState;
+      return vizStateNew;
+    } catch (err) {
+      console.log("replaceVizStateFilters: error");
+      console.log(err.message);
+      return vizStateOriginal;
+    }
+
+  }
 
   //item.vizState -> if dashboardFilter, then put this filter in here or replace an existing one !
   const replaceVizStateFilters = (vizState, operator, filterName, filterValue) => {

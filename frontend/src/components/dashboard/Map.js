@@ -53,7 +53,7 @@ const Map = ( { resultSet }) => {
     {
       type: 'fill',
       paint: {
-        'fill-color': '#0080ff', // blue color fill
+        'fill-color': '#890B64', 
         'fill-opacity': 0.5
       }
     }

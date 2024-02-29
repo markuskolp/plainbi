@@ -344,57 +344,50 @@ export const dashboard_socialmedia  =
       switch: [
         {
           name: 'Kennzahl',
+          type: "measure",
           switchItems: [
             {
               id: "SocialMedia.followerTagesstand",
-              label: "Follower",
-              type: "measure"
+              label: "Follower"
             },{
               id: "SocialMedia.followerGewonnen",
-              label: "Follower (gewonnen)",
-              type: "measure"
+              label: "Follower (gewonnen)"
             },
             {
               id: "SocialMedia.impressionen",
-              label: "Impressionen",
-              type: "measure"
+              label: "Impressionen"
             },
             {
               id: "SocialMedia.interaktionen",
-              label: "Interaktionen",
-              type: "measure"
+              label: "Interaktionen"
             },
             {
               id: "SocialMedia.klicks",
-              label: "Klicks",
-              type: "measure"
+              label: "Klicks"
             },
             {
               id: "SocialMedia.likes",
-              label: "Likes",
-              type: "measure"
+              label: "Likes"
             }
           ]
         },
         {
           name: 'Zeitgranularität',
+          type: "timeDimension",
           switchItems: [
             {
-              id: "Socialmedia.datum",
+              id: "Socialmedia.datum///day",
               label: "Tag",
-              type: "timeDimension",
               granularity: "day"
             },
             {
-              id: "Socialmedia.datum",
+              id: "Socialmedia.datum///week",
               label: "Woche",
-              type: "timeDimension",
               granularity: "week"
             },
             {
-              id: "Socialmedia.datum",
+              id: "Socialmedia.datum///month",
               label: "Monat",
-              type: "timeDimension",
               granularity: "month"
             }
           ]
