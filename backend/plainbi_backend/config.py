@@ -29,7 +29,8 @@ config = MyConfig()
 config.version="0.6 15.02.2024"
 
 # create a secret for the plainbi backend api jwt token
-config.SECRET_KEY=os.urandom(24)
+config.SECRET_KEY=os.urandom(24)  # for JWT
+config.bcrypt_salt=b'$2b$12$26lKTogIpjOIbmp2hYP2au'
 log.debug("secret key generated")
 
 # global variables for caches, it holds metadata and profiles so that they are fetched only once from the database
@@ -85,7 +86,7 @@ def get_config(verbose=None,logfile=None,configfile=None,repository=None,databas
             config.logfile = None
     log.setLevel(config.loglevel)
     formatter = logging.Formatter('%(message)s')  # formatter for screen log
-    logfile_formatter = logging.Formatter('%(asctime)s  %(process)-7s %(module)-20s %(message)s') # formatter for logfile log
+    logfile_formatter = logging.Formatter('%(asctime)s  %(process)-7s %(module)-20s %(levelname)s %(message)s') # formatter for logfile log
     if config.logfile is not None:
         fh = logging.FileHandler(config.logfile, mode='a', encoding='utf-8')
         fh.setFormatter(logfile_formatter)

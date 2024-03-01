@@ -22,7 +22,7 @@ def db_subs_env(s,d):
 def is_id(v):
       try:
         _=int(v)
-      except ValueError:
+      except:
         return False
       return True
   

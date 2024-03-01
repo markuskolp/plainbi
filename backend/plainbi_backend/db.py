@@ -17,8 +17,7 @@ from threading import Lock
 
 config.database_lock = Lock()
 
-metadata_col_query="""
-SELECT 
+metadata_col_query_mssql = """SELECT 
     DB_NAME() AS database_name,
     SCHEMA_NAME(t.schema_id) AS schema_name,
     t.name AS table_name,
@@ -45,6 +44,42 @@ WHERE DB_NAME()+'.'+SCHEMA_NAME(t.schema_id)+'.'+t.name = '<fulltablename>'
 ORDER BY database_name, schema_name, table_name, column_id
 """
 
+metadata_col_query_sqlite="select * from pragma_table_info('<fulltablename>')"
+
+metadata_col_query_postgres="""SELECT
+    current_database() AS database_name,
+    c.table_schema AS schema_name,
+    c.table_name,
+    current_database()||'-'||c.table_schema||'.'||c.table_name AS full_table_name,
+    c.column_name,
+    c.ordinal_position as column_id,
+    c.data_type,
+    c.character_maximum_length  as max_length,
+    c.numeric_precision  as precision,
+    c.numeric_scale as scale,
+    case when pk.position_in_pk is not null then 1 else 0 end as is_primary_key
+from information_schema.columns c
+LEFT JOIN (
+    SELECT
+        tc.table_schema,
+        tc.table_name,
+        kcu.column_name,
+        kcu.ordinal_position AS position_in_pk
+    FROM
+        information_schema.table_constraints AS tc
+    JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+    AND tc.constraint_type = 'PRIMARY KEY'
+) AS pk
+ON c.table_schema = pk.table_schema
+AND c.table_name = pk.table_name
+AND c.column_name = pk.column_name
+where 1=1
+and current_database()||'-'||c.table_schema||'.'||c.table_name = '<fulltablename>'
+"""
+
+
 repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource" : ["db_pass_hash"] }
 
 config.conn={}
@@ -67,7 +102,7 @@ def db_exec(engine,sql,params=None):
             log.warning(dbgindent+"db_exec called with params WITHOUT dict")
     #sqlalchemy 2.0
     mysql=sqlalchemy.text(sql)
-
+    dbtyp=get_db_type(engine)
     # using the flask server with wgsi requires sequential access to the sqlite repo
     with config.database_lock:
         log.debug(dbgindent+"db_exec: check connection")
@@ -103,6 +138,14 @@ def db_exec(engine,sql,params=None):
                 log.error(dbgindent+"Try to rollback")
                 config.conn[engine.url].rollback()
                 log.error(dbgindent+"Rollback done")
+            if "current transaction is aborted, commands ignored until end of transaction block" in str(e):
+                log.error(dbgindent+"Try to rollback (postgres transaction aborted)")
+                config.conn[engine.url].rollback()
+                log.error(dbgindent+"Rollback done (postgres transaction aborted)")
+            if dbtyp == "postgres":
+                log.error(dbgindent+"Try to rollback (postgres transaction)")
+                config.conn[engine.url].rollback()
+                log.error(dbgindent+"Rollback done (postgres transaction)")
             raise e
         if is_select:
             log.debug(dbgindent+"db_exec: is select and returns data")
@@ -328,7 +371,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         # for mssql try metadata search
         log.debug("get_metadata_raw: mssql")
         collist=[]
-        items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
+        items,columns,total_count,e=sql_select(dbengine,metadata_col_query_mssql.replace('<fulltablename>',tab))
         #log.debug("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_metadata_raw"
@@ -352,7 +395,6 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     elif dbtype == "sqlite":
         # for sqlite try metadata search
         log.debug("get_metadata_raw-sqlite: sqlite")
-        metadata_col_query_sqlite="select * from pragma_table_info('<fulltablename>')"
         collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query_sqlite.replace('<fulltablename>',tab))
         #log.debug("get_metadata_raw-sqlite: returned %s",str(e))
@@ -374,6 +416,31 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             #log.debug("get_metadata_raw from sqlite: pkcols %s",str(pkcols))
             #log.debug("get_metadata_raw from sqlite: columns %s",str(columns))
             collist=[i["name"] for i in items]
+            out["columns"]=collist
+            out["column_data"]=items
+    elif dbtype == "postgres":
+        # for postgres try metadata search
+        log.debug("get_metadata_raw: postgres")
+        collist=[]
+        items,columns,total_count,e=sql_select(dbengine,metadata_col_query_postgres.replace('<fulltablename>',tab))
+        #log.debug("get_metadata_raw: returned error %s",str(e))
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_metadata_raw"
+            out["message"]+=" beim Lesen der Tabellen Metadaten"
+            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+            return out
+        #log.debug("get_metadata_raw: 1 items=%s",str(items))
+        if items is not None and len(items)>0:
+            # got some metadata
+            log.debug("get_metadata_raw: got some metadata from mssql")
+            # es gibt etwas in den sqlserver metadaten
+            if versioned:
+                pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
+            else:
+                pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
+            #log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+            #log.debug("get_metadata_raw from mssql: columns %s",str(columns))
+            collist=[i["column_name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
         
@@ -653,7 +720,7 @@ def get_db_by_id_or_alias(d):
 
 
 ## repo lookup adhoc
-def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None):
+def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile

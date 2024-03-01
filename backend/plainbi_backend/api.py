@@ -1043,7 +1043,12 @@ def get_lookup(tokdata,id):
     items,columns,total_count,e=repo_lookup_select(config.repoengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
     log.debug("get_lookup sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        try:
+            json_out = jsonify(out)
+        except:
+            log.error("cannot jsonify "+str(out))
+            json_out = ("cannot jsonify "+str(out))[:50]
+        return json_out,500
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count

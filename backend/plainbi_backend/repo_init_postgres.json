@@ -439,7 +439,7 @@ insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-101,
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-102, 'db_type', 'select ''SQLite'' as d, ''sqlite'' as r union select ''MS SQL Server'' as d, ''mssql'' as r', 0);
 ''',
 '''
-insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select coalesce(fullname + ''('' + username + '')'', username) as d, id as r from plainbi_user', 0);
+insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-103, 'user', 'select coalesce(fullname || ''('' || username || '')'', username) as d, id as r from plainbi_user', 0);
 ''',
 '''
 insert into plainbi_lookup (id, alias, sql_query , datasource_id ) values (-104, 'group', 'select name as d, id as r from plainbi_group', 0);

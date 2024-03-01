@@ -65,6 +65,8 @@ if not db_connect_test(config.repoengine):
     log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment or on command line")
     sys.exit(0)
 
+app=create_app()
+
 # here we can set a passwort for a user in the repository
 # this works only for plainbi internal users - it does not change AD/LDAP passwords
 if args.passwd:
@@ -83,7 +85,6 @@ if args.passwd:
 
 log.info("start standalone server "+__name__)
 log.warning("Use WSGI for production!")
-app=create_app()
 
 # initialize the repository
 if args.initrepo:
