@@ -140,11 +140,11 @@ const DashboardPage = (props) => {
 
     //const [switchMeasure, setSwitchMeasure] = useState(null);
     const [currentVizState, setCurrentVizState] = useState(item.vizState);
-    
+    const [refresh, setRefresh] = useState();
     /*
     useEffect(() => {
       setCurrentVizState(item.vizState);
-    }, [currentVizState]);
+    }, []);
     */
 
     const defaultLayout = i => ({
@@ -171,18 +171,19 @@ const DashboardPage = (props) => {
       }
       console.log('handleSwitchChange - currentVizState: ');
       console.log(currentVizState);
+      setRefresh(Date.now()); // force refresh - element ist supplied as dummy to <DashboardItem ... > (see below)
     };
     
     return (
-      <div key={item.id} data-grid={defaultLayout(item)}>
-        <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable}>
+      <div key={item.id} data-grid={defaultLayout(item)} refresh={refresh}>
+        <DashboardItem key={item.id} itemId={item.id} title={item.name} editable={editable} >
           {item.vizState.switch ? (
               <div className="chart_legend">
                 <Space size="middle">
                 {item.vizState.switch.map((switchElement) => {
                     return (
                           <Segmented 
-                            defaultValue={switchElement.switchItems[0].label} // todo: geht noch nicht
+                            defaultValue={switchElement.defaultId ? switchElement.defaultId : switchElement.switchItems[0].id} // defaultId, otherwise first element
                             onChange={(e) => {handleSwitchChange(e, item.id, switchElement.type)}}
                             options={
                               switchElement.switchItems.map((switchItemEntry) => ({
@@ -211,7 +212,7 @@ const DashboardPage = (props) => {
   };
 
   const replaceVizStateTimeDimensions = (vizState, timeDimension, replaceAll=true) => {
-    const vizStateNew = vizState;
+    let vizStateNew;
     const vizStateOriginal = vizState;
 
     try {
@@ -239,7 +240,7 @@ const DashboardPage = (props) => {
   }
   
   const replaceVizStateMeasures = (vizState, measure, replaceAll=true) => {
-    const vizStateNew = vizState;
+    let vizStateNew;
     const vizStateOriginal = vizState;
 
     try {

@@ -317,22 +317,15 @@ export const dashboard_socialmedia  =
           "granularity": "day"
         }
       ],
-      "order": {
-        "SocialMedia.impressionen": "desc"
-      },
+      "segments": [
+        "SocialMedia.hatWerte"
+      ],
       "filters": [
         {
           "member": "Veranstaltungsreihe.veranstaltungsreiheCode",
           "operator": "equals",
           "values": [
             "EXR"
-          ]
-        },
-        {
-          "member": "SocialMedia.followerGewonnen",
-          "operator": "gt",
-          "values": [
-            "0"
           ]
         }
       ],
@@ -345,6 +338,7 @@ export const dashboard_socialmedia  =
         {
           name: 'Kennzahl',
           type: "measure",
+          defaultId: "SocialMedia.followerGewonnen",
           switchItems: [
             {
               id: "SocialMedia.followerTagesstand",
@@ -374,6 +368,7 @@ export const dashboard_socialmedia  =
         {
           name: 'Zeitgranularität',
           type: "timeDimension",
+          defaultId: "SocialMedia.datum///day",
           switchItems: [
             {
               id: "SocialMedia.datum///day",
@@ -397,8 +392,76 @@ export const dashboard_socialmedia  =
     name: "Verlauf",
     id: 100,
     layout: {x:0,y:3,w:20,h:10}
+  },
+  {
+    vizState: {
+      query:{
+        "limit": 5000,
+        "timeDimensions": [
+          {
+            "dimension": "SocialMedia.datum",
+            "granularity": "month"
+          }
+        ],
+        "segments": [
+          "SocialMedia.hatWerte"
+        ],
+        "filters": [
+          {
+            "member": "Veranstaltungsreihe.veranstaltungsreiheCode",
+            "operator": "equals",
+            "values": [
+              "EXR"
+            ]
+          },
+          {
+            "member": "SocialMedia.interaktionen",
+            "operator": "set"
+          }
+        ],
+        "measures": [
+          "SocialMedia.followerMonatsstand",
+          "SocialMedia.followerGewonnenOrganic",
+          "SocialMedia.followerGewonnenPaid",
+          "SocialMedia.impressionenOrganic",
+          "SocialMedia.impressionenPaid",
+          "SocialMedia.interaktionenOrganic",
+          "SocialMedia.interaktionenPaid",
+          "SocialMedia.klicksOrganic",
+          "SocialMedia.klicksPaid",
+          "SocialMedia.likesOrganic",
+          "SocialMedia.likesPaid",
+          "SocialMedia.kommentareOrganic",
+          "SocialMedia.kommentarePaid",
+          "SocialMedia.beitraege_geteiltOrganic",
+          "SocialMedia.beitraege_geteiltPaid"
+        ],
+        "order": [
+          [
+            "SocialMedia.datum",
+            "asc"
+          ]
+        ]
+      },
+      pivotConfig: {
+        "x": [
+          "measures"
+        ],
+        "y": [
+          "SocialMedia.datum.month"
+        ],
+        "fillMissingDates": false,
+        "joinDateRange": false
+      },
+      chartType:"pivottable"
+    },
+    name: "Monatsverlauf",
+    id: 110,
+    layout: {x:0,y:13,w:24,h:22}
   }
   ]
 }
 
 ;
+
+
