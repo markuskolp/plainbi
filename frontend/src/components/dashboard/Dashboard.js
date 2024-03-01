@@ -28,7 +28,7 @@ const DragField = styled(ReactGridLayout)`
   `: ''};
 `
 
-const Dashboard = ({ children, dashboardItems }) => {
+const Dashboard = ({ children, dashboardItems, editable = false }) => {
   const [isDragging, setIsDragging] = useState(false);
   /*const [updateDashboardItem] = useMutation(UPDATE_DASHBOARD_ITEM, {
     refetchQueries: [
@@ -79,8 +79,8 @@ const Dashboard = ({ children, dashboardItems }) => {
       rowHeight={40}
       onLayoutChange={onLayoutChange}
       isDragging={isDragging}
-      isDraggable={false}
-      isResizable={false}
+      isDraggable={editable}
+      isResizable={editable}
      >
       {children}
     </DragField>

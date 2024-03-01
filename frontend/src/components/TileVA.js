@@ -13,6 +13,7 @@ const TileVA = (props) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]); 
   const [selectedYear, setSelectedYear] = useState(); 
+  const [defaultYear, setDefaultYear] = useState(new Date().getFullYear()); 
   const [selectedCategory, setSelectedCategory] = useState(); 
   const [availableYears, setAvailableYears] = useState(); 
   const [availableCategories, setAvailableCategories] = useState(); 
@@ -164,7 +165,7 @@ const handleCategoryChange = (value) => {
               />
           <Space>
             <Select 
-              defaultValue="2023"
+              defaultValue={defaultYear}
               style={{
                 width: 120,
               }}

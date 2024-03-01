@@ -33,8 +33,8 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     queryParams.append("pk", getPKParamForURL(pkColumns));
     console.log("queryParams: " + queryParams.toString());
     //var endpoint = api+tableName+'/' + encodeURIComponent(encodeURIComponent(pk)) + '?'+queryParams;
-    //var endpoint = api+tableName+'/' + pk + '?'+queryParams;
-    var endpoint = api+tableName+'/' + pk.replace("/", "%2F") + '?'+queryParams;
+    var endpoint = api+tableName+'/' + pk + '?'+queryParams;
+    //var endpoint = api+tableName+'/' + pk.replace("/", "%2F") + '?'+queryParams;
     console.log("GET endpoint: " + endpoint);
 
     //await Axios.get("/api/crud/"+tableName+"/"+pk).then(
@@ -186,7 +186,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
                   return (
                     ((type == 'new' || recordData ) && !column.showsummaryonly) ? // only show if type is "new" or the data record could be retrieved (for "editing") AND the if it is not only displayed on summary page (list view)
                     // only make item editable if it is not part of the primary key
-                    <CRUDFormItem type={type} name={column.column_name} label={column.column_label} required={column.required} isprimarykey={pkColumns.includes(column.column_name)} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} token={token}/>
+                    <CRUDFormItem type={type} name={column.column_name} label={column.column_label} required={column.required} isprimarykey={pkColumns.includes(column.column_name)} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} multiple={column.multiple} token={token}/>
                     : ""
                   )
 

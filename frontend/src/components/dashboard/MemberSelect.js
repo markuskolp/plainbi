@@ -4,56 +4,24 @@ import { useState, useEffect } from "react";
 import { Typography, Select } from "antd";
 const { Text } = Typography;
 
-const MemberSelect = ({onChange}) => {
+const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange, displayName}) => {
 
     const [resultSet, setResultSet] = useState([]); // metadata of all apps
   
     console.log("MemberSelect");
-  
+    console.log("MemberSelect - columnId: " + columnId);
+    console.log("MemberSelect - columnLabel: " + columnLabel);
+    console.log("MemberSelect - query: " + query.toString());
+    console.log("MemberSelect - defaultValue: " + defaultValue);
+    console.log("MemberSelect - name: " + name);
+
     useEffect(() => {
         console.log("MemberSelect - useEffect");
     }, [resultSet]);
   
     const init = async () => {
     };
-
-    const query = {
-        "order": [
-        [
-            "Veranstaltung.veranstaltungJahr",
-            "desc"
-        ],
-        [
-            "Veranstaltung.veranstaltungName",
-            "asc"
-        ]
-        ],
-        "segments": [
-        "Ticket.onlineBestellungen"
-        ],
-        "dimensions": [
-        "Veranstaltung.veranstaltungJahr",
-        "Veranstaltung.veranstaltungName"
-        ],
-        "filters": [
-        {
-            "member": "Veranstaltung.veranstaltungJahr",
-            "operator": "gte",
-            "values": [
-            "2022"
-            ]
-        },
-        {
-            "member": "Veranstaltung.veranstaltungName",
-            "operator": "notContains",
-            "values": [
-            "Complimentary Card","Ticketshop"
-            ]
-        }
-        ],
-        "limit": 5000
-    };
-
+    
     //setResultSet(useCubeQuery(query));
     const renderProps = useCubeQuery(query); // const { resultSet, isLoading, error, progress }
 
@@ -73,8 +41,11 @@ const MemberSelect = ({onChange}) => {
         //console.log("MemberSelect change: " + JSON.stringify(emuEvent));
         console.log("option: ");
         console.log(option); 
+        console.log("option.key: ");
         console.log(option.key);
-        onChange(option.key);
+        console.log("option.value: ");
+        console.log(option.value);
+        onChange(columnId, option.key); // filterName, filterValue
       };
 
     return (
@@ -84,26 +55,30 @@ const MemberSelect = ({onChange}) => {
             showSearch
             size='small'
             disabled={false}
-            defaultValue={'EXPO REAL 2023'}
+            defaultValue={defaultValue} //{{ key: defaultValue, label: 'def'}}
             onChange={handleChange}
             //onSearch={onSearch}
             name={'va'}
             style={{ minWidth: 250 }}
             optionFilterProp="label" // filter by label (not by value/key)
             >
-            {renderProps.resultSet && renderProps.resultSet.tablePivot().map((data) => (
-                <Select.Option key={data["Veranstaltung.veranstaltungName"]} value={data["Veranstaltung.veranstaltungName"]} label={data["Veranstaltung.veranstaltungName"]} />
-            ))}
+              <Select.OptGroup label={displayName ? displayName.toUpperCase() : "Bitte auswählen ..."}>
+                {renderProps.resultSet && renderProps.resultSet.tablePivot().map((data) => (
+                    <Select.Option key={data[columnId]} value={data[columnLabel]} label={data[columnLabel]} />
+                ))}
+              </Select.OptGroup>
         </Select>
     )
 
 };
 
-
 export default MemberSelect;
 
 /*
-    -- zuerst gruppiert nach Jahren und erst danach die Veranstaltungen in Select darstellen
+            <Select.OptGroup label="2024">
+            </Select.OptGroup>
+
+            -- zuerst gruppiert nach Jahren und erst danach die Veranstaltungen in Select darstellen
     -- t.b.d.
             {renderProps.resultSet && renderProps.resultSet.tableColumns({
                                                                             x: [],
@@ -143,4 +118,30 @@ export default MemberSelect;
         </Select.Option>
         ))}
     </Select>
+
+
+    options={[
+      {
+        label: 'Manager',
+        options: [
+          {
+            label: 'Jack',
+            value: 'jack',
+          },
+          {
+            label: 'Lucy',
+            value: 'lucy',
+          },
+        ],
+      },
+      {
+        label: 'Engineer',
+        options: [
+          {
+            label: 'yiminghe',
+            value: 'Yiminghe',
+          },
+        ],
+      },
+    ]}
     */

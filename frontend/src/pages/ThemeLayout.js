@@ -157,6 +157,7 @@ const ThemeLayout = (props) => {
             <div
               className="site-layout-content"
               //style={{ background: colorBgContainer }}
+              //style={{ background: environment_banner_color }}
             >
               <Outlet />
             </div>

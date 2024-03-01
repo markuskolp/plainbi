@@ -1,4 +1,4 @@
-# Data model of the plainbi repository.
+# Data model of the plainbi repository
 
 Defined in DBML.
 
@@ -9,3 +9,8 @@ Current version see:
 
 
 ![](https://github.com/markuskolp/plainbi/blob/main/misc/plainbi_repository_datamodel.PNG)
+
+
+# Stack of plainbi
+
+![](https://github.com/markuskolp/plainbi/blob/main/misc/plainbi_stack.png)

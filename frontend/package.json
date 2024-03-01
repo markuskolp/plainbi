@@ -3,10 +3,12 @@
     "@ant-design/pro-layout": "7.8.3",
     "@cubejs-client/core": "^0.34.37",
     "@cubejs-client/react": "^0.34.37",
+    "@turf/turf": "^6.5.0",
     "antd": "^5.0.0-rc.1",
     "axios": "1.3.4",
     "csbbust": "1.0.1",
     "dayjs": "^1.11.10",
+    "http-proxy-middleware": "^2.0.6",
     "mapbox-gl": "^3.0.1",
     "moment": "^2.29.4",
     "numeral": "^2.0.6",
@@ -19,7 +21,8 @@
     "react-monaco-editor": "^0.52.0",
     "react-router-dom": "6.8.2",
     "recharts": "^2.10.3",
-    "styled-components": "^6.1.2"
+    "styled-components": "^6.1.2",
+    "worker-loader": "^3.0.8"
   },
   "keywords": [],
   "name": "portal-protoyp",
@@ -46,6 +49,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "proxy": "http://localhost:3001"
+  }
 }

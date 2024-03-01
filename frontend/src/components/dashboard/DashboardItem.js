@@ -58,7 +58,7 @@ const DashboardItemDropdown = ({ itemId }) => {
 
 };
 
-const DashboardItem = ({ itemId, children, title }) => (
+const DashboardItem = ({ itemId, children, title, editable }) => (
   <StyledCard
     title={title}
     bordered={false}
@@ -68,7 +68,9 @@ const DashboardItem = ({ itemId, children, title }) => (
     }}
     //className="limitable"
     //bodyStyle={{ padding: "0px", marginTop: 20, width: "100%", height:"300px" }}
-    extra={<DashboardItemDropdown itemId={itemId} />}
+    extra={editable ? (
+      <DashboardItemDropdown itemId={itemId} /> 
+    ) : ""}
   >
     {children}
   </StyledCard>
