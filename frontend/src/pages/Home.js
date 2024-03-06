@@ -11,9 +11,6 @@ const Home = (props) => {
             <Col span={12}>
               <Resources token={props.token} removeToken={props.removeToken}/>
             </Col>
-            <Col span={12}> 
-            <TileVA token={props.token}/>
-            </Col>
           </Row>
       </React.Fragment>
   );

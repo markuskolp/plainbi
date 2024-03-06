@@ -519,4 +519,13 @@ insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-
 '''
 insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0);
 ''',
+'''
+CREATE TABLE plainbi_static_file (
+  id int primary key not null,
+  name varchar,
+  alias varchar,
+  filetype varchar,
+  content_base64 text
+);
+''',
 ]

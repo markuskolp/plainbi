@@ -108,8 +108,11 @@ def db_exec(engine,sql,params=None):
         log.debug(dbgindent+"db_exec: check connection")
         if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
             log.debug(dbgindent+"db_exec: connect")
-            config.conn[engine.url] = engine.connect()
-    
+            try:
+                config.conn[engine.url] = engine.connect()
+            except Exception as e_connect:
+                log.error("cannot connect to database: %s",str(e_connect))
+                raise e_connect
         if config.conn[engine.url].closed:
             log.debug(dbgindent+"db_exec: open connection")
             config.conn[engine.url] = engine.connect()

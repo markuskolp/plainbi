@@ -116,7 +116,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         ).catch(function (error) {
           setLoading(false);
           message.error('Es gab einen Fehler beim Speichern.');
-          message.error(res.data);
+          // message.error(res.data);
         }
         )
     };
@@ -151,7 +151,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   return (
     <React.Fragment>
       <Modal
-            title={name}
+            //title={name}
             open={true}
             onOk={handleOk}
             onCancel={handleCancel}

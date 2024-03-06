@@ -37,7 +37,8 @@ RUN pip${PYTHON_VERSION} install -r backend/requirements.txt
 
 RUN pip${PYTHON_VERSION} install supervisor
 
-COPY nginx_plainbi.conf /etc/nginx/default.d
+# replace nginx configuration
+COPY nginx_plainbi.conf /etc/nginx/nginx.conf
 COPY frontend/build/* /usr/share/nginx/html
 RUN mkdir -p /usr/share/nginx/html/static
 COPY frontend/build/static/* /usr/share/nginx/html/static
@@ -48,7 +49,7 @@ COPY frontend/build/static/js/* /usr/share/nginx/html/static/js
 
 # Expose ports
 EXPOSE 80
-EXPOSE 3001
+#EXPOSE 3001
 
 ENV PYTHONPATH="/opt/app/portal/backend"
 ENV PLAINBI_BACKEND_LOGFILE="/opt/app/portal/logs/plainbi_backend.log"

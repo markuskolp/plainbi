@@ -13,7 +13,7 @@ const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange, dis
     console.log("MemberSelect - columnLabel: " + columnLabel);
     console.log("MemberSelect - query: " + query.toString());
     console.log("MemberSelect - defaultValue: " + defaultValue);
-    console.log("MemberSelect - name: " + name);
+    //console.log("MemberSelect - name: " + name);
 
     useEffect(() => {
         console.log("MemberSelect - useEffect");

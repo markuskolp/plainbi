@@ -225,8 +225,6 @@ create table plainbi_adhoc_to_group (
 '''
 INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
        (-100,'Adhoc Konfiguration','adhoc','{
-   "pages":[
-{
    "id":"2",
    "name":"Adhoc Konfiguration",
    "alias":"adhoc",
@@ -543,5 +541,14 @@ insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-
 ''',
 '''
 insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0);
+''',
+'''
+CREATE TABLE plainbi_static_file (
+  id int primary key not null,
+  name varchar(100),
+  alias varchar(100),
+  filetype varchar(50),
+  content_base64 varchar
+);
 ''',
 ]

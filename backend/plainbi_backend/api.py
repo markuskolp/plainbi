@@ -285,7 +285,10 @@ def get_all_items(tokdata,db,tab):
     mycustomsql = request.args.get('customsql')
     log.debug("pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
-    log.debug("get_all_items sql_select error %s",str(e))
+    if isinstance(e,str) and e=="ok":
+        log.debug("get_all_items sql_select ok")
+    else:
+        log.debug("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
             json_out2 = jsonify(out)
