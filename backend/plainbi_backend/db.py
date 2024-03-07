@@ -4,6 +4,8 @@ Created on Thu May  4 08:11:27 2023
 
 @author: kribbel
 """
+import base64
+import os
 from plainbi_backend.config import config
 import logging
 #log = logging.getLogger(config.logger_name)
@@ -1370,6 +1372,22 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
         sequenz=None
     log.debug("db_adduser: database seq is %s",sequenz)
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq=sequenz)
+    return x
+
+def db_add_base64(dbeng,id,filep):
+    """
+    add a base64 encoded file to static_file
+    """
+    if not os.path.isfile(filep):
+        log.error("path is not a file")
+
+    with open(filep,"rb") as f:
+        b=f.read()
+
+    c=base64.b64encode(b).decode('ascii')
+    item = { "id":id, "content_base64": c}
+    #    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
+    x=db_upd(dbeng,"plainbi_static_file",int(id),item,pkcols='id',is_versioned=False)
     return x
 
 def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):

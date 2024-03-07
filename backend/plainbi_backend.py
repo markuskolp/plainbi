@@ -18,7 +18,7 @@ import logging
 log = logging.getLogger()
 
 from plainbi_backend.config import config, get_config
-from plainbi_backend.db import db_passwd, db_connect, db_connect_test, db_exec
+from plainbi_backend.db import db_passwd, db_connect, db_connect_test, db_exec, db_add_base64
 from plainbi_backend.api import create_app
 from plainbi_backend.repo import create_repo_db
 #from dotenv import load_dotenv
@@ -39,6 +39,8 @@ parser.add_argument('-I', '--initrepo', action='store_true', help='Repository in
 parser.add_argument('-u', '--username', type=str, help='The username for the database connection')
 parser.add_argument('-p', '--passwd', type=str, help='set the password for plainbi internal user args.username')
 parser.add_argument('-t', '--testdb', type=str, help='test the sqlalchemy connection string')
+parser.add_argument('-b', '--base64', type=str, nargs=2, help='insert a file base64 encoded into repository static_file expects <id> and <path>')
+
 # Parse the arguments
 args = parser.parse_args()
 
@@ -63,6 +65,13 @@ if args.testdb:
 config.repoengine = db_connect(config.repository)
 if not db_connect_test(config.repoengine):
     log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment or on command line")
+    sys.exit(0)
+
+# help function to base64 encode static files
+if args.base64:
+    id,p = args.base64
+    log.info("upload file <%s> base64 encode to id %s",p,id)
+    db_add_base64(config.repoengine,int(id),p)
     sys.exit(0)
 
 app=create_app()
