@@ -333,7 +333,7 @@ export const dashboard_socialmedia  =
         "SocialMediaVertriebsweg.socialMediaVertriebsweg"
       ]
       },
-      chartType:"line",
+      chartType:"bar",
       switch: [
         {
           name: 'Kennzahl',

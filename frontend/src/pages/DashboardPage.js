@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Table from "../components/Table";
-import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, Menu, Dropdown, Input, Segmented} from "antd";
+import { Alert, Button, Typography,Tooltip, Col, Row, Select, Space, Menu, Dropdown, Input, Segmented, Spin} from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { FullscreenOutlined, MoreOutlined, HistoryOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import DashboardItem from "../components/dashboard/DashboardItem";
