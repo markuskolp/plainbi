@@ -24,8 +24,8 @@ const Login = (props) => {
 
   function getSetting(settings, name) {
     let found = settings.find(({ setting_name }) => setting_name === name);
-    console.log("getSetting() - name: " + name + " - found:");
-    console.log(found);
+    //console.log("getSetting() - name: " + name + " - found:");
+    //console.log(found);
     return found ? found.setting_value : null;
   }
 
@@ -55,7 +55,7 @@ const Login = (props) => {
     setLoading(true);
     Axios({
       method: "POST",
-      url:"/login",
+      url:"/api/login",
       data:{
         username: loginForm.username,
         password: loginForm.password

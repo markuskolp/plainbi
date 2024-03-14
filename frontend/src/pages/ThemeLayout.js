@@ -21,19 +21,6 @@ import EnvironmentBanner from "../components/EnvironmentBanner";
 const { Title, Link, Text } = Typography;
 const { Header, Content, Footer } = Layout;
 
-/*
-const app_title = window.APP_TITLE;
-const header_title = window.HEADER_TITLE;
-const footer = window.FOOTER;
-const color_primary = window.THEME_COLOR_PRIMARY;
-const color_success = window.THEME_COLOR_SUCCESS;
-const color_error = window.THEME_COLOR_ERROR;
-const color_info = window.THEME_COLOR_INFO;
-const font_size = window.THEME_FONT_SIZE;
-const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
-const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
-*/
-
 const ThemeLayout = (props) => {
   const {
     token: { colorBgContainer }
@@ -101,7 +88,7 @@ const ThemeLayout = (props) => {
   const logMeOut = () => {
     Axios({
       method: "POST",
-      url:"/logout",
+      url:"/api/logout",
     })
     .then((response) => {
        props.token()
