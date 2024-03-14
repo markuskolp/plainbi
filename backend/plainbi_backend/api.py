@@ -126,7 +126,7 @@ except:
 from functools import wraps
 
 
-from flask import Flask, jsonify, request, Response, Blueprint
+from flask import Flask, jsonify, request, Response, Blueprint, make_response
 #from flask.json import JSONEncoder
 from json import JSONEncoder
 import jwt
@@ -1639,6 +1639,31 @@ def logout(tokdata):
 ## Static
 ##
 ###########################
+
+#@api.route('/api/static/<id>', methods=['GET'])
+#@api.route('/static/<id>', methods=['GET'])
+#def getstatic(id):
+#    """
+#    gets a static base64 thing from the repo by id or alias without login
+#    useful for logo etc.
+#    base table is plainbi_static_file
+#    """
+#    if is_id(id):
+#        sql_params={ "id" : id}
+#        sql="select * from plainbi_static_file where id=:id"
+#    else:
+#        sql_params={ "alias" : id}
+#        sql="select * from plainbi_static_file where alias=:alias"
+#    log.debug("getstatic: sql is <%s>",sql)
+#    s,s_columns = db_exec(config.repoengine, sql , sql_params)
+#    log.debug("static resource = %s",str(s))
+#    if len(s)>0:
+#        for r in s:
+#            b64 = r["content_base64"]
+#            return base64.b64decode(b64)
+#    else:
+#        return None
+
 @api.route('/api/static/<id>', methods=['GET'])
 @api.route('/static/<id>', methods=['GET'])
 def getstatic(id):
@@ -1659,10 +1684,60 @@ def getstatic(id):
     if len(s)>0:
         for r in s:
             b64 = r["content_base64"]
-            return base64.b64decode(b64)
+            response = make_response(base64.b64decode(b64))
+            response.headers.set('Content-Type', r["mimetype"])
+            #response.headers.set('Content-Disposition', 'attachment', filename='%s.jpg' % pid)
+            return response
     else:
-        return None
+        return "no data found",404
 
+@api.route('/api/settings', methods=['GET'])
+def getsettings():
+    """
+    base table is plainbi_settomgs
+    """
+    out={}
+    log.debug("getsettings:")
+    items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
+    if isinstance(e,str) and e=="ok":
+        log.debug("getsettings sql_select ok")
+    else:
+        log.debug("getsettings sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        try:
+            json_out2 = jsonify(out)
+        except Exception as ej2:
+            log.error("getsettings: jsonify Error 2: %s",str(ej2))
+        return json_out2,500
+    out["data"]=items
+    out["columns"]=columns
+    out["total_count"]=total_count
+    log.debug("leaving getsettings and return json result")
+    log.debug("out=%s",str(out))
+    try:
+        json_out = jsonify(out)
+    except Exception as ej:
+        log.error("getsettings: jsonify Error: %s",str(ej))
+    return json_out
+
+@api.route('/api/setting/<name>', methods=['GET'])
+def getsetting(name):
+    """
+    base table is plainbi_settomgs
+    """
+    sql_params={ "name" : name}
+    sql="select * from plainbi_settings where setting_name=:name"
+    log.debug("getsetting: sql is <%s>",sql)
+    s,s_columns = db_exec(config.repoengine, sql , sql_params)
+    log.debug("setting %s = %s",name,str(s))
+    out={}
+    if len(s)>0:
+        for r in s:
+            out["setting_name"] = r["setting_name"]
+            out["setting_value"] = r["setting_value"]
+            return jsonify(out)
+    else:
+        return "no data found", 404
 
 def create_app(p_repository=None, p_database=None):
     """

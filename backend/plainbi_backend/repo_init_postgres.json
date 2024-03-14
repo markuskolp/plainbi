@@ -547,8 +547,44 @@ CREATE TABLE plainbi_static_file (
   id int primary key not null,
   name varchar(100),
   alias varchar(100),
-  filetype varchar(50),
+  mimetype varchar(50),
   content_base64 varchar
 );
+''',
+'''
+CREATE TABLE plainbi_settings (
+  setting_name varchar(100) primary key,
+  setting_value varchar
+);
+''',
+'''
+insert into plainbi_settings values ('app_title','plainbi')
+''',
+'''
+insert into plainbi_settings values ('header_title','plainbi')
+''',
+'''
+insert into plainbi_settings values ('footer','')
+''',
+'''
+insert into plainbi_settings values ('environment_banner_text',null)
+''',
+'''
+insert into plainbi_settings values ('environment_banner_color',null)
+''',
+'''
+insert into plainbi_settings values ('color_primary','#6a91ce')
+''',
+'''
+insert into plainbi_settings values ('color_success','#91c311')
+''',
+'''
+insert into plainbi_settings values ('color_error','#b31013')
+''',
+'''
+insert into plainbi_settings values ('color_info','#3b80e0')
+''',
+'''
+insert into plainbi_settings values ('font_size','13')
 ''',
 ]
