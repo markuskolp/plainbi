@@ -542,6 +542,9 @@ insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-
 insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0)
 ''',
 '''
+begin execute immediate 'drop table plainbi_static_file'; exception when others then null; end;
+''',
+'''
 CREATE TABLE plainbi_static_file (
   id number(10,0) primary key not null,
   name varchar2(100),
@@ -549,6 +552,9 @@ CREATE TABLE plainbi_static_file (
   mimetype varchar2(50),
   content_base64 clob
 );
+''',
+'''
+begin execute immediate 'drop table plainbi_settings'; exception when others then null; end;
 ''',
 '''
 CREATE TABLE plainbi_settings (
