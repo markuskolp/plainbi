@@ -707,9 +707,9 @@ def get_db_by_id_or_alias(d):
     """
     returns a sqlalchemy eninge object for the specified id or alias from the plainbi_datasource repo table
     """
-    log.debug("++++++++++ entering get_db_by_id_or_alias")
+    log.debug("++++++++++ entering get_db_by_id_or_alias params=%s",str(d))
     k=str(d)
-    if k == "def":
+    if d is None or k == "def":
         k="1"
     if k in config.datasources_engine.keys():
         return config.datasources_engine[k]
@@ -780,7 +780,7 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
         return None,None,None,e
 
 ## repo lookup adhoc
-def get_repo_adhoc_sql_stmt(repoengine,id):
+def get_repo_adhoc_sql_stmt(repoengine,id,user_id):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -794,13 +794,18 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     adhocid = -999
     order_by_def = None
     adhocdesc = None
+    reposql="select * from plainbi_adhoc " # Leerzeichen hinten wichtig für später
     if is_id(id):
         adhocid=id
         reposql_params={ "id" : id}
-        reposql="select * from plainbi_adhoc where id=:id"
+        whereclause="where id=:id"
+        #reposql="select * from plainbi_adhoc where id=:id"
     else:
         reposql_params={ "alias" : id}
-        reposql="select * from plainbi_adhoc where alias=:alias"
+        whereclause="where alias=:alias"
+    #reposql="select * from plainbi_adhoc where alias=:alias"
+    where = add_auth_to_where_clause("plainbi_adhoc", whereclause, user_id)
+    reposql+=where
     log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
     try:
         lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
@@ -811,7 +816,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
             out["message"]+=" beim Lesen der Adhoc-Abfrage"
         return out
     except Exception as e:
-        log.error("exception in get_repo_adhoc_sql_stmt: %s ",str(e))
+        log.error("exception in get_repo_adhoc_sql_stmt3: %s ",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_repo_adhoc_sql_stmt"
             out["message"]+=" beim Lesen der Adhoc-Abfrage"
@@ -822,16 +827,23 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     if isinstance(lkp,list):
         if len(lkp)==1:
             if isinstance(lkp[0],dict):
-                sql=lkp[0]["sql_query"]
-                adhocid=lkp[0]["id"]
-                datasrc_id = lkp[0]["datasource_id"]
-                order_by_def=lkp[0]["order_by_default"]
-                adhocdesc=lkp[0]["description"]
+                out["sql"]=lkp[0]["sql_query"]
+                out["datasrc_id"]=lkp[0]["datasource_id"]
+                out["adhocid"]=lkp[0]["id"]
+                out["order_by_def"]=lkp[0]["order_by_default"]
+                out["adhocdesc"]=lkp[0]["description"]
+                return out
         else:
             log.warn("get_repo_adhoc_sql_stmt:lkp list len is not 1")
+            out["error"]="get_repo_adhoc_sql_stmt_not_found"
+            out["message"]="Adhoc Bericht wurde nicht gefunden oder ist nicht berechtigt"
+            return out
     else:
         log.warn("lkp is not a dict, it is a %s",str(lkp.__class__))
-    return sql, datasrc_id, adhocid, order_by_def, adhocdesc
+        out["error"]="get_repo_adhoc_sql_stmt_no_dict"
+        out["message"]="Allgemeiner Fehler beim Lesen der Adhoc-Abfrage"
+        return out
+    return out
 
 ## repo customsql 
 def get_repo_customsql_sql_stmt(repoengine,id):
@@ -1605,6 +1617,7 @@ def load_datasources_from_repo():
     datasrc_sql = "select * from plainbi_datasource where id <> 0"
     datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
     for i in datasrc_items:
+        log.debug("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
         db_type = i["db_type"]
         id = i["id"]
         alias = i["alias"]
@@ -1625,6 +1638,9 @@ def load_datasources_from_repo():
         elif db_type == "oracle":
             sql_dbengine_str=f"oracle+cx_oracle://{db_user}:{db_pass}@{host}:{port}/{db_name}"
         else:
+            if db_type is None:
+                log.warning("datasource type is empty -> skip datasource")
+                continue
             sql_dbengine_str = db_type
             if "{db_user}" in sql_dbengine_str and db_user is not None:
                 sql_dbengine_str=sql_dbengine_str.replace("{db_user}",db_user)

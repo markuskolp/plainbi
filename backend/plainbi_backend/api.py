@@ -1062,6 +1062,8 @@ def get_adhoc_data(tokdata,id):
     """
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
+    prof=get_profile(config.repoengine,tokdata['username'])
+    user_id=prof["user_id"]
     out={}
     myparams=None
     fmt="JSON"
@@ -1102,7 +1104,14 @@ def get_adhoc_data(tokdata,id):
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     log.debug("get_adhoc_data pagination order_by=%s",order_by)
     log.debug("get_adhoc_data: get adhoc stmt")
-    adhoc_sql, adhoc_datasrc_id, adhocid, order_by_def, adhoc_desc = get_repo_adhoc_sql_stmt(config.repoengine,id)
+    get_rep_adhoc_res = get_repo_adhoc_sql_stmt(config.repoengine,id,user_id)
+    if "error" in get_rep_adhoc_res.keys():
+        return jsonify(get_rep_adhoc_res), 500
+    adhoc_sql = get_rep_adhoc_res["sql"]
+    adhoc_datasrc_id = get_rep_adhoc_res["datasrc_id"]
+    adhocid  = get_rep_adhoc_res["adhocid"]
+    order_by_def  = get_rep_adhoc_res["order_by_def"]
+    adhoc_desc  = get_rep_adhoc_res["adhocdesc"]
     audit(tokdata,request,id=adhocid)
     if adhoc_datasrc_id is None:
         msg="adhoc datasource_id is not set - assuming 1"
@@ -1691,13 +1700,60 @@ def getstatic(id):
     else:
         return "no data found",404
 
+@api.route('/api/settings.js', methods=['GET'])
+def getsettingsjs():
+    """
+    base table is plainbi_setting
+    """
+    log.debug("++++++++++ entering getsettingsjs")
+    
+    out={}
+    log.debug("getsettings from db")
+    items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
+    if isinstance(e,str) and e=="ok":
+        log.debug("getsettings sql_select ok")
+    else:
+        log.debug("getsettings sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        try:
+            json_out2 = jsonify(out)
+        except Exception as ej2:
+            log.error("getsettings.js: jsonify Error 2: %s",str(ej2))
+        return json_out2,500
+
+    def get_setting_from_list(items,nam):
+        for i in items:
+            if i["setting_name"]==nam:
+                return i["setting_value"]
+        return ""
+
+    log.debug("construct javascript")
+    log.debug("settings are %s",str(items))
+    s=  "// header and footer\n"
+    s=s+f"var APP_TITLE = '"+get_setting_from_list(items,'app_title')+"'\n"
+    s=s+f"var HEADER_TITLE = '"+get_setting_from_list(items,'header_title')+"';\n"
+    s=s+f"var FOOTER = '"+get_setting_from_list(items,'footer')+"';\n"
+    s=s+"\n"
+    s=s+"// environment banner\n"
+    s=s+f"var ENVIRONMENT_BANNER_TEXT = '"+get_setting_from_list(items,'environment_banner_text')+"'; // e.g. DEV, TEST - leave empty for PROD, as you mostly don't need a banner there\n"
+    s=s+"\n"
+    s=s+"// theme\n"
+    s=s+f"var THEME_COLOR_PRIMARY = '"+get_setting_from_list(items,'color_primary')+"';\n"
+    s=s+f"var THEME_COLOR_SUCCESS = '"+get_setting_from_list(items,'color_success')+"';\n"
+    s=s+f"var THEME_COLOR_ERROR = '"+get_setting_from_list(items,'color_error')+"';\n"
+    s=s+f"var THEME_COLOR_INFO = '"+get_setting_from_list(items,'color_info')+"';\n"
+    s=s+f"var THEME_FONT_SIZE = "+get_setting_from_list(items,'font_size')+";\n"
+    response = make_response(s)
+    response.headers.set('Content-Type', "text/javascript")
+    return response
+
 @api.route('/api/settings', methods=['GET'])
 def getsettings():
     """
-    base table is plainbi_settomgs
+    base table is plainbi_setting
     """
     out={}
-    log.debug("getsettings:")
+    log.debug("++++++++++ entering getsettings")
     items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
     if isinstance(e,str) and e=="ok":
         log.debug("getsettings sql_select ok")
@@ -1725,6 +1781,7 @@ def getsetting(name):
     """
     base table is plainbi_settomgs
     """
+    log.debug("++++++++++ entering getsetting")
     sql_params={ "name" : name}
     sql="select * from plainbi_settings where setting_name=:name"
     log.debug("getsetting: sql is <%s>",sql)
@@ -1749,6 +1806,7 @@ def create_app(p_repository=None, p_database=None):
       - unittest scripts (the parameters p_repository and p_database are important here)
     that's why the get_config handling is necessary
     """
+    log.debug("++++++++++ entering create_app")
     global app
     log.info("creating flask app")
     app = Flask(__name__)
