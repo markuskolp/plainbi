@@ -48,7 +48,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, isRepo, lookups, token }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, datasource, isRepo, lookups, token }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
@@ -66,7 +66,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   const [activateLookups, setActivateLookups]=useState(true);
   
   let api = "/api/crud/";
-  api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
+  api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource+'/' : ''); // switch between repository tables and other datasources /api/crud/<db>/<table>
   
   const [lookupData, setLookupData] = useState([]);
   const [filteredTableData, setFilteredTableData] = useState(null);
@@ -564,7 +564,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                 }
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} isRepo={isRepo} token={token}/>
+            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token}/>
             }
 
             </React.Fragment>

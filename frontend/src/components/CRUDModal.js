@@ -9,14 +9,14 @@ import {
   message
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, versioned, isRepo, token }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, versioned, datasource, isRepo, token }) => {
     
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
   console.log("Rendering with: ", recordData);
   console.log("pkColumns: ", pkColumns);
   let api = "/api/crud/";
-  api = isRepo === 'true' ? "/api/repo/" : "/api/crud/"; // switch between repository tables and other datasources
+  api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource+'/' : '');  // switch between repository tables and other datasources /api/crud/<db>/<table>
 
   useEffect(() => {
     type == 'edit' ? getRecordData(tableName, pk) : setRecordData([]);

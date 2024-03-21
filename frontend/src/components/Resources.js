@@ -45,7 +45,7 @@ const Resources = (props) => {
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
-        console.log(JSON.stringify(resData));
+        //console.log(JSON.stringify(resData));
         setData(resData);
         setLoading(false);
       }
