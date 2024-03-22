@@ -16,6 +16,7 @@ import "./css/index.css";
 import Login from "./pages/Login";
 import { ConfigProvider } from 'antd';
 import deDE from 'antd/locale/de_DE';
+import ERD from "./pages/ERD";
 
 const App = () => {
   const { token, removeToken, setToken } = useToken();
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="apps" element={<Apps token={token} setToken={setToken} />} />
               <Route path="apps/:id" element={<AppRuntime token={token} setToken={setToken} />} />
               <Route path="dashboard/:id" element={<DashboardPage token={token} setToken={setToken} />} />
+              <Route path="erd" element={<ERD token={token} setToken={setToken} />} />
               <Route path="*" element={<NoPage />} />
             </Route>
           </Routes>
