@@ -7,49 +7,16 @@ const { Title } = Typography;
 
 const Login = (props) => {
 
+  const header_title = window.HEADER_TITLE;
+  const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
+  const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
+  
   const [loading, setLoading] = useState(false);
 
   const [loginForm, setloginForm] = useState({
     username: "",
     password: ""
   })
-
-  const [header_title, setHeader_title] = useState(); 
-  const [environment_banner_text, setEnvironment_banner_text] = useState(); 
-  const [environment_banner_color, setEnvironment_banner_color] = useState(); 
-    
-  useEffect(() => {
-    initializeGlobalSettings();
-  }, []);
-
-  function getSetting(settings, name) {
-    let found = settings.find(({ setting_name }) => setting_name === name);
-    //console.log("getSetting() - name: " + name + " - found:");
-    //console.log(found);
-    return found ? found.setting_value : null;
-  }
-
-  const initializeGlobalSettings = async () => {
-    await Axios.get("/api/settings", {headers: {Authorization: props.token}}).then(
-      (res) => {
-        //console.log(JSON.stringify(res));
-        const resData = res.data.data;
-        // set document title if given
-        //document.title = getSetting('app_title') ? getSetting('app_title') : 'plainbi';
-        document.title = getSetting(resData, 'app_title') ? getSetting(resData, 'app_title') : 'plainbi';
-        setHeader_title(getSetting(resData, 'header_title'));
-        setEnvironment_banner_text(getSetting(resData, 'environment_banner_text'));
-        setEnvironment_banner_color(getSetting(resData, 'environment_banner_color'));
-        //setApp_title(getSetting(resData, 'app_title') ? getSetting(resData, 'app_title') : 'plainbi');
-        //console.log("app_title: " + app_title);
-      }
-    ).catch(
-      function (error) {
-        console.error(error);
-        //message.error('Es gab einen Fehler beim Laden von übergreifenden Einstellungen.');
-      }
-    );
-  };
 
   function logMeIn(event) {
     setLoading(true);

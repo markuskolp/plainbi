@@ -1730,7 +1730,7 @@ def getsettingsjs():
     log.debug("construct javascript")
     log.debug("settings are %s",str(items))
     s=  "// header and footer\n"
-    s=s+f"var APP_TITLE = '"+get_setting_from_list(items,'app_title')+"'\n"
+    s=s+f"var APP_TITLE = '"+get_setting_from_list(items,'app_title')+"';\n"
     s=s+f"var HEADER_TITLE = '"+get_setting_from_list(items,'header_title')+"';\n"
     s=s+f"var FOOTER = '"+get_setting_from_list(items,'footer')+"';\n"
     s=s+"\n"
@@ -1744,7 +1744,7 @@ def getsettingsjs():
     s=s+f"var THEME_COLOR_INFO = '"+get_setting_from_list(items,'color_info')+"';\n"
     s=s+f"var THEME_FONT_SIZE = "+get_setting_from_list(items,'font_size')+";\n"
     response = make_response(s)
-    response.headers.set('Content-Type', "text/javascript")
+    response.headers.set('Content-Type', "text/javascript; charset=utf-8")
     return response
 
 @api.route('/api/settings', methods=['GET'])

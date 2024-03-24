@@ -1,0 +1,23 @@
+/* index.css overwrite */
+main:has( .erdcontainer) {
+  padding: 0px !important;
+  background: #f5f5f5 !important; 
+}
+/* index.css overwrite */
+.site-layout-content:has( .erdcontainer)  {
+  padding: 0px !important;
+  padding-top: 12px !important;
+}
+.erdcontainer {
+  padding-top:10px;
+  height: calc(100vh * 0.85);
+  display:flex;
+}
+.erdcontainer_editor {
+  width: 25%;
+  overflow: auto;
+}
+.erdcontainer_result {
+  width: 75%;
+  padding: 1em;
+}

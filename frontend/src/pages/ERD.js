@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { PageHeader } from "@ant-design/pro-layout";
 import ReactFlow, {
   Controls,
   Background,
@@ -8,6 +9,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import MonacoEditor from 'react-monaco-editor';
+import "../css/erd.css";
 
 /*
 const ERD = () => {
@@ -78,33 +80,41 @@ function ERD() {
     automaticLayout: true,
 }; 
 
+const defaultValue = 'Entity "erstes ER Diagramm"\nEntity "los gehts"\n\nRelation "erstes ER Diagramm" > "los gehts"';
+
   return (
     <React.Fragment>
-      <div>
-        <MonacoEditor
-                      width="100%"
-                      height="100%"
-                      language="sql"
-                      theme="vs-light"
-                      value=''
-                      options={MonacoEditorOptions}
-                      //onChange={::this.onChange}
-                      onChange={handleMonacoEditorChange}
-                      name={name}
-                      //editorDidMount={::this.editorDidMount}
-                      />
-      </div>
-      <div style={{ width: '100vw', height: 'calc(100vh * 0.8)' }}>
-        <ReactFlow
-          nodes={nodes}
-          onNodesChange={onNodesChange}
-          edges={edges}
-          onEdgesChange={onEdgesChange}
-          fitView
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
+      <PageHeader
+              title="ER Diagramm"
+              subTitle=""
+            />
+      <div class="erdcontainer">
+        <div class="erdcontainer_editor">
+          <MonacoEditor
+                        width="100%"
+                        height="100%"
+                        language="sql"
+                        theme="vs-light"
+                        value={defaultValue}
+                        options={MonacoEditorOptions}
+                        //onChange={::this.onChange}
+                        onChange={handleMonacoEditorChange}
+                        name={name}
+                        //editorDidMount={::this.editorDidMount}
+                        />
+        </div>
+        <div class="erdcontainer_result" >
+          <ReactFlow
+            nodes={nodes}
+            onNodesChange={onNodesChange}
+            edges={edges}
+            onEdgesChange={onEdgesChange}
+            fitView
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
       </div>
     </React.Fragment>
   );

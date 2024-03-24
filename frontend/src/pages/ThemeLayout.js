@@ -21,6 +21,21 @@ import EnvironmentBanner from "../components/EnvironmentBanner";
 const { Title, Link, Text } = Typography;
 const { Header, Content, Footer } = Layout;
 
+// config.js
+const app_title = window.APP_TITLE;
+const header_title = window.HEADER_TITLE;
+const footer = window.FOOTER;
+const color_primary = window.THEME_COLOR_PRIMARY;
+const color_success = window.THEME_COLOR_SUCCESS;
+const color_error = window.THEME_COLOR_ERROR;
+const color_info = window.THEME_COLOR_INFO;
+const font_size = window.THEME_FONT_SIZE;
+const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
+const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
+
+// set document title if given
+document.title = app_title ? app_title : 'plainbi';
+
 const ThemeLayout = (props) => {
   const {
     token: { colorBgContainer }
@@ -32,58 +47,6 @@ const ThemeLayout = (props) => {
     setIsDarkMode((previousValue) => !previousValue);
    };
   const userRole = localStorage.getItem('role');
-  
-  //const [app_title, setApp_title] = useState(); // global settings
-  const [header_title, setHeader_title] = useState(); 
-  const [footer, setFooter] = useState(); 
-  const [color_primary, setColor_primary] = useState(); 
-  const [color_success, setColor_success] = useState(); 
-  const [color_error, setColor_error] = useState(); 
-  const [color_info, setColor_info] = useState(); 
-  const [font_size, setFont_size] = useState(); 
-  const [environment_banner_text, setEnvironment_banner_text] = useState(); 
-  const [environment_banner_color, setEnvironment_banner_color] = useState(); 
-    
-  useEffect(() => {
-    initializeGlobalSettings();
-  }, []);
-
-  function getSetting(settings, name) {
-    let found = settings.find(({ setting_name }) => setting_name === name);
-    //console.log("getSetting() - name: " + name + " - found:");
-    //console.log(found);
-    return found ? found.setting_value : null;
-  }
-
-  const initializeGlobalSettings = async () => {
-    await Axios.get("/api/settings", {headers: {Authorization: props.token}}).then(
-      (res) => {
-        //console.log(JSON.stringify(res));
-        const resData = res.data.data;
-        //console.log("/settings response: " + JSON.stringify(resData));
-        //console.log("/settings app_title: " + getSetting(resData, 'app_title') );
-        // set document title if given
-        //document.title = getSetting('app_title') ? getSetting('app_title') : 'plainbi';
-        document.title = getSetting(resData, 'app_title') ? getSetting(resData, 'app_title') : 'plainbi';
-        setHeader_title(getSetting(resData, 'header_title'));
-        setFooter(getSetting(resData, 'footer'));
-        setColor_primary(getSetting(resData, 'color_primary'));
-        setColor_success(getSetting(resData, 'color_success'));
-        setColor_error(getSetting(resData, 'color_error'));
-        setColor_info(getSetting(resData, 'color_info'));
-        setFont_size(getSetting(resData, 'font_size'));
-        setEnvironment_banner_text(getSetting(resData, 'environment_banner_text'));
-        setEnvironment_banner_color(getSetting(resData, 'environment_banner_color'));
-        //setApp_title(getSetting(resData, 'app_title') ? getSetting(resData, 'app_title') : 'plainbi');
-        //console.log("app_title: " + app_title);
-      }
-    ).catch(
-      function (error) {
-        console.error(error);
-        //message.error('Es gab einen Fehler beim Laden von übergreifenden Einstellungen.');
-      }
-    );
-  };
    
   const logMeOut = () => {
     Axios({
