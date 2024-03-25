@@ -137,9 +137,9 @@ function ERD() {
                 layout: {x: 0, y: i*100}
             }
           }),
-          edges: dsltext.split("\n").filter(line => line.split(">").length > 1 ).map((line, i) => {  // nur nodes nehmen (durch : getrennt)
+          edges: dsltext.split("\n").filter(line => line.split(">").length > 1 ).map((line, i) => {  // nur edges nehmen (durch > getrennt)
             return  {  
-                id: line.split(">")[0].trim() + "-"+ line.split(":")[1],
+                id: line.split(">")[0].trim() + "-"+ line.split(">")[1].trim(),
                 from: line.split(">")[0].trim(),
                 to: line.split(">")[1].trim(),
                 label: null, //line.split(":")[1],
