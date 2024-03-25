@@ -6,7 +6,7 @@ import ReactFlow, {
   Background,
   applyNodeChanges,
   applyEdgeChanges,
-  ReactFlowProvider 
+  ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import MonacoEditor from 'react-monaco-editor';
@@ -34,7 +34,7 @@ const initialNodes = [
     id: 'erstes ER Diagramm',
     data: { label: 'erstes ER Diagramm' },
     position: { x: 0, y: 0 },
-    type: 'input',
+    //type: 'input',
   },
   {
     id: 'los gehts !',
@@ -61,15 +61,9 @@ function ERD() {
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     [],
   );
-  
-  const handleMonacoEditorChange = (value,e) => {
-    //const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
-    //console.log(emuEvent);
-    console.log("value: " + value);
-    console.log("e: " + e);
-  }
-  
- const MonacoEditorOptions = {
+
+
+  const MonacoEditorOptions = {
     autoIndent: 'full',
     contextmenu: true,
     //fontFamily: 'monospace',
@@ -89,45 +83,174 @@ function ERD() {
     readOnly: false,
     cursorStyle: 'line',
     automaticLayout: true,
-}; 
+  };
 
-const defaultValue = 'Entity "erstes ER Diagramm"\nEntity "los gehts"\n\nRelation "erstes ER Diagramm" > "los gehts"';
+  const defaultValue = 'a: erstes ER Diagramm\nb: los gehts\n\na > b';
 
-/* splitpane function - START */
+  /* splitpane function - START */
 
-let ismdwn = 0
+  let ismdwn = 0
 
-function mD(event) {
-  ismdwn = 1
-  document.body.addEventListener('mousemove', mV)
-  document.body.addEventListener('mouseup', end)
-  console.log("mD")
-}
-
-function mV(event) {
-  console.log("mV")
-  if (ismdwn === 1) {
-    pan1.style.flex = event.clientX + "px"
-  } else {
-    end()
+  function mD(event) {
+    ismdwn = 1
+    document.body.addEventListener('mousemove', mV)
+    document.body.addEventListener('mouseup', end)
+    console.log("mD")
   }
-}
-const end = (e) => {
-  ismdwn = 0
-  document.body.removeEventListener('mouseup', end)
-  document.getElementById('rpanrResize').removeEventListener('mousemove', mV)
-}
 
-function rC(event) {
-  document.getElementById('rpanrResize').addEventListener('mousedown', mD)
+  function mV(event) {
+    console.log("mV")
+    if (ismdwn === 1) {
+      pan1.style.flex = event.clientX + "px"
+    } else {
+      end()
+    }
+  }
+  const end = (e) => {
+    ismdwn = 0
+    document.body.removeEventListener('mouseup', end)
+    document.getElementById('rpanrResize').removeEventListener('mousemove', mV)
+  }
+
+  function rC(event) {
+    document.getElementById('rpanrResize').addEventListener('mousedown', mD)
+  }
+  /* splitpane function - END */
+
+
+  // https://github.com/nerdify/dbml-parser/blob/master/index.js
+
+  const parseDSLtoFlow = (text) => {
+    try {
+
+      //cleanse DSL text
+      let dsltext = text;
+      dsltext = dsltext.replace(/\/\*[\s\S]*?\*\/|(?<=[^:])\/\/.*|^\/\/.*/g, '').trim(); // removeComments
+      dsltext = dsltext.split(/\r?\n/).filter(line => line.trim() !== '').join('\n'); // trimEmptyLines
+      console.log(dsltext);
+
+      let flow = {
+          nodes: dsltext.split("\n").filter(line => line.split(":").length > 1 ).map((line, i) => {  // nur nodes nehmen (durch : getrennt)
+            return  {  
+                id: line.split(":")[0].trim(),
+                label: line.split(":")[1].trim(),
+                layout: {x: 0, y: i*100}
+            }
+          }),
+          edges: dsltext.split("\n").filter(line => line.split(">").length > 1 ).map((line, i) => {  // nur nodes nehmen (durch : getrennt)
+            return  {  
+                id: line.split(">")[0].trim() + "-"+ line.split(":")[1],
+                from: line.split(">")[0].trim(),
+                to: line.split(">")[1].trim(),
+                label: null //line.split(":")[1]
+            }
+          })
+
+      };
+      console.log(flow);
+
+      return flow; 
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  };
+
+  // create array for each line -> ":" is node, ">" is edge
+//   id: text.split(":")[0].trim()
+//   value: text.split(":")[1].trim() -> data.label (node), label (edge)
+//   position: immer x:0, y: + 100 --> bei vorhandenen Nodes schauen was diese bisher für eine Position haben !
+/*
+{
+  id: 'erstes ER Diagramm',
+  data: { label: 'erstes ER Diagramm' },
+  position: { x: 0, y: 0 }
 }
-/* splitpane function - END */
+{ id: '1-2', source: 'a', target: 'b', label: '', type: 'step' },
+*/
 
+  const handleMonacoEditorChange = (value, e) => {
+    try {
+      //const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
+      //console.log(emuEvent);
+      console.log("value: " + value);
+      console.log("e: " + e);
 
-  return (
-    <React.Fragment>
-      <PageHeader title="ER Diagramm" subTitle=""/>
+      const flow = parseDSLtoFlow(value);
+    
+      const newNodes = flow.nodes.map((node) => {
+        return {
+          id: node.id.toString(),
+          position: { x: node.layout.x, y: node.layout.y },
+          data: { label: node.label },
+        };
+      });
       
+      const newEdges = flow.edges.map((edge) => ({
+        id: edge.id.toString(),
+        source: edge.from.toString(),
+        target: edge.to.toString(),
+        label: edge.label, //.toString()
+      }));
+      
+
+      setNodes(newNodes);
+      setEdges(newEdges);
+
+    } catch (error) {
+      //showModal('Error parsing HJson: ' + error);
+      console.error(error);
+    }
+
+  }
+
+
+
+return (
+  <React.Fragment>
+    <PageHeader title="ER Diagramm" subTitle="" />
+
+    <Row className="erdcontainer">
+      <Col flex="300px" className="erdcontainer_editor">
+        <MonacoEditor
+          width="100%"
+          height="80vh"
+          language="sql"
+          theme="vs-light"
+          value={defaultValue}
+          options={MonacoEditorOptions}
+          //onChange={::this.onChange}
+          onChange={handleMonacoEditorChange}
+          name={name}
+        //editorDidMount={::this.editorDidMount}
+        />
+      </Col>
+      <Col flex="20px">
+        <Divider type="vertical" style={{ height: "100%", borderWidth: "thick" }} />
+      </Col>
+      <Col flex="auto" className="erdcontainer_result" >
+        <ReactFlow
+          nodes={nodes}
+          onNodesChange={onNodesChange}
+          edges={edges}
+          onEdgesChange={onEdgesChange}
+          fitView
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+      </Col>
+    </Row>
+  </React.Fragment>
+);
+}
+
+
+export default ERD;
+
+/*
+
+
       <Row className="erdcontainer">
         <Col id="pan1" >
             <MonacoEditor
@@ -159,15 +282,6 @@ function rC(event) {
           </ReactFlow>
       </Col>
     </Row>
-
-    </React.Fragment>
-  );
-}
-
-
-export default ERD;
-
-/*
 
         <SplitPane className="split-pane-row">
           <SplitPaneLeft>
