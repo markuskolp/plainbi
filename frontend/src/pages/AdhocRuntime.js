@@ -35,7 +35,6 @@ const AdhocRuntime = (props) => {
     if (format === 'XLSX' || format === 'CSV') {
       console.log("getting data as file ...");
       getBlobData(format);
-      navigate("/");
     } else {
     // else show the data in the web page
       console.log("loading data ...");
@@ -92,9 +91,9 @@ const AdhocRuntime = (props) => {
       ).catch(
         function (error) {
           setLoading(false);
-          setError(true);
           setErrorMessage('Es gab einen Fehler beim Laden der Daten');
           setErrorDetail(error.response.data.detail);
+          setError(true);
           console.log(error);
           console.log(error.response.data.message);
         }
@@ -103,6 +102,8 @@ const AdhocRuntime = (props) => {
 
   
   const getBlobData = async (_format) => {
+    setLoading(true);
+    setError(false);
     const dt = new Date().toISOString().substring(0,19);
 
     var _adhocparams = "";
@@ -115,10 +116,8 @@ const AdhocRuntime = (props) => {
     */
     console.log("getBlobData uri: " + "/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams);
 
-    console.log("111");
     await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format+_adhocparams, {responseType: 'blob', headers: {Authorization: props.token}}).then(
       (res) => {
-        console.log("aaa");
         console.log(res.data);
         // create file link in browser's memory
         const href = URL.createObjectURL(res.data);
@@ -133,12 +132,17 @@ const AdhocRuntime = (props) => {
         // clean up "a" element & remove ObjectURL
         document.body.removeChild(link);
         URL.revokeObjectURL(href);
+        
+        // go to homepage
+        navigate("/");
+
       }
       ).catch(
         function (error) {
-          setError(true);
+          setLoading(false);
           setErrorMessage('Es gab einen Fehler beim Laden der Daten als ' + _format);
           setErrorDetail(error.response.data.detail);
+          setError(true);
           console.log("getBlobData - error: " + error);
           console.log(error);
           console.log(error.response.data.message);
@@ -200,7 +204,7 @@ const AdhocRuntime = (props) => {
        
       <PageHeader
         onBack={() => (window.location.href = "/")}
-        title={adhoc.name}
+        title={adhoc.name ? adhoc.name : 'Adhoc wird geladen ...'}
         subTitle=""
         extra={[
           <Button key="1" type="primary" icon={<DownloadOutlined />} onClick={() => downloadData("CSV")}> 
