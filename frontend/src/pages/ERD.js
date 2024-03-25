@@ -31,20 +31,20 @@ const ERD = () => {
 
 const initialNodes = [
   {
-    id: 'erstes ER Diagramm',
+    id: 'a',
     data: { label: 'erstes ER Diagramm' },
     position: { x: 0, y: 0 },
     //type: 'input',
   },
   {
-    id: 'los gehts !',
+    id: 'b',
     data: { label: 'los gehts !' },
     position: { x: 100, y: 100 },
   },
 ];
 
 const initialEdges = [
-  { id: '1-2', source: 'erstes ER Diagramm', target: 'los gehts !', label: '... na dann ...', type: 'step' },
+  { id: 'a-b', source: 'a', target: 'b', label: '... na dann ...', type: 'step' },
 ];
 
 //const ERDFlow = () => {
@@ -142,7 +142,8 @@ function ERD() {
                 id: line.split(">")[0].trim() + "-"+ line.split(":")[1],
                 from: line.split(">")[0].trim(),
                 to: line.split(">")[1].trim(),
-                label: null //line.split(":")[1]
+                label: null, //line.split(":")[1],
+                type: 'smoothstep' // https://reactflow.dev/examples/edges/edge-types
             }
           })
 
@@ -156,18 +157,6 @@ function ERD() {
     }
   };
 
-  // create array for each line -> ":" is node, ">" is edge
-//   id: text.split(":")[0].trim()
-//   value: text.split(":")[1].trim() -> data.label (node), label (edge)
-//   position: immer x:0, y: + 100 --> bei vorhandenen Nodes schauen was diese bisher für eine Position haben !
-/*
-{
-  id: 'erstes ER Diagramm',
-  data: { label: 'erstes ER Diagramm' },
-  position: { x: 0, y: 0 }
-}
-{ id: '1-2', source: 'a', target: 'b', label: '', type: 'step' },
-*/
 
   const handleMonacoEditorChange = (value, e) => {
     try {
@@ -179,9 +168,17 @@ function ERD() {
       const flow = parseDSLtoFlow(value);
     
       const newNodes = flow.nodes.map((node) => {
+        
+        let existingNode = nodes.find((existingnode) => existingnode.id == node.id);
+        console.log("node - id: " + node.id);
+        console.log(existingNode);
+
         return {
           id: node.id.toString(),
-          position: { x: node.layout.x, y: node.layout.y },
+          position: { 
+            x: (existingNode == null ? node.layout.x : existingNode.position.x ), 
+            y: (existingNode == null ? node.layout.y : existingNode.position.y )
+          },
           data: { label: node.label },
         };
       });
@@ -191,6 +188,7 @@ function ERD() {
         source: edge.from.toString(),
         target: edge.to.toString(),
         label: edge.label, //.toString()
+        type: edge.type
       }));
       
 
@@ -208,10 +206,10 @@ function ERD() {
 
 return (
   <React.Fragment>
-    <PageHeader title="ER Diagramm" subTitle="" />
+    <PageHeader className="erdheader" title="ER Diagramm" subTitle="" />
 
     <Row className="erdcontainer">
-      <Col flex="300px" className="erdcontainer_editor">
+      <Col flex="20%" className="erdcontainer_editor">
         <MonacoEditor
           width="100%"
           height="80vh"
@@ -236,8 +234,8 @@ return (
           onEdgesChange={onEdgesChange}
           fitView
         >
-          <Background />
-          <Controls />
+          <Background color="#fff" />
+          <Controls position="bottom-right" />
         </ReactFlow>
       </Col>
     </Row>
