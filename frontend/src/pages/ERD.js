@@ -214,7 +214,7 @@ return (
           width="100%"
           height="80vh"
           language="sql"
-          theme="vs-light"
+          theme="vs-dark"
           value={defaultValue}
           options={MonacoEditorOptions}
           //onChange={::this.onChange}
