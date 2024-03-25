@@ -106,6 +106,7 @@ import json
 import base64
 #import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
+import decimal
 import csv
 import pandas as pd
 from flask_bcrypt import Bcrypt
@@ -154,6 +155,8 @@ class CustomJSONEncoder(JSONEncoder):
                 return obj.strftime("%Y-%m-%d %H:%M:%S.%f")
             elif isinstance(obj, date):
                 return obj.strftime("%Y-%m-%d")
+            elif isinstance(obj,decimal.Decimal):
+                return str(obj)
             elif isinstance(obj, Exception):
                 return str(obj)
             iterable = iter(obj)
