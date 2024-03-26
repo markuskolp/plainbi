@@ -25,7 +25,7 @@ const TileVA = (props) => {
   }, []);
 
   const initializeApp = async () => {
-    await Axios.get("/api/crud/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt:desc,ende_dt", {headers: {Authorization: props.token}}).then(
+    await Axios.get("/api/crud/1/DWH.CONFIG.v_portal_veranstaltung?order_by=beginn_dt:desc,ende_dt", {headers: {Authorization: props.token}}).then(
       (res) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
