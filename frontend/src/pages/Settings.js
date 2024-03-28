@@ -75,7 +75,21 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"3", name:"Lookups für Applikationen", alias:"lookups",
+      id:"3", name:"Globale Logos", alias:"logos",
+      allowed_actions:["update"],
+      datasource:"repo",
+      table:"static_file",
+      pk_columns:["id"],
+      table_columns: [
+        { column_name: "id", column_label: "ID", datatype: "number", editable: false, required: false, showdetailsonly:true },
+        { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: false, required: true },
+        { column_name: "alias", column_label: "Alias", datatype: "text", ui: "textinput", editable: false, required: true, showdetailsonly:true },
+        { column_name: "mimetype", column_label: "MIME-Typ", datatype: "text", ui: "textinput", editable: true, required: true },
+        { column_name: "content_base64", column_label: "Inhalt (als base64)", datatype: "text", ui: "textarea", editable: true, required: true, showdetailsonly:true  },
+      ]
+    }, 
+    {
+      id:"4", name:"Lookups für Applikationen", alias:"lookups",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"lookup",
@@ -89,7 +103,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"4", name:"Applikationen", alias:"apps",
+      id:"5", name:"Applikationen", alias:"apps",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"application",
@@ -103,7 +117,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"5", name:"Rollen", alias:"roles",
+      id:"6", name:"Rollen", alias:"roles",
       allowed_actions:[], //"create", "update", "delete"],
       datasource:"repo",
       table:"role",
@@ -114,7 +128,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"6", name:"User", alias:"users",
+      id:"7", name:"User", alias:"users",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"user",
@@ -129,7 +143,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"7", name:"Gruppen", alias:"groups",
+      id:"8", name:"Gruppen", alias:"groups",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"group",
@@ -141,7 +155,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"8", name:"User zu Gruppen", alias:"users2groups",
+      id:"9", name:"User zu Gruppen", alias:"users2groups",
       allowed_actions:["create", "delete"],
       datasource:"repo",
       table:"user_to_group",
@@ -152,7 +166,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"9", name:"Applikationen zu Gruppen", alias:"apps2groups",
+      id:"10", name:"Applikationen zu Gruppen", alias:"apps2groups",
       allowed_actions:["create", "delete"],
       datasource:"repo",
       table:"application_to_group",
