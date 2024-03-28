@@ -64,7 +64,18 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"2", name:"Lookups für Applikationen", alias:"lookups",
+      id:"2", name:"Globale Einstellungen", alias:"settings",
+      allowed_actions:["update"],
+      datasource:"repo",
+      table:"settings",
+      pk_columns:["setting_name"],
+      table_columns: [
+        { column_name: "setting_name", column_label: "Einstellung", datatype: "text", ui: "textinput", editable: false, required: true },
+        { column_name: "setting_value", column_label: "Wert", datatype: "text", ui: "textinput", editable: true, required: true }
+      ]
+    }, 
+    {
+      id:"3", name:"Lookups für Applikationen", alias:"lookups",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"lookup",
@@ -78,7 +89,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"3", name:"Applikationen", alias:"apps",
+      id:"4", name:"Applikationen", alias:"apps",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"application",
@@ -92,7 +103,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"4", name:"Rollen", alias:"roles",
+      id:"5", name:"Rollen", alias:"roles",
       allowed_actions:[], //"create", "update", "delete"],
       datasource:"repo",
       table:"role",
@@ -103,7 +114,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"5", name:"User", alias:"users",
+      id:"6", name:"User", alias:"users",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"user",
@@ -118,7 +129,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"6", name:"Gruppen", alias:"groups",
+      id:"7", name:"Gruppen", alias:"groups",
       allowed_actions:["create", "update", "delete"],
       datasource:"repo",
       table:"group",
@@ -130,7 +141,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"7", name:"User zu Gruppen", alias:"users2groups",
+      id:"8", name:"User zu Gruppen", alias:"users2groups",
       allowed_actions:["create", "delete"],
       datasource:"repo",
       table:"user_to_group",
@@ -141,7 +152,7 @@ const Settings = (props) => {
       ]
     }, 
     {
-      id:"8", name:"Applikationen zu Gruppen", alias:"apps2groups",
+      id:"9", name:"Applikationen zu Gruppen", alias:"apps2groups",
       allowed_actions:["create", "delete"],
       datasource:"repo",
       table:"application_to_group",
