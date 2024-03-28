@@ -88,7 +88,7 @@ const Settings = (props) => {
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: true, required: true },
         { column_name: "alias", column_label: "Alias", datatype: "text", ui: "textinput", editable: true, required: true },
         { column_name: "spec_json", column_label: "Spezifikation (als JSON)", datatype: "text", ui: "textarea", editable: true, required: true, showdetailsonly:true },
-        //{ column_name: "datasource_id", column_label: "Datenquelle", datatype: "number", ui: "lookup",  lookup: "datasource", editable: true, required: true },
+        { column_name: "datasource_id", column_label: "Datenquelle", datatype: "number", ui: "lookup",  lookup: "datasource", editable: true, required: true },
       ]
     }, 
     {
@@ -169,7 +169,7 @@ const Settings = (props) => {
     return getItem(obj.name // label
         , obj.id // key
         , null // icon
-        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} isRepo="true" lookups={getLookups(obj.table_columns)} token={props.token}/>
+        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} datasource={obj.datasource} isRepo="true" lookups={getLookups(obj.table_columns)} token={props.token}/>
         , null // type
         );
   })

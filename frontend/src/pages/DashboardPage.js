@@ -343,68 +343,70 @@ const DashboardPage = (props) => {
   return !data || data.dashboardItems.length  ? (
       <CubeProvider cubejsApi={cubejsApi}>
         <React.Fragment>
-          <PageHeader
-            //onBack={() => (window.location.href = "/")}
-            title={data.dashboardName}
-            subTitle=""
-            //style={{ background: 'white' }}
-            extra={[
-              <Space>
-                {!editable ? (
-                    <Link onClick={(e) => { setEditable(true, e); }}>
-                      <Tooltip title="Dashboard bearbeiten">
-                        <EditOutlined />
-                      </Tooltip>
-                    </Link>
-                  ) : (
-                    <Link onClick={(e) => { setEditable(false, e); }}>
-                      <Tooltip title="Änderungen speichern">
-                        <SaveOutlined />
-                      </Tooltip>
-                    </Link>
-                  )
-                }
-                <Link href="#">
-                  <Tooltip title="Vollbild">
-                    <Button type="text" icon={<FullscreenOutlined />} onClick={openFullscreen}/>
-                  </Tooltip>
-                </Link>
-                <Link href="#">
-                  <Tooltip title="Automatische Aktualisierung">
-                    <Dropdown
-                      overlay={automaticUpdateDropdownMenu}
-                      placement="bottomLeft"
-                      trigger={["click"]}
-                    >
-                      <HistoryOutlined />
-                    </Dropdown>
-                  </Tooltip>
-                </Link>
-              </Space>
-            ]}
-          />
-          <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
-            <Col span={24} style={{textAlign:"right"}}>
-              <Space style={{textAlign:"left"}}>
-                {data.dashboardFilters && data.dashboardFilters.map((dashboardFilter) => { 
-                  return (
-                    dashboardFilter.type === 'lookup' ? 
-                      <MemberSelect query={dashboardFilter.query} columnId={dashboardFilter.columnId} columnLabel={dashboardFilter.columnLabel} defaultValue={dashboardFilter.defaultValue} displayName={dashboardFilter.displayName} onChange={handleChangeSelect} /> 
-                    : dashboardFilter.type === 'daterange' ?
-                      // todo: von/bis als defaultvalue übernehmen
-                      // todo: falls ein "preset range" angegeben wurde ("last_30_days", etc.), dann diesen übernehmen mit der [dayjs...] Logik
-                      <DateRange columnId={dashboardFilter.columnId} onChange={handleChangeDateRange} />
-                    : ""
-                  )
-                })}
-                {data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
-              </Space>
-            </Col>
-          </Row>
-          <Dashboard dashboardItems={data && data.dashboardItems} editable={editable} >
-            {data && data.dashboardItems.map(dashboardItem)}
-          </Dashboard>
-          <DrilldownModal query={drillDownQuery} open={open} onClose={handleClose}/>
+          <div class="dashboardcontainer">
+            <PageHeader
+              //onBack={() => (window.location.href = "/")}
+              title={data.dashboardName}
+              subTitle=""
+              //style={{ background: 'white' }}
+              extra={[
+                <Space>
+                  {!editable ? (
+                      <Link onClick={(e) => { setEditable(true, e); }}>
+                        <Tooltip title="Dashboard bearbeiten">
+                          <EditOutlined />
+                        </Tooltip>
+                      </Link>
+                    ) : (
+                      <Link onClick={(e) => { setEditable(false, e); }}>
+                        <Tooltip title="Änderungen speichern">
+                          <SaveOutlined />
+                        </Tooltip>
+                      </Link>
+                    )
+                  }
+                  <Link href="#">
+                    <Tooltip title="Vollbild">
+                      <Button type="text" icon={<FullscreenOutlined />} onClick={openFullscreen}/>
+                    </Tooltip>
+                  </Link>
+                  <Link href="#">
+                    <Tooltip title="Automatische Aktualisierung">
+                      <Dropdown
+                        overlay={automaticUpdateDropdownMenu}
+                        placement="bottomLeft"
+                        trigger={["click"]}
+                      >
+                        <HistoryOutlined />
+                      </Dropdown>
+                    </Tooltip>
+                  </Link>
+                </Space>
+              ]}
+            />
+            <Row style={{paddingInline: "16px", paddingBlock: "6px"}}>
+              <Col span={24} style={{textAlign:"right"}}>
+                <Space style={{textAlign:"left"}}>
+                  {data.dashboardFilters && data.dashboardFilters.map((dashboardFilter) => { 
+                    return (
+                      dashboardFilter.type === 'lookup' ? 
+                        <MemberSelect query={dashboardFilter.query} columnId={dashboardFilter.columnId} columnLabel={dashboardFilter.columnLabel} defaultValue={dashboardFilter.defaultValue} displayName={dashboardFilter.displayName} onChange={handleChangeSelect} /> 
+                      : dashboardFilter.type === 'daterange' ?
+                        // todo: von/bis als defaultvalue übernehmen
+                        // todo: falls ein "preset range" angegeben wurde ("last_30_days", etc.), dann diesen übernehmen mit der [dayjs...] Logik
+                        <DateRange columnId={dashboardFilter.columnId} onChange={handleChangeDateRange} />
+                      : ""
+                    )
+                  })}
+                  {data.data_status ? <ChartRenderer vizState={data.data_status.vizState} />  : "" }
+                </Space>
+              </Col>
+            </Row>
+            <Dashboard dashboardItems={data && data.dashboardItems} editable={editable} >
+              {data && data.dashboardItems.map(dashboardItem)}
+            </Dashboard>
+            <DrilldownModal query={drillDownQuery} open={open} onClose={handleClose}/>
+          </div>
         </React.Fragment>
       </CubeProvider>
     ) : <Empty />;

@@ -4,6 +4,8 @@ Created on Thu May  4 08:11:27 2023
 
 @author: kribbel
 """
+import base64
+import os
 from plainbi_backend.config import config
 import logging
 #log = logging.getLogger(config.logger_name)
@@ -17,8 +19,7 @@ from threading import Lock
 
 config.database_lock = Lock()
 
-metadata_col_query="""
-SELECT 
+metadata_col_query_mssql = """SELECT 
     DB_NAME() AS database_name,
     SCHEMA_NAME(t.schema_id) AS schema_name,
     t.name AS table_name,
@@ -45,6 +46,42 @@ WHERE DB_NAME()+'.'+SCHEMA_NAME(t.schema_id)+'.'+t.name = '<fulltablename>'
 ORDER BY database_name, schema_name, table_name, column_id
 """
 
+metadata_col_query_sqlite="select * from pragma_table_info('<fulltablename>')"
+
+metadata_col_query_postgres="""SELECT
+    current_database() AS database_name,
+    c.table_schema AS schema_name,
+    c.table_name,
+    current_database()||'-'||c.table_schema||'.'||c.table_name AS full_table_name,
+    c.column_name,
+    c.ordinal_position as column_id,
+    c.data_type,
+    c.character_maximum_length  as max_length,
+    c.numeric_precision  as precision,
+    c.numeric_scale as scale,
+    case when pk.position_in_pk is not null then 1 else 0 end as is_primary_key
+from information_schema.columns c
+LEFT JOIN (
+    SELECT
+        tc.table_schema,
+        tc.table_name,
+        kcu.column_name,
+        kcu.ordinal_position AS position_in_pk
+    FROM
+        information_schema.table_constraints AS tc
+    JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+    AND tc.constraint_type = 'PRIMARY KEY'
+) AS pk
+ON c.table_schema = pk.table_schema
+AND c.table_name = pk.table_name
+AND c.column_name = pk.column_name
+where 1=1
+and current_database()||'-'||c.table_schema||'.'||c.table_name = '<fulltablename>'
+"""
+
+
 repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource" : ["db_pass_hash"] }
 
 config.conn={}
@@ -67,14 +104,17 @@ def db_exec(engine,sql,params=None):
             log.warning(dbgindent+"db_exec called with params WITHOUT dict")
     #sqlalchemy 2.0
     mysql=sqlalchemy.text(sql)
-
+    dbtyp=get_db_type(engine)
     # using the flask server with wgsi requires sequential access to the sqlite repo
     with config.database_lock:
         log.debug(dbgindent+"db_exec: check connection")
         if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
             log.debug(dbgindent+"db_exec: connect")
-            config.conn[engine.url] = engine.connect()
-    
+            try:
+                config.conn[engine.url] = engine.connect()
+            except Exception as e_connect:
+                log.error("cannot connect to database: %s",str(e_connect))
+                raise e_connect
         if config.conn[engine.url].closed:
             log.debug(dbgindent+"db_exec: open connection")
             config.conn[engine.url] = engine.connect()
@@ -103,6 +143,14 @@ def db_exec(engine,sql,params=None):
                 log.error(dbgindent+"Try to rollback")
                 config.conn[engine.url].rollback()
                 log.error(dbgindent+"Rollback done")
+            if "current transaction is aborted, commands ignored until end of transaction block" in str(e):
+                log.error(dbgindent+"Try to rollback (postgres transaction aborted)")
+                config.conn[engine.url].rollback()
+                log.error(dbgindent+"Rollback done (postgres transaction aborted)")
+            if dbtyp == "postgres":
+                log.error(dbgindent+"Try to rollback (postgres transaction)")
+                config.conn[engine.url].rollback()
+                log.error(dbgindent+"Rollback done (postgres transaction)")
             raise e
         if is_select:
             log.debug(dbgindent+"db_exec: is select and returns data")
@@ -135,8 +183,17 @@ def get_db_type(dbengine):
     else:
         return "mssql"
 
-def db_connect_test(d):
+def db_connect_test(db):
+    """
+    test if a connection string or connection is working
+    """
     log.debug("  ++++++++++ entering db_connect_test")
+    if isinstance(db, str):
+        # parameter is a string so we need to connect first
+        d=db_connect(db)
+    else:
+        # assuming that parameter db is already a sqlalchemy engine object
+        d=db
     ty=get_db_type(d)
     ok=False
     if ty=="oracle":
@@ -319,7 +376,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
         # for mssql try metadata search
         log.debug("get_metadata_raw: mssql")
         collist=[]
-        items,columns,total_count,e=sql_select(dbengine,metadata_col_query.replace('<fulltablename>',tab))
+        items,columns,total_count,e=sql_select(dbengine,metadata_col_query_mssql.replace('<fulltablename>',tab))
         #log.debug("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_metadata_raw"
@@ -343,7 +400,6 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     elif dbtype == "sqlite":
         # for sqlite try metadata search
         log.debug("get_metadata_raw-sqlite: sqlite")
-        metadata_col_query_sqlite="select * from pragma_table_info('<fulltablename>')"
         collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query_sqlite.replace('<fulltablename>',tab))
         #log.debug("get_metadata_raw-sqlite: returned %s",str(e))
@@ -365,6 +421,31 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             #log.debug("get_metadata_raw from sqlite: pkcols %s",str(pkcols))
             #log.debug("get_metadata_raw from sqlite: columns %s",str(columns))
             collist=[i["name"] for i in items]
+            out["columns"]=collist
+            out["column_data"]=items
+    elif dbtype == "postgres":
+        # for postgres try metadata search
+        log.debug("get_metadata_raw: postgres")
+        collist=[]
+        items,columns,total_count,e=sql_select(dbengine,metadata_col_query_postgres.replace('<fulltablename>',tab))
+        #log.debug("get_metadata_raw: returned error %s",str(e))
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_metadata_raw"
+            out["message"]+=" beim Lesen der Tabellen Metadaten"
+            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+            return out
+        #log.debug("get_metadata_raw: 1 items=%s",str(items))
+        if items is not None and len(items)>0:
+            # got some metadata
+            log.debug("get_metadata_raw: got some metadata from mssql")
+            # es gibt etwas in den sqlserver metadaten
+            if versioned:
+                pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
+            else:
+                pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
+            #log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+            #log.debug("get_metadata_raw from mssql: columns %s",str(columns))
+            collist=[i["column_name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
         
@@ -622,8 +703,29 @@ def get_current_timestamp(dbengine):
     log.debug("got timestamp value %s",out)    
     return out
 
+def get_db_by_id_or_alias(d):
+    """
+    returns a sqlalchemy eninge object for the specified id or alias from the plainbi_datasource repo table
+    """
+    log.debug("++++++++++ entering get_db_by_id_or_alias params=%s",str(d))
+    k=str(d)
+    if d is None or k == "def":
+        k="1"
+    if k in config.datasources_engine.keys():
+        return config.datasources_engine[k]
+    else:
+        # not found yet - try to connect again
+        log.debug("get_db_by_id_or_alias connection not found -> reload")
+        load_datasources_from_repo()
+        if k in config.datasources_engine.keys():
+            return config.datasources_engine[k]
+        else:
+            log.warning("get_db_by_id_or_alias connection not found after reload")
+            return None
+
+
 ## repo lookup adhoc
-def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None):
+def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -649,7 +751,7 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
         if len(lkp)==1:
             if isinstance(lkp[0],dict):
                 sql=lkp[0]["sql_query"]
-                execute_in_repodb = lkp[0]["datasource_id"]==0
+                datasrc_id=lkp[0]["datasource_id"]
         else:
             log.debug("lkp list len is not 1")
     else:
@@ -662,13 +764,10 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
     if username is not None:
         sql=sql.replace("$(APP_USER)",username)
         log.debug("lkp sql username replaced")
+
+    dbengine=get_db_by_id_or_alias(datasrc_id)
     try:
-        if execute_in_repodb:
-            log.debug("lookup query execution in repodb")
-            items, columns = db_exec(repoengine,sql)
-        else:
-            log.debug("lookup query execution")
-            items, columns = db_exec(dbengine,sql)
+        items, columns = db_exec(dbengine,sql)
         #items = [row._asdict() for row in data]
         #columns = list(data.keys())
         total_count=len(items)
@@ -681,7 +780,7 @@ def repo_lookup_select(repoengine,dbengine,id,order_by=None,offset=None,limit=No
         return None,None,None,e
 
 ## repo lookup adhoc
-def get_repo_adhoc_sql_stmt(repoengine,id):
+def get_repo_adhoc_sql_stmt(repoengine,id,user_id):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -695,13 +794,18 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
     adhocid = -999
     order_by_def = None
     adhocdesc = None
+    reposql="select * from plainbi_adhoc " # Leerzeichen hinten wichtig für später
     if is_id(id):
         adhocid=id
         reposql_params={ "id" : id}
-        reposql="select * from plainbi_adhoc where id=:id"
+        whereclause="where id=:id"
+        #reposql="select * from plainbi_adhoc where id=:id"
     else:
         reposql_params={ "alias" : id}
-        reposql="select * from plainbi_adhoc where alias=:alias"
+        whereclause="where alias=:alias"
+    #reposql="select * from plainbi_adhoc where alias=:alias"
+    where = add_auth_to_where_clause("plainbi_adhoc", whereclause, user_id)
+    reposql+=where
     log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
     try:
         lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
@@ -712,27 +816,34 @@ def get_repo_adhoc_sql_stmt(repoengine,id):
             out["message"]+=" beim Lesen der Adhoc-Abfrage"
         return out
     except Exception as e:
-        log.error("exception in get_repo_adhoc_sql_stmt: %s ",str(e))
+        log.error("exception in get_repo_adhoc_sql_stmt3: %s ",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_repo_adhoc_sql_stmt"
             out["message"]+=" beim Lesen der Adhoc-Abfrage"
         return out
     #lkp=[r._asdict() for r in lkpq]
     sql=None
-    execute_in_repodb=None
+    datasrc_id=None
     if isinstance(lkp,list):
         if len(lkp)==1:
             if isinstance(lkp[0],dict):
-                sql=lkp[0]["sql_query"]
-                adhocid=lkp[0]["id"]
-                execute_in_repodb = lkp[0]["datasource_id"]==0
-                order_by_def=lkp[0]["order_by_default"]
-                adhocdesc=lkp[0]["description"]
+                out["sql"]=lkp[0]["sql_query"]
+                out["datasrc_id"]=lkp[0]["datasource_id"]
+                out["adhocid"]=lkp[0]["id"]
+                out["order_by_def"]=lkp[0]["order_by_default"]
+                out["adhocdesc"]=lkp[0]["description"]
+                return out
         else:
             log.warn("get_repo_adhoc_sql_stmt:lkp list len is not 1")
+            out["error"]="get_repo_adhoc_sql_stmt_not_found"
+            out["message"]="Adhoc Bericht wurde nicht gefunden oder ist nicht berechtigt"
+            return out
     else:
         log.warn("lkp is not a dict, it is a %s",str(lkp.__class__))
-    return sql, execute_in_repodb, adhocid, order_by_def, adhocdesc
+        out["error"]="get_repo_adhoc_sql_stmt_no_dict"
+        out["message"]="Allgemeiner Fehler beim Lesen der Adhoc-Abfrage"
+        return out
+    return out
 
 ## repo customsql 
 def get_repo_customsql_sql_stmt(repoengine,id):
@@ -1275,6 +1386,22 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq=sequenz)
     return x
 
+def db_add_base64(dbeng,id,filep):
+    """
+    add a base64 encoded file to static_file
+    """
+    if not os.path.isfile(filep):
+        log.error("path is not a file")
+
+    with open(filep,"rb") as f:
+        b=f.read()
+
+    c=base64.b64encode(b).decode('ascii')
+    item = { "id":id, "content_base64": c}
+    #    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
+    x=db_upd(dbeng,"plainbi_static_file",int(id),item,pkcols='id',is_versioned=False)
+    return x
+
 def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
     log.debug("++++++++++ entering add_filter_to_where_clause")
     log.debug("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
@@ -1473,3 +1600,62 @@ def audit(tokdata,req,id=None,msg=None):
         log.error("audit exception: %s",str(e))
         log.debug("continuing")
     log.debug("++++++++++ leaving audit")
+
+def load_datasources_from_repo():
+    """
+    loads all datasources into a config global dictionary config.datasources and connects to config.datasources_engine
+    """
+    log.debug("++++++++++ entering load_datasources_from_repo")
+    config.datasources={}
+    config.datasources_engine={}
+    def nvl(b):
+        return b if b is not None else "{"+b+"}"
+    # first add repo
+    config.datasources_engine["0"] = config.repoengine
+    config.datasources_engine["repo"] = config.repoengine
+    # next load all datasources from repo
+    datasrc_sql = "select * from plainbi_datasource where id <> 0"
+    datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
+    for i in datasrc_items:
+        log.debug("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
+        db_type = i["db_type"]
+        id = i["id"]
+        alias = i["alias"]
+        host = i["db_host"]
+        port = i["db_port"]
+        db_name = i["db_name"]
+        db_user = i["db_user"]
+        if "db_pass_hash" in i.keys():
+            db_pass = i["db_pass_hash"]
+        else:
+            db_pass = i["db_pass"]
+        if db_type == "mssql":
+            sql_dbengine_str=f"mssql+pymssql://{db_user}:{db_pass}@{host}/{db_name}"
+        elif db_type == "sqlite":
+            sql_dbengine_str=f"sqlite://{host}"
+        elif db_type == "postgres":
+            sql_dbengine_str=f"postgresql+psycopg2://{db_user}{db_user}:{db_pass}@{host}/{db_name}"
+        elif db_type == "oracle":
+            sql_dbengine_str=f"oracle+cx_oracle://{db_user}:{db_pass}@{host}:{port}/{db_name}"
+        else:
+            if db_type is None:
+                log.warning("datasource type is empty -> skip datasource")
+                continue
+            sql_dbengine_str = db_type
+            if "{db_user}" in sql_dbengine_str and db_user is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{db_user}",db_user)
+            if "{db_pass}" in sql_dbengine_str and db_pass is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{db_pass}",db_pass)
+            if "{host}" in sql_dbengine_str and host is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{host}",host)
+            if "{port}" in sql_dbengine_str and port is not None:
+                sql_dbengine_str=sql_dbengine_str.replace("{port}",port)
+        log.debug(sql_dbengine_str)
+        config.datasources[str(id)]=sql_dbengine_str
+        config.datasources[alias]=sql_dbengine_str
+        if db_connect_test(sql_dbengine_str):
+            config.datasources_engine[str(id)] = db_connect(sql_dbengine_str)
+            config.datasources_engine[alias] = db_connect(sql_dbengine_str)
+        else:
+            log.warning('cannot connect to %s',sql_dbengine_str)
+

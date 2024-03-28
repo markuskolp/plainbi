@@ -15,7 +15,9 @@ http://localhost:3001/
 
 in Windows/Linux
 # get version
-curl -H "Content-Type: application/json" --request GET "localhost:3001/api/version" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request GET "localhost:3001/api/version" -w "\n%{http_code}\n"
+# get static
+curl -H "Content-Type: application/json" --request GET "localhost:3001/api/static" -w "\n%{http_code}\n"
 
 
 # login
@@ -101,6 +103,7 @@ import os
 import sys
 from datetime import date,datetime
 import json
+import base64
 #import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 import decimal
@@ -124,13 +127,13 @@ except:
 from functools import wraps
 
 
-from flask import Flask, jsonify, request, Response, Blueprint
+from flask import Flask, jsonify, request, Response, Blueprint, make_response
 #from flask.json import JSONEncoder
 from json import JSONEncoder
 import jwt
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
-from plainbi_backend.db import sql_select, get_item_raw, get_current_timestamp, get_next_seq, get_metadata_raw, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, db_ins, db_upd, db_del, get_profile, db_connect, add_auth_to_where_clause, db_passwd, db_exec, audit, db_adduser, add_offset_limit, get_db_type, get_dbversion, db_connect_test
+from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
 # import the global variable config
@@ -196,6 +199,8 @@ repo_api_prefix=api_root+"/repo"
 api_metadata_prefix=api_root+"/metadata"
 cursor_desc_fields=["name","type_code","display_size","internal_size","precision","scale","null_ok"]
 
+nodb_msg = { "error" :"-no-open-db", "message":"Datenbankverbindung ungültig in datasources, prüfe die Repo Konfiguration" }
+
 metadata_tab_query="""
 SELECT 
     DB_NAME() AS database_name,
@@ -209,6 +214,9 @@ ORDER BY database_name, schema_name, table_name
 #
 @api.route('/', methods=['GET'])
 def welcome():
+    """
+    just the welcome message to the backend rest server if no specific url is given
+    """
     dbversion=get_dbversion(config.repoengine)
     p=f"""
     <html>
@@ -222,12 +230,21 @@ def welcome():
     """
     return p
 
+@api.route('/version', methods=['GET'])
 @api.route(api_root+'/version', methods=['GET'])
 def get_version():
+    """
+    return the version number of the backend
+    """
     return config.version
 
 @api.route(api_root+'/backend_version', methods=['GET'])
+@api.route(api_root+'/db_version', methods=['GET'])
+@api.route(api_root+'/dbversion', methods=['GET'])
 def get_backend_version():
+    """
+    return the database type and version of the backend
+    """
     dbversion=get_dbversion(config.repoengine)
     return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
 
@@ -237,26 +254,26 @@ def get_backend_version():
 ##
 ###########################
 
-
 # Define routes for CRUD operations
-@api.route(api_prefix+'/<tab>', methods=['GET'])
+@api.route(api_prefix+'/<db>/<tab>', methods=['GET'])
 @token_required
-def get_all_items(tokdata,tab):
+def get_all_items(tokdata,db,tab):
     """
-    Hole (mehrere) Datensätze aus einer Tabelle
+    get table contents (all rows)
 
     Parameters
     ----------
-    tab : Name der Tabelle
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    tab : name of database table
 
-    Returns
-    -------
-    dict mit den keys "data", "columns", "total_count"
-
+    returns json with keys "data", "columns", "total_count"
     """
     log.debug("++++++++++ entering get_all_items")
     log.debug("get_all_items: param tab is <%s>",str(tab))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     is_versioned=False
     myfilter=None
@@ -283,8 +300,11 @@ def get_all_items(tokdata,tab):
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')
     log.debug("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(config.dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
-    log.debug("get_all_items sql_select error %s",str(e))
+    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
+    if isinstance(e,str) and e=="ok":
+        log.debug("get_all_items sql_select ok")
+    else:
+        log.debug("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
             json_out2 = jsonify(out)
@@ -304,29 +324,28 @@ def get_all_items(tokdata,tab):
 
 # Define routes for CRUD operations
 
-
-@api.route(api_prefix+'/<tab>/<pk>', methods=['GET'])
+@api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['GET'])
 @token_required
-def get_item(tokdata,tab,pk):
+def get_item(tokdata,db,tab,pk):
     """
-    Hole einen bestimmten Datensatz aus einer Tabelle
+    get a specific row from a table given by database tablename and id (or any primary key)
 
     Parameters
     ----------
-    tab : Name der Tabelle
-    pk : Wert des Datensatz Identifier (Primary Key)
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    tab : name of database table
+    pk : identifier of the row in the table, primary key
+         if pk=# : pk is taken request.data
+         if more then on column in pk then comma separated
     
-    Url Options:
-        pk=
-
-    Returns
-    -------
-    dict mit den keys "data"  
-
+    returns jsons with key "data"  
     """
     log.debug("++++++++++ entering get_items")
     log.debug("get_items: param tab is <%s>",str(tab))
     log.debug("get_items: param pk/id is <%s>",str(pk))
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     audit(tokdata,request)
     # check options
     out={}
@@ -355,7 +374,7 @@ def get_item(tokdata,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(config.dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
+    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -379,28 +398,29 @@ def get_item(tokdata,tab,pk):
     return jsonify(out),500
 
 
-@api.route(api_prefix+'/<tab>', methods=['POST'])
+@api.route(api_prefix+'/<db>/<tab>', methods=['POST'])
 @token_required
-def create_item(tokdata,tab):
+def create_item(tokdata,db,tab):
     """
-    einen neuen Datensatz in einer Tabelle anlegen
+    create a new row in the database (insert)
 
     Parameters
     ----------
-    tab : Name der Tabelle
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    tab : name of database table
     
     Url Options:
         pk=
         seq=  Name der Sequence für den PK, wenn dieser None/Null ist
 
-    Returns
-    -------
-    dict mit den keys "data"  
-
+    returns json mit den keys "data"  i.e. the inserted row (might have new data f.e. sequence values, trigger)
     """
     log.debug("++++++++++ entering create_item")
     log.debug("create_item: param tab is <%s>",str(tab))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -428,36 +448,40 @@ def create_item(tokdata,tab):
     log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
-    out = db_ins(config.dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
+    out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
     return jsonify(out)
 
 
-@api.route(api_prefix+'/<tab>/<pk>', methods=['PUT'])
+@api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['PUT'])
 @token_required
-def update_item(tokdata,tab,pk):
+def update_item(tokdata,db,tab,pk):
     """
-    einen bestimmten Datensatz aktualisieren
+    update a row in a table
 
     Parameters
     ----------
-    tab : Name der Tabelle
-    pk : Wert des Datensatz Identifier (Primary Key)
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    tab : name of database table
+    pk : identifier of the row in the table, primary key
+         if pk=# : pk is taken request.data
+         if more then on column in pk then comma separated
     
     Url Options:
         pk=
+        v .. versioned table
 
-    Returns
-    -------
-    dict mit den keys "data"  
-
+    returns json with key "data"  
     """
     log.debug("++++++++++ entering update_item")
     log.debug("update_item: param tab is <%s>",str(tab))
     log.debug("update_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -492,36 +516,38 @@ def update_item(tokdata,tab,pk):
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
     
-    out = db_upd(config.dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
+    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
 
     return jsonify(out)
 
-@api.route(api_prefix+'/<tab>/<pk>', methods=['DELETE'])
+@api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['DELETE'])
 @token_required
-def delete_item(tokdata,tab,pk):
+def delete_item(tokdata,db,tab,pk):
     """
-    einen bestimmten Datensatz löschen
+    delete a row in a database
 
     Parameters
     ----------
-    tab : Name der Tabelle
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    tab : name of database table
     pk : Wert des Datensatz Identifier (Primary Key) dessen Datensatz gelöscht wird
     
     Url Options:
         pk=
         v -- versioned mode
-    Returns
-    -------
-    dict mit den keys "data"  
-
+    
+    returns 200 or json with error msg
     """
     log.debug("++++++++++ entering delete_item")
     log.debug("delete_item: param tab is <%s>",str(tab))
     log.debug("delete_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -550,7 +576,7 @@ def delete_item(tokdata,tab,pk):
         log.debug("pk columns explicitly from url parameter")
 
     log.debug("############# pk columns for delete is %s",str(pkcols))
-    out = db_del(config.dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
+    out = db_del(dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
@@ -559,16 +585,28 @@ def delete_item(tokdata,tab,pk):
     return jsonify(out)
 
 
-@api.route(api_metadata_prefix+'/tables', methods=['GET'])
+@api.route(api_metadata_prefix+'/<db>/tables', methods=['GET'])
 @token_required
-def get_metadata_tables(tokdata):
+def get_metadata_tables(tokdata,db):
+    """
+    get names of all accessible tables in the database
+
+    Parameters
+    ----------
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+   
+    returns json with key "data"  
+    """
     log.debug("++++++++++ entering get_metadata_tables")
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     out={}
-    items,columns,total_count,e=sql_select(config.dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
+    items,columns,total_count,e=sql_select(dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
     log.debug("get_metadata_tables sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
@@ -577,25 +615,25 @@ def get_metadata_tables(tokdata):
     out["total_count"]=total_count
     return jsonify(out)
 
-@api.route(api_metadata_prefix+'/table/<tab>', methods=['GET'])
+@api.route(api_metadata_prefix+'/<db>/table/<tab>', methods=['GET'])
 @token_required
-def get_metadata_tab_columns(tokdata,tab):
+def get_metadata_tab_columns(tokdata,db,tab):
     """
-    Metadaten einer Tabelle holen
+    get metadata of a table from the database dictionary
 
     Parameters
     ----------
-    tab : Name der Tabelle
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    tab : name of the table
     
-    Url Options:
-        pk=
-    Returns
-    -------
-
+    returns json with columns and datatypes
     """
     log.debug("++++++++++ entering get_metadata_tab_columns")
     log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
     audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
     out={}
     pkcols=None
     if len(request.args) > 0:
@@ -606,7 +644,7 @@ def get_metadata_tab_columns(tokdata,tab):
                 log.debug("pk option %s",pkcols)
     log.debug('get_metadata_tab_columns: for %s',tab)
     try:
-        metadata=get_metadata_raw(config.dbengine,tab,pk_column_list=pkcols)
+        metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     except SQLAlchemyError as e_sqlalchemy:
         if last_stmt_has_errors(e_sqlalchemy, out):
             out["error"]+="-get_metadata_tab_columns"
@@ -619,9 +657,6 @@ def get_metadata_tab_columns(tokdata,tab):
         return jsonify(out),500
     return jsonify(metadata)
 
-"""
-"""
-
 ###########################
 ##
 ## REPO
@@ -633,16 +668,9 @@ def get_metadata_tab_columns(tokdata,tab):
 @token_required
 def get_resource(tokdata):
     """
-    Hole (mehrere) Datensätze aus dem Repository
+    get the resource from the repository
 
-    Parameters
-    ----------
-    tab : Name der Repository Tabelle (ohne plainbi_ prefix)
-
-    Returns
-    -------
-    dict mit den keys "data", "columns", "total_count"
-
+    returns json of all applications, adhocs, and external resources
     """
     log.debug("++++++++++ entering get_resource")
     audit(tokdata,request)
@@ -723,16 +751,9 @@ from plainbi_external_resource per
 @token_required
 def get_all_repos(tokdata,tab):
     """
-    Hole (mehrere) Datensätze aus dem Repository
+    get table contents of table <tab> in the repository (table name without prefix plainbi_)
 
-    Parameters
-    ----------
-    tab : Name der Repository Tabelle (ohne plainbi_ prefix)
-
-    Returns
-    -------
-    dict mit den keys "data", "columns", "total_count"
-
+    returns json with keys "data", "columns", "total_count"
     """
     log.debug("++++++++++ entering get_all_repos")
     log.debug("get_all_repos: param tab is <%s>",str(tab))
@@ -761,20 +782,17 @@ def get_all_repos(tokdata,tab):
 @token_required
 def get_repo(tokdata,tab,pk):
     """
-    Hole einen bestimmten Datensatz aus einer Tabelle
+    get a specific row from a repository table
 
     Parameters
     ----------
-    tab : Name der Tabelle
-    pk : Wert des Datensatz Identifier (Primary Key)
+    tab : repository table name (without prefix plainbi_)
+    pk : Primary Key Identifier (Primary Key)
     
     Url Options:
         pk=
 
-    Returns
-    -------
-    dict mit den keys "data"  
-
+    returns json with keys "data"  
     """
     log.debug("++++++++++ entering get_repo")
     log.debug("get_repo: param tab is <%s>",str(tab))
@@ -815,20 +833,17 @@ def get_repo(tokdata,tab,pk):
 @token_required
 def create_repo(tokdata,tab):
     """
-    einen neuen Datensatz in einer Tabelle anlegen
+    insert a new row into a repository table 
 
     Parameters
     ----------
-    tab : Name der Tabelle
+    tab : repository table name (without prefix plainbi_)
     
     Url Options:
         pk=
-        seq=  Name der Sequence für den PK, wenn dieser None/Null ist
+        seq=  Name of Sequence for PK, in case None/Null is sent
 
-    Returns
-    -------
-    dict mit den keys "data"  
-
+    return json with keys "data" of the newly inserted row
     """
     log.debug("++++++++++ entering create_repo")
     log.debug("create_repo: param tab is <%s>",str(tab))
@@ -875,20 +890,17 @@ def create_repo(tokdata,tab):
 @token_required
 def update_repo(tokdata,tab,pk):
     """
-    einen bestimmten Datensatz aktualisieren
+    update a row in the repository
 
     Parameters
     ----------
-    tab : Name der Tabelle
-    pk : Wert des Datensatz Identifier (Primary Key)
+    tab : repository table name (without prefix plainbi_)
+    pk : Primary Key Identifier (Primary Key)
     
     Url Options:
         pk=
 
-    Returns
-    -------
-    dict mit den keys "data"  
-
+    returns json with keys "data" of the updated row
     """
     log.debug("++++++++++ entering update_repo")
     log.debug("update_repo: param tab is <%s>",str(tab))
@@ -932,20 +944,17 @@ def update_repo(tokdata,tab,pk):
 @token_required
 def delete_repo(tokdata,tab,pk):
     """
-    einen bestimmten Datensatz löschen
+    delete a row in the repositoy
 
     Parameters
     ----------
-    tab : Name der Tabelle
-    pk : Wert des Datensatz Identifier (Primary Key) dessen Datensatz gelöscht wird
+    tab : repository table name (without prefix plainbi_)
+    pk : Primary Key Identifier (Primary Key) of the row to be deleted
     
     Url Options:
         pk=
-        v -- versioned mode
-    Returns
-    -------
-    dict mit den keys "data"  
 
+    returns 200 or json of error message
     """
     log.debug("++++++++++ entering delete_repo")
     log.debug("delete_repo: param tab is <%s>",str(tab))
@@ -993,6 +1002,9 @@ def delete_repo(tokdata,tab,pk):
 ###put tokdata as arguemnt in function
 @api.route(repo_api_prefix+'/init_repo', methods=['GET'])
 def init_repo():
+    """
+    initialize the repository: HANDLE WITH CARE and have a backup always
+    """
     log.debug("++++++++++ entering init_repo")
     #audit(tokdata,request)
     with config.repoengine.connect() as conn:
@@ -1007,12 +1019,12 @@ def init_repo():
 ##
 ###########################
 
-"""
-GET /api/repo/lookup/<id>/data
-"""
 @api.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
 @token_required
 def get_lookup(tokdata,id):
+    """
+    return then lookup data defined in the lookup repository table with id or alias
+    """
     log.debug("++++++++++ entering get_lookup")
     log.debug("get_lookup: param id is <%s>",str(id))
     audit(tokdata,request)
@@ -1021,10 +1033,15 @@ def get_lookup(tokdata,id):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=repo_lookup_select(config.repoengine,config.dbengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
+    items,columns,total_count,e=repo_lookup_select(config.repoengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
     log.debug("get_lookup sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        try:
+            json_out = jsonify(out)
+        except:
+            log.error("cannot jsonify "+str(out))
+            json_out = ("cannot jsonify "+str(out))[:50]
+        return json_out,500
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=total_count
@@ -1043,8 +1060,13 @@ GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
 @token_required
 def get_adhoc_data(tokdata,id):
+    """
+    return then adhoc data defined in the adhoc repository table with id or alias
+    """
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
+    prof=get_profile(config.repoengine,tokdata['username'])
+    user_id=prof["user_id"]
     out={}
     myparams=None
     fmt="JSON"
@@ -1085,8 +1107,20 @@ def get_adhoc_data(tokdata,id):
     log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     log.debug("get_adhoc_data pagination order_by=%s",order_by)
     log.debug("get_adhoc_data: get adhoc stmt")
-    adhoc_sql, execute_in_repodb, adhocid, order_by_def, adhoc_desc = get_repo_adhoc_sql_stmt(config.repoengine,id)
+    get_rep_adhoc_res = get_repo_adhoc_sql_stmt(config.repoengine,id,user_id)
+    if "error" in get_rep_adhoc_res.keys():
+        return jsonify(get_rep_adhoc_res), 500
+    adhoc_sql = get_rep_adhoc_res["sql"]
+    adhoc_datasrc_id = get_rep_adhoc_res["datasrc_id"]
+    adhocid  = get_rep_adhoc_res["adhocid"]
+    order_by_def  = get_rep_adhoc_res["order_by_def"]
+    adhoc_desc  = get_rep_adhoc_res["adhocdesc"]
     audit(tokdata,request,id=adhocid)
+    if adhoc_datasrc_id is None:
+        msg="adhoc datasource_id is not set - assuming 1"
+        adhoc_datasrc_id = 1
+        #log.warning(msg) 
+        #return msg, 500
     log.debug("get_adhoc_data: parameter substitution")
     # substitute params
     if isinstance(myparams,dict):
@@ -1105,11 +1139,8 @@ def get_adhoc_data(tokdata,id):
         log.error(msg)
         return msg, 500
     log.debug("get_adhoc_data: get db type")
-    # handle pagination for adhoc JSON format
-    if execute_in_repodb:
-       db_typ = get_db_type(config.repoengine)
-    else:
-       db_typ = get_db_type(config.dbengine)
+    adhoc_dbengine = get_db_by_id_or_alias(adhoc_datasrc_id)
+    db_typ = get_db_type(adhoc_dbengine)
     log.debug("get_adhoc_data: prepare json pagination")
     if fmt=="JSON":
         log.debug("get_adhoc_data: fmt JSON")
@@ -1124,12 +1155,7 @@ def get_adhoc_data(tokdata,id):
     # execute adhoc sql
     log.debug("get_adhoc_data: execute adhoc sql")
     try:
-        if execute_in_repodb:
-            log.debug("get_adhoc_data: adhoc query execution in repodb")
-            items, columns = db_exec(config.repoengine,adhoc_sql)
-        else:
-            log.debug("get_adhoc_data: adhoc query execution in db")
-            items, columns = db_exec(config.dbengine,adhoc_sql)
+        items, columns = db_exec(adhoc_dbengine,adhoc_sql)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("adhoc_sql_errors: %s", str(e_sqlalchemy))
         if last_stmt_has_errors(e_sqlalchemy, out):
@@ -1303,10 +1329,13 @@ def get_adhoc_data(tokdata,id):
     out["message"] = "adhoc error that should not happen"
     return jsonify(out), 500
 
-
 users=dict()
 
 def load_repo_users():
+    """
+    load all users defined in the repository into a global dictionary "user"
+    i.e. caching for performance reasons
+    """
     log.debug("++++++++++ entering load_repo_users")
     global users
     out={}
@@ -1317,6 +1346,9 @@ def load_repo_users():
     users = {u["username"]: { "password_hash": u["password_hash"], "rolename" : "Admin" if u["role_id"]==1 else "User" } for u in plainbi_users}
     
 def authenticate_local(username,password):
+    """
+    authenticate a local (repository) user
+    """
     log.debug("++++++++++ entering authenticate_local")
     global users
     load_repo_users()
@@ -1336,7 +1368,13 @@ def authenticate_local(username,password):
     log.debug("++++++++++ leaving login")
     return False
     
+    """
+    authenticate a local (repository) user
+    """
 def authenticate_ldap(username,password):
+    """
+    authenticate a user via LDAP Active Directory
+    """
     log.debug("++++++++++ entering authenticate_ldap")
     global users
     mail=None
@@ -1391,7 +1429,13 @@ def authenticate_ldap(username,password):
 
 
 @api.route('/login', methods=['POST'])
+@api.route('/api/login', methods=['POST'])
 def login():
+    """
+    authenticate a user - login procedure
+    try LDAP first if it is configured (environment variables)
+    otherwise of if no success try local authentication
+    """
     out={}
     log.debug("++++++++++ entering login")
     log.debug("login")
@@ -1446,8 +1490,12 @@ def login():
     return jsonify(out), 401
 
 @api.route('/passwd', methods=['POST'])
+@api.route('/api/passwd', methods=['POST'])
 @token_required
 def passwd(tokdata):
+    """
+    change a local users password 
+    """
     out={}
     log.debug("passwd")
     data_bytes = request.get_data()
@@ -1489,7 +1537,11 @@ def passwd(tokdata):
 
 
 @api.route('/hash_passwd/<pwd>', methods=['GET'])
+@api.route('/api/hash_passwd/<pwd>', methods=['GET'])
 def hash_passwd(pwd):
+    """
+    just show the hashed password ... mainly for testing reasons
+    """
     out={}
     out["pwd"]=pwd
     #p=config.bcrypt.generate_password_hash(pwd.encode('utf-8'))
@@ -1501,8 +1553,19 @@ def hash_passwd(pwd):
     return jsonify(out)
 
 @api.route('/cache', methods=['GET'])
+@api.route('/api/cache', methods=['GET'])
 @token_required
 def cache(tokdata):
+    """
+    cache handling of metadata, profile
+    url params
+      on .... enable caching
+      off ... disable caching
+      clear ... clear caching
+      status ... show current cache handling setting
+
+    returns simple string and status 200
+    """
     config.metadataraw_cache={}
     config.profile_cache={}
     log.debug("clear_cache: get_metadata_raw: cache created")
@@ -1535,35 +1598,206 @@ def cache(tokdata):
     return 'caches cleared', 200
 
 @api.route('/clear_cache', methods=['GET'])
+@api.route('/api/clear_cache', methods=['GET'])
 @token_required
 def clear_cache(tokdata):
+    """
+    clear caching
+
+    returns simple string and status 200
+    """
     config.metadataraw_cache={}
     config.profile_cache={}
-    log.debug("clear_cache: get_metadata_raw: cache created")
-    log.debug("clear_cache: get_profile: cache created")
+    log.debug("clear_cache: get_metadata_raw: cache cleared")
+    log.debug("clear_cache: get_profile: cache cleared")
     return 'caches cleared', 200
 
 @api.route('/protected', methods=['GET'])
+@api.route('/api/protected', methods=['GET'])
 @token_required
 def protected(tokdata):
+    """
+    show the own username
+    """
     log.debug("current user=%s",tokdata['username'])
     u=tokdata['username']
     return jsonify({'message': f'Hello, {u}! You are authenticated.'}), 200
 
 @api.route('/profile', methods=['GET'])
+@api.route('/api/profile', methods=['GET'])
 @token_required
 def profile(tokdata):
+    """
+    return json of the profile of the current user
+    """
     audit(tokdata,request)
     out=get_profile(config.repoengine,tokdata['username'])
     return jsonify(out)
 
 
 @api.route('/logout', methods=['GET'])
+@api.route('/api/logout', methods=['GET'])
 def logout(tokdata):
+    """
+    logout
+    """
     log.debug("logout")
     audit(tokdata,request)
     return jsonify({'message': 'logged out'})
 
+
+###########################
+##
+## Static
+##
+###########################
+
+#@api.route('/api/static/<id>', methods=['GET'])
+#@api.route('/static/<id>', methods=['GET'])
+#def getstatic(id):
+#    """
+#    gets a static base64 thing from the repo by id or alias without login
+#    useful for logo etc.
+#    base table is plainbi_static_file
+#    """
+#    if is_id(id):
+#        sql_params={ "id" : id}
+#        sql="select * from plainbi_static_file where id=:id"
+#    else:
+#        sql_params={ "alias" : id}
+#        sql="select * from plainbi_static_file where alias=:alias"
+#    log.debug("getstatic: sql is <%s>",sql)
+#    s,s_columns = db_exec(config.repoengine, sql , sql_params)
+#    log.debug("static resource = %s",str(s))
+#    if len(s)>0:
+#        for r in s:
+#            b64 = r["content_base64"]
+#            return base64.b64decode(b64)
+#    else:
+#        return None
+
+@api.route('/api/static/<id>', methods=['GET'])
+@api.route('/static/<id>', methods=['GET'])
+def getstatic(id):
+    """
+    gets a static base64 thing from the repo by id or alias without login
+    useful for logo etc.
+    base table is plainbi_static_file
+    """
+    if is_id(id):
+        sql_params={ "id" : id}
+        sql="select * from plainbi_static_file where id=:id"
+    else:
+        sql_params={ "alias" : id}
+        sql="select * from plainbi_static_file where alias=:alias"
+    log.debug("getstatic: sql is <%s>",sql)
+    s,s_columns = db_exec(config.repoengine, sql , sql_params)
+    log.debug("static resource = %s",str(s))
+    if len(s)>0:
+        for r in s:
+            b64 = r["content_base64"]
+            response = make_response(base64.b64decode(b64))
+            response.headers.set('Content-Type', r["mimetype"])
+            #response.headers.set('Content-Disposition', 'attachment', filename='%s.jpg' % pid)
+            return response
+    else:
+        return "no data found",404
+
+@api.route('/api/settings.js', methods=['GET'])
+def getsettingsjs():
+    """
+    base table is plainbi_setting
+    """
+    log.debug("++++++++++ entering getsettingsjs")
+    
+    out={}
+    log.debug("getsettings from db")
+    items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
+    if isinstance(e,str) and e=="ok":
+        log.debug("getsettings sql_select ok")
+    else:
+        log.debug("getsettings sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        try:
+            json_out2 = jsonify(out)
+        except Exception as ej2:
+            log.error("getsettings.js: jsonify Error 2: %s",str(ej2))
+        return json_out2,500
+
+    def get_setting_from_list(items,nam):
+        for i in items:
+            if i["setting_name"]==nam:
+                return i["setting_value"]
+        return ""
+
+    log.debug("construct javascript")
+    log.debug("settings are %s",str(items))
+    s=  "// header and footer\n"
+    s=s+f"var APP_TITLE = '"+get_setting_from_list(items,'app_title')+"';\n"
+    s=s+f"var HEADER_TITLE = '"+get_setting_from_list(items,'header_title')+"';\n"
+    s=s+f"var FOOTER = '"+get_setting_from_list(items,'footer')+"';\n"
+    s=s+"\n"
+    s=s+"// environment banner\n"
+    s=s+f"var ENVIRONMENT_BANNER_TEXT = '"+get_setting_from_list(items,'environment_banner_text')+"'; // e.g. DEV, TEST - leave empty for PROD, as you mostly don't need a banner there\n"
+    s=s+"\n"
+    s=s+"// theme\n"
+    s=s+f"var THEME_COLOR_PRIMARY = '"+get_setting_from_list(items,'color_primary')+"';\n"
+    s=s+f"var THEME_COLOR_SUCCESS = '"+get_setting_from_list(items,'color_success')+"';\n"
+    s=s+f"var THEME_COLOR_ERROR = '"+get_setting_from_list(items,'color_error')+"';\n"
+    s=s+f"var THEME_COLOR_INFO = '"+get_setting_from_list(items,'color_info')+"';\n"
+    s=s+f"var THEME_FONT_SIZE = "+get_setting_from_list(items,'font_size')+";\n"
+    response = make_response(s)
+    response.headers.set('Content-Type', "text/javascript; charset=utf-8")
+    return response
+
+@api.route('/api/settings', methods=['GET'])
+def getsettings():
+    """
+    base table is plainbi_setting
+    """
+    out={}
+    log.debug("++++++++++ entering getsettings")
+    items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
+    if isinstance(e,str) and e=="ok":
+        log.debug("getsettings sql_select ok")
+    else:
+        log.debug("getsettings sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        try:
+            json_out2 = jsonify(out)
+        except Exception as ej2:
+            log.error("getsettings: jsonify Error 2: %s",str(ej2))
+        return json_out2,500
+    out["data"]=items
+    out["columns"]=columns
+    out["total_count"]=total_count
+    log.debug("leaving getsettings and return json result")
+    log.debug("out=%s",str(out))
+    try:
+        json_out = jsonify(out)
+    except Exception as ej:
+        log.error("getsettings: jsonify Error: %s",str(ej))
+    return json_out
+
+@api.route('/api/setting/<name>', methods=['GET'])
+def getsetting(name):
+    """
+    base table is plainbi_settomgs
+    """
+    log.debug("++++++++++ entering getsetting")
+    sql_params={ "name" : name}
+    sql="select * from plainbi_settings where setting_name=:name"
+    log.debug("getsetting: sql is <%s>",sql)
+    s,s_columns = db_exec(config.repoengine, sql , sql_params)
+    log.debug("setting %s = %s",name,str(s))
+    out={}
+    if len(s)>0:
+        for r in s:
+            out["setting_name"] = r["setting_name"]
+            out["setting_value"] = r["setting_value"]
+            return jsonify(out)
+    else:
+        return "no data found", 404
 
 def create_app(p_repository=None, p_database=None):
     """
@@ -1575,6 +1809,7 @@ def create_app(p_repository=None, p_database=None):
       - unittest scripts (the parameters p_repository and p_database are important here)
     that's why the get_config handling is necessary
     """
+    log.debug("++++++++++ entering create_app")
     global app
     log.info("creating flask app")
     app = Flask(__name__)
@@ -1592,12 +1827,7 @@ def create_app(p_repository=None, p_database=None):
 
     # get datasources from repository
     log.info("load datasources from plainbi_datasource")        
-    config.datasources={}
-    datasrc_sql = "select * from plainbi_datasource"
-    datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
-    for i in datasrc_items:
-        config.datasources[str(i["id"])]=i["db_type"]
-        config.datasources[i["alias"]]=i["db_type"]
+    load_datasources_from_repo()
 
     if not config.database:
         try:

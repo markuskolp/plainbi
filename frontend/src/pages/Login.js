@@ -1,10 +1,9 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Form, Input, Button, Checkbox,Image, Space, message, Typography  } from 'antd';
 import Icon from '@ant-design/icons';
-import axios from "axios";
+import Axios from "axios";
 import EnvironmentBanner from "../components/EnvironmentBanner";
 const { Title } = Typography;
-
 
 const Login = (props) => {
 
@@ -21,9 +20,9 @@ const Login = (props) => {
 
   function logMeIn(event) {
     setLoading(true);
-    axios({
+    Axios({
       method: "POST",
-      url:"/login",
+      url:"/api/login",
       data:{
         username: loginForm.username,
         password: loginForm.password
@@ -86,7 +85,7 @@ const Login = (props) => {
       <div className="login">
         <div>
           <Space size={"middle"}>
-            <Image id="header_logo" src="/logo" preview={false} />
+            <Image id="header_logo" src="/api/static/logo" preview={false} />
             <Title level={5}>{header_title ? header_title : ' '}</Title>
           </Space>
           </div>

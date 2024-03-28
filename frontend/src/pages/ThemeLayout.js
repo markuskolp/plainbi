@@ -1,10 +1,11 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, ConfigProvider, Tooltip, Image, Space, Dropdown } from "antd";
 import { useNavigate } from "react-router-dom";
 import { Layout, theme, Button } from "antd";
-import { Typography } from "antd";
-import axios from "axios";
+import { message, Typography } from "antd";
+import LoadingMessage from "../components/LoadingMessage";
+import Axios from "axios";
 import {
   AppstoreOutlined,
   SettingOutlined,
@@ -35,28 +36,22 @@ const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
 // set document title if given
 document.title = app_title ? app_title : 'plainbi';
 
-
 const ThemeLayout = (props) => {
   const {
     token: { colorBgContainer }
   } = theme.useToken();
-
   const navigate = useNavigate();
-
   const { defaultAlgorithm, darkAlgorithm } = theme;
-
   const [isDarkMode, setIsDarkMode] = useState(false);
-
   const handleDarkModeSwitch = () => {
     setIsDarkMode((previousValue) => !previousValue);
    };
-
   const userRole = localStorage.getItem('role');
    
   const logMeOut = () => {
-    axios({
+    Axios({
       method: "POST",
-      url:"/logout",
+      url:"/api/logout",
     })
     .then((response) => {
        props.token()
@@ -112,61 +107,61 @@ const ThemeLayout = (props) => {
 
   return (
     <React.Fragment>
-      <ConfigProvider
-        theme={{
-          algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
-          token: {
-            colorPrimary: color_primary ? color_primary : "#333333",
-            colorSuccess: color_success ? color_success : "#91c311",
-            colorError: color_error ? color_error : "#b31013",
-            colorInfo: color_info ? color_info : "#3b80e0",
-            fontSize: font_size ? font_size : 13
-          }
-        }}
-      >
-        <Layout className="layout">
-         { environment_banner_text ? <EnvironmentBanner text={environment_banner_text} backgroundColor={environment_banner_color} /> : ""}
-          <Header>
-            <Space size={"middle"}>
-              <Link href="/">
-                <Image id="header_logo" src="/logo" preview={false} />
-              </Link>
-              <Link href="/">
-                <Title>{header_title ? header_title : ' '}</Title>
-              </Link>
-            </Space>
-            <Space size={"middle"} className="right">
-              {userRole == 'ADMIN' && 
-                <Link href="/settings">
-                  <Tooltip title="Einstellungen">
-                    <SettingOutlined />
+        <ConfigProvider
+          theme={{
+            algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
+            token: {
+              colorPrimary: color_primary ? color_primary : "#333333",
+              colorSuccess: color_success ? color_success : "#91c311",
+              colorError: color_error ? color_error : "#b31013",
+              colorInfo: color_info ? color_info : "#3b80e0",
+              fontSize: isNaN(font_size) ? 13 : Number(font_size)
+            }
+          }}
+        >
+          <Layout className="layout">
+          { environment_banner_text ? <EnvironmentBanner text={environment_banner_text} backgroundColor={environment_banner_color} /> : ""}
+            <Header>
+              <Space size={"middle"}>
+                <Link href="/">
+                  <Image id="header_logo" src="/api/static/logo" preview={false} />
+                </Link>
+                <Link href="/">
+                  <Title>{header_title ? header_title : ' '}</Title>
+                </Link>
+              </Space>
+              <Space size={"middle"} className="right">
+                {userRole == 'ADMIN' && 
+                  <Link href="/settings">
+                    <Tooltip title="Einstellungen">
+                      <SettingOutlined />
+                    </Tooltip>
+                  </Link>
+                }
+                <Link href="/apps">
+                  <Tooltip title="Applikationen">
+                    <AppstoreOutlined />
                   </Tooltip>
                 </Link>
-              }
-              <Link href="/apps">
-                <Tooltip title="Applikationen">
-                  <AppstoreOutlined />
-                </Tooltip>
-              </Link>
-              <Dropdown menu={menuProps} >
-                <UserOutlined /> 
-              </Dropdown>
-            </Space>
-          </Header>
-          <Content style={{ padding: "0px 50px" }}>
-            <div
-              className="site-layout-content"
-              //style={{ background: colorBgContainer }}
-              //style={{ background: environment_banner_color }}
-            >
-              <Outlet />
-            </div>
-          </Content>
-          <Footer style={{ textAlign: "center" }}>
-            {footer ? footer : 'created by the plainbi team with love'}
-          </Footer>
-        </Layout>
-      </ConfigProvider>
+                <Dropdown menu={menuProps} >
+                  <UserOutlined /> 
+                </Dropdown>
+              </Space>
+            </Header>
+            <Content style={{ padding: "0px 50px" }}>
+              <div
+                className="site-layout-content"
+                //style={{ background: colorBgContainer }}
+                //style={{ background: environment_banner_color }}
+              >
+                <Outlet />
+              </div>
+            </Content>
+            <Footer style={{ textAlign: "center" }}>
+              {footer ? footer : 'created by the plainbi team with love'}
+            </Footer>
+          </Layout>
+        </ConfigProvider>
     </React.Fragment>
   );
 };

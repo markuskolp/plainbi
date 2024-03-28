@@ -17,7 +17,7 @@ const UserProfile = (props) => {
   }, []);
 
   const initializeApp = async () => {
-    await Axios.get("/profile", {headers: {Authorization: props.token}}).then(
+    await Axios.get("/api/profile", {headers: {Authorization: props.token}}).then(
       (res) => {
         //console.log(JSON.stringify(res));
         const resData = res.data;

@@ -1,5 +1,10 @@
-/* index.css main overwrite */
-main {
+/* index.css overwrite */
+main:has( .dashboardcontainer) {
+  /*padding: 0px !important;*/
+  background: #f5f5f5 !important; 
+}
+/* index.css overwrite */
+.site-layout-content:has( .dashboardcontainer)  {
   /*padding: 0px !important;*/
 }
 

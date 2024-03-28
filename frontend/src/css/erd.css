@@ -1,0 +1,62 @@
+/* index.css overwrite */
+
+main:has( .erdcontainer) {
+  padding: 0px !important;
+  /*background: #f5f5f5 !important; */
+}
+/* index.css overwrite */
+.site-layout-content:has( .erdcontainer)  {
+  padding: 0px !important;
+  padding-top: 12px !important;
+}
+*/
+.react-monaco-editor-container {
+  height: calc(100vh * 0.85);
+  overflow:hidden;
+}
+.erdheader { 
+  padding: 0px 50px;
+  padding-bottom: 10px;
+}
+/*
+.erdcontainer {
+  padding-top:10px;
+  height: calc(100vh * 0.85);
+  display:flex;
+}
+.erdcontainer_editor {
+  width: 25%;
+  overflow: auto;
+}
+.erdcontainer_result {
+  width: 75%;
+  padding: 1em;
+}
+*/
+
+.monaco-editor {
+  padding-top: 20px;
+}
+
+
+#pan1 {
+  flex-grow: 1;
+  flex-shrink: 0;
+  flex-basis: 25%; 
+}
+
+
+#pan2 {
+  flex-grow: 0;
+  flex-shrink: 1;
+  overflow-x: auto;
+}
+
+#rpanrResize {
+  flex-grow: 0;
+  flex-shrink: 0;
+  /*background: #1b1b51;*/
+  width: 0.2rem;
+  cursor: col-resize;
+  margin: 0 0 0 auto;
+}

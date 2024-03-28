@@ -46,6 +46,7 @@ const AppRuntime = (props) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         //console.log(JSON.stringify(resData));
         //console.log(JSON.parse(resData.spec_json).pages);
+        //console.log(resData);
         setAppMetadata(resData);
         setLoading(false);
       }
@@ -65,7 +66,7 @@ const AppRuntime = (props) => {
           <LoadingMessage />
         ) : (
           <React.Fragment>
-            <CRUDApp name={appMetadata.name} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token}/>
+            <CRUDApp name={appMetadata.name} datasource={appMetadata.datasource_id} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token}/>
           </React.Fragment>
         )
       )

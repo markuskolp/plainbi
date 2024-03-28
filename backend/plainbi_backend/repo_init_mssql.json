@@ -533,4 +533,67 @@ insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-
 '''
 insert into plainbi_lookup (id, name, alias, sql_query, datasource_id) values (-112, null, 'datatype', 'select ''text'' as r, ''Text'' as d union select ''number'' as r, ''Zahl'' as d union select ''date'' as r, ''Datum'' as d', 0);
 ''',
+'''
+drop table if exists plainbi_static_file
+''',
+'''
+CREATE TABLE plainbi_static_file (
+  id int primary key not null,
+  name varchar(100),
+  alias varchar(100),
+  mimetype varchar(50),
+  content_base64 varchar(max)
+);
+''',
+'''
+insert into plainbi_static_file (id,name,alias,mimetype,content_base64)
+values (-1,'logo','logo','image/png',
+'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'
+)
+''',
+'''
+insert into plainbi_static_file (id,name,alias,mimetype,content_base64)
+values (-2,'favicon','favicon','image/x-icon',
+'AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////0BAQP///////////////////////////0BAQP9AQED/QEBA/0BAQP////////////////////////////////9AQED///////////////////////////9AQED///////////9AQED/////////////////////////////////QEBA////////////////////////////QEBA////////////QEBA/////////////////////////////////0BAQP9AQED/QEBA/0BAQP///////////0BAQP9AQED/QEBA//////////////////////////////////////9AQED///////////9AQED///////////9AQED///////////9AQED/////////////////////////////////QEBA////////////QEBA////////////QEBA////////////QEBA/////////////////////////////////0BAQP9AQED/QEBA/0BAQP///////////0BAQP9AQED/QEBA/0BAQP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=='
+)
+''',
+'''
+drop table if exists plainbi_settings
+''',
+'''
+CREATE TABLE plainbi_settings (
+  setting_name varchar(100) primary key,
+  setting_value varchar(max)
+);
+''',
+'''
+insert into plainbi_settings values ('app_title','plainbi')
+''',
+'''
+insert into plainbi_settings values ('header_title','')
+''',
+'''
+insert into plainbi_settings values ('footer','')
+''',
+'''
+insert into plainbi_settings values ('environment_banner_text',null)
+''',
+'''
+insert into plainbi_settings values ('environment_banner_color',null)
+''',
+'''
+insert into plainbi_settings values ('color_primary','#6a91ce')
+''',
+'''
+insert into plainbi_settings values ('color_success','#91c311')
+''',
+'''
+insert into plainbi_settings values ('color_error','#b31013')
+''',
+'''
+insert into plainbi_settings values ('color_info','#3b80e0')
+''',
+'''
+insert into plainbi_settings values ('font_size','13')
+''',
 ]
