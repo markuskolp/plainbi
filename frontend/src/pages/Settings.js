@@ -85,7 +85,7 @@ const Settings = (props) => {
         { column_name: "name", column_label: "Name", datatype: "text", ui: "textinput", editable: false, required: true },
         { column_name: "alias", column_label: "Alias", datatype: "text", ui: "textinput", editable: false, required: true, showdetailsonly:true },
         { column_name: "mimetype", column_label: "MIME-Typ", datatype: "text", ui: "textinput", editable: true, required: true },
-        { column_name: "content_base64", column_label: "Inhalt (als base64)", datatype: "text", ui: "textarea", editable: true, required: true, showdetailsonly:true  },
+        { column_name: "content_base64", column_label: "Inhalt (als base64)", datatype: "text", ui: "textarea_base64", editable: true, required: true, showdetailsonly:true  },
       ]
     }, 
     {

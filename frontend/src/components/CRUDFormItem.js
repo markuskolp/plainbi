@@ -7,7 +7,8 @@ import {
   Form,
   Input,
   InputNumber,
-  DatePicker  
+  DatePicker,  
+  Space
 } from "antd";
 import MonacoEditor from 'react-monaco-editor';
 import SelectLookup from './SelectLookup';
@@ -21,11 +22,13 @@ const { Text, Link } = Typography;
 const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token, multiple }) => {
 
   const dateFormat = 'YYYY-MM-DD';
+  const [currentvalue, setCurrentvalue] = useState(defaultValue);
 
   const handleChange = (e) => {
     //const emuEvent = { "target": { "key": e.target.name, "value": e.target.value}} // emulate event.target.name/.value object
     //console.log(emuEvent);
     //onChange("name", "aa"); 
+    setCurrentvalue(e.target.value);
     onChange(e.target.name, e.target.value); 
    }
 
@@ -117,6 +120,11 @@ const handleSwitchChange = (checked, e) => {
                   <InputNumber name={name} defaultValue={defaultValue} onInput={(val) => handleNumberInputChange(val)} onStep={(val) => handleNumberInputChange(val)}/>
                 ) : ui === "textarea_markdown" ? (
                   <MarkdownEditor name={name} defaultValue={defaultValue} onChange={handleChange}/>
+                ) : ui === "textarea_base64" ? (
+                  <Space direction="vertical" style={{width:"100%"}} >
+                    <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/> 
+                    <img src={`data:image/png;base64,${currentvalue}`} />
+                  </Space>
                 ) : ui === "textarea" ? (
                   <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/> //((e) => handleTextAreaChange(e.target.value))}/>
                 ) : ui === "textarea_sql" ? (
