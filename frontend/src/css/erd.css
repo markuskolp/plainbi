@@ -9,7 +9,6 @@ main:has( .erdcontainer) {
   padding: 0px !important;
   padding-top: 12px !important;
 }
-*/
 .react-monaco-editor-container {
   height: calc(100vh * 0.85);
   overflow:hidden;

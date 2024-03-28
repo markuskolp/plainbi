@@ -25,7 +25,7 @@
 }
 header {
   background: #fff !important; /* change background color of table header row - overwrites default */
-  border-bottom: 1pt solid rgb(220, 220, 220, 1) !important; /* add border line to bottom of header / navbar */
+  border-bottom: 1pt solid rgb(220, 220, 220, 1) !important; /* add border line to bottom of header - navbar */
 }
 main {
   background: #fff !important; /* change background color of main - overwrites default */
