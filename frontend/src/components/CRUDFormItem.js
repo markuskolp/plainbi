@@ -14,6 +14,7 @@ import MonacoEditor from 'react-monaco-editor';
 import SelectLookup from './SelectLookup';
 import MarkdownEditor from './MarkdownEditor';
 import dayjs from 'dayjs';
+import ImageUpload from "./ImageUpload";
 const { Header, Content, Sider } = Layout;
 const { TextArea } = Input;
 const { Text, Link } = Typography;
@@ -124,6 +125,7 @@ const handleSwitchChange = (checked, e) => {
                   <Space direction="vertical" style={{width:"100%"}} >
                     <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/> 
                     <img src={`data:image/png;base64,${currentvalue}`} />
+                    { /*<ImageUpload /> */ }
                   </Space>
                 ) : ui === "textarea" ? (
                   <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange}/> //((e) => handleTextAreaChange(e.target.value))}/>
