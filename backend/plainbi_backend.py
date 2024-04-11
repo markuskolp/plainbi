@@ -44,6 +44,15 @@ parser.add_argument('-b', '--base64', type=str, nargs=2, help='insert a file bas
 # Parse the arguments
 args = parser.parse_args()
 
+# for convenience a sqlalchemy connect string can be tested here
+if args.testdb:
+    d=db_connect(args.testdb)
+    if db_connect_test(d):
+       print("connection to %s successful" % (args.testdb))
+    else:
+       print("ERROR: cannot connect to %s" % (args.testdb))
+    sys.exit(0)
+
 # get all configuration with priority of command line arguments
 get_config(verbose=args.verbose,logfile=args.logfile,configfile=args.config,repository=args.repository,database=args.database,port=args.port)
 
@@ -52,17 +61,16 @@ if args.version:
     print(config.version)
     sys.exit(0)
 
-# for convenience a sqlalchemy connect string can be tested here
-if args.testdb:
-    d=db_connect(args.testdb)
-    if db_connect_test(d):
-       print("connection to %s successfull" % (args.testdb))
-    else:
-       print("ERROR: cannot connect to %s" % (args.testdb))
-    sys.exit(0)
-
 # for the next actions we need to connect to the repository
 config.repoengine = db_connect(config.repository)
+
+# initialize the repository
+if args.initrepo:
+    log.info("initialize repo")
+    create_repo_db(config.repoengine)
+    log.info("repository initialized")
+    sys.exit(0)
+
 if not db_connect_test(config.repoengine):
     log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment or on command line")
     sys.exit(0)
@@ -95,12 +103,6 @@ if args.passwd:
 log.info("start standalone server "+__name__)
 log.warning("Use WSGI for production!")
 
-# initialize the repository
-if args.initrepo:
-    log.info("initialize repo")
-    create_repo_db(config.repoengine)
-    log.info("repository initialized")
-    sys.exit(0)
 
 if __name__ == '__main__':
     # run the flask app standalone
