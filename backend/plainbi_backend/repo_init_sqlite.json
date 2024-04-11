@@ -185,6 +185,9 @@ create table plainbi_adhoc (
  ,owner_user_id int
  ,order_by_default varchar
  ,description varchar
+ ,owner_department varchar
+ ,sensitive_data text
+ ,reason text
  ,FOREIGN KEY (datasource_id) REFERENCES plainbi_datasource(id)
 )
 ''',
