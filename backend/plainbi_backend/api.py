@@ -21,7 +21,7 @@ curl -H "Content-Type: application/json" --request GET "localhost:3001/api/stati
 
 
 # login
-curl -H "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe123\"}' "localhost:3002/login" -w "%{http_code}\n"
+curl -H "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe123\"}' "localhost:3001/login" -w "%{http_code}\n"
 windows comman cmd set tok=ldkasaölsfjaölsdkf
 
 python -m pytest tests\test_version.py
@@ -100,6 +100,8 @@ curl -H "Content-Type: application/json" --request POST -H "Authorization: %tok%
 #import urllib
 import logging
 import os
+import tempfile
+import traceback
 import sys
 from datetime import date,datetime
 import json
@@ -1182,7 +1184,7 @@ def get_adhoc_data(tokdata,id):
         return jsonify(out)
     else:
         log.debug("get_adhoc_data: other formats")
-        log.debug("get_adhoc_data: items=%s",str(items))
+        #log.debug("get_adhoc_data: items=%s",str(items))
         if isinstance(items,list):
             if len(items)==0:
                 out["error"]="adhoc-no-rows"
@@ -1193,19 +1195,34 @@ def get_adhoc_data(tokdata,id):
             else:
                 try:
                     df = pd.DataFrame(items, columns=columns)
+                except Exception as e:
+                    log.error("get_adhoc_data df exception: %s ",str(e))
+                    out["error"]="get-adhoc-data-df"
+                    out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (DF)"
+                    out["detail"]=str(e)
+                    return jsonify(out), 500
+                try:
                     # Save the DataFrame to an Excel file
                     if fmt=="XLSX":
                         log.debug("get_adhoc_data: XLSX format")
                         log.debug("adhoc excel")
-                        tmpfile='mydata.xlsx'
+                        tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.xlsx')
                         datasheet_name="daten"
                         infosheet_name="info"
-                        output = pd.ExcelWriter(tmpfile)
-                        fmt_xl.header_style = None
-                        #pd.formats.format.header_style = None
-                        log.debug("get_adhoc_data: df to excel")
-                        df.to_excel(output, index=False, sheet_name=datasheet_name)
-                        output.close()
+                        try:
+                            output = pd.ExcelWriter(tmpfile)
+                            fmt_xl.header_style = None
+                            #pd.formats.format.header_style = None
+                            log.debug("get_adhoc_data: df to excel")
+                            df.to_excel(output, index=False, sheet_name=datasheet_name)
+                            output.close()
+                        except Exception as e0:
+                            log.error("get_adhoc_data to_excel exception: %s ",str(e0))
+                            out["error"]="get-adhoc-data-toxls"
+                            out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (XLSX)"
+                            out["detail"]=str(e0)
+                            log.error(traceback.format_exc())
+                            return jsonify(out), 500
                         # add sheet with sql
                         book = load_workbook(tmpfile)
                         #autofit columns
@@ -1286,7 +1303,15 @@ def get_adhoc_data(tokdata,id):
                         log.debug("adhoc csv")
                         tmpfile='mydata.csv'
                         # Prepare the CSV file
-                        df.to_csv(tmpfile, index=False)
+                        try:
+                            df.to_csv(tmpfile, index=False)
+                        except Exception as e0:
+                            log.error("get_adhoc_data to_csv exception: %s ",str(e0))
+                            out["error"]="get-adhoc-data-tocsv"
+                            out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (CSV)"
+                            out["detail"]=str(e0)
+                            log.error(traceback.format_exc())
+                            return jsonify(out), 500
                         # Return the Excel file as a download
                         with open(tmpfile, 'rb') as file:
                             response = Response(

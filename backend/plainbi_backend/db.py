@@ -1541,7 +1541,7 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
 
 def db_connect(p_enginestr, params=None):
     log.debug("++++++++++ entering db_connect")
-    log.debug("db_connect: param enginestr is <%s>",str(p_enginestr))
+    log.debug("db_connect: param enginestr is <%s>",str(p_enginestr)[:15]+"...")
     log.debug("db_connect: param params is <%s>",str(params))
     if p_enginestr is None:
         log.error("PLAINBI needs a connection string in the .env File to properly connect to a database")
@@ -1617,7 +1617,7 @@ def load_datasources_from_repo():
     datasrc_sql = "select * from plainbi_datasource where id <> 0"
     datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
     for i in datasrc_items:
-        log.debug("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
+        #log.debug("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
         db_type = i["db_type"]
         id = i["id"]
         alias = i["alias"]
@@ -1650,12 +1650,12 @@ def load_datasources_from_repo():
                 sql_dbengine_str=sql_dbengine_str.replace("{host}",host)
             if "{port}" in sql_dbengine_str and port is not None:
                 sql_dbengine_str=sql_dbengine_str.replace("{port}",port)
-        log.debug(sql_dbengine_str)
+        #log.debug(sql_dbengine_str)
         config.datasources[str(id)]=sql_dbengine_str
         config.datasources[alias]=sql_dbengine_str
         if db_connect_test(sql_dbengine_str):
             config.datasources_engine[str(id)] = db_connect(sql_dbengine_str)
             config.datasources_engine[alias] = db_connect(sql_dbengine_str)
         else:
-            log.warning('cannot connect to %s',sql_dbengine_str)
+            log.warning('cannot connect to datasource_id: %d engine_str: %s',id,sql_dbengine_str)
 

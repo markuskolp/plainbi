@@ -151,7 +151,7 @@ def get_config(verbose=None,logfile=None,configfile=None,repository=None,databas
             # there must be a repository, otherwise quit
             log.error("No repository database connection description is specified in environment or config file")
             sys.exit(0)
-    log.debug("repository is %s",config.repository)
+    log.debug("repository is %s",config.repository[:15]+"...")
 
     # a default database.
     config.database = None
