@@ -1752,7 +1752,10 @@ def getsettingsjs():
     def get_setting_from_list(items,nam):
         for i in items:
             if i["setting_name"]==nam:
-                return i["setting_value"]
+                if i["setting_value"] is None:
+                    return ""
+                else:
+                    return i["setting_value"]
         return ""
 
     log.debug("construct javascript")

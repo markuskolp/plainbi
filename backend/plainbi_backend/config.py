@@ -126,9 +126,9 @@ def get_config(verbose=None,logfile=None,configfile=None,repository=None,databas
             if os.name=="nt":
                     if "USERPROFILE" in os.environ.keys():
                         config_file_list.append(os.environ["USERPROFILE"]+"/.env")
-                    else:
-                        config_file_list.append("~/.env")
-                        config_file_list.append("/etc/plainbi.env")
+            else:
+                config_file_list.append("~/.env")
+                config_file_list.append("/etc/plainbi.env")
             for cfile in config_file_list:
                 log.info("testing file %s",cfile)
                 if os.path.isfile(cfile):
