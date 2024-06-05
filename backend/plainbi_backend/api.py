@@ -1417,7 +1417,14 @@ def authenticate_ldap(username,password):
         return authenticated
     if "LDAP_BASE_DN" not in list(dict(os.environ).keys()):
         log.error("environment variable LDAP_BASE_DN is missing")
-    conn_bind.search(os.environ.get("LDAP_BASE_DN"), f'(&(cn={username}))', attributes=['*'])
+        return authenticated
+    if os.environ.get("LDAP_SEARCH_EXPR") is not None:
+        search_expr=os.environ.get("LDAP_SEARCH_EXPR")
+        search_expr=search_expr.replace("{username}",username)
+    else:
+        search_expr=f'(&(cn={username}))'
+    log.debug("LDAP Search Expression is %s",search_expr)
+    conn_bind.search(os.environ.get("LDAP_BASE_DN"), search_expr, attributes=['*'])
     for entry in conn_bind.entries:
         log.debug("ldap entry=%s",entry.entry_dn)
         conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
