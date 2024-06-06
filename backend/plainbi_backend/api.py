@@ -1406,8 +1406,10 @@ def authenticate_ldap(username,password):
     full_name=None
     load_repo_users()
     authenticated=False
+    bindpwd=os.environ.get("LDAP_BIND_USER_PASSWORD")
+    bindpwd=bindpwd.strip()
     s = ldap3.Server(host=os.environ.get("LDAP_HOST"), port=int(os.environ.get("LDAP_PORT")), use_ssl=False, get_info=ldap3.ALL)
-    conn_bind = ldap3.Connection(s, user=os.environ.get("LDAP_BIND_USER_DN"), password=os.environ.get("LDAP_BIND_USER_PASSWORD"), auto_bind='NONE', version=3, authentication='SIMPLE')
+    conn_bind = ldap3.Connection(s, user=os.environ.get("LDAP_BIND_USER_DN"), password=bindpwd, auto_bind='NONE', version=3, authentication='SIMPLE')
     if not conn_bind.bind():
         log.error('error in bind %s', str(conn_bind.result))
         log.error('check environent variables LDAP_HOST=%s LDAP_PORT=%s LDAP_BIND_USER_DN=%s', os.environ.get("LDAP_HOST"),os.environ.get("LDAP_PORT"),os.environ.get("LDAP_BIND_USER_DN"))
