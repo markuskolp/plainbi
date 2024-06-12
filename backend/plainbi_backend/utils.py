@@ -140,6 +140,7 @@ def last_stmt_has_errors(e,out):
                 out["detail"]=str(e)
         else:
             out["detail"]=str(e)
+        log.exception(e)
         return True
     if isinstance(e,Exception):
         log.error("last_stmt_has_errors: exception: %s", str(e))
@@ -148,6 +149,7 @@ def last_stmt_has_errors(e,out):
         out["detail"]=str(e.__class__)
         if hasattr(e, "__dict__"):
              if "message" in e.__dict__.keys(): out["detail"]+="/"+str(e.__dict__['message'])
+        log.exception(e)
         return True
     return False
 

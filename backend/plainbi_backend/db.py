@@ -114,6 +114,7 @@ def db_exec(engine,sql,params=None):
                 config.conn[engine.url] = engine.connect()
             except Exception as e_connect:
                 log.error("cannot connect to database: %s",str(e_connect))
+                log.exception(e_connect)
                 raise e_connect
         if config.conn[engine.url].closed:
             log.debug(dbgindent+"db_exec: open connection")
@@ -204,6 +205,7 @@ def db_connect_test(db):
         item_total_count,columns_total_count=db_exec(d,sql,params=None)
     except Exception as e:
         log.error("db_connect_test failed %s",str(e))
+        log.exception(e)
         ok=False
         return ok
     if item_total_count is not None:
@@ -328,9 +330,11 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         items,columns=db_exec(dbengine,sql)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in sql_select: %s",str(e_sqlalchemy))
+        log.exception(e_sqlalchemy)
         return None,None,None,e_sqlalchemy
     except Exception as e:
         log.error("exception in sql_select: %s",str(e))
+        log.exception(e)
         return None,None,None,e
     
     log.debug("sql_select: anz rows=%d",len(items))
@@ -991,6 +995,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                     out["detail"]="es wurde versucht, einen Datensatz in einer versionierten Tabelle neu anzulegen, obwohl bereits einer existiert (der nicht bereits gelöscht wurde) - Error"
                     log.error(out["error"])
                     log.error("e2: %s",str(e2))
+                    log.exception(e2)
                     return out
 
                 # there is an existing record -> terminate id
@@ -1550,7 +1555,11 @@ def db_connect(p_enginestr, params=None):
     if params is not None:
         dbengine = sqlalchemy.create_engine(enginestr % params)
     else:
-        dbengine = sqlalchemy.create_engine(enginestr)
+        if "postgres" in p_enginestr:
+            log.debug("++++++++++ enable pool_pre_ping for postgres")
+            dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True)
+        else:
+            dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: engine url %s",dbengine.url)
     log.debug("++++++++++ leaving db_connect")
     dbtyp=get_db_type(dbengine)
@@ -1595,6 +1604,7 @@ def audit(tokdata,req,id=None,msg=None):
         log.debug('Audit executed')
     except SQLAlchemyError as e_sqlalchemy:
         log.error("audit error: %s",str(e_sqlalchemy))
+        log.exception(e_sqlalchemy)
         log.debug("continuing")
     except Exception as e:
         log.error("audit exception: %s",str(e))

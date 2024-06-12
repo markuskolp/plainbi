@@ -99,6 +99,7 @@ curl -H "Content-Type: application/json" --request POST -H "Authorization: %tok%
 
 #import urllib
 import logging
+import traceback
 import os
 import tempfile
 import traceback
@@ -312,6 +313,7 @@ def get_all_items(tokdata,db,tab):
             json_out2 = jsonify(out)
         except Exception as ej2:
             log.error("get_all_items: jsonify Error 2: %s",str(ej2))
+            log.exception(ej2)
         return json_out2,500
     out["data"]=items
     out["columns"]=columns
@@ -322,6 +324,7 @@ def get_all_items(tokdata,db,tab):
         json_out = jsonify(out)
     except Exception as ej:
         log.error("get_all_items: jsonify Error: %s",str(ej))
+        log.exception(ej)
     return json_out
 
 # Define routes for CRUD operations
@@ -386,8 +389,8 @@ def get_item(tokdata,db,tab,pk):
                 json_out = jsonify(out)
             except Exception as ej:
                 log.error("get_item: jsonify Error: %s",str(ej))
+                log.exception(ej)
                 return "get_item: jsonify Error",500
-
             return json_out
             #return Response(jsonify(out),status=204)
         else:
@@ -1200,6 +1203,7 @@ def get_adhoc_data(tokdata,id):
                     out["error"]="get-adhoc-data-df"
                     out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (DF)"
                     out["detail"]=str(e)
+                    log.exception(e)
                     return jsonify(out), 500
                 try:
                     # Save the DataFrame to an Excel file
@@ -1222,6 +1226,7 @@ def get_adhoc_data(tokdata,id):
                             out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (XLSX)"
                             out["detail"]=str(e0)
                             log.error(traceback.format_exc())
+                            log.exception(e0)
                             return jsonify(out), 500
                         # add sheet with sql
                         book = load_workbook(tmpfile)
@@ -1311,6 +1316,7 @@ def get_adhoc_data(tokdata,id):
                             out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (CSV)"
                             out["detail"]=str(e0)
                             log.error(traceback.format_exc())
+                            log.exception(e0)
                             return jsonify(out), 500
                         # Return the Excel file as a download
                         with open(tmpfile, 'rb') as file:
@@ -1454,6 +1460,7 @@ def authenticate_ldap(username,password):
                         log.warning("cannot get email and full name for  %s from ldap",username)
                 except Exception as em:
                         log.error("cannot get email and full name from ldap msg=%s",username,str(em))
+                        log.exception(em)
                 db_adduser(config.repoengine,username,pwd="x",is_admin=False,email=mail,fullname=full_name)
                 log.debug("refresh profile cache")
                 config.profile_cache={}
@@ -1804,6 +1811,7 @@ def getsettings():
             json_out2 = jsonify(out)
         except Exception as ej2:
             log.error("getsettings: jsonify Error 2: %s",str(ej2))
+            log.exception(ej2)
         return json_out2,500
     out["data"]=items
     out["columns"]=columns
@@ -1814,6 +1822,7 @@ def getsettings():
         json_out = jsonify(out)
     except Exception as ej:
         log.error("getsettings: jsonify Error: %s",str(ej))
+        log.exception(ej)
     return json_out
 
 @api.route('/api/setting/<name>', methods=['GET'])
@@ -1871,6 +1880,7 @@ def create_app(p_repository=None, p_database=None):
            config.database = config.datasources["1"]
         except Exception as e:
             log.warning("config datasource %s",str(e))
+            log.exception(e)
 
     # if there is a database database now connect to it
     if config.database:
