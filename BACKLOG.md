@@ -18,6 +18,7 @@
 - Adhoc Export Excel -> Infoseite in Arial 9 ;-)
 - Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
 - Swagger
+- Datenbankprozedur auslösen über Frontend (z.B. um eine komplexere Verarbeitung anzustossen)
 
 ## Frontend
 
@@ -28,6 +29,7 @@
 	- Suchfeld fehlt
 	- die „berechtigten Inhalte“ weiter strukturieren können (damit es übersichtlich bleibt)
 - Filter in Spaltentitel (evtl. Backend erweitern)
+- 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der Filter beim Einstieg auch sofort ziehen soll
 - Subpage (Master-Detail) 
 - evtl. auch Applikationsübergreifender Filter (z.B. Veranstaltung auswählen)
 - Infobutton auf Seitenebene oder was zum auf- und zuklappen mit Text
