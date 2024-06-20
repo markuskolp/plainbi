@@ -42,6 +42,10 @@
 - Parameter bei Adhocs implementieren
 - Adhoc Serverside Pagination nutzen
 
+- Code komplett überarbeiten, formatieren, schöner schreiben, etc.
+
+- Webapplikation auf Security challengen
+
 Bugfixing:
 - Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !
 - Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !
