@@ -21,6 +21,7 @@
 
 ## Frontend
 
+- für UIs mit Typ JSON, SQL, ... den MonacoEditor verwenden
 - bessere Fehlermeldungen -> warum wir z.B. bei Adhoc nicht die Meldung ausgegeben wie beim lokalen Entwickeln
 - Oben ein Homebutton einfügen, damit man immer zurück kommt
 - Homepage
