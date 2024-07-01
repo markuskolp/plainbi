@@ -1899,6 +1899,21 @@ def create_app(p_repository=None, p_database=None):
     app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
     config.bcrypt = Bcrypt(app)
 
+    # begin: multi process uwsgi database connection pool handling
+    # https://stackoverflow.com/questions/59248806/how-to-correctly-setup-flask-uwsgi-sqlalchemy-to-avoid-database-connection-i
+    def _dispose_db_pool():
+        with app.app_context():
+            config.repoengine.engine.dispose()
+
+    try:
+        from uwsgidecorators import postfork
+        postfork(_dispose_db_pool)
+        log.info(f"uwsgi postfork enabled for repository connection")
+    except ImportError:
+        # Implement fallback when running outside of uwsgi...
+        log.warning(f"uwsgi postfork NOT enabled for repository connection (but maybe because just standalone version)")
+    # end: multi process uwsgi database connection pool handling
+
     #jwt = JWTManager(app)
     return app
 
