@@ -1402,9 +1402,10 @@ def authenticate_local(username,password):
     """
     authenticate a local (repository) user
     """
-def authenticate_ldap(username,password):
+def authenticate_ldap(login_username,password):
     """
     authenticate a user via LDAP Active Directory
+    login_username can be ntaccount (cn) or email (mail)
     """
     log.debug("++++++++++ entering authenticate_ldap")
     global users
@@ -1414,6 +1415,7 @@ def authenticate_ldap(username,password):
     authenticated=False
     bindpwd=os.environ.get("LDAP_BIND_USER_PASSWORD")
     bindpwd=bindpwd.strip()
+    username=login_username
     s = ldap3.Server(host=os.environ.get("LDAP_HOST"), port=int(os.environ.get("LDAP_PORT")), use_ssl=False, get_info=ldap3.ALL)
     conn_bind = ldap3.Connection(s, user=os.environ.get("LDAP_BIND_USER_DN"), password=bindpwd, auto_bind='NONE', version=3, authentication='SIMPLE')
     if not conn_bind.bind():
@@ -1422,19 +1424,25 @@ def authenticate_ldap(username,password):
         if "LDAP_BIND_USER_PASSWORD" not in list(dict(os.environ).keys()):
             log.error("environment variable LDAP_BIND_USER_PASSWORD is missing")
         log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
-        return authenticated
+        return authenticated,username
     if "LDAP_BASE_DN" not in list(dict(os.environ).keys()):
         log.error("environment variable LDAP_BASE_DN is missing")
-        return authenticated
+        return authenticated,username
     if os.environ.get("LDAP_SEARCH_EXPR") is not None:
         search_expr=os.environ.get("LDAP_SEARCH_EXPR")
         search_expr=search_expr.replace("{username}",username)
     else:
-        search_expr=f'(&(cn={username}))'
+        if "@" in username:
+            # login by email adress
+            search_expr=f'(mail={username})'
+        else:
+            search_expr=f'(&(cn={username}))'
     log.debug("LDAP Search Expression is %s",search_expr)
     conn_bind.search(os.environ.get("LDAP_BASE_DN"), search_expr, attributes=['*'])
     for entry in conn_bind.entries:
         log.debug("ldap entry=%s",entry.entry_dn)
+        # substitute username by returned cn
+        username=entry.cn.value
         conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
         if not conn_auth.bind():
             log.warning("error in bind ldap entry=%s",entry.entry_dn)
@@ -1443,30 +1451,14 @@ def authenticate_ldap(username,password):
             authenticated=True
             if username not in users.keys():
                 log.warning("new user %s from ldap registered",username)
-                try:
-                    # get full username and password
-                    # Define the LDAP search filter (modify 'username_to_search' with the desired username)
-                    search_filter = f'(sAMAccountName={username})'
-                    # Specify the attributes to retrieve
-                    attributes = ['mail', 'displayName']
-                    # Perform the LDAP search
-                    conn_bind.search(os.environ.get("LDAP_BASE_DN"), search_filter, attributes=attributes)
-                    # Retrieve and display the results
-                    if conn_bind.entries:
-                        entry = conn_bind.entries[0]
-                        mail = entry.mail.value if 'mail' in entry else None
-                        full_name = entry.displayName.value if 'displayName' in entry else None
-                    else:
-                        log.warning("cannot get email and full name for  %s from ldap",username)
-                except Exception as em:
-                        log.error("cannot get email and full name from ldap msg=%s",username,str(em))
-                        log.exception(em)
-                db_adduser(config.repoengine,username,pwd="x",is_admin=False,email=mail,fullname=full_name)
+                mail = entry.mail.value if 'mail' in entry else None
+                full_name = entry.displayName.value if 'displayName' in entry else None
+                db_adduser(config.repoengine,username,pwd=None,is_admin=False,email=mail,fullname=full_name)
                 log.debug("refresh profile cache")
                 config.profile_cache={}
             break
     log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
-    return authenticated
+    return authenticated,username
 
 
 @api.route('/login', methods=['POST'])
@@ -1481,14 +1473,15 @@ def login():
     log.debug("++++++++++ entering login")
     log.debug("login")
     data_bytes = request.get_data()
+    username = None # init
     #log.debug("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
     #log.debug("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #print("login items ",str(item))
 
-    username = item['username'].lower()
-    log.debug("login: username=%s",username)
+    login_username = item['username'].lower()
+    log.debug("login: username=%s",login_username)
     password = item['password']
     #log.debug("login: password=%s",password)
     #audit(item['username'],request)
@@ -1499,13 +1492,15 @@ def login():
     authenticated = False
     if "LDAP_HOST" in list(dict(os.environ).keys()):  # if LDAP is defined in environment
         used_ldap=True
-        authenticated = authenticate_ldap(username,password)
+        authenticated,username = authenticate_ldap(login_username,password)
         log.debug("login authenticated by ldap = %s",authenticated)
         if not authenticated:
             log.debug("try locally authenticated")
+            username = login_username  # use original name in login mask for local auth
             authenticated = authenticate_local(username,password)
             log.debug("login authenticated local = %s",authenticated)
-    else: 
+    else:
+        username = login_username 
         log.debug("ldap authentication skipped because no LDAP_HOST environment variable")
         used_local=True
         authenticated = authenticate_local(username,password)
