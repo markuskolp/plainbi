@@ -23,6 +23,7 @@ const { Text, Link } = Typography;
 const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token, multiple }) => {
 
   const dateFormat = 'YYYY-MM-DD';
+  const datetimeFormat = 'YYYY-MM-DD HH:mm';
   const [currentvalue, setCurrentvalue] = useState(defaultValue);
 
   const handleChange = (e) => {
@@ -172,6 +173,11 @@ const handleSwitchChange = (checked, e) => {
                   <DatePicker defaultValue={dayjs(defaultValue,{dateFormat})} format={dateFormat} onChange={handleDatePickerChange} /> 
                   :
                   <DatePicker format={dateFormat} onChange={handleDatePickerChange} /> 
+                ) : ui === "datetimepicker" ? (
+                  defaultValue ?
+                  <DatePicker showTime={{ format: "HH:mm" }} defaultValue={dayjs(defaultValue,{datetimeFormat})} format={datetimeFormat} onChange={handleDatePickerChange} /> 
+                  :
+                  <DatePicker showTime={{ format: "HH:mm" }} format={datetimeFormat} onChange={handleDatePickerChange} /> 
                 ) : ui === "switch" ? (
                   <Switch name={name} defaultChecked={defaultValue} onChange={handleSwitchChange}/>
                 ) : ui === "label" ? (

@@ -28,6 +28,7 @@ Enum datatype {
   text
   number
   date
+  datetime
   boolean
 }
 
@@ -37,6 +38,7 @@ Enum ui {
   textinput
   numberinput
   datepicker
+  datetimepicker
   lookup
   lookupn (allow new values)
   textarea
