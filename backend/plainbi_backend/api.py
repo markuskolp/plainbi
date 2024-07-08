@@ -283,7 +283,7 @@ def get_all_items(tokdata,db,tab):
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            log.debug("arg: %s val: %s",key,value)
             if key=="v":
                 is_versioned=True
                 log.debug("versions enabled")
@@ -1272,6 +1272,9 @@ def get_adhoc_data(tokdata,id):
                         new_sheet['B1'] = str(datetime.now())
                         new_sheet['B2'] = id
                         new_sheet['B3'] = adhoc_desc
+                        # set info field fonts also to Airal 9
+                        for f in ['A1','A2','A3','B1','B2','B3']:
+                            new_sheet[f].font = font
                         #autofit columns
                         for column in new_sheet.columns:
                             max_length = 0
@@ -1483,6 +1486,17 @@ def login():
     login_username = item['username'].lower()
     log.debug("login: username=%s",login_username)
     password = item['password']
+    if len(login_username)==0:
+        out["message"]='Username muss angegeben werden'
+        out["error"]="empty-credentials"
+        out["detail"]="invalid-credentials no username"
+        return jsonify(out), 401
+    if len(password)==0:
+        out["message"]='Passwort darf nicht leer sein'
+        out["error"]="empty-credentials"
+        out["detail"]="invalid-credentials no password"
+        return jsonify(out), 401
+
     #log.debug("login: password=%s",password)
     #audit(item['username'],request)
     audit(item['username'],request)
@@ -1688,29 +1702,6 @@ def logout(tokdata):
 ##
 ###########################
 
-#@api.route('/api/static/<id>', methods=['GET'])
-#@api.route('/static/<id>', methods=['GET'])
-#def getstatic(id):
-#    """
-#    gets a static base64 thing from the repo by id or alias without login
-#    useful for logo etc.
-#    base table is plainbi_static_file
-#    """
-#    if is_id(id):
-#        sql_params={ "id" : id}
-#        sql="select * from plainbi_static_file where id=:id"
-#    else:
-#        sql_params={ "alias" : id}
-#        sql="select * from plainbi_static_file where alias=:alias"
-#    log.debug("getstatic: sql is <%s>",sql)
-#    s,s_columns = db_exec(config.repoengine, sql , sql_params)
-#    log.debug("static resource = %s",str(s))
-#    if len(s)>0:
-#        for r in s:
-#            b64 = r["content_base64"]
-#            return base64.b64decode(b64)
-#    else:
-#        return None
 
 @api.route('/api/static/<id>', methods=['GET'])
 @api.route('/static/<id>', methods=['GET'])
@@ -1728,7 +1719,7 @@ def getstatic(id):
         sql="select * from plainbi_static_file where alias=:alias"
     log.debug("getstatic: sql is <%s>",sql)
     s,s_columns = db_exec(config.repoengine, sql , sql_params)
-    log.debug("static resource = %s",str(s))
+    #log.debug("static resource = %s",str(s))
     if len(s)>0:
         for r in s:
             b64 = r["content_base64"]
@@ -1839,6 +1830,7 @@ def getsetting(name):
             return jsonify(out)
     else:
         return "no data found", 404
+
 
 def create_app(p_repository=None, p_database=None):
     """

@@ -116,12 +116,12 @@ def last_stmt_has_errors(e,out):
     True if there were errors, else False
 
     """
-    log.debug("++++++++++ entering last_stmt_has_errors")
+    log.debug("++++++++++ calling last_stmt_has_errors to check for sql errors")
+    if str(e)=="ok":
+        #log.debug("last_stmt_has_errors: ok is not an error:")
+        return False
     log.debug("last_stmt_has_errors: param e is <%s>",str(e))
     log.debug("last_stmt_has_errors: param out is <%s>",str(out))
-    if str(e)=="ok":
-        log.debug("last_stmt_has_errors: ok is not an error:")
-        return False
     if isinstance(e, SQLAlchemyError):
         log.error("last_stmt_has_errors: %s", str(SQLAlchemyError))
         out["error"]="sql-error"
@@ -141,6 +141,7 @@ def last_stmt_has_errors(e,out):
         else:
             out["detail"]=str(e)
         log.exception(e)
+        log.debug("++++++++++ leaving last_stmt_has_errors with SQL Error")
         return True
     if isinstance(e,Exception):
         log.error("last_stmt_has_errors: exception: %s", str(e))
@@ -150,6 +151,7 @@ def last_stmt_has_errors(e,out):
         if hasattr(e, "__dict__"):
              if "message" in e.__dict__.keys(): out["detail"]+="/"+str(e.__dict__['message'])
         log.exception(e)
+        log.debug("++++++++++ leaving last_stmt_has_errors with non-SQL Error")
         return True
     return False
 
