@@ -90,15 +90,12 @@ config.conn={}
 def db_exec(engine,sql,params=None):
     dbgindent="    "
     log.debug(dbgindent+"++++++++++ entering db_exec")
-    log.debug(dbgindent+"db_exec: param sql is <%s>",str(sql))
-    log.debug(dbgindent+"db_exec: params is <%s>",str(params))
+    #log.debug(dbgindent+"db_exec: param sql is <%s>",str(sql))
+    #log.debug(dbgindent+"db_exec: params is <%s>",str(params))
     #
     is_select=False
     if not engine.url in config.conn.keys():
         config.conn[engine.url]=None
-    #with engine.connect() as conn:
-    #    res=execute(sql,params)
-    #    return res
     if params is not None:
         if not isinstance(params, dict):
             log.warning(dbgindent+"db_exec called with params WITHOUT dict")
@@ -122,17 +119,13 @@ def db_exec(engine,sql,params=None):
         log.debug(dbgindent+"db_exec: execute")
     
         if sql.lower().strip().startswith("select"):
-            log.debug(dbgindent+"db_exec: sql is a select")
+            log.debug(dbgindent+"db_exec: sql is a select statement")
             is_select=True
         try:
             if params is not None:
                 res=config.conn[engine.url].execute(mysql,params)
-                #with engine.begin() as connection:
-                #    res=connection.execute(mysql,params)
             else:
                 res=config.conn[engine.url].execute(mysql)
-                #with engine.begin() as connection:
-                #    res=connection.execute(mysql)
             if int(sqlalchemy.__version__[:1])>1:
                 if not is_select:
                     config.conn[engine.url].commit()
@@ -154,7 +147,7 @@ def db_exec(engine,sql,params=None):
                 log.error(dbgindent+"Rollback done (postgres transaction)")
             raise e
         if is_select:
-            log.debug(dbgindent+"db_exec: is select and returns data")
+            log.debug(dbgindent+"db_exec: is a select statement and returns data")
             items = [row._asdict() for row in res]
             log.debug(dbgindent+"db_exec: anz rows=%d",len(items))
             columns = list(res.keys())
@@ -266,17 +259,6 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
       msg ... ggf error code sonst "ok"
     """
     log.debug("++++++++++ entering sql_select")
-    log.debug("sql_select: param tab is <%s>",tab)
-    log.debug("sql_select: param order_by is <%s>",str(order_by))
-    log.debug("sql_select: param offset is <%s>",str(offset))
-    log.debug("sql_select: param limit is <%s>",str(limit))
-    log.debug("sql_select: param filter is <%s>",str(filter))
-    log.debug("sql_select: param with_total_count is <%s>",str(with_total_count))
-    log.debug("sql_select: param where_clause is <%s>",str(where_clause))
-    log.debug("sql_select: param versioned is <%s>",str(versioned))
-    log.debug("sql_select: param is_repo is <%s>",str(is_repo))
-    log.debug("sql_select: param user_id is <%s>",str(user_id))
-    log.debug("sql_select: param customsql is <%s>",str(customsql))
     db_typ = get_db_type(dbengine)
     total_count=None
     my_where_clause=""
@@ -331,10 +313,36 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in sql_select: %s",str(e_sqlalchemy))
         log.exception(e_sqlalchemy)
+        log.error("sql_select: --- information about error above ---")
+        log.error("sql_select: param tab is <%s>",tab)
+        log.error("sql_select: param order_by is <%s>",str(order_by))
+        log.error("sql_select: param offset is <%s>",str(offset))
+        log.error("sql_select: param limit is <%s>",str(limit))
+        log.error("sql_select: param filter is <%s>",str(filter))
+        log.error("sql_select: param with_total_count is <%s>",str(with_total_count))
+        log.error("sql_select: param where_clause is <%s>",str(where_clause))
+        log.error("sql_select: param versioned is <%s>",str(versioned))
+        log.error("sql_select: param is_repo is <%s>",str(is_repo))
+        log.error("sql_select: param user_id is <%s>",str(user_id))
+        log.error("sql_select: param customsql is <%s>",str(customsql))
+        log.error("sql_select: --- end information about error above ---")
         return None,None,None,e_sqlalchemy
     except Exception as e:
         log.error("exception in sql_select: %s",str(e))
         log.exception(e)
+        log.error("sql_select: --- information about error above ---")
+        log.error("sql_select: param tab is <%s>",tab)
+        log.error("sql_select: param order_by is <%s>",str(order_by))
+        log.error("sql_select: param offset is <%s>",str(offset))
+        log.error("sql_select: param limit is <%s>",str(limit))
+        log.error("sql_select: param filter is <%s>",str(filter))
+        log.error("sql_select: param with_total_count is <%s>",str(with_total_count))
+        log.error("sql_select: param where_clause is <%s>",str(where_clause))
+        log.error("sql_select: param versioned is <%s>",str(versioned))
+        log.error("sql_select: param is_repo is <%s>",str(is_repo))
+        log.error("sql_select: param user_id is <%s>",str(user_id))
+        log.error("sql_select: param customsql is <%s>",str(customsql))
+        log.error("sql_select: --- end information about error above ---")
         return None,None,None,e
     
     log.debug("sql_select: anz rows=%d",len(items))
@@ -545,17 +553,19 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         sql=f'SELECT {tabalias}.* FROM ({csql}) {tabalias} {pkwhere}'
     else:    
         sql=f'SELECT {tabalias}.* FROM {tab} {tabalias} {pkwhere}'
-    log.debug("get_item_raw[%s]: sql=%s",str(tab),sql)
+    #log.debug("get_item_raw[%s]: sql=%s",str(tab),sql)
     try:
         items, columns = db_exec(dbengine,sql,pkwhere_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("get_item_raw[%s]: sqlalchemy exception: %s",str(tab),str(e_sqlalchemy))
+        log.error("get_item_raw[%s]: failing sql=%s",str(tab),sql)
         if last_stmt_has_errors(e_sqlalchemy, out):
             out["error"]+="-get_item_raw"
             out["message"]+=" beim Lesen einer Tabelle"
         return out
     except Exception as e:
         log.error("get_item_raw[%s]: exception: %s ",str(tab),str(e))
+        log.error("get_item_raw[%s]: failing sql=%s",str(tab),sql)
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_item_raw"
             out["message"]+=" beim Lesen einer Tabelle"
@@ -565,7 +575,8 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=len(items)
-    log.debug("++++++++++ leaving get_item_raw[%s]:  returning %s",str(tab),str(out))
+    #log.debug("++++++++++ leaving get_item_raw[%s]:  returning %s",str(tab),str(out))
+    log.debug("++++++++++ leaving get_item_raw[%s]",str(tab))
     return out
 
 def get_next_seq(dbengine,seq):
@@ -1408,11 +1419,12 @@ def db_add_base64(dbeng,id,filep):
     return x
 
 def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
-    log.debug("++++++++++ entering add_filter_to_where_clause")
-    log.debug("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
-    log.debug("add_filter_to_where_clause: param tab is <%s>",str(tab))
-    log.debug("add_filter_to_where_clause: param filter is <%s>",str(filter))
-    log.debug("add_filter_to_where_clause: param columns is <%s>",str(columns))
+    log.debug("++++++++++ calling add_filter_to_where_clause")
+    #log.debug("++++++++++ entering add_filter_to_where_clause")
+    #log.debug("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
+    #log.debug("add_filter_to_where_clause: param tab is <%s>",str(tab))
+    #log.debug("add_filter_to_where_clause: param filter is <%s>",str(filter))
+    #log.debug("add_filter_to_where_clause: param columns is <%s>",str(columns))
     if dbtyp=="mssql":
         concat_operator="+"
     else:
@@ -1459,7 +1471,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                     if cnt>1: w+=" or "
                     w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
     w+=")"
-    log.debug("++++++++++ leaving add_filter_to_where_clause with: %s",w)
+    #log.debug("++++++++++ leaving add_filter_to_where_clause with: %s",w)
     return w
 
 

@@ -472,7 +472,8 @@ DROP VIEW IF EXISTS plainbi_audit_adhoc;
 create view plainbi_audit_adhoc
 as
 select 
-coalesce(u.fullname, u.username) as "user"
+  coalesce(u.fullname, u.username) as "user"
+, u.username  
 , a.t as datum
 , a.id as adhoc_id
 , pa.name as adhoc_name
