@@ -45,6 +45,7 @@
 - Code komplett überarbeiten, formatieren, schöner schreiben, etc.
 
 - Webapplikation auf Security challengen
+  - Anforderungen von OWASP für NODE.JS umgesetzt werden (siehe Nodejs Security - OWASP Cheat Sheet Series  sowie Best Practices Top 10 Node.js Security Best Practices for 2023 - Risks & Prevention | Snyk) .
 
 Bugfixing:
 - Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !
