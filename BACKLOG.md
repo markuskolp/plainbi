@@ -6,6 +6,8 @@
 - plainbi_user 
 	- Passwortfeld: NULL reinschreiben anstatt X beim gehashten Passwortfeld bei lokalen Usern
 	- mit NULL (leerem Passwort) darf man sich aber nicht anmelden können
+- plainbi_datasource
+	- db_type enthält jdbc-url inkl. Passwoerter !
 - Login
 	- E-mail Adresse auch erlauben anstatt Usernamen und damit gegen AD prüfen
 - Adhocs
@@ -22,6 +24,11 @@
 
 ## Frontend
 
+- Globale Einstellungen/Logos noch nicht ausgerollt bei MM -> build und deploy?
+- plainbi_static_files: base64 UI Element besser machen (siehe todos in CRUDFormItem.js)
+- die Inits für Applikationen und Lookups neu liefern an Joe -> dann: datasource bei Pages rausnehmen in DEV/TEST/PROD (Applikations-Spezifikationen durchsuchen)
+- bei Adhoc App ist die Pagination auf DEV ganz weit unten ?
+- mal bei diesen Apps auch die Sortierung umstellen auf Bezeichnung anstatt auf ID !
 - für UIs mit Typ JSON, SQL, ... den MonacoEditor verwenden
 - bessere Fehlermeldungen -> warum wir z.B. bei Adhoc nicht die Meldung ausgegeben wie beim lokalen Entwickeln
 - Oben ein Homebutton einfügen, damit man immer zurück kommt

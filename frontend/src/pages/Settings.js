@@ -24,6 +24,8 @@ const Settings = (props) => {
 
   /*
   Datenquellen
+  Globale Einstellungen
+  Globale Logos
   Lookups für Applikationen
   Applikationen
   Rollen
