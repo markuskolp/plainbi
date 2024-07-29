@@ -123,6 +123,7 @@ from openpyxl import load_workbook
 #from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
 from openpyxl.worksheet.table import Table #, TableStyleInfo
+import smtplib
 
 import pandas.io.formats.excel as fmt_xl
 
@@ -140,6 +141,8 @@ from flask import Flask, jsonify, request, Response, Blueprint, make_response
 #from flask.json import JSONEncoder
 from json import JSONEncoder
 import jwt
+
+from flasgger import Swagger
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
@@ -224,7 +227,15 @@ ORDER BY database_name, schema_name, table_name
 @api.route('/', methods=['GET'])
 def welcome():
     """
-    just the welcome message to the backend rest server if no specific url is given
+    welcome message to the backend rest server if no specific url is given
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     dbversion=get_dbversion(config.repoengine)
     p=f"""
@@ -244,6 +255,14 @@ def welcome():
 def get_version():
     """
     return the version number of the backend
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     return config.version
 
@@ -253,21 +272,83 @@ def get_version():
 def get_backend_version():
     """
     return the database type and version of the backend
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     dbversion=get_dbversion(config.repoengine)
     return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
 
 
-@api.route(api_prefix+'/exec/<db>', methods=['POST'])
+@api.route(api_root+'/email', methods=['POST'])
 @token_required
-def dbexec(tokdata,db):
+def sndemail(tokdata):
+    """
+    send an smtp email
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
+    """
+    log.debug("++++++++++ entering sndemail")
+    audit(tokdata,request)
+    out={}
+
+    data_bytes = request.get_data()
+    data_string = data_bytes.decode('utf-8')
+    item = json.loads(data_string.strip("'"))
+
+    try:
+        # SMTP server configuration
+        smtp_server = os.environ["SMTP_SERVER"] # "smtp.gmail.com"
+        smtp_port = int(os.environ["SMTP_PORT"]) 
+        smtp_user = os.environ["SMTP_USER"] # "your_email@gmail.com"
+        smtp_password = os.environ["SMTP_PASSWORD"] #"your_password"
+        # Create the email headers and body
+        email_message = f"From: {smtp_user}\nTo: {item['to']}\nSubject: {item['subject']}\n\n{item['body']}"
+        # Connect to the SMTP server
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        # Log in to the server
+        server.login(smtp_user, smtp_password)
+        # Send the email
+        server.sendmail(smtp_user, item["to"], email_message)
+        # Disconnect from the server
+        server.quit()
+    except Exception as e:
+        log.error("sendmail error: %s", str(e))
+        out["error"]+="-sendemail"
+        out["message"]+=" Email konnte nicht versendet werden"
+        return jsonify(out), 500
+    out["message"]+="Email wurde versendet"
+    return jsonify(out)
+
+
+@api.route(api_root+'/exec/<db>/<procname>', methods=['POST'])
+@token_required
+def dbexec(tokdata,db,procname):
     """
     run an sqlcommand for example execute procedure
 
     Parameters
-    ----------
     db: id or alias of the database configured in plainbi_database (id=0 is repository)
     statment is specified in data with key "sql"
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
 
     """
     global nodb_msg
@@ -277,12 +358,27 @@ def dbexec(tokdata,db):
     if dbengine is None:
         return jsonify(nodb_msg),500
     out={}
+    dbtype=get_db_type(dbengine)
 
     data_bytes = request.get_data()
     sqlstmt = None # init
     data_string = data_bytes.decode('utf-8')
     item = json.loads(data_string.strip("'"))
-    sqlstmt = item['sql']
+    if dbtype=="mssql":
+        sqlstmt = f"EXEC {procname}"
+    else:
+        out["error"]+="-dbexec"
+        out["message"]+=" database type not supported"
+        return jsonify(out), 500
+
+    first_key=True
+    for key, value in item.items():
+        if first_key:
+            first_key = False
+            sqlstmt += " "
+        else:
+            sqlstmt += ", "
+        sqlstmt += f"{key} = {value}"
     log.debug("dbexec: sql=%s",sqlstmt)
 
     try:
@@ -323,14 +419,53 @@ def dbexec(tokdata,db):
 @token_required
 def get_all_items(tokdata,db,tab):
     """
-    get table contents (all rows)
-
-    Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
+    get database table contents (all rows)
 
     returns json with keys "data", "columns", "total_count"
+
+    ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
+      - name: v
+        in: query
+        type: boolean
+        allowEmptyValue: true
+        description: versions enabled 
+      - name: q
+        in: query
+        type: string
+        description: filter
+      - name: offset
+        in: query
+        type: integer
+        description: start with row <offset> (for pagination)
+      - name: limit
+        in: query
+        type: integer
+        description: maximum number of rows to return  (for pagination)
+      - name: order_by
+        in: query
+        type: string
+        description: order by clause
+      - name: customsql
+        in: query
+        type: string
+        description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename 
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_all_items")
     log.debug("get_all_items: param tab is <%s>",str(tab))
@@ -396,15 +531,44 @@ def get_item(tokdata,db,tab,pk):
     """
     get a specific row from a table given by database tablename and id (or any primary key)
 
-    Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    pk : identifier of the row in the table, primary key
-         if pk=# : pk is taken request.data
-         if more then on column in pk then comma separated
-    
     returns jsons with key "data"  
+
+    ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
+      - name: pk
+        in: path
+        type: string
+        required: true
+        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+      - name: pk
+        in: query
+        type: string
+        description: column name of pk if it cant be extracted from metadata. (or comma separated list of columns if pk is combined)
+      - name: v
+        in: query
+        type: boolean
+        allowEmptyValue: true
+        description: versioning enabled 
+      - name: customsql
+        in: query
+        type: string
+        description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename 
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_items")
     log.debug("get_items: param tab is <%s>",str(tab))
@@ -471,15 +635,43 @@ def create_item(tokdata,db,tab):
     create a new row in the database (insert)
 
     Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    
     Url Options:
         pk=
         seq=  Name der Sequence für den PK, wenn dieser None/Null ist
 
     returns json mit den keys "data"  i.e. the inserted row (might have new data f.e. sequence values, trigger)
+
+    ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
+      - name: v
+        in: query
+        type: boolean
+        allowEmptyValue: true
+        description: versions enabled 
+      - name: pk
+        in: query
+        type: string
+        description: column name of pk if it cant be extracted from metadata. (or comma separated list of columns if pk is combined)
+      - name: seq
+        in: query
+        type: string
+        description: name of a database sequence to create a new primary key value when inserting the row
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering create_item")
     log.debug("create_item: param tab is <%s>",str(tab))
@@ -528,7 +720,6 @@ def update_item(tokdata,db,tab,pk):
     update a row in a table
 
     Parameters
-    ----------
     db: id or alias of the database configured in plainbi_database (id=0 is repository)
     tab : name of database table
     pk : identifier of the row in the table, primary key
@@ -540,6 +731,14 @@ def update_item(tokdata,db,tab,pk):
         v .. versioned table
 
     returns json with key "data"  
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering update_item")
     log.debug("update_item: param tab is <%s>",str(tab))
@@ -596,7 +795,6 @@ def delete_item(tokdata,db,tab,pk):
     delete a row in a database
 
     Parameters
-    ----------
     db: id or alias of the database configured in plainbi_database (id=0 is repository)
     tab : name of database table
     pk : Wert des Datensatz Identifier (Primary Key) dessen Datensatz gelöscht wird
@@ -606,6 +804,14 @@ def delete_item(tokdata,db,tab,pk):
         v -- versioned mode
     
     returns 200 or json with error msg
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering delete_item")
     log.debug("delete_item: param tab is <%s>",str(tab))
@@ -658,10 +864,17 @@ def get_metadata_tables(tokdata,db):
     get names of all accessible tables in the database
 
     Parameters
-    ----------
     db: id or alias of the database configured in plainbi_database (id=0 is repository)
    
     returns json with key "data"  
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_metadata_tables")
     audit(tokdata,request)
@@ -688,11 +901,18 @@ def get_metadata_tab_columns(tokdata,db,tab):
     get metadata of a table from the database dictionary
 
     Parameters
-    ----------
     db: id or alias of the database configured in plainbi_database (id=0 is repository)
     tab : name of the table
     
     returns json with columns and datatypes
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_metadata_tab_columns")
     log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
@@ -737,6 +957,14 @@ def get_resource(tokdata):
     get the resource from the repository
 
     returns json of all applications, adhocs, and external resources
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_resource")
     audit(tokdata,request)
@@ -820,6 +1048,14 @@ def get_all_repos(tokdata,tab):
     get table contents of table <tab> in the repository (table name without prefix plainbi_)
 
     returns json with keys "data", "columns", "total_count"
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_all_repos")
     log.debug("get_all_repos: param tab is <%s>",str(tab))
@@ -851,7 +1087,6 @@ def get_repo(tokdata,tab,pk):
     get a specific row from a repository table
 
     Parameters
-    ----------
     tab : repository table name (without prefix plainbi_)
     pk : Primary Key Identifier (Primary Key)
     
@@ -859,6 +1094,14 @@ def get_repo(tokdata,tab,pk):
         pk=
 
     returns json with keys "data"  
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_repo")
     log.debug("get_repo: param tab is <%s>",str(tab))
@@ -902,7 +1145,6 @@ def create_repo(tokdata,tab):
     insert a new row into a repository table 
 
     Parameters
-    ----------
     tab : repository table name (without prefix plainbi_)
     
     Url Options:
@@ -910,6 +1152,14 @@ def create_repo(tokdata,tab):
         seq=  Name of Sequence for PK, in case None/Null is sent
 
     return json with keys "data" of the newly inserted row
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering create_repo")
     log.debug("create_repo: param tab is <%s>",str(tab))
@@ -959,7 +1209,6 @@ def update_repo(tokdata,tab,pk):
     update a row in the repository
 
     Parameters
-    ----------
     tab : repository table name (without prefix plainbi_)
     pk : Primary Key Identifier (Primary Key)
     
@@ -967,6 +1216,14 @@ def update_repo(tokdata,tab,pk):
         pk=
 
     returns json with keys "data" of the updated row
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering update_repo")
     log.debug("update_repo: param tab is <%s>",str(tab))
@@ -1013,7 +1270,6 @@ def delete_repo(tokdata,tab,pk):
     delete a row in the repositoy
 
     Parameters
-    ----------
     tab : repository table name (without prefix plainbi_)
     pk : Primary Key Identifier (Primary Key) of the row to be deleted
     
@@ -1021,6 +1277,14 @@ def delete_repo(tokdata,tab,pk):
         pk=
 
     returns 200 or json of error message
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering delete_repo")
     log.debug("delete_repo: param tab is <%s>",str(tab))
@@ -1070,6 +1334,14 @@ def delete_repo(tokdata,tab,pk):
 def init_repo():
     """
     initialize the repository: HANDLE WITH CARE and have a backup always
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering init_repo")
     #audit(tokdata,request)
@@ -1090,6 +1362,14 @@ def init_repo():
 def get_lookup(tokdata,id):
     """
     return then lookup data defined in the lookup repository table with id or alias
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_lookup")
     log.debug("get_lookup: param id is <%s>",str(id))
@@ -1128,6 +1408,14 @@ GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its
 def get_adhoc_data(tokdata,id):
     """
     return then adhoc data defined in the adhoc repository table with id or alias
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering get_adhoc_data")
     log.debug("get_adhoc_data: param id is <%s>",str(id))
@@ -1438,7 +1726,7 @@ def load_repo_users():
     if last_stmt_has_errors(e,out):
         log.error('error in select users %s', str(e))
         return False
-    users = {u["username"]: { "password_hash": u["password_hash"], "rolename" : "Admin" if u["role_id"]==1 else "User" } for u in plainbi_users}
+    users = {u["username"]: { "password_hash": u["password_hash"], "email" : u["email"], "rolename" : "Admin" if u["role_id"]==1 else "User" } for u in plainbi_users}
     
 def authenticate_local(username,password):
     """
@@ -1532,6 +1820,14 @@ def login():
     authenticate a user - login procedure
     try LDAP first if it is configured (environment variables)
     otherwise of if no success try local authentication
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     out={}
     log.debug("++++++++++ entering login")
@@ -1612,6 +1908,14 @@ def login():
 def passwd(tokdata):
     """
     change a local users password 
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     out={}
     log.debug("passwd")
@@ -1658,6 +1962,14 @@ def passwd(tokdata):
 def hash_passwd(pwd):
     """
     just show the hashed password ... mainly for testing reasons
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     out={}
     out["pwd"]=pwd
@@ -1682,6 +1994,14 @@ def cache(tokdata):
       status ... show current cache handling setting
 
     returns simple string and status 200
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     config.metadataraw_cache={}
     config.profile_cache={}
@@ -1722,6 +2042,14 @@ def clear_cache(tokdata):
     clear caching
 
     returns simple string and status 200
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     config.metadataraw_cache={}
     config.profile_cache={}
@@ -1735,6 +2063,14 @@ def clear_cache(tokdata):
 def protected(tokdata):
     """
     show the own username
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("current user=%s",tokdata['username'])
     u=tokdata['username']
@@ -1746,6 +2082,14 @@ def protected(tokdata):
 def profile(tokdata):
     """
     return json of the profile of the current user
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     audit(tokdata,request)
     out=get_profile(config.repoengine,tokdata['username'])
@@ -1757,6 +2101,14 @@ def profile(tokdata):
 def logout(tokdata):
     """
     logout
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("logout")
     audit(tokdata,request)
@@ -1777,6 +2129,14 @@ def getstatic(id):
     gets a static base64 thing from the repo by id or alias without login
     useful for logo etc.
     base table is plainbi_static_file
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     if is_id(id):
         sql_params={ "id" : id}
@@ -1801,6 +2161,14 @@ def getstatic(id):
 def getsettingsjs():
     """
     base table is plainbi_setting
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering getsettingsjs")
     
@@ -1851,6 +2219,14 @@ def getsettingsjs():
 def getsettings():
     """
     base table is plainbi_setting
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     out={}
     log.debug("++++++++++ entering getsettings")
@@ -1882,6 +2258,14 @@ def getsettings():
 def getsetting(name):
     """
     base table is plainbi_settomgs
+
+    ---
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
     """
     log.debug("++++++++++ entering getsetting")
     sql_params={ "name" : name}
@@ -1913,6 +2297,13 @@ def create_app(p_repository=None, p_database=None):
     global app
     log.info("creating flask app")
     app = Flask(__name__)
+    swagger = Swagger(app, template={
+        "info" : {
+            "title" : "plainbi Backend Flask API",
+            "description": "Swagger for plainbi see https://github.com/markuskolp/plainbi",
+            "version" : config.version
+        }
+    })
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
    
