@@ -52,3 +52,4 @@ Use repo docker.io/library/postgres:latest
 @api.route('/protected', methods=['GET'])
 @api.route('/profile', methods=['GET'])
 @api.route('/logout', methods=['GET'])
+@api.route(api_prefix+'/crud/exec/<db>/<procedure>', methods=['POST'])

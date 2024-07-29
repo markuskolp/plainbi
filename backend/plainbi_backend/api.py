@@ -24,13 +24,19 @@ curl -H "Content-Type: application/json" --request GET "localhost:3001/api/stati
 curl -H "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe123\"}' "localhost:3001/login" -w "%{http_code}\n"
 windows comman cmd set tok=ldkasaölsfjaölsdkf
 
+# dbexec
+curl -H "Content-Type: application/json" --request GET "localhost:3001/api/exec/db" -w "\n%{http_code}\n"
+
+curl -H "Content-Type: application/json" --request POST --data '{\"sql\":\"SELECT 1\"}' localhost:3001/api/exec/db
+
+
 python -m pytest tests\test_version.py
 
 # resource
 curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/repo/resource?order_by=name&offset=1" -w "%{http_code}\n"
 
 # GET ALL
-curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/crud/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
+curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/crud/db/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
 # GET
 curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/1" -w "%{http_code}\n"
@@ -250,6 +256,61 @@ def get_backend_version():
     """
     dbversion=get_dbversion(config.repoengine)
     return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
+
+
+@api.route(api_prefix+'/exec/<db>', methods=['POST'])
+@token_required
+def dbexec(tokdata,db):
+    """
+    run an sqlcommand for example execute procedure
+
+    Parameters
+    ----------
+    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    statment is specified in data with key "sql"
+
+    """
+    global nodb_msg
+    log.debug("++++++++++ entering dbexec")
+    audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
+    out={}
+
+    data_bytes = request.get_data()
+    sqlstmt = None # init
+    data_string = data_bytes.decode('utf-8')
+    item = json.loads(data_string.strip("'"))
+    sqlstmt = item['sql']
+    log.debug("dbexec: sql=%s",sqlstmt)
+
+    try:
+        #items, columns = db_exec(dbengine,sqlstmt)
+        x = db_exec(dbengine,sqlstmt)
+        log.debug(str(type(x)))
+        if isinstance(x,tuple):
+            out["data"]=x[0]
+            out["columns"]=x[1]
+        else:
+            out["message"]="sql executed"
+    except SQLAlchemyError as e_sqlalchemy:
+        log.error("dbexec_sql_errors: %s", str(e_sqlalchemy))
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-dbexec"
+            out["message"]+=" bei dbexec"
+        return jsonify(out), 500
+    except Exception as e:
+        log.error("dbexec exception: %s ",str(e))
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-dbexec"
+            out["message"]+=" beim dbexec"
+        return jsonify(out), 500
+
+    if isinstance(out,dict):
+        if "error" in out.keys():
+            return jsonify(out), 500
+    return jsonify(out)
 
 ###########################
 ##
@@ -1525,7 +1586,13 @@ def login():
         if username not in users.keys():
             log.debug('refresh users array')
             load_repo_users()
-        return jsonify({'access_token': token, "message":"Login erfolgreich", 'role': users[username]["rolename"]}), 200
+        if len(request.args) > 0:
+            for key, value in request.args.items():
+                log.info("arg: %s val: %s",key,value)
+                if key=="tokenonly":  # this helps for testing
+                    return token
+        else:
+            return jsonify({'access_token': token, "message":"Login erfolgreich", 'role': users[username]["rolename"]}), 200
     else:
         out["message"]='Benutzername oder Passwort ist falsch'
         out["error"]="invalid-credentials"
