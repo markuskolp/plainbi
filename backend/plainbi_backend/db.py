@@ -1554,7 +1554,23 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
 
 #b = base64.b64encode(bytes('your string', 'utf-8')) # bytes
 #base64_str = b.decode('utf-8') # convert bytes to string
-    
+
+
+def postgres_set_search_path(dbapi_connection, connection_record):
+    log.debug("++++++++++ entering postgres_set_search_path")
+    try:
+        with dbapi_connection.cursor() as cursor:
+            cursor.execute('SET search_path TO plainbi, "$user", public')
+        dbapi_connection.commit()
+    except Exception as e:
+        log.error("postgres_set_search_path: %s",str(e))
+    # requery
+    sql = "SELECT current_setting('search_path') as searchpath"
+    with dbapi_connection.cursor() as cursor:
+        cursor.execute(sql)
+        res = cursor.fetchall()
+    log.debug("postgres search path is not %s",str(res))
+    log.debug("++++++++++ leaving postgres_set_search_path")
 
 def db_connect(p_enginestr, params=None):
     log.debug("++++++++++ entering db_connect")
@@ -1582,9 +1598,8 @@ def db_connect(p_enginestr, params=None):
                 if kl[0].lower()=="schema":
                     # has a schema
                     if dbtyp == "postgres":
-                        sql="SET search_path TO "+kl[1]
-                        db_exec(dbengine,sql)
-                        log.debug("++++++++++ set schema/search path to %s",kl[1])
+                        # jk 20240731
+                        sqlalchemy.event.listen(dbengine, 'connect', postgres_set_search_path)
                     elif dbtyp == "mssql":
                         sql="use "+kl[1]
                         db_exec(dbengine,sql)

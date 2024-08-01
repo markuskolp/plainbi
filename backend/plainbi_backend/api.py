@@ -291,10 +291,17 @@ def sndemail(tokdata):
     """
     send an smtp email
 
+    needs environment variables SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
+
     ---
     responses:
       200:
         description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
+      500:
+        description: operation failed
         examples:
           application/json: 
             message: Data processed successfully
@@ -343,6 +350,17 @@ def dbexec(tokdata,db,procname):
     statment is specified in data with key "sql"
 
     ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: procname
+        in: path
+        type: string
+        required: true
+        description: name of the stored procedure in the database
     responses:
       200:
         description: Successful operation
@@ -634,11 +652,6 @@ def create_item(tokdata,db,tab):
     """
     create a new row in the database (insert)
 
-    Parameters
-    Url Options:
-        pk=
-        seq=  Name der Sequence für den PK, wenn dieser None/Null ist
-
     returns json mit den keys "data"  i.e. the inserted row (might have new data f.e. sequence values, trigger)
 
     ---
@@ -719,20 +732,32 @@ def update_item(tokdata,db,tab,pk):
     """
     update a row in a table
 
-    Parameters
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    pk : identifier of the row in the table, primary key
-         if pk=# : pk is taken request.data
-         if more then on column in pk then comma separated
-    
-    Url Options:
-        pk=
-        v .. versioned table
-
-    returns json with key "data"  
-
     ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
+      - name: pk
+        in: path
+        type: string
+        required: true
+        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+      - name: pk
+        in: query
+        type: string
+        description: column name of pk if it cant be extracted from metadata. (or comma separated list of columns if pk is combined)
+      - name: v
+        in: query
+        type: boolean
+        allowEmptyValue: true
+        description: versioning enabled 
     responses:
       200:
         description: Successful operation
@@ -794,18 +819,34 @@ def delete_item(tokdata,db,tab,pk):
     """
     delete a row in a database
 
-    Parameters
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    pk : Wert des Datensatz Identifier (Primary Key) dessen Datensatz gelöscht wird
-    
-    Url Options:
-        pk=
-        v -- versioned mode
-    
     returns 200 or json with error msg
 
     ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
+      - name: pk
+        in: path
+        type: string
+        required: true
+        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+      - name: pk
+        in: query
+        type: string
+        description: column name of pk if it cant be extracted from metadata. (or comma separated list of columns if pk is combined)
+      - name: v
+        in: query
+        type: boolean
+        allowEmptyValue: true
+        description: versioning enabled 
     responses:
       200:
         description: Successful operation
@@ -863,12 +904,15 @@ def get_metadata_tables(tokdata,db):
     """
     get names of all accessible tables in the database
 
-    Parameters
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-   
     returns json with key "data"  
 
     ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
     responses:
       200:
         description: Successful operation
@@ -900,13 +944,20 @@ def get_metadata_tab_columns(tokdata,db,tab):
     """
     get metadata of a table from the database dictionary
 
-    Parameters
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of the table
-    
     returns json with columns and datatypes
 
     ---
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
     responses:
       200:
         description: Successful operation
@@ -954,7 +1005,7 @@ def get_metadata_tab_columns(tokdata,db,tab):
 @token_required
 def get_resource(tokdata):
     """
-    get the resource from the repository
+    get the resources from the repository
 
     returns json of all applications, adhocs, and external resources
 
@@ -1050,6 +1101,12 @@ def get_all_repos(tokdata,tab):
     returns json with keys "data", "columns", "total_count"
 
     ---
+    parameters:
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of the repository table
     responses:
       200:
         description: Successful operation
@@ -1086,16 +1143,24 @@ def get_repo(tokdata,tab,pk):
     """
     get a specific row from a repository table
 
-    Parameters
-    tab : repository table name (without prefix plainbi_)
-    pk : Primary Key Identifier (Primary Key)
-    
-    Url Options:
-        pk=
-
     returns json with keys "data"  
 
     ---
+    parameters:
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of the repository table (without the plainbi_ prefix)
+      - name: pk
+        in: path
+        type: string
+        required: true
+        description: primary key of the row to get from the repository table
+      - name: pk
+        in: query
+        type: string
+        description: column name of pk if it cant be extracted from metadata. (or comma separated list of columns if pk is combined)
     responses:
       200:
         description: Successful operation
@@ -1154,6 +1219,16 @@ def create_repo(tokdata,tab):
     return json with keys "data" of the newly inserted row
 
     ---
+    parameters:
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of the repository table (without the plainbi_ prefix)
+      - name: pk
+        in: query
+        type: string
+        description: column name of pk if it cant be extracted from metadata. (or comma separated list of columns if pk is combined)
     responses:
       200:
         description: Successful operation
@@ -1218,6 +1293,21 @@ def update_repo(tokdata,tab,pk):
     returns json with keys "data" of the updated row
 
     ---
+    parameters:
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of the repository table (without the plainbi_ prefix)
+      - name: pk
+        in: path
+        type: string
+        required: true
+        description: primary key of the row to get from the repository table
+      - name: pk
+        in: query
+        type: string
+        description: column name of pk if it cant be extracted from metadata. (or comma separated list of columns if pk is combined)
     responses:
       200:
         description: Successful operation
