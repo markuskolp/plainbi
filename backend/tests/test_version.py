@@ -233,7 +233,7 @@ def test_000_version(test_client):
     format_url("get",test_url, testname=func_name())
     response = test_client.get(test_url)
     assert response.status_code == 200
-    assert b"0.6" in response.data
+    assert b"0.7" in response.data
 
 
 ##############################################################
