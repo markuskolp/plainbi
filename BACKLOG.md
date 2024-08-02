@@ -12,15 +12,15 @@
 	- **E-mail Adresse auch erlauben anstatt Usernamen und damit gegen AD prüfen**
 - Adhocs
 	- default Sortierungsfeld bei Adhoc – geht das überhaupt? bei CSV/Excel kommt auf jeden Fall ein Fehler
-- E-Mail auslösen z.B. beim Speichern („Berichtsempfänger“)
-	z.B. ein Email Endpoint (an/cc/bcc, subject, body)
+- ~~E-Mail auslösen z.B. beim Speichern („Berichtsempfänger“)~~
+	~~z.B. ein Email Endpoint (an/cc/bcc, subject, body)~~
 - **bei „Neu“ in TV-Tabelle, kein Überschreiben eines Datensatzes erlauben**
 - plainbi_audit_adhoc View ergänzen um "username"
 - Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
 - Adhoc Export Excel -> Infoseite in Arial 9 ;-)
 - Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
-- Swagger
-- Datenbankprozedur auslösen über Frontend (z.B. um eine komplexere Verarbeitung anzustossen)
+- ~~Swagger~~
+- ~~Datenbankprozedur auslösen über Frontend (z.B. um eine komplexere Verarbeitung anzustossen)~~
 - **SSO (Single Sign On) ermöglichen**
 
 ## Frontend
