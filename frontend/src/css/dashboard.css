@@ -15,7 +15,7 @@ main:has( .dashboardcontainer) {
 .ant-card-body {
   height:calc(100% - 50px);
 }
-.ant-table-wrapper {
+.ant-table-wrapper:has( .dashboardcontainer) {
   height: 100%;
 }
 .ant-spin-nested-loading {

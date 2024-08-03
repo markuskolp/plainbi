@@ -480,7 +480,7 @@ create table plainbi_audit (
 create or replace view plainbi_audit_adhoc
 as
 select 
-  coalesce(u.fullname, u.username) as "user"
+  coalesce(u.fullname || ' (' || u.username || ' - id: ' || u.id || ')') || u.username) as user_name
 , u.username  
 , a.t as datum
 , a.id as adhoc_id

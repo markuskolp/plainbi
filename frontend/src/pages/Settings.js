@@ -160,22 +160,28 @@ const Settings = (props) => {
       id:"9", name:"User zu Gruppen", alias:"users2groups",
       allowed_actions:["create", "delete"],
       datasource:"repo",
+      table_for_list:"v_user_to_group",
       table:"user_to_group",
       pk_columns:["user_id","group_id"],
-      table_columns: [
-        { column_name: "user_id", column_label: "User", datatype: "number", ui: "lookup",  lookup: "user", editable: true, required: true },
-        { column_name: "group_id", column_label: "Gruppe", datatype: "number", ui: "lookup",  lookup: "group", editable: true, required: true },
+      table_columns: [ 
+        { column_name: "user_id", column_label: "User", datatype: "number", ui: "lookup",  lookup: "user", editable: true, required: true, showdetailsonly: true  },
+        { column_name: "group_id", column_label: "Gruppe", datatype: "number", ui: "lookup",  lookup: "group", editable: true, required: true, showdetailsonly: true },
+        { column_name: "user_name", column_label: "User", datatype: "text", ui: "label", editable: false, required: false, showsummaryonly: true },
+        { column_name: "group_name", column_label: "Gruppe", datatype: "text", ui: "label", editable: false, required: false, showsummaryonly: true },
       ]
     }, 
     {
       id:"10", name:"Applikationen zu Gruppen", alias:"apps2groups",
       allowed_actions:["create", "delete"],
       datasource:"repo",
+      table_for_list:"v_application_to_group",
       table:"application_to_group",
       pk_columns:["application_id","group_id"],
       table_columns: [
-        { column_name: "application_id", column_label: "Applikation", datatype: "number", ui: "lookup",  lookup: "application", editable: true, required: true },
-        { column_name: "group_id", column_label: "Gruppe", datatype: "number", ui: "lookup",  lookup: "group", editable: true, required: true },
+        { column_name: "application_id", column_label: "Applikation", datatype: "number", ui: "lookup",  lookup: "application", editable: true, required: true, showdetailsonly: true },
+        { column_name: "group_id", column_label: "Gruppe", datatype: "number", ui: "lookup",  lookup: "group", editable: true, required: true, showdetailsonly: true },
+        { column_name: "application_name", column_label: "Applikation", datatype: "text", ui: "label", editable: false, required: false, showsummaryonly: true },
+        { column_name: "group_name", column_label: "Gruppe", datatype: "text", ui: "label", editable: false, required: false, showsummaryonly: true },
       ]
     }
   ]
@@ -196,7 +202,7 @@ const Settings = (props) => {
     return getItem(obj.name // label
         , obj.id // key
         , null // icon
-        , <CRUDPage name={obj.name} tableName={obj.table} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} datasource={obj.datasource} isRepo="true" lookups={getLookups(obj.table_columns)} token={props.token}/>
+        , <CRUDPage key={obj.name} name={obj.name} tableName={obj.table} tableForList={obj.table_for_list} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} datasource={obj.datasource} isRepo="true" lookups={getLookups(obj.table_columns)} token={props.token}/>
         , null // type
         );
   })
