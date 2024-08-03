@@ -15,7 +15,7 @@
 - ~~E-Mail auslösen z.B. beim Speichern („Berichtsempfänger“)~~
 	~~z.B. ein Email Endpoint (an/cc/bcc, subject, body)~~
 - **bei „Neu“ in TV-Tabelle, kein Überschreiben eines Datensatzes erlauben**
-- plainbi_audit_adhoc View ergänzen um "username"
+~~- plainbi_audit_adhoc View ergänzen um "username"~~
 - Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
 - Adhoc Export Excel -> Infoseite in Arial 9 ;-)
 - Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
@@ -25,11 +25,12 @@
 
 ## Frontend
 
+- **Problem mit Lookup bei Anlage von Lookups (datasource_id wird nicht gefüllt) oder bei Adhoc (Anforderer Lookup geht nicht)**
 - Globale Einstellungen/Logos noch nicht ausgerollt bei MM -> build und deploy?
 - plainbi_static_files: base64 UI Element besser machen (siehe todos in CRUDFormItem.js)
 - die Inits für Applikationen und Lookups neu liefern an Joe -> dann: datasource bei Pages rausnehmen in DEV/TEST/PROD (Applikations-Spezifikationen durchsuchen)
-- **bei Adhoc App ist die Pagination auf DEV ganz weit unten ?**
-- mal bei diesen Apps auch die Sortierung umstellen auf Bezeichnung anstatt auf ID !
+~~- bei Adhoc App ist die Pagination auf DEV ganz weit unten ?~~
+~~- mal bei diesen Apps auch die Sortierung/Filterung umstellen auf Bezeichnung anstatt auf ID !~~
 - **für UIs mit Typ JSON, SQL, ... den MonacoEditor verwenden**
 - **bessere Fehlermeldungen** -> warum wird z.B. bei Adhoc nicht die Meldung ausgegeben oder beim Speichern eines bestehenden Eintrags (z.B. User/Gruppenzuordnung) wie beim lokalen Entwickeln
 - Oben ein Homebutton einfügen, damit man immer zurück kommt
