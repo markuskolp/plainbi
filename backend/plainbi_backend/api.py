@@ -142,7 +142,15 @@ from flask import Flask, jsonify, request, Response, Blueprint, make_response
 from json import JSONEncoder
 import jwt
 
-from flasgger import Swagger
+with_swagger = False
+if "PLAINBI_NOSWAGGER" in list(dict(os.environ).keys()):
+    with_swagger = False
+else:
+    try:
+        from flasgger import Swagger
+        with_swagger = True
+    except Exception as e_swagger:
+        with_swagger = False
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
@@ -230,6 +238,8 @@ def welcome():
     welcome message to the backend rest server if no specific url is given
 
     ---
+    tags:
+      - Misc
     responses:
       200:
         description: Successful operation
@@ -257,6 +267,8 @@ def get_version():
     return the version number of the backend
 
     ---
+    tags:
+      - Misc
     responses:
       200:
         description: Successful operation
@@ -274,6 +286,8 @@ def get_backend_version():
     return the database type and version of the backend
 
     ---
+    tags:
+      - Misc
     responses:
       200:
         description: Successful operation
@@ -294,6 +308,10 @@ def sndemail(tokdata):
     needs environment variables SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
 
     ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -350,6 +368,10 @@ def dbexec(tokdata,db,procname):
     statment is specified in data with key "sql"
 
     ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -442,6 +464,10 @@ def get_all_items(tokdata,db,tab):
     returns json with keys "data", "columns", "total_count"
 
     ---
+    tags:
+      - CRUD
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -552,6 +578,10 @@ def get_item(tokdata,db,tab,pk):
     returns jsons with key "data"  
 
     ---
+    tags:
+      - CRUD
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -655,6 +685,10 @@ def create_item(tokdata,db,tab):
     returns json mit den keys "data"  i.e. the inserted row (might have new data f.e. sequence values, trigger)
 
     ---
+    tags:
+      - CRUD
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -733,6 +767,10 @@ def update_item(tokdata,db,tab,pk):
     update a row in a table
 
     ---
+    tags:
+      - CRUD
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -822,6 +860,10 @@ def delete_item(tokdata,db,tab,pk):
     returns 200 or json with error msg
 
     ---
+    tags:
+      - CRUD
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -907,6 +949,10 @@ def get_metadata_tables(tokdata,db):
     returns json with key "data"  
 
     ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -947,6 +993,10 @@ def get_metadata_tab_columns(tokdata,db,tab):
     returns json with columns and datatypes
 
     ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: db
         in: path
@@ -1010,6 +1060,10 @@ def get_resource(tokdata):
     returns json of all applications, adhocs, and external resources
 
     ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -1101,6 +1155,10 @@ def get_all_repos(tokdata,tab):
     returns json with keys "data", "columns", "total_count"
 
     ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: tab
         in: path
@@ -1146,6 +1204,10 @@ def get_repo(tokdata,tab,pk):
     returns json with keys "data"  
 
     ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: tab
         in: path
@@ -1219,6 +1281,10 @@ def create_repo(tokdata,tab):
     return json with keys "data" of the newly inserted row
 
     ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: tab
         in: path
@@ -1293,6 +1359,10 @@ def update_repo(tokdata,tab,pk):
     returns json with keys "data" of the updated row
 
     ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
     parameters:
       - name: tab
         in: path
@@ -1369,6 +1439,10 @@ def delete_repo(tokdata,tab,pk):
     returns 200 or json of error message
 
     ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -1426,6 +1500,8 @@ def init_repo():
     initialize the repository: HANDLE WITH CARE and have a backup always
 
     ---
+    tags:
+      - Repo
     responses:
       200:
         description: Successful operation
@@ -1454,6 +1530,10 @@ def get_lookup(tokdata,id):
     return then lookup data defined in the lookup repository table with id or alias
 
     ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -1500,6 +1580,10 @@ def get_adhoc_data(tokdata,id):
     return then adhoc data defined in the adhoc repository table with id or alias
 
     ---
+    tags:
+      - Adhoc
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -1907,14 +1991,36 @@ def authenticate_ldap(login_username,password):
 @api.route('/api/login', methods=['POST'])
 def login():
     """
-    authenticate a user - login procedure
+    User login, authenticate a user - login procedure
     try LDAP first if it is configured (environment variables)
     otherwise of if no success try local authentication
-
+    summary: login to plainbi backend (Active Directory LDAP or internal user management)
     ---
+    tags:
+      - Authentication
+    description: Login endpoint for user authentication
+    consumes:
+      - "application/json"
+    parameters:
+      -  name: body
+         in: body
+         required: true
+         schema:
+            id : toto
+            required:
+              - username
+              - password
+            properties:
+              username:
+                type: string
+                description: User's username (in LDAP AD email is also possible)
+                example: "admin"
+              password:
+                type: string
+                description: User's password
     responses:
       200:
-        description: Successful operation
+        description: Successful login
         examples:
           application/json: 
             message: Data processed successfully
@@ -2000,6 +2106,10 @@ def passwd(tokdata):
     change a local users password 
 
     ---
+    tags:
+      - Authentication
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -2054,6 +2164,8 @@ def hash_passwd(pwd):
     just show the hashed password ... mainly for testing reasons
 
     ---
+    tags:
+      - Authentication
     responses:
       200:
         description: Successful operation
@@ -2086,6 +2198,10 @@ def cache(tokdata):
     returns simple string and status 200
 
     ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -2134,6 +2250,10 @@ def clear_cache(tokdata):
     returns simple string and status 200
 
     ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -2155,6 +2275,11 @@ def protected(tokdata):
     show the own username
 
     ---
+    tags:
+      - Misc
+    description: "show your own username"
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -2174,6 +2299,10 @@ def profile(tokdata):
     return json of the profile of the current user
 
     ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
@@ -2193,6 +2322,8 @@ def logout(tokdata):
     logout
 
     ---
+    tags:
+      - Authentication
     responses:
       200:
         description: Successful operation
@@ -2221,6 +2352,8 @@ def getstatic(id):
     base table is plainbi_static_file
 
     ---
+    tags:
+      - Misc
     responses:
       200:
         description: Successful operation
@@ -2253,6 +2386,8 @@ def getsettingsjs():
     base table is plainbi_setting
 
     ---
+    tags:
+      - Misc
     responses:
       200:
         description: Successful operation
@@ -2311,6 +2446,8 @@ def getsettings():
     base table is plainbi_setting
 
     ---
+    tags:
+      - Misc
     responses:
       200:
         description: Successful operation
@@ -2350,6 +2487,8 @@ def getsetting(name):
     base table is plainbi_settomgs
 
     ---
+    tags:
+      - Misc
     responses:
       200:
         description: Successful operation
@@ -2387,13 +2526,24 @@ def create_app(p_repository=None, p_database=None):
     global app
     log.info("creating flask app")
     app = Flask(__name__)
-    swagger = Swagger(app, template={
-        "info" : {
-            "title" : "plainbi Backend Flask API",
-            "description": "Swagger for plainbi see https://github.com/markuskolp/plainbi",
-            "version" : config.version
-        }
-    })
+    if with_swagger:
+        log.info("swagger enabled")
+        swagger = Swagger(app, template={
+            "info" : {
+                "title" : "plainbi Backend Flask API",
+                "description": "Swagger for plainbi https://github.com/markuskolp/plainbi",
+                "version" : config.version
+            },
+            'securityDefinitions': {
+                'APIKeyHeader': {
+                        'type': 'apiKey',
+                        'name': 'Authorization',
+                        'in': 'header'
+                }
+            }
+        } 
+        )
+
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
    
