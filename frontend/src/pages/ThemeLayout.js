@@ -7,6 +7,7 @@ import { message, Typography } from "antd";
 import LoadingMessage from "../components/LoadingMessage";
 import Axios from "axios";
 import {
+  HomeOutlined,
   AppstoreOutlined,
   SettingOutlined,
   UserOutlined,
@@ -131,6 +132,11 @@ const ThemeLayout = (props) => {
                 </Link>
               </Space>
               <Space size={"middle"} className="right">
+                <Link href="/">
+                  <Tooltip title="Startseite">
+                    <HomeOutlined />
+                  </Tooltip>
+                </Link>
                 {userRole == 'ADMIN' && 
                   <Link href="/settings">
                     <Tooltip title="Einstellungen">

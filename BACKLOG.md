@@ -26,14 +26,15 @@
 ## Frontend
 
 - **Problem mit Lookup bei Anlage von Lookups (datasource_id wird nicht gefüllt) oder bei Adhoc (Anforderer Lookup geht nicht)**
-- Globale Einstellungen/Logos noch nicht ausgerollt bei MM -> build und deploy?
+~~- Globale Einstellungen/Logos noch nicht ausgerollt bei MM -> build und deploy?~~
 - plainbi_static_files: base64 UI Element besser machen (siehe todos in CRUDFormItem.js)
-- die Inits für Applikationen und Lookups neu liefern an Joe -> dann: datasource bei Pages rausnehmen in DEV/TEST/PROD (Applikations-Spezifikationen durchsuchen)
+- datasource bei Pages rausnehmen in Init-Skripten + MM DEV/TEST/PROD (Applikations-Spezifikationen durchsuchen)
 ~~- bei Adhoc App ist die Pagination auf DEV ganz weit unten ?~~
 ~~- mal bei diesen Apps auch die Sortierung/Filterung umstellen auf Bezeichnung anstatt auf ID !~~
 - **für UIs mit Typ JSON, SQL, ... den MonacoEditor verwenden**
 - **bessere Fehlermeldungen** -> warum wird z.B. bei Adhoc nicht die Meldung ausgegeben oder beim Speichern eines bestehenden Eintrags (z.B. User/Gruppenzuordnung) wie beim lokalen Entwickeln
-- Oben ein Homebutton einfügen, damit man immer zurück kommt
+~~- Oben ein Homebutton einfügen, damit man immer zurück kommt~~
+- "Extern" mal besser benennen !
 - Homepage
 	- Suchfeld fehlt
 	- die „berechtigten Inhalte“ weiter strukturieren können (damit es übersichtlich bleibt)
@@ -57,7 +58,7 @@
   - Anforderungen von OWASP für NODE.JS umgesetzt werden (siehe Nodejs Security - OWASP Cheat Sheet Series  sowie Best Practices Top 10 Node.js Security Best Practices for 2023 - Risks & Prevention | Snyk) .
 
 Bugfixing:
-- Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !
+~~- Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !~~
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
 - **PK mit Slash Problem**
 - environment_color_banner wird noch nicht verwendet
