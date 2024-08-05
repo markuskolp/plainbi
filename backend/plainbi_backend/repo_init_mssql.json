@@ -728,6 +728,78 @@ and a.id = pa.id
 and url like '%/api/repo/adhoc/%/data%'
 ''',
 '''
+DROP VIEW IF EXISTS plainbi_v_adhoc_to_group;
+''',
+'''
+create view plainbi_v_adhoc_to_group
+as
+select 
+    eg.adhoc_id  , eg.group_id
+    , e.name as adhocname
+    , concat(e.name, ' (id: ', e.id, ')') as adhoc_name
+    , g.name as groupname
+    , concat(g.name, ' (id: ', g.id, ')') as group_name
+from plainbi_adhoc_to_group eg
+    join plainbi_adhoc e on eg.adhoc_id = e.id
+    join plainbi_group g on eg.group_id = g.id
+''',
+'''
+DROP VIEW IF EXISTS plainbi_v_external_resource_to_group;
+''',
+'''
+create view plainbi_v_external_resource_to_group
+as
+select 
+    eg.external_resource_id  , eg.group_id
+    , e.name as externalresourcename
+    , concat(e.name, ' (id: ', e.id, ')') as externalresource_name
+    , g.name as groupname
+    , concat(g.name, ' (id: ', g.id, ')') as group_name
+--    , string_agg(lower(u.username), ', ') as user_in_group
+--    , string_agg(coalesce(concat(u.fullname, ' (', u.username, ' - id: ', u.id, ')'), u.username), ', ') as username_in_group
+from plainbi_external_resource_to_group eg
+    join plainbi_external_resource e on eg.external_resource_id = e.id
+    join plainbi_group g on eg.group_id = g.id
+--    left join plainbi_user_to_group ug on g.id = ug.group_id 
+--    left join plainbi_user u on ug.user_id = u.id
+--group by    
+--    eg.external_resource_id, eg.group_id
+--    , e.name, e.id
+--    , g.name, g.id
+''',
+'''
+DROP VIEW IF EXISTS plainbi_v_application_to_group;
+''',
+'''
+create view plainbi_v_application_to_group
+as
+select 
+    ag.application_id  , ag.group_id
+    , a.name as applicationname
+    , concat(a.name, ' (id: ', a.id, ')') as application_name
+    , g.name as groupname
+    , concat(g.name, ' (id: ', g.id, ')') as group_name
+from plainbi_application_to_group ag
+    join plainbi_application a on ag.application_id = a.id
+    join plainbi_group g on ag.group_id = g.id
+''',
+'''
+DROP VIEW IF EXISTS plainbi_v_user_to_group;
+''',
+'''
+create view plainbi_v_user_to_group
+as
+select 
+    ug.user_id , ug.group_id
+    , u.username
+    , coalesce(concat(u.fullname, ' (', u.username, ' - id: ', u.id, ')'), u.username) as user_name
+    , g.name as groupname
+    , concat(g.name, ' (id: ', g.id, ')') as group_name
+from plainbi_user_to_group ug
+    join plainbi_user u on ug.user_id = u.id 
+    join plainbi_group g on ug.group_id = g.id
+''',
+'''
 drop table if exists plainbi_customsql
 ''',
 '''
