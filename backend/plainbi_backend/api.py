@@ -240,12 +240,21 @@ def welcome():
     ---
     tags:
       - Misc
+    produces:
+      - text/html
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+           text/html:
+                <html>
+                <body>
+                <h1>Welcome to PLAINBI Backend</h1>
+                <p>Version 0.7 29.07.2024</p>
+                <p>Repo Database version PostgreSQL 15.7 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-22), 64-bit</p>
+                <p>If you want to initialize the repository click <a href="/api/repo/init_repo">here</a></p>
+                </body>
+                </html>
     """
     dbversion=get_dbversion(config.repoengine)
     p=f"""
@@ -265,16 +274,16 @@ def welcome():
 def get_version():
     """
     return the version number of the backend
-
     ---
     tags:
       - Misc
+    produces:
+      - text/plain
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+          text/plain: '0.7 vom 5.8.2024'
     """
     return config.version
 
@@ -288,12 +297,15 @@ def get_backend_version():
     ---
     tags:
       - Misc
+    produces:
+      - text/plain
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+          text/plain: '
+            Plainbi Backend: 0.7 29.07.2024 
+            Repository: PostgreSQL 15.7 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-22), 64-bit'
     """
     dbversion=get_dbversion(config.repoengine)
     return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
@@ -309,7 +321,7 @@ def sndemail(tokdata):
 
     ---
     tags:
-      - Misc
+      - Utils
     security:
     - APIKeyHeader: ['Authorization']
     responses:
@@ -317,12 +329,13 @@ def sndemail(tokdata):
         description: Successful operation
         examples:
           application/json: 
-            message: Data processed successfully
+            message: Email wurde versendet
       500:
-        description: operation failed
+        description: sendmail error
         examples:
           application/json: 
-            message: Data processed successfully
+            error: sendemail
+            message: Email konnte nicht versendet werden
     """
     log.debug("++++++++++ entering sndemail")
     audit(tokdata,request)
@@ -361,18 +374,29 @@ def sndemail(tokdata):
 @token_required
 def dbexec(tokdata,db,procname):
     """
-    run an sqlcommand for example execute procedure
-
-    Parameters
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    statment is specified in data with key "sql"
-
+    run execute procedure in database
+    currently only for MSSQL
     ---
     tags:
-      - Misc
+      - Utils
     security:
     - APIKeyHeader: ['Authorization']
     parameters:
+      -  name: body
+         in: body
+         description: all elements in body will be interpredid
+         schema:
+            required:
+              - param_key
+              - param_value
+            properties:
+              param_key:
+                type: string
+                description: parameter name
+                example: " "
+              param_value:
+                type: string
+                description: parameter value
       - name: db
         in: path
         type: string
@@ -389,6 +413,12 @@ def dbexec(tokdata,db,procname):
         examples:
           application/json: 
             message: Data processed successfully
+      500:
+        description: Error running the exec procedure sql
+        examples:
+          application/json: 
+            error: dbexec
+            message: error bei dbexec <sql code>
 
     """
     global nodb_msg
@@ -950,7 +980,7 @@ def get_metadata_tables(tokdata,db):
 
     ---
     tags:
-      - Misc
+      - Metadata
     security:
     - APIKeyHeader: ['Authorization']
     parameters:
@@ -994,7 +1024,7 @@ def get_metadata_tab_columns(tokdata,db,tab):
 
     ---
     tags:
-      - Misc
+      - Metadata
     security:
     - APIKeyHeader: ['Authorization']
     parameters:
@@ -1050,7 +1080,7 @@ def get_metadata_tab_columns(tokdata,db,tab):
 ##
 ###########################
 
-# Define routes for CRUD operations
+# Define routes for REPO operations
 @api.route(repo_api_prefix+'/resources', methods=['GET'])
 @token_required
 def get_resource(tokdata):
@@ -1145,7 +1175,7 @@ from plainbi_external_resource per
     return jsonify(out)
 
 
-# Define routes for CRUD operations
+# Define routes for REPO operations
 @api.route(repo_api_prefix+'/<tab>', methods=['GET'])
 @token_required
 def get_all_repos(tokdata,tab):
@@ -1191,9 +1221,6 @@ def get_all_repos(tokdata,tab):
     out["columns"]=columns
     out["total_count"]=total_count
     return jsonify(out)
-
-# Define routes for CRUD operations
-
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['GET'])
 @token_required
@@ -1443,6 +1470,17 @@ def delete_repo(tokdata,tab,pk):
       - Repo
     security:
     - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: tablename in repository
+      - name: pk
+        in: path
+        type: string
+        required: true
+        description: primary key identifiery of the row to delete in the repository table
     responses:
       200:
         description: Successful operation
@@ -1501,13 +1539,14 @@ def init_repo():
 
     ---
     tags:
-      - Repo
+      - Utils
+    produces:
+      - text/html
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+          text/html: 'Repo initialized successfully'
     """
     log.debug("++++++++++ entering init_repo")
     #audit(tokdata,request)
@@ -1534,6 +1573,12 @@ def get_lookup(tokdata,id):
       - Repo
     security:
     - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: id
+        in: path
+        type: string
+        required: true
+        description: id or alias of the lookup defined in the repository
     responses:
       200:
         description: Successful operation
@@ -1584,6 +1629,12 @@ def get_adhoc_data(tokdata,id):
       - Adhoc
     security:
     - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: id
+        in: path
+        type: string
+        required: true
+        description: id or alias of the adhoc defined in the repository
     responses:
       200:
         description: Successful operation
@@ -1968,7 +2019,9 @@ def authenticate_ldap(login_username,password):
     for entry in conn_bind.entries:
         log.debug("ldap entry=%s",entry.entry_dn)
         # substitute username by returned cn
-        username=entry.cn.value
+        #username=entry.cn.value
+        username=entry.sAMAccountName.value.lower()
+        log.debug("username from ldap=%s",username)
         conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
         if not conn_auth.bind():
             log.warning("error in bind ldap entry=%s",entry.entry_dn)
@@ -1995,6 +2048,7 @@ def login():
     try LDAP first if it is configured (environment variables)
     otherwise of if no success try local authentication
     summary: login to plainbi backend (Active Directory LDAP or internal user management)
+    If the login is successful one can enter the returned access token into the dialog of the Swagger Authorize button. Afterwards you can try out the protected endpoints
     ---
     tags:
       - Authentication
@@ -2006,7 +2060,6 @@ def login():
          in: body
          required: true
          schema:
-            id : toto
             required:
               - username
               - password
@@ -2023,7 +2076,16 @@ def login():
         description: Successful login
         examples:
           application/json: 
-            message: Data processed successfully
+            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIn0.w08k-KbwtT8DphvaFEn0Ruwf6Px0pGoSh1-E9UakpyE"
+            "message": "Login erfolgreich"
+            "role": "Admin"
+      401:
+        description: Unauthorized
+        examples:
+          application/json: 
+            "detail": "invalid-credentials in local auth"
+            "error": "invalid-credentials"
+            "message": "Benutzername oder Passwort ist falsch"
     """
     out={}
     log.debug("++++++++++ entering login")
@@ -2165,7 +2227,7 @@ def hash_passwd(pwd):
 
     ---
     tags:
-      - Authentication
+      - Utils
     responses:
       200:
         description: Successful operation
@@ -2202,12 +2264,13 @@ def cache(tokdata):
       - Misc
     security:
     - APIKeyHeader: ['Authorization']
+    produces:
+      - text/plain
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+          text/plain: "cache is enabled/disabled"
     """
     config.metadataraw_cache={}
     config.profile_cache={}
@@ -2245,21 +2308,21 @@ def cache(tokdata):
 @token_required
 def clear_cache(tokdata):
     """
-    clear caching
-
+    clear caches (metadata and profile cache)
     returns simple string and status 200
 
     ---
     tags:
       - Misc
+    produces:
+      - text/plain
     security:
     - APIKeyHeader: ['Authorization']
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+          text/plain: 'caches cleared' 
     """
     config.metadataraw_cache={}
     config.profile_cache={}
@@ -2329,7 +2392,7 @@ def logout(tokdata):
         description: Successful operation
         examples:
           application/json: 
-            message: Data processed successfully
+            message: logged out
     """
     log.debug("logout")
     audit(tokdata,request)
@@ -2353,13 +2416,24 @@ def getstatic(id):
 
     ---
     tags:
-      - Misc
+      - Utils
+    produces:
+      - text/plain
+    parameters:
+      - name: id
+        in: path
+        type: string
+        required: true
+        description: id or alias of the static object defined in the repository
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+          text/plain: 'base64 string of object/image etc.' 
+      404:
+        description: static object not found
+        examples:
+          text/plain: 'no data found' 
     """
     if is_id(id):
         sql_params={ "id" : id}
@@ -2387,13 +2461,14 @@ def getsettingsjs():
 
     ---
     tags:
-      - Misc
+      - Utils
+    produces:
+      - text/javascript
     responses:
       200:
         description: Successful operation
         examples:
-          application/json: 
-            message: Data processed successfully
+          text/javascript: "var APP_TITLE = ...."
     """
     log.debug("++++++++++ entering getsettingsjs")
     
@@ -2443,17 +2518,21 @@ def getsettingsjs():
 @api.route('/api/settings', methods=['GET'])
 def getsettings():
     """
+    get all settings
     base table is plainbi_setting
-
     ---
     tags:
-      - Misc
+      - Utils
     responses:
       200:
         description: Successful operation
         examples:
           application/json: 
-            message: Data processed successfully
+            data: Data
+            columns: Columns
+            total_count: int
+      500:
+        description: getting setting failed
     """
     out={}
     log.debug("++++++++++ entering getsettings")
@@ -2484,17 +2563,26 @@ def getsettings():
 @api.route('/api/setting/<name>', methods=['GET'])
 def getsetting(name):
     """
-    base table is plainbi_settomgs
+    get a specific setting value by name
+    base table is plainbi_settinggs
 
     ---
     tags:
-      - Misc
+      - Utils
+    parameters:
+      - name: name
+        in: path
+        type: string
+        required: true
+        description: name of the setting in the repository
     responses:
       200:
         description: Successful operation
         examples:
           application/json: 
             message: Data processed successfully
+      404:
+        description: Setting not found
     """
     log.debug("++++++++++ entering getsetting")
     sql_params={ "name" : name}
@@ -2541,7 +2629,7 @@ def create_app(p_repository=None, p_database=None):
                         'in': 'header'
                 }
             }
-        } 
+        }, 
         )
 
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
