@@ -1993,6 +1993,7 @@ def authenticate_ldap(login_username,password):
     bindpwd=os.environ.get("LDAP_BIND_USER_PASSWORD")
     bindpwd=bindpwd.strip()
     username=login_username
+    log.debug("login username from ldap=%s",username)
     s = ldap3.Server(host=os.environ.get("LDAP_HOST"), port=int(os.environ.get("LDAP_PORT")), use_ssl=False, get_info=ldap3.ALL)
     conn_bind = ldap3.Connection(s, user=os.environ.get("LDAP_BIND_USER_DN"), password=bindpwd, auto_bind='NONE', version=3, authentication='SIMPLE')
     if not conn_bind.bind():
@@ -2021,7 +2022,7 @@ def authenticate_ldap(login_username,password):
         # substitute username by returned cn
         #username=entry.cn.value
         username=entry.sAMAccountName.value.lower()
-        log.debug("username from ldap=%s",username)
+        log.debug("username (sAMAccountName) from ldap=%s",username)
         conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
         if not conn_auth.bind():
             log.warning("error in bind ldap entry=%s",entry.entry_dn)
