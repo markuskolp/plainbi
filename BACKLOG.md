@@ -8,14 +8,14 @@
 	- mit NULL (leerem Passwort) darf man sich aber nicht anmelden können
 - plainbi_datasource
 	- db_type enthält jdbc-url inkl. PWs !
-- Login
-	- **E-mail Adresse auch erlauben anstatt Usernamen und damit gegen AD prüfen**
+- ~~Login~~
+	- ~~E-mail Adresse auch erlauben anstatt Usernamen und damit gegen AD prüfen~~
 - Adhocs
 	- default Sortierungsfeld bei Adhoc – geht das überhaupt? bei CSV/Excel kommt auf jeden Fall ein Fehler
 - ~~E-Mail auslösen z.B. beim Speichern („Berichtsempfänger“)~~
 	~~z.B. ein Email Endpoint (an/cc/bcc, subject, body)~~
 - **bei „Neu“ in TV-Tabelle, kein Überschreiben eines Datensatzes erlauben**
-~~- plainbi_audit_adhoc View ergänzen um "username"~~
+~~- plainbi_audit_adhoc View ergänzen um "username"git~~ 
 - Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
 - Adhoc Export Excel -> Infoseite in Arial 9 ;-)
 - Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
@@ -35,6 +35,7 @@
 - **bessere Fehlermeldungen** -> warum wird z.B. bei Adhoc nicht die Meldung ausgegeben oder beim Speichern eines bestehenden Eintrags (z.B. User/Gruppenzuordnung) wie beim lokalen Entwickeln
 ~~- Oben ein Homebutton einfügen, damit man immer zurück kommt~~
 - "Extern" mal besser benennen !
+- bei Settings eine Übersicht machen von User<>Gruppe<>Ressource -> damit man das mal in 1 Überblick hat -> später mit Subpage auch immer von Entität ausgehend die Zuordnung/Übersicht erlauben (z.B. User -> zugeordnete Gruppen -> zugeordnete Ressourcen | Gruppe -> zugeordnete User -> zugeordnete Ressourcen) -> damit man das von jeder Richtung pflegen könnte
 - Homepage
 	- Suchfeld fehlt
 	- die „berechtigten Inhalte“ weiter strukturieren können (damit es übersichtlich bleibt)
@@ -51,11 +52,13 @@
 - **Sequence in plainbi Frontend ermöglichen** -> mal testen mit vv_veranstalter und vv_test_case (auch mal IDENTITY Spalte)
 - Parameter bei Adhocs implementieren
 - Adhoc Serverside Pagination nutzen
+- **Tabellenspaltenbreite nicht optimal (Header abgeschnitten, etc.)**
 
 - Code komplett überarbeiten, formatieren, schöner schreiben, etc.
 
 - Webapplikation auf Security challengen
   - Anforderungen von OWASP für NODE.JS umgesetzt werden (siehe Nodejs Security - OWASP Cheat Sheet Series  sowie Best Practices Top 10 Node.js Security Best Practices for 2023 - Risks & Prevention | Snyk) .
+
 
 Bugfixing:
 ~~- Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !~~

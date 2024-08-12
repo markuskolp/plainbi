@@ -302,6 +302,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       title: " ",
       key: "action",
       width: 100,
+      fixed: "right",
       render: (_, record) => ([
         <Space>
           {deleteAllowed && pkColumns &&
@@ -417,7 +418,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
         </Tooltip>
       )
       , key: column_name
-      //width: 50,
+      , width: 100
     };
   }
 
@@ -451,7 +452,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
           multiple: 3,
         },
         key: column_name,
-        //width: 50,
+        width: 100,
         ellipsis: {
           showTitle: false,
         },
@@ -494,6 +495,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       setTypingTimeout( 
         setTimeout(() => {
           setFilter(value);
+          setOffset(0); // reset pagination to page 1 (offset=0) --> todo: Ant Table muss noch darauf reagieren -> optisch steht es noch auf einer anderen Page
           //auto refresh of table data because table params where changed - see useEffect()
           setTableParamChanged(!tableParamChanged);
         }, 600)
