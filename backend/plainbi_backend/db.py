@@ -126,9 +126,12 @@ def db_exec(engine,sql,params=None):
                 res=config.conn[engine.url].execute(mysql,params)
             else:
                 res=config.conn[engine.url].execute(mysql)
-            if int(sqlalchemy.__version__[:1])>1:
+            if int(sqlalchemy.__version__[:1])>1:  # sqlalchemy 2
                 if not is_select:
                     config.conn[engine.url].commit()
+                    log.debug(dbgindent+"db_exec: committed")
+            else:
+                log.debug(dbgindent+"db_exec: not committed")
         except Exception as e:
             log.error(dbgindent+"db_exec ERROR: %s",str(e))
             log.error(dbgindent+"db_exec ERROR: SQL is %s",str(sql))

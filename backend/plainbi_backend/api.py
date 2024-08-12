@@ -324,6 +324,26 @@ def sndemail(tokdata):
       - Utils
     security:
     - APIKeyHeader: ['Authorization']
+    parameters:
+      -  name: body
+         in: body
+         description: all elements in body will be interpredid
+         schema:
+            required:
+              - to
+              - subject
+              - body
+            properties:
+              to:
+                type: string
+                description: email to adress
+                example: " "
+              subject:
+                type: string
+                description: subject of email
+              body:
+                type: string
+                description: email text
     responses:
       200:
         description: Successful operation
@@ -341,32 +361,56 @@ def sndemail(tokdata):
     audit(tokdata,request)
     out={}
 
+    log.debug("sndemail: parse request data")
     data_bytes = request.get_data()
     data_string = data_bytes.decode('utf-8')
     item = json.loads(data_string.strip("'"))
-
+    
+    log.debug("sndemail: get smtp config")
     try:
         # SMTP server configuration
         smtp_server = os.environ["SMTP_SERVER"] # "smtp.gmail.com"
         smtp_port = int(os.environ["SMTP_PORT"]) 
         smtp_user = os.environ["SMTP_USER"] # "your_email@gmail.com"
-        smtp_password = os.environ["SMTP_PASSWORD"] #"your_password"
+        smtp_password = os.environ.get("SMTP_PASSWORD") #"your_password" or none if env does not exist
+        if len(smtp_password)==0:
+            smtp_password=None
+    except Exception as e:
+        log.error("sendmail error: %s", str(e))
+        out["error"]="sendemail"
+        out["message"]="Email Konfiguration invalid"
+        return jsonify(out), 500
         # Create the email headers and body
-        email_message = f"From: {smtp_user}\nTo: {item['to']}\nSubject: {item['subject']}\n\n{item['body']}"
+
+    log.debug("sndemail: check email params")
+    if "to" not in item.keys() or "subject" not in item.keys() or "body" not in item.keys():
+        log.error("sendmail error: to, subject or body in request post arguments missing")
+        out["error"]="sendemail"
+        out["message"]="Email invalid"
+        return jsonify(out), 500
+    email_message = f"From: {smtp_user}\nTo: {item['to']}\nSubject: {item['subject']}\n\n{item['body']}"
+    log.debug("sndemail: send email")
+    try:
         # Connect to the SMTP server
+        log.debug("sndemail: connect to smtp server")
         server = smtplib.SMTP(smtp_server, smtp_port)
         # Log in to the server
-        server.login(smtp_user, smtp_password)
+        if smtp_password is not None:
+            # login to mailserver if password is specified
+            log.debug("sndemail: login to smtp server (there is a password)")
+            server.login(smtp_user, smtp_password)
         # Send the email
+        log.debug("sndemail: send the mail")
         server.sendmail(smtp_user, item["to"], email_message)
         # Disconnect from the server
+        log.debug("sndemail: quit from server")
         server.quit()
     except Exception as e:
         log.error("sendmail error: %s", str(e))
-        out["error"]+="-sendemail"
-        out["message"]+=" Email konnte nicht versendet werden"
+        out["error"]="sendemail"
+        out["message"]="Email konnte nicht versendet werden"
         return jsonify(out), 500
-    out["message"]+="Email wurde versendet"
+    out["message"]="Email wurde versendet"
     return jsonify(out)
 
 
@@ -437,8 +481,8 @@ def dbexec(tokdata,db,procname):
     if dbtype=="mssql":
         sqlstmt = f"EXEC {procname}"
     else:
-        out["error"]+="-dbexec"
-        out["message"]+=" database type not supported"
+        out["error"] = "dbexec"
+        out["message"] = "database type not supported"
         return jsonify(out), 500
 
     first_key=True
