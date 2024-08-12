@@ -373,8 +373,9 @@ def sndemail(tokdata):
         smtp_port = int(os.environ["SMTP_PORT"]) 
         smtp_user = os.environ["SMTP_USER"] # "your_email@gmail.com"
         smtp_password = os.environ.get("SMTP_PASSWORD") #"your_password" or none if env does not exist
-        if len(smtp_password)==0:
-            smtp_password=None
+        if isinstance(smtp_password,str):
+          if len(smtp_password)==0:
+              smtp_password=None
     except Exception as e:
         log.error("sendmail error: %s", str(e))
         out["error"]="sendemail"
