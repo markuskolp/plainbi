@@ -229,7 +229,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       // if only 1 pk take it directly
       //pkforurl = record[_pkColumn[0]];
       //pkforurl = encodeURIComponent(record[_pkColumn[0]]);
-      pkforurl = record[_pkColumn[0]].replaceAll("/", "+++"); // Slash problem -> replace with +++
+      pkforurl = record[_pkColumn[0]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***"); // URL encoding problem -> replace / with +++, ? with ---, % with *** (as this always starts an already encoded part)
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "(key=value:key=value:...)"
@@ -237,7 +237,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       for (var i = 0; i < _pkColumn.length; i++) {
         //pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]];
         //pkforurl += _pkColumn[i] + ":" + encodeURIComponent(record[_pkColumn[i]]);
-        pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]].replaceAll("/", "+++"); // Slash problem -> replace with +++
+        pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
         pkforurl += ":";
       }
       pkforurl = pkforurl.replace(/^:+|:+$/g, ''); // trim ":" at beginning and end of string
@@ -254,14 +254,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       // if only 1 pk take it directly
       //pkforurl = _pkColumn[0];
       //pkforurl = encodeURIComponent(_pkColumn[0]);
-      pkforurl = _pkColumn[0].replaceAll("/", "+++"); // Slash problem -> replace with +++
+      pkforurl = _pkColumn[0].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "&pk=key1,key2,..."
       for (var i = 0; i < _pkColumn.length; i++) {
         //pkforurl += _pkColumn[i];
         //pkforurl += encodeURIComponent(_pkColumn[i]);
-        pkforurl += _pkColumn[i].replaceAll("/", "+++"); // Slash problem -> replace with +++
+        pkforurl += _pkColumn[i].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
         pkforurl += ",";
       }
       pkforurl = pkforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string

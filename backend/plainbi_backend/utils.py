@@ -49,14 +49,14 @@ def prep_pk_from_url(pk):
         pkd={}
         while i < len(pkl):
             #pkd[pkl[i]]=pkl[i+1]
-            pkd[pkl[i]]=pkl[i+1].replace("+++", "/") # slash problem: decode +++ to /
+            pkd[pkl[i]]=pkl[i+1].replace("+++", "/").replace("---", "?").replace("***", "%") # URL encoding problem: decode +++ to /, --- to ?, *** to %
             #pkd[pkl[i]]=urllib.parse.unquote(pkl[i+1]) # get pk value and decode it (url decoding)
             i+=2
         log.debug("prep_pk_from_url: compound key:%s",str(pkd))
         return pkd
     else:
         #return pk        
-        return pk.replace("+++", "/") # slash problem: decode +++ to /
+        return pk.replace("+++", "/").replace("---", "?").replace("***", "%") # URL encoding problem: decode +++ to /, --- to ?, *** to %
         #return urllib.parse.unquote(pk) # get pk value and decode it (url decoding)
 
 def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None):
