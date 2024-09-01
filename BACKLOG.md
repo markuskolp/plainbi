@@ -63,7 +63,7 @@
 Bugfixing:
 ~~- Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !~~
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
-- **PK mit Slash Problem**
+~~- PK mit Slash Problem~~
 - environment_color_banner wird noch nicht verwendet
 
 Dokumentation schreiben/aktualisieren in Github
