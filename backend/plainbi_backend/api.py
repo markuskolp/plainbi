@@ -686,6 +686,11 @@ def get_item(tokdata,db,tab,pk):
         in: query
         type: string
         description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename 
+      - name: body
+        in: body
+        type: string
+        required: false
+        description: xxx
     responses:
       200:
         description: Successful operation
