@@ -327,7 +327,7 @@ def sndemail(tokdata):
     parameters:
       -  name: body
          in: body
-         description: all elements in body will be interpredid
+         description: all elements in body will be interpreted
          schema:
             required:
               - to
@@ -672,7 +672,7 @@ def get_item(tokdata,db,tab,pk):
         in: path
         type: string
         required: true
-        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+        description: value of the primary key for the row to get  if more then on column in pk then comma separated. Values can be transferred url-safe-base64-encoded when prefixed with a #
       - name: pk
         in: query
         type: string
@@ -686,11 +686,7 @@ def get_item(tokdata,db,tab,pk):
         in: query
         type: string
         description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename 
-      - name: body
-        in: body
-        type: string
-        required: false
-        description: xxx
+
     responses:
       200:
         description: Successful operation
@@ -698,7 +694,7 @@ def get_item(tokdata,db,tab,pk):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_items")
+    log.debug("++++++++++ entering get_item")
     log.debug("get_items: param tab is <%s>",str(tab))
     log.debug("get_items: param pk/id is <%s>",str(pk))
     dbengine=get_db_by_id_or_alias(db)
@@ -732,7 +728,116 @@ def get_item(tokdata,db,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(dbengine,tab,pk,pk_column_list=pkcols,versioned=is_versioned,customsql=mycustomsql)
+    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql, url_safe_decode=True)
+    if "data" in out.keys():
+        if len(out["data"])>0:
+            print("out:"+str(out))
+            log.debug("out:%s",str(out))
+            log.debug("leaving get_item with success and json result")
+            try:
+                json_out = jsonify(out)
+            except Exception as ej:
+                log.error("get_item: jsonify Error: %s",str(ej))
+                log.exception(ej)
+                return "get_item: jsonify Error",500
+            return json_out
+            #return Response(jsonify(out),status=204)
+        else:
+            log.debug("no record found")
+            # return Response(status=204)
+            log.debug("leaving get_item with 204 no record forund")
+            return ("kein datensatz gefunden",204,"")
+    # return (resp.text, resp.status_code, resp.headers.items())
+    log.debug("leaving get_item with error 500 and return json result")
+    return jsonify(out),500
+
+@api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['POST'])
+@token_required
+def get_item_post(tokdata,db,tab,pk):
+    """
+    get a specific row from a table given by database tablename and id (or any primary key)
+
+    returns jsons with key "data"  
+
+    ---
+    tags:
+      - CRUD
+    security:
+    - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tab
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
+      - name: pk
+        in: path
+        type: string
+        required: true
+        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+      - name: v
+        in: query
+        type: boolean
+        allowEmptyValue: true
+        description: versioning enabled 
+      - name: customsql
+        in: query
+        type: string
+        description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename 
+      - name: body
+        in: body
+        type: string
+        description: pk in request body instead of url
+
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            columns: id,...
+            data: x,y,...
+            total_count: 1
+    """
+    log.debug("++++++++++ entering get_item_post")
+    log.debug("get_items: param tab is <%s>",str(tab))
+    log.debug("get_items: param pk/id is <%s>",str(pk))
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
+    audit(tokdata,request)
+    # check options
+    out={}
+    is_versioned=False
+    pkcols=[]
+    if len(request.args) > 0:
+        for key, value in request.args.items():
+            log.info("arg: %s val: %s",key,value)
+            if key=="pk":
+                pkcols=value.split(",")
+                log.debug("pk option %s",pkcols)
+            if key=="v":
+                is_versioned=True
+                log.debug("versions enabled")
+    mycustomsql = request.args.get('customsql')
+    log.debug("tab %s pk %s")
+    # check if pk is compound
+    if pk == '#':
+        data_bytes = request.get_data()
+        log.debug("get_item: data")
+        log.debug("get_item: databytes: %s",data_bytes)
+        data_string = data_bytes.decode('utf-8')
+        log.debug("datastring: %s",data_string)
+        pk = json.loads(data_string.strip("'"))
+    else:
+        pk=prep_pk_from_url(pk)
+
+    #
+    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql, url_safe_decode=False)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -867,6 +972,7 @@ def update_item(tokdata,db,tab,pk):
         type: string
         required: true
         description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+                     If a value is prefixed with # then it is url-safe base64 encoded
       - name: pk
         in: query
         type: string
@@ -924,7 +1030,7 @@ def update_item(tokdata,db,tab,pk):
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
     
-    out = db_upd(dbengine,tab,pk,item,pkcols,is_versioned,changed_by=tokdata['username'],customsql=mycustomsql)
+    out = db_upd(dbengine, tab, pk, item, pkcols, is_versioned, changed_by=tokdata['username'], customsql=mycustomsql, url_safe_decode=True)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
@@ -959,7 +1065,8 @@ def delete_item(tokdata,db,tab,pk):
         in: path
         type: string
         required: true
-        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated. 
+                     If a value is prefixed with # then it is url-safe base64 encoded
       - name: pk
         in: query
         type: string
@@ -1011,7 +1118,7 @@ def delete_item(tokdata,db,tab,pk):
         log.debug("pk columns explicitly from url parameter")
 
     log.debug("############# pk columns for delete is %s",str(pkcols))
-    out = db_del(dbengine,tab,pk,pkcols,is_versioned,changed_by=tokdata['username'])
+    out = db_del(dbengine, tab, pk, pkcols, is_versioned, changed_by=tokdata['username'], url_safe_decode=True)
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
@@ -2071,7 +2178,11 @@ def authenticate_ldap(login_username,password):
         log.debug("ldap entry=%s",entry.entry_dn)
         # substitute username by returned cn
         #username=entry.cn.value
-        username=entry.sAMAccountName.value.lower()
+        try:
+            username=entry.sAMAccountName.value.lower()
+        except Exception as e:
+            log.debug("authenticate_ldap:%s",str(e))
+            return authenticated, username
         log.debug("username (sAMAccountName) from ldap=%s",username)
         conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
         if not conn_auth.bind():

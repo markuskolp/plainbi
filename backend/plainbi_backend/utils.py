@@ -4,15 +4,19 @@ Created on Thu May  4 07:43:34 2023
 
 @author: kribbel
 """
-
+from typing import Union, List, Dict, Any
 from sqlalchemy.exc import SQLAlchemyError
+import base64
 
 import logging
 log = logging.getLogger(__name__)
 
 import urllib.parse
 
-def db_subs_env(s,d):
+def db_subs_env(s: str, d: dict):
+    """
+    replace parts of a string in the form "xx{k}yy" with values from a dictionary d which contains a key k
+    """
     if s is None: return None
     for k,v in d.items():
         if v is None:
@@ -21,16 +25,21 @@ def db_subs_env(s,d):
             s=s.replace("{"+k+"}",v)
     return s
 
-def is_id(v):
-      try:
-        _=int(v)
-      except:
-        return False
-      return True
-  
-def prep_pk_from_url(pk):
+def is_id(v: Any) -> bool:
     """
-
+    test if a variable can be converted to a int and return True or Fals
+    """
+    try:
+      _=int(v)
+    except:
+      return False
+    return True
+  
+def prep_pk_from_url(pk) -> dict:
+    """
+    if a pk-id from a url contains ":" then it is a compound key
+    we can separte key/value with ":"
+    the whole construct an optionally be encludes in brackets
     Parameters
     ----------
     pk : int or string
@@ -41,29 +50,57 @@ def prep_pk_from_url(pk):
     itself or a dictionary with the key for compound keys
 
     """
-    if ":" in pk:
-        pk=pk.strip("(")
-        pk=pk.strip(")")
-        pkl=pk.split(":")
-        i=0
-        pkd={}
-        while i < len(pkl):
-            #pkd[pkl[i]]=pkl[i+1]
-            pkd[pkl[i]]=pkl[i+1].replace("+++", "/").replace("---", "?").replace("***", "%") # URL encoding problem: decode +++ to /, --- to ?, *** to %
-            #pkd[pkl[i]]=urllib.parse.unquote(pkl[i+1]) # get pk value and decode it (url decoding)
-            i+=2
-        log.debug("prep_pk_from_url: compound key:%s",str(pkd))
-        return pkd
+    if isinstance(pk,str):
+        if ":" in pk:
+            pk=pk.strip("(")
+            pk=pk.strip(")")
+            pk=pk.strip("{")
+            pk=pk.strip("}")
+            pk=pk.strip("[")
+            pk=pk.strip("]")
+            pkl=pk.split(":")
+            i=0
+            pkd={}
+            while i < len(pkl):
+                pkd[pkl[i]]=pkl[i+1]
+                #pkd[pkl[i]]=pkl[i+1].replace("+++", "/").replace("---", "?").replace("***", "%") # URL encoding problem: decode +++ to /, --- to ?, *** to %
+                #pkd[pkl[i]]=urllib.parse.unquote(pkl[i+1]) # get pk value and decode it (url decoding)
+                i+=2
+            log.debug("prep_pk_from_url: compound key:%s",str(pkd))
+            return pkd
+        else:
+            return pk
     else:
-        #return pk        
-        return pk.replace("+++", "/").replace("---", "?").replace("***", "%") # URL encoding problem: decode +++ to /, --- to ?, *** to %
-        #return urllib.parse.unquote(pk) # get pk value and decode it (url decoding)
+        return pk
+    #return pk.replace("+++", "/").replace("---", "?").replace("***", "%") # URL encoding problem: decode +++ to /, --- to ?, *** to %
+    #return urllib.parse.unquote(pk) # get pk value and decode it (url decoding)
+
+def urlsafe_decode_params(p):
+    """
+    if values in the where clause are prefixed with a "#" then decode them
+    """
+    if not isinstance(p,dict):
+        log.warning("where clause param list is not a dict")
+    else:
+        for k,v in p.items():
+            if isinstance(v,str):
+                if v[:1] == "#" and len(v) > 1: # it is prefixed with # and not only #
+                    try:
+                        p[k] = base64.urlsafe_b64decode(v[1:]).decode()
+                        log.debug("urlsafebase64decode (%s) %s as %s",k,v,str(p[k]))
+                    except Exception as e:
+                        log.error("decode_params: key=%s val=%s, error:%s",k,str(v),str(e))
+    return p
 
 def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None):
     """
-      pk ... werte für primary key whereclause 
-      pk ... pk column names
-      returns  where_clause,vallist
+      this function makes a where clause from a list of primary key columns and values
+
+      pk ... values for the primary key whereclause  -- 
+             is a dict with column_names : values or a simple value, then column name is take from pkcols
+      pk ... pk column names list or simple string if pk is only one column
+      returns  where_clause, vallist
+             the where clause part with params and the value list as a Dict
     """
     log.debug("++++++++++ entering make_pk_where_clause")
     log.debug("make_pk_where_clause: param pk is <%s>",str(pk))

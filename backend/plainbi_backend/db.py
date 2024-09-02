@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause
+from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params
 #import bcrypt
 from threading import Lock
 
@@ -506,7 +506,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     config.metadataraw_cache[cache_key] = out
     return out
 
-def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None):
+def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None, url_safe_decode=False):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle ub der Datenbank
 
@@ -544,6 +544,8 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     log.debug("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
     tabalias="x"
     pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias)
+    if url_safe_decode:
+        urlsafe_decode_params(pkwhere_params)
     log.debug("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
         # check repo rights
@@ -1014,6 +1016,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
 
                 # there is an existing record -> terminate id
                 pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)
+                urlsafe_decode_params(pkwhere_params)
                 delitem={}
                 delitem["invalid_from_dt"]=ts
                 delitem["last_changed_dt"]=ts
@@ -1065,7 +1068,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     return out
 
 ## crud ops
-def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, user_id=None,customsql=None):
+def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=False, user_id=None, customsql=None, url_safe_decode=False):
     log.debug("++++++++++ entering db_upd")
     log.debug("db_upd: param tab is <%s>",str(tab))
     log.debug("db_upd: param pk is <%s>",str(pk))
@@ -1096,6 +1099,8 @@ def db_upd(dbeng,tab,pk,item,pkcols,is_versioned,changed_by=None,is_repo=False, 
         return out
     
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
+    if url_safe_decode:
+        urlsafe_decode_params(pkwhere_params)
     log.debug("update_item: pkwhere %s",pkwhere)
 
     # check hash columns
@@ -1217,7 +1222,7 @@ def db_passwd(dbeng,u,p):
     return out
 
 
-def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False, user_id=None):
+def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False, user_id=None, url_safe_decode=False):
     log.debug("++++++++++ entering db_del")
     log.debug("db_del: param tab is <%s>",str(tab))
     log.debug("db_del: param pk is <%s>",str(pk))
@@ -1249,6 +1254,8 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         return out
 
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
+    if url_safe_decode:
+        urlsafe_decode_params(pkwhere_params)
     log.debug("db_del: pkwhere %s",pkwhere)
         
     if is_versioned:
