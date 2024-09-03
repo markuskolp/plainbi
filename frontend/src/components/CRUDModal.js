@@ -9,7 +9,7 @@ import {
   message
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, versioned, datasource, isRepo, token }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, versioned, datasource, isRepo, token, sequence }) => {
     
   const [loading, setLoading] = useState(true);
   const [recordData, setRecordData] = useState([]);
@@ -107,7 +107,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       setLoading(true);
       console.log("addTableRow: " + JSON.stringify(record));
       //await Axios.post("/api/crud/"+tableName, record).then( 
-      let endPoint = api+tableName+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns));
+      let endPoint = api+tableName+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns))+(sequence ? "&seq="+sequence : "");
       console.log("addTableRow: endpoint: " + endPoint);
       await Axios.post(endPoint, record, {headers: {Authorization: token}}).then( 
           (res) => {

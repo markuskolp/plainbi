@@ -50,7 +50,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, datasource, isRepo, lookups, token }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, datasource, isRepo, lookups, token, sequence }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
@@ -222,22 +222,29 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       )
   };
 
+  const base64UrlSafeEncode = (input) => {
+    let base64=btoa(input);
+    return base64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }    
+
   const getPKForURL = (record, _pkColumn) => {
     var pkforurl = "";
     if (_pkColumn.length <= 1) {
       console.log("only 1 pk");
       // if only 1 pk take it directly
-      //pkforurl = record[_pkColumn[0]];
+      pkforurl = record[_pkColumn[0]];
       //pkforurl = encodeURIComponent(record[_pkColumn[0]]);
-      pkforurl = record[_pkColumn[0]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***"); // URL encoding problem -> replace / with +++, ? with ---, % with *** (as this always starts an already encoded part)
+      //pkforurl = record[_pkColumn[0]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***"); // URL encoding problem -> replace / with +++, ? with ---, % with *** (as this always starts an already encoded part)
+      //pkforurl = "#"+base64UrlSafeEncode(record[_pkColumn[0]]); // base64 encoded and # as prefix
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "(key=value:key=value:...)"
       pkforurl = "(";
       for (var i = 0; i < _pkColumn.length; i++) {
-        //pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]];
+        pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]];
         //pkforurl += _pkColumn[i] + ":" + encodeURIComponent(record[_pkColumn[i]]);
-        pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
+        //pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
+        //pkforurl += _pkColumn[i] + ":" + "#"+base64UrlSafeEncode(record[_pkColumn[i]]); // base64 encoded and # as prefix
         pkforurl += ":";
       }
       pkforurl = pkforurl.replace(/^:+|:+$/g, ''); // trim ":" at beginning and end of string
@@ -252,16 +259,18 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
     if (_pkColumn.length <= 1) {
       console.log("only 1 pk");
       // if only 1 pk take it directly
-      //pkforurl = _pkColumn[0];
+      pkforurl = _pkColumn[0];
       //pkforurl = encodeURIComponent(_pkColumn[0]);
-      pkforurl = _pkColumn[0].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
+      //pkforurl = _pkColumn[0].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
+      //pkforurl =  "#"+base64UrlSafeEncode(_pkColumn[0]); // base64 encoded and # as prefix
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "&pk=key1,key2,..."
       for (var i = 0; i < _pkColumn.length; i++) {
-        //pkforurl += _pkColumn[i];
+        pkforurl += _pkColumn[i];
         //pkforurl += encodeURIComponent(_pkColumn[i]);
-        pkforurl += _pkColumn[i].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
+        //pkforurl += _pkColumn[i].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
+        //pkforurl += "#"+base64UrlSafeEncode(_pkColumn[i]); // base64 encoded and # as prefix
         pkforurl += ",";
       }
       pkforurl = pkforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
@@ -576,7 +585,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                 }
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token}/>
+            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence}/>
             }
 
             </React.Fragment>
