@@ -82,10 +82,12 @@ def urlsafe_decode_params(p):
             if isinstance(v,str):
                 if v[:8] == "[base64@": # it is prefixed with # and not only #
                     try:
-                        p[k] = base64.urlsafe_b64decode(v[8:]).decode().strip(']')
+                        w=v[8:].strip("]")+"==="
+                        p[k] = base64.urlsafe_b64decode(w).decode()
                         log.debug("urlsafebase64decode (%s) %s as %s",k,v,str(p[k]))
                     except Exception as e:
                         log.error("decode_params: key=%s val=%s, error:%s",k,str(v),str(e))
+                        return None
     return p
 
 def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None):

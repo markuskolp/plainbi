@@ -532,6 +532,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     log.debug("get_item_raw[%s]: param is_repo is <%s>",str(tab),str(is_repo))
     log.debug("get_item_raw[%s]: param user_id is <%s>",str(tab),str(user_id))
     log.debug("get_item_raw[%s]: param customsql is <%s>",str(tab),str(customsql))
+    log.debug("db_del: url_safe_decode is <%s>",str(url_safe_decode))
     out={}
     metadata=get_metadata_raw(dbengine,tab,pk_column_list,versioned)
     if "error" in metadata.keys():
@@ -545,7 +546,11 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     tabalias="x"
     pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias)
     if url_safe_decode:
-        urlsafe_decode_params(pkwhere_params)
+        urlsafe_res=urlsafe_decode_params(pkwhere_params)
+        if urlsafe_res is None:
+            out["error"]+="-pk-base64-invalid"
+            out["message"]+=" Base64 Encoding Fehler beim Lesen einer Tabelle"
+            return out
     log.debug("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
         # check repo rights
@@ -1016,7 +1021,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
 
                 # there is an existing record -> terminate id
                 pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)
-                urlsafe_decode_params(pkwhere_params)
+                urlsafe_res=urlsafe_decode_params(pkwhere_params)
+                if urlsafe_res is None:
+                    out["error"]+="-pk-base64-invalid"
+                    out["message"]+=" Base64 Encoding Fehler beim Einfügen einer versionierten Zeile"
+                    return out
+
                 delitem={}
                 delitem["invalid_from_dt"]=ts
                 delitem["last_changed_dt"]=ts
@@ -1074,6 +1084,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
     log.debug("db_upd: param pk is <%s>",str(pk))
     log.debug("db_upd: pkcols tab is <%s>",str(pkcols))
     log.debug("db_upd: param is_versioned is <%s>",str(is_versioned))
+    log.debug("db_del: url_safe_decode is <%s>",str(url_safe_decode))
     out={}
     log.debug("item-keys %s",item.keys())
     myitem=item
@@ -1100,7 +1111,11 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
     
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
     if url_safe_decode:
-        urlsafe_decode_params(pkwhere_params)
+        urlsafe_res=urlsafe_decode_params(pkwhere_params)
+        if urlsafe_res is None:
+            out["error"]+="-pk-base64-invalid"
+            out["message"]+=" Base64 Encoding Fehler beim Aktualisieren einer Zeile einer Tabelle"
+            return out
     log.debug("update_item: pkwhere %s",pkwhere)
 
     # check hash columns
@@ -1228,6 +1243,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
     log.debug("db_del: param pk is <%s>",str(pk))
     log.debug("db_del: pkcols tab is <%s>",str(pkcols))
     log.debug("db_del: param is_versioned is <%s>",str(is_versioned))
+    log.debug("db_del: url_safe_decode is <%s>",str(url_safe_decode))
     # check options
     out={}
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
@@ -1255,7 +1271,11 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
 
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
     if url_safe_decode:
-        urlsafe_decode_params(pkwhere_params)
+        urlsafe_res=urlsafe_decode_params(pkwhere_params)
+        if urlsafe_res is None:
+            out["error"]+="-pk-base64-invalid"
+            out["message"]+=" Base64 Encoding Fehler beim Löschen einer Zeile einer Tabelle"
+            return out
     log.debug("db_del: pkwhere %s",pkwhere)
         
     if is_versioned:
