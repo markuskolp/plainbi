@@ -1332,6 +1332,158 @@ from plainbi_external_resource per
     return jsonify(out)
 
 
+# mir zugeordnete Gruppen
+@api.route(repo_api_prefix+'/groups', methods=['GET'])
+@token_required
+def get_my_groups(tokdata):
+    """
+    get my groups
+    ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
+    """
+    log.debug("++++++++++ entering get_my_groups")
+    audit(tokdata,request)
+    prof=get_profile(config.repoengine,tokdata['username'])
+    user_id=prof["user_id"]
+    out={}
+    if not hasattr(config,"repo_db_type"):
+        config.repo_db_type=get_db_type(config.repoengine)
+    #mysql="select g.id, g.name from plainbi_user_to_group ug join plainbi_group g on ug.group_id = g.id where ug.user_id="+prof["user_id"]
+    mysql=f"select distinct g.id, g.name from plainbi_user_to_group ug join plainbi_group g on ug.group_id = g.id where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1)"
+    log.debug("get_my_groups sql: %s",mysql)
+    items,columns,total_count,e=sql_select(config.repoengine,mysql,order_by=None,offset=None,limit=None,with_total_count=True,is_repo=True,user_id=prof["user_id"])
+    log.debug("get_my_groups sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        return jsonify(out),500
+    out["data"]=items
+    out["columns"]=columns
+    out["total_count"]=total_count
+    return jsonify(out)
+
+# 
+@api.route(repo_api_prefix+'/group/<gid>/resources', methods=['GET'])
+@token_required
+def get_group_resources(tokdata,gid):
+    """
+    Resourcen gefiltert auf die Gruppe
+    ---
+    tags:
+      - Repo
+    security:
+    - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: gid
+        in: path
+        type: string
+        required: true
+        description: group id
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
+    """
+    log.debug("++++++++++ entering get_my_groups")
+    audit(tokdata,request)
+    prof=get_profile(config.repoengine,tokdata['username'])
+    user_id=prof["user_id"]
+    out={}
+    if not is_id(gid):
+        items, columns = db_exec(config.repoengine,f"select id from plainbi_group where alias='{gid}'")
+        if len(items) > 0:
+            gid=items["id"][0]
+        else:
+            out["error"]="no-such-group-alias"
+            out["message"]=f"Berechtigungsgruppe mit dem alias {gid} nicht gefunden"
+            return jsonify(out), 500
+    else:
+        items, columns = db_exec(config.repoengine,f"select id from plainbi_group where id={gid}")
+        if len(items) < 1:
+            out["error"]="no-such-group-id"
+            out["message"]=f"Berechtigungsgruppe mit der ID {gid} nicht gefunden"
+            return jsonify(out), 500
+
+    if not hasattr(config,"repo_db_type"):
+        config.repo_db_type=get_db_type(config.repoengine)
+
+    log.debug("get_resource config.repo_db_type=%s",config.repo_db_type)
+    if config.repo_db_type == 'mssql':
+        concat_op='+'
+    else:
+        concat_op='||'
+    log.debug("get_resource concat_op=%s",concat_op)
+    resource_sql=f"""select
+'application_'{concat_op}cast(id as varchar) as id
+, name
+, '/apps/'{concat_op}alias as url
+, '_self' as target
+, null as output_format
+, null as description
+, null as source
+, null as dataset
+, 'application' as resource_type
+, 'Applikation' as resource_type_de
+from plainbi_application pa
+join plainbi_application_to_group ag
+on pa.id=ag.application_id
+and ag.group_id={gid}
+and ag.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
+union all
+select
+'adhoc_'{concat_op}cast(id as varchar) as id
+, name
+, '/adhoc/' {concat_op} cast(id as varchar) {concat_op} case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='{concat_op}output_format else '' end as url
+, '_self' as target
+, coalesce(output_format, 'HTML') output_format
+, description
+, 'Adhoc' as source
+, null as dataset
+, 'adhoc' as resource_type
+, 'Adhoc' as resource_type_de
+from plainbi_adhoc padh
+join plainbi_adhoc_to_group ag
+on padh.id = ag.adhoc_id
+and ag.group_id={gid}
+and ag.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
+union all
+select
+'external_resource_'{concat_op}cast(id as varchar) as id
+, name
+, url
+, '_blank' as target
+, null as output_format
+, description
+, source
+, dataset
+, 'external_resource' as resource_type
+, 'Extern' as resource_type_de
+from plainbi_external_resource per
+join plainbi_external_resource_to_group rg
+on per.id=rg.external_resource_id
+and rg.group_id={gid}
+and rg.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
+"""
+    log.debug("get_group_resources sql: %s",resource_sql)
+    items,columns,total_count,e=sql_select(config.repoengine,resource_sql,order_by=None,offset=None,limit=None,with_total_count=True,is_repo=True,user_id=prof["user_id"])
+    log.debug("get_group_resources sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        return jsonify(out),500
+    out["data"]=items
+    out["columns"]=columns
+    out["total_count"]=total_count
+    return jsonify(out)
+
+
 # Define routes for REPO operations
 @api.route(repo_api_prefix+'/<tab>', methods=['GET'])
 @token_required
