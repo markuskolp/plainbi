@@ -532,7 +532,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     log.debug("get_item_raw[%s]: param is_repo is <%s>",str(tab),str(is_repo))
     log.debug("get_item_raw[%s]: param user_id is <%s>",str(tab),str(user_id))
     log.debug("get_item_raw[%s]: param customsql is <%s>",str(tab),str(customsql))
-    log.debug("db_del: url_safe_decode is <%s>",str(url_safe_decode))
+    log.debug("get_item_raw[%s]: param url_safe_decode is <%s>",str(tab),str(url_safe_decode))
     out={}
     metadata=get_metadata_raw(dbengine,tab,pk_column_list,versioned)
     if "error" in metadata.keys():
@@ -1098,7 +1098,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         pkcols=[(metadata["columns"])[0]]
         log.warning("update_item implicit pk first column")
 
-    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,url_safe_decode=True)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
             out["error"]="db_upd-id-not-found"
@@ -1209,7 +1209,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
             log.debug("++++++++++ leaving db_upd returning %s", str(out))
             return out
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
-    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
+    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql,url_safe_decode=True)
     log.debug("++++++++++ leaving db_upd returning %s", str(out))
     return out
 
@@ -1256,7 +1256,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         pkcols=[(metadata["columns"])[0]]
         log.warning("db_del implicit pk first column")
 
-    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols, url_safe_decode=True)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
             out["error"]="db_del-pk-id-not-found"

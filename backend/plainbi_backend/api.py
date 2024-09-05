@@ -792,6 +792,7 @@ def get_item_post(tokdata,db,tab,pk):
       - name: body
         in: body
         type: string
+        required: true
         description: pk in request body instead of url
 
     responses:
@@ -982,6 +983,17 @@ def update_item(tokdata,db,tab,pk):
         type: boolean
         allowEmptyValue: true
         description: versioning enabled 
+      - name: body
+        in: body
+        required: true
+        schema:
+           required:
+             - feld
+           properties:
+             feld:
+               type: string
+               description: Feld Inhalt
+               example: "fekd"
     responses:
       200:
         description: Successful operation
