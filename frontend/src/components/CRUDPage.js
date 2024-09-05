@@ -20,6 +20,7 @@ import {
 } from '@ant-design/icons';
 import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import dayjs from 'dayjs';
 import CRUDModal from "./CRUDModal";
 const { Link, Text } = Typography;
 
@@ -224,7 +225,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
 
   const base64UrlSafeEncode = (input) => {
     let base64=btoa(input);
-    return base64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    return "[base64@" + base64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') + "]";
     }    
 
   const getPKForURL = (record, _pkColumn) => {
@@ -232,19 +233,19 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
     if (_pkColumn.length <= 1) {
       console.log("only 1 pk");
       // if only 1 pk take it directly
-      pkforurl = record[_pkColumn[0]];
+      //pkforurl = record[_pkColumn[0]];
       //pkforurl = encodeURIComponent(record[_pkColumn[0]]);
       //pkforurl = record[_pkColumn[0]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***"); // URL encoding problem -> replace / with +++, ? with ---, % with *** (as this always starts an already encoded part)
-      //pkforurl = "#"+base64UrlSafeEncode(record[_pkColumn[0]]); // base64 encoded and # as prefix
+      pkforurl = base64UrlSafeEncode(record[_pkColumn[0]]); // base64 encoded and # as prefix
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "(key=value:key=value:...)"
       pkforurl = "(";
       for (var i = 0; i < _pkColumn.length; i++) {
-        pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]];
+        //pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]];
         //pkforurl += _pkColumn[i] + ":" + encodeURIComponent(record[_pkColumn[i]]);
         //pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
-        //pkforurl += _pkColumn[i] + ":" + "#"+base64UrlSafeEncode(record[_pkColumn[i]]); // base64 encoded and # as prefix
+        pkforurl += _pkColumn[i] + ":" + base64UrlSafeEncode(record[_pkColumn[i]]) ; // base64 encoded and # as prefix
         pkforurl += ":";
       }
       pkforurl = pkforurl.replace(/^:+|:+$/g, ''); // trim ":" at beginning and end of string
@@ -259,18 +260,18 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
     if (_pkColumn.length <= 1) {
       console.log("only 1 pk");
       // if only 1 pk take it directly
-      pkforurl = _pkColumn[0];
+      //pkforurl = _pkColumn[0];
       //pkforurl = encodeURIComponent(_pkColumn[0]);
       //pkforurl = _pkColumn[0].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
-      //pkforurl =  "#"+base64UrlSafeEncode(_pkColumn[0]); // base64 encoded and # as prefix
+      pkforurl =  base64UrlSafeEncode(_pkColumn[0]); // base64 encoded and # as prefix
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "&pk=key1,key2,..."
       for (var i = 0; i < _pkColumn.length; i++) {
-        pkforurl += _pkColumn[i];
+        //pkforurl += _pkColumn[i];
         //pkforurl += encodeURIComponent(_pkColumn[i]);
         //pkforurl += _pkColumn[i].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
-        //pkforurl += "#"+base64UrlSafeEncode(_pkColumn[i]); // base64 encoded and # as prefix
+        pkforurl += base64UrlSafeEncode(_pkColumn[i]); // base64 encoded and # as prefix
         pkforurl += ",";
       }
       pkforurl = pkforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
@@ -430,14 +431,16 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       render: (text, record) => (
         // if datetime then trim milliseconds
         // tooltip because of ellipsis above
-        <Tooltip placement="topLeft" title={text}>          
-          {(datatype === "datetime" && text) ? text.substring(0,19) : text} 
+        <Tooltip placement="topLeft" title={text}> 
+          {(datatype === "datetime" && text) ? dayjs(text).format("YYYY-MM-DD HH:mm:ss") : text}  
         </Tooltip>
       )
       , key: column_name
       , width: 100
     };
   }
+  //{(datatype === "datetime" && text) ? dayjs(text,'YYYY-MM-DD HH:mm') : text} 
+  // e.g. Tue, 05 Dec 2023 14:28:48 GMT -- .replace(' GMT', ''),'ddd, D MMM YYYY hh:mm:ss'
 
     // return a column to be used as metadata for a Table component
     // this is from the type "lookup"
