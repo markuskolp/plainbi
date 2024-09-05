@@ -372,7 +372,7 @@ def sndemail(tokdata):
         smtp_server = os.environ["SMTP_SERVER"] # "smtp.gmail.com"
         smtp_port = int(os.environ["SMTP_PORT"]) 
         smtp_user = os.environ["SMTP_USER"] # "your_email@gmail.com"
-        smtp_password = os.environ.get("SMTP_PASSWORD") #"your_password" or none if env does not exist
+        smtp_password = os.environ.get("SMTP_PASSWORD") # "your_password" or none if env does not exist
         if isinstance(smtp_password,str):
           if len(smtp_password)==0:
               smtp_password=None
@@ -672,7 +672,7 @@ def get_item(tokdata,db,tab,pk):
         in: path
         type: string
         required: true
-        description: value of the primary key for the row to get  if more then on column in pk then comma separated. Values can be transferred url-safe-base64-encoded when prefixed with a #
+        description: value of the primary key for the row to get  if more then one column in pk then comma separated. Values can be transferred url-safe-base64-encoded when string is in form [base64@<base64urlsafeencodedstring>]
       - name: pk
         in: query
         type: string
@@ -717,7 +717,7 @@ def get_item(tokdata,db,tab,pk):
     mycustomsql = request.args.get('customsql')
     log.debug("tab %s pk %s")
     # check if pk is compound
-    if pk == '#':
+    if pk == '#' or pk == '@':
         data_bytes = request.get_data()
         log.debug("get_item: data")
         log.debug("get_item: databytes: %s",data_bytes)
@@ -779,7 +779,7 @@ def get_item_post(tokdata,db,tab,pk):
         in: path
         type: string
         required: true
-        description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
+        description: value of the primary key for the row to get  if pk="#" or pk="@" then pk is taken request.data    if more then on column in pk then comma separated
       - name: v
         in: query
         type: boolean
@@ -826,7 +826,7 @@ def get_item_post(tokdata,db,tab,pk):
     mycustomsql = request.args.get('customsql')
     log.debug("tab %s pk %s")
     # check if pk is compound
-    if pk == '#':
+    if pk == '#' or pk == '@':
         data_bytes = request.get_data()
         log.debug("get_item: data")
         log.debug("get_item: databytes: %s",data_bytes)
@@ -972,7 +972,7 @@ def update_item(tokdata,db,tab,pk):
         type: string
         required: true
         description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated
-                     If a value is prefixed with # then it is url-safe base64 encoded
+                     If a value is in form [base64@<base64urlsafeencodedstring>] then it is url-safe base64 encoded
       - name: pk
         in: query
         type: string
@@ -1066,7 +1066,7 @@ def delete_item(tokdata,db,tab,pk):
         type: string
         required: true
         description: value of the primary key for the row to get  if pk=# then pk is taken request.data    if more then on column in pk then comma separated. 
-                     If a value is prefixed with # then it is url-safe base64 encoded
+                     If a value is in form [base64@<base64urlsafeencodedstring>] then it is url-safe base64 encoded
       - name: pk
         in: query
         type: string

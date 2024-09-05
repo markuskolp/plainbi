@@ -54,10 +54,6 @@ def prep_pk_from_url(pk) -> dict:
         if ":" in pk:
             pk=pk.strip("(")
             pk=pk.strip(")")
-            pk=pk.strip("{")
-            pk=pk.strip("}")
-            pk=pk.strip("[")
-            pk=pk.strip("]")
             pkl=pk.split(":")
             i=0
             pkd={}
@@ -84,9 +80,9 @@ def urlsafe_decode_params(p):
     else:
         for k,v in p.items():
             if isinstance(v,str):
-                if v[:1] == "#" and len(v) > 1: # it is prefixed with # and not only #
+                if v[:8] == "[base64@": # it is prefixed with # and not only #
                     try:
-                        p[k] = base64.urlsafe_b64decode(v[1:]).decode()
+                        p[k] = base64.urlsafe_b64decode(v[8:]).decode().strip(']')
                         log.debug("urlsafebase64decode (%s) %s as %s",k,v,str(p[k]))
                     except Exception as e:
                         log.error("decode_params: key=%s val=%s, error:%s",k,str(v),str(e))
