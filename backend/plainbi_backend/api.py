@@ -1401,7 +1401,7 @@ def get_group_resources(tokdata,gid):
     if not is_id(gid):
         items, columns = db_exec(config.repoengine,f"select id from plainbi_group where alias='{gid}'")
         if len(items) > 0:
-            gid=items["id"][0]
+            gid=items[0]["id"]
         else:
             out["error"]="no-such-group-alias"
             out["message"]=f"Berechtigungsgruppe mit dem alias {gid} nicht gefunden"
