@@ -223,7 +223,11 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       )
   };
 
+  // base64 encoded for "crud" endpoint, not for "repo" endpoint
   const base64UrlSafeEncode = (input) => {
+    if(isRepo === 'true') {
+      return input;
+    } 
     let base64=btoa(input);
     return "[base64@" + base64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') + "]";
     }    
@@ -234,18 +238,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       console.log("only 1 pk");
       // if only 1 pk take it directly
       //pkforurl = record[_pkColumn[0]];
-      //pkforurl = encodeURIComponent(record[_pkColumn[0]]);
-      //pkforurl = record[_pkColumn[0]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***"); // URL encoding problem -> replace / with +++, ? with ---, % with *** (as this always starts an already encoded part)
-      pkforurl = base64UrlSafeEncode(record[_pkColumn[0]]); // base64 encoded and # as prefix
+      pkforurl = base64UrlSafeEncode(record[_pkColumn[0]]); 
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "(key=value:key=value:...)"
       pkforurl = "(";
       for (var i = 0; i < _pkColumn.length; i++) {
         //pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]];
-        //pkforurl += _pkColumn[i] + ":" + encodeURIComponent(record[_pkColumn[i]]);
-        //pkforurl += _pkColumn[i] + ":" + record[_pkColumn[i]].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
-        pkforurl += _pkColumn[i] + ":" + base64UrlSafeEncode(record[_pkColumn[i]]) ; // base64 encoded and # as prefix
+        pkforurl += _pkColumn[i] + ":" + base64UrlSafeEncode(record[_pkColumn[i]]) ; 
         pkforurl += ":";
       }
       pkforurl = pkforurl.replace(/^:+|:+$/g, ''); // trim ":" at beginning and end of string
@@ -261,17 +261,13 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       console.log("only 1 pk");
       // if only 1 pk take it directly
       //pkforurl = _pkColumn[0];
-      //pkforurl = encodeURIComponent(_pkColumn[0]);
-      //pkforurl = _pkColumn[0].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
-      pkforurl =  base64UrlSafeEncode(_pkColumn[0]); // base64 encoded and # as prefix
+      pkforurl =  base64UrlSafeEncode(_pkColumn[0]); 
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "&pk=key1,key2,..."
       for (var i = 0; i < _pkColumn.length; i++) {
         //pkforurl += _pkColumn[i];
-        //pkforurl += encodeURIComponent(_pkColumn[i]);
-        //pkforurl += _pkColumn[i].toString().replace(/\//g, "+++").replace(/\?/g, "---").replace(/%/g, "***");
-        pkforurl += base64UrlSafeEncode(_pkColumn[i]); // base64 encoded and # as prefix
+        pkforurl += base64UrlSafeEncode(_pkColumn[i]); 
         pkforurl += ",";
       }
       pkforurl = pkforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
