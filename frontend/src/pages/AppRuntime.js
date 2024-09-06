@@ -7,8 +7,6 @@ import { message } from "antd";
 import CRUDApp from "../components/CRUDApp";
 import LoadingMessage from "../components/LoadingMessage";
 
-// TODO: get metadata from API (id or alias) -> if not found -> show error on whole page ! (setAppNotFound = false)
-
 const AppRuntime = (props) => {
 
   let { id, page_id } = useParams(); // get URL parameters - here the "id" of a app

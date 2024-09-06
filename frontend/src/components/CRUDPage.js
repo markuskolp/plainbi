@@ -562,7 +562,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                             .map((column) => {
                               return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype, column.ui));
                             })
-                            .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
+                            .concat((allowedActions.includes("delete") || allowedActions.includes("update")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")) : [])} // .. also add action buttons (delete, edit), if allowed
 
                           dataSource={filteredTableData == null ? tableData : filteredTableData}
                           //rowKey="key"

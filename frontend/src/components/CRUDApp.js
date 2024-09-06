@@ -3,10 +3,15 @@ import { useState, useEffect } from "react";
 import { Layout,  Menu, message} from "antd";
 const { Header, Content, Sider } = Layout;
 import CRUDPage from "./CRUDPage";
+import NoPage from "../pages/NoPage";
+
+//TODO: page switch über <Link> ? -> weil sonst die URL sich nicht ändern und immer bleibt
+//TODO: setPageNotFound geht unten nicht /Zeile 33 und 47), weil es dann eine Endlosschleife ist -> rausfinden wie man es behebt
 
 const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
   
-    const [selectedPage, setSelectedPage] = useState(start_page_id ? getPageId(start_page_id) : "1"); // nr of selected page
+  const [pageNotFound, setPageNotFound] = useState(false);
+  const [selectedPage, setSelectedPage] = useState(start_page_id ? getPageId(start_page_id) : "1"); // nr of selected page
     const [page, setPage] = useState(); // page metadata
     const [pageList, setPageList] = useState(); // page metadata
     console.log("selectedPage: " + selectedPage);
@@ -25,13 +30,25 @@ const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
         console.log(found_page_id.length);
         if (found_page_id.length < 1) { 
           console.log("CRUDApp - getPageId - not found"); 
-          message.error('Seite konnte nicht gefunden werden anhand der angegebenen Parameter.');
+          //setPageNotFound(true);
+          message.error('Angegebene Seite existiert nicht.');
         } else {
           console.log("CRUDApp - getPageId - found_page_id: " + found_page_id);
         }
         return found_page_id;
       } else {
-        console.log("CRUDApp - getPageId - ID is ok, just return it");
+        console.log("CRUDApp - getPageId - ID is number, search for it");
+        let found_page_id = pages.filter((page) => page.id == page_id).map((page) => {
+          return page.id // return real page id when the alias was found in all pages
+        })
+        console.log(found_page_id.length);
+        if (found_page_id.length < 1) { 
+          console.log("CRUDApp - getPageId - not found"); 
+          //setPageNotFound(true);
+          message.error('Angegebene Seite existiert nicht.');
+        } else {
+          console.log("CRUDApp - getPageId - found_page_id: " + found_page_id);
+        }
         return page_id;
       }
     }
@@ -83,35 +100,39 @@ const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
     };
 
     return (
-    <Layout className="layout">
-        <Header className="pageheader">{name}</Header>
-        <Layout>
-          {pages.length > 1 && // show only the sider menu (page list) when more than 1 page is listed
-          <Sider width={250} theme={theme}>
-            <Menu
-              style={{ width: 250, marginTop: "25px" }}
-              defaultSelectedKeys={selectedPage}
-              defaultOpenKeys={selectedPage}
-              mode={mode}
-              theme={theme}
-              items={pageList}
-              onClick={switchPage}
-            />
-          </Sider>
-          }
-          { page && 
-          <Content style={{ background: "#FFF"}}>
-
-            {page && 
-            <CRUDPage key={page.name} name={page.name} tableName={page.table} tableForList={page.table_for_list} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} datasource={datasource} isRepo={(datasource == "repo" || datasource == "0") ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token} sequence={page.sequence ? page.sequence : null}/>
-            // key property resets state when changed - this is important for page switch (to reset filter, order, offset and limit in page component)!
+      pageNotFound === true ? (
+        <NoPage />
+      ) : (
+        <Layout className="layout">
+          <Header className="pageheader">{name}</Header>
+          <Layout>
+            {pages.length > 1 && // show only the sider menu (page list) when more than 1 page is listed
+            <Sider width={250} theme={theme}>
+              <Menu
+                style={{ width: 250, marginTop: "25px" }}
+                defaultSelectedKeys={selectedPage}
+                defaultOpenKeys={selectedPage}
+                mode={mode}
+                theme={theme}
+                items={pageList}
+                onClick={switchPage}
+              />
+            </Sider>
             }
+              { page && 
+              <Content style={{ background: "#FFF"}}>
 
-          </Content>
-          }
+                {page && 
+                <CRUDPage key={page.name} name={page.name} tableName={page.table} tableForList={page.table_for_list} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} datasource={datasource} isRepo={(datasource == "repo" || datasource == "0") ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token} sequence={page.sequence ? page.sequence : null}/>
+                // key property resets state when changed - this is important for page switch (to reset filter, order, offset and limit in page component)!
+                }
+
+              </Content>
+              }
+          </Layout>
         </Layout>
-      </Layout>
-      );
+      )
+    );
 
 };
 
