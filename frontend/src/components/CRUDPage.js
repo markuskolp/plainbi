@@ -394,7 +394,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   }
 
   // return a column to be used as metadata for a Table component
-  function getColumn(column_label, column_name, datatype) {
+  function getColumn(column_label, column_name, datatype, ui) {
     return {
       //title: column_label
       title: ({ sortColumns }) => {
@@ -428,7 +428,15 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
         // if datetime then trim milliseconds
         // tooltip because of ellipsis above
         <Tooltip placement="topLeft" title={text}> 
-          {(datatype === "datetime" && text) ? dayjs(text).format("YYYY-MM-DD HH:mm:ss") : text}  
+          {
+            (datatype === "datetime" && text) ? 
+              dayjs(text).format("YYYY-MM-DD HH:mm:ss") : 
+              (
+                (ui === "html" && text) ? 
+                  <div dangerouslySetInnerHTML={{__html: text}} /> : 
+                  text
+              )
+          }  
         </Tooltip>
       )
       , key: column_name
@@ -552,7 +560,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                           size="small"
                           columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
                             .map((column) => {
-                              return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype));
+                              return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype, column.ui));
                             })
                             .concat(getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")))} // .. also add action buttons (delete, edit), if allowed
 

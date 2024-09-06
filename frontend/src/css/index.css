@@ -90,7 +90,8 @@ a:hover .anticon {
   border: none !important;
 }
 table * a {
-  color: rgba(0, 0, 0, 0.88) !important;
+  color: rgba(0, 0, 0, 0.88) !important
+  /*color: rgb(106, 145, 206) !important;;*/
 }
 table * a:hover {
   color: rgb(106, 145, 206) !important;
@@ -146,3 +147,51 @@ div.monaco-editor {
   border-color: #d9d9d9;
 }
 */
+
+.tag {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  color: rgba(0, 0, 0, 0.88);
+  /*font-size: 10px;*/
+  line-height: 19px;
+  list-style: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  display: inline-block;
+  height: auto;
+  margin-inline-end: 8px;
+  padding-inline: 7px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  opacity: 1;
+  transition: all 0.2s;
+  text-align: start;
+  text-transform: uppercase;
+}
+.tag-blue {
+  color: #0958d9;
+  background: #e6f4ff;
+  border-color: #91caff;
+}
+.tag-red {
+  color: #cf1322;
+  background: #fff1f0;
+  border-color: #ffa39e;
+}
+.tag-magenta {
+  color: #c41d7f;
+  background: #fff0f6;
+  border-color: #ffadd2;
+}
+.tag-green {
+  color: #389e0d;
+  background: #f6ffed;
+  border-color: #b7eb8f;
+}
+.tag-gold {
+  color: #d48806;
+  background: #fffbe6;
+  border-color: #ffe58f;
+}
