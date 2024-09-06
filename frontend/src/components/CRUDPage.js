@@ -22,6 +22,7 @@ import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import CRUDModal from "./CRUDModal";
+import { useSearchParams } from 'react-router-dom';
 const { Link, Text } = Typography;
 
 /*
@@ -67,7 +68,9 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   const [tableParamChanged, setTableParamChanged]=useState(false);
   const [typingTimeout, setTypingTimeout]=useState(null);
   const [activateLookups, setActivateLookups]=useState(true);
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  console.log("searchParams: " + searchParams);
+
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource+'/' : ''); // switch between repository tables and other datasources /api/crud/<db>/<table>
   
@@ -120,6 +123,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       if(filter && filter.length > 0) {
         queryParams.append("filter", filter);
       }
+      //queryParams.append("q", "test_lauf_id:7");
       console.log("queryParams: " + queryParams.toString());
       var endpoint = api+tableName+'?'+queryParams;
 
