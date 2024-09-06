@@ -1,18 +1,40 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { Layout,  Menu} from "antd";
+import { Layout,  Menu, message} from "antd";
 const { Header, Content, Sider } = Layout;
 import CRUDPage from "./CRUDPage";
 
-// TODO: make page switch work !
-
-const CRUDApp = ({ name, datasource, pages, token }) => {
+const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
   
-    const [selectedPage, setSelectedPage] = useState(1); // nr of selected page
+    const [selectedPage, setSelectedPage] = useState(start_page_id ? getPageId(start_page_id) : "1"); // nr of selected page
     const [page, setPage] = useState(); // page metadata
     const [pageList, setPageList] = useState(); // page metadata
+    console.log("selectedPage: " + selectedPage);
 
     //console.log("datasource:" + datasource);
+
+    // getPageID: either the ID is a number and stays as it is - or - it is a ALIAS and the page id is retrieved
+    function getPageId(page_id) {
+      let page_id_type = Number.isNaN(page_id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" or its "alias"
+      console.log("CRUDApp - getPageId - page_id_type: " + page_id_type);
+      if(page_id_type == 'alias') {
+        console.log("CRUDApp - getPageId - search for ID with alias");
+        let found_page_id = pages.filter((page) => page.alias == page_id).map((page) => {
+          return page.id // return real page id when the alias was found in all pages
+        })
+        console.log(found_page_id.length);
+        if (found_page_id.length < 1) { 
+          console.log("CRUDApp - getPageId - not found"); 
+          message.error('Seite konnte nicht gefunden werden anhand der angegebenen Parameter.');
+        } else {
+          console.log("CRUDApp - getPageId - found_page_id: " + found_page_id);
+        }
+        return found_page_id;
+      } else {
+        console.log("CRUDApp - getPageId - ID is ok, just return it");
+        return page_id;
+      }
+    }
 
     useEffect(() => {
       setPage(pages[selectedPage-1]);
@@ -68,8 +90,8 @@ const CRUDApp = ({ name, datasource, pages, token }) => {
           <Sider width={250} theme={theme}>
             <Menu
               style={{ width: 250, marginTop: "25px" }}
-              defaultSelectedKeys={["1"]}
-              defaultOpenKeys={["1"]}
+              defaultSelectedKeys={selectedPage}
+              defaultOpenKeys={selectedPage}
               mode={mode}
               theme={theme}
               items={pageList}

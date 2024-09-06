@@ -56,7 +56,7 @@
 - **PK mit Sonderzeichen ermöglichen**
 ~~- HTML Anzeige in Tabelle/Liste ermöglichen z.B. für Links etc. -> "ui":"html"~~
 - **Datum formatieren in Anzeige (date: YYYY-MM-DD, datetime: YYYY-MM-DD HH:mm:ss), auch Sortierung soll dann gehen (Backend muss evtl. auch den Wert so liefern !)**
-- **Seite per URL aufrufbar machen (bisher geht nur App) -> /apps/<app_alias>/<page_alias**
+~~- Seite per URL aufrufbar machen (bisher geht nur App) -> /apps/<app_alias>/<page_alias~~
 - **Seite filterbar machen per URL-Parameter /apps/<app_alias>/<page_alias>?<column_name>=<filter_value>&<column_name>=<filter_value>...**
 ~~- page.hide_in_navigation~~
 
