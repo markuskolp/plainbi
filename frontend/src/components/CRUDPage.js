@@ -427,7 +427,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       render: (text, record) => (
         // if datetime then trim milliseconds
         // tooltip because of ellipsis above
-        <Tooltip placement="topLeft" title={text}> 
+        <Tooltip placement="topLeft" title={(ui === "html" && text) ? '' : text}> 
           {
             (datatype === "datetime" && text) ? 
               dayjs(text).format("YYYY-MM-DD HH:mm:ss") : 
