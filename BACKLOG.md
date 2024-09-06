@@ -53,6 +53,12 @@
 - Parameter bei Adhocs implementieren
 - Adhoc Serverside Pagination nutzen
 - **Tabellenspaltenbreite nicht optimal (Header abgeschnitten, etc.)**
+- **PK mit Sonderzeichen ermöglichen**
+~~- HTML Anzeige in Tabelle/Liste ermöglichen z.B. für Links etc. -> "ui":"html"~~
+- **Datum formatieren in Anzeige (date: YYYY-MM-DD, datetime: YYYY-MM-DD HH:mm:ss), auch Sortierung soll dann gehen (Backend muss evtl. auch den Wert so liefern !)**
+- **Seite per URL aufrufbar machen (bisher geht nur App) -> /apps/<app_alias>/<page_alias**
+- **Seite filterbar machen per URL-Parameter /apps/<app_alias>/<page_alias>?<column_name>=<filter_value>&<column_name>=<filter_value>...**
+~~- page.hide_in_navigation~~
 
 - Code komplett überarbeiten, formatieren, schöner schreiben, etc.
 
@@ -63,7 +69,6 @@
 Bugfixing:
 ~~- Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !~~
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
-~~- PK mit Slash Problem~~
 - environment_color_banner wird noch nicht verwendet
 
 Dokumentation schreiben/aktualisieren in Github

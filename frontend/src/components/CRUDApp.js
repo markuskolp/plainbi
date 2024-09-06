@@ -17,8 +17,13 @@ const CRUDApp = ({ name, datasource, pages, token }) => {
     useEffect(() => {
       setPage(pages[selectedPage-1]);
       setPageList(pages.map((page) => {
-          console.log("CRUD / pages: " + page.name + ' - ' + page.id);
-          return getItem(page.name, page.id);
+          // check if page should be hidden from navigation
+          let pageHide = false;
+          if (page.hide_in_navigation && page.hide_in_navigation == 'true') {
+            pageHide = true;
+          }
+          console.log("CRUD / pages: " + page.name + ' - ' + page.id + ' - hide: ' + pageHide);
+          return pageHide ? '' : getItem(page.name, page.id); // return pages without the ones that should be hidden
         })
       );  
     }, []);
