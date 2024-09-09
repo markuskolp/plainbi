@@ -123,6 +123,9 @@ def db_exec(engine,sql,params=None):
             is_select=True
         try:
             if params is not None:
+                # handle encodings
+                params=urlsafe_decode_params(params)
+                # exec in database
                 res=config.conn[engine.url].execute(mysql,params)
             else:
                 res=config.conn[engine.url].execute(mysql)
@@ -506,7 +509,7 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     config.metadataraw_cache[cache_key] = out
     return out
 
-def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None, url_safe_decode=False):
+def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle ub der Datenbank
 
@@ -532,7 +535,6 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     log.debug("get_item_raw[%s]: param is_repo is <%s>",str(tab),str(is_repo))
     log.debug("get_item_raw[%s]: param user_id is <%s>",str(tab),str(user_id))
     log.debug("get_item_raw[%s]: param customsql is <%s>",str(tab),str(customsql))
-    log.debug("get_item_raw[%s]: param url_safe_decode is <%s>",str(tab),str(url_safe_decode))
     out={}
     metadata=get_metadata_raw(dbengine,tab,pk_column_list,versioned)
     if "error" in metadata.keys():
@@ -545,12 +547,6 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     log.debug("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
     tabalias="x"
     pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias)
-    if url_safe_decode:
-        urlsafe_res=urlsafe_decode_params(pkwhere_params)
-        if urlsafe_res is None:
-            out["error"]+="-pk-base64-invalid"
-            out["message"]+=" Base64 Encoding Fehler beim Lesen einer Tabelle"
-            return out
     log.debug("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
         # check repo rights
@@ -1021,12 +1017,6 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
 
                 # there is an existing record -> terminate id
                 pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)
-                urlsafe_res=urlsafe_decode_params(pkwhere_params)
-                if urlsafe_res is None:
-                    out["error"]+="-pk-base64-invalid"
-                    out["message"]+=" Base64 Encoding Fehler beim Einfügen einer versionierten Zeile"
-                    return out
-
                 delitem={}
                 delitem["invalid_from_dt"]=ts
                 delitem["last_changed_dt"]=ts
@@ -1078,13 +1068,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     return out
 
 ## crud ops
-def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=False, user_id=None, customsql=None, url_safe_decode=False):
+def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=False, user_id=None, customsql=None):
     log.debug("++++++++++ entering db_upd")
     log.debug("db_upd: param tab is <%s>",str(tab))
     log.debug("db_upd: param pk is <%s>",str(pk))
     log.debug("db_upd: pkcols tab is <%s>",str(pkcols))
     log.debug("db_upd: param is_versioned is <%s>",str(is_versioned))
-    log.debug("db_del: url_safe_decode is <%s>",str(url_safe_decode))
     out={}
     log.debug("item-keys %s",item.keys())
     myitem=item
@@ -1098,7 +1087,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         pkcols=[(metadata["columns"])[0]]
         log.warning("update_item implicit pk first column")
 
-    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,url_safe_decode=True)
+    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
             out["error"]="db_upd-id-not-found"
@@ -1110,12 +1099,6 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         return out
     
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
-    if url_safe_decode:
-        urlsafe_res=urlsafe_decode_params(pkwhere_params)
-        if urlsafe_res is None:
-            out["error"]+="-pk-base64-invalid"
-            out["message"]+=" Base64 Encoding Fehler beim Aktualisieren einer Zeile einer Tabelle"
-            return out
     log.debug("update_item: pkwhere %s",pkwhere)
 
     # check hash columns
@@ -1209,7 +1192,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
             log.debug("++++++++++ leaving db_upd returning %s", str(out))
             return out
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
-    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql,url_safe_decode=True)
+    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
     log.debug("++++++++++ leaving db_upd returning %s", str(out))
     return out
 
@@ -1237,13 +1220,12 @@ def db_passwd(dbeng,u,p):
     return out
 
 
-def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False, user_id=None, url_safe_decode=False):
+def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False, user_id=None):
     log.debug("++++++++++ entering db_del")
     log.debug("db_del: param tab is <%s>",str(tab))
     log.debug("db_del: param pk is <%s>",str(pk))
     log.debug("db_del: pkcols tab is <%s>",str(pkcols))
     log.debug("db_del: param is_versioned is <%s>",str(is_versioned))
-    log.debug("db_del: url_safe_decode is <%s>",str(url_safe_decode))
     # check options
     out={}
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
@@ -1256,7 +1238,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         pkcols=[(metadata["columns"])[0]]
         log.warning("db_del implicit pk first column")
 
-    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols, url_safe_decode=True)
+    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
             out["error"]="db_del-pk-id-not-found"
@@ -1270,12 +1252,6 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         return out
 
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
-    if url_safe_decode:
-        urlsafe_res=urlsafe_decode_params(pkwhere_params)
-        if urlsafe_res is None:
-            out["error"]+="-pk-base64-invalid"
-            out["message"]+=" Base64 Encoding Fehler beim Löschen einer Zeile einer Tabelle"
-            return out
     log.debug("db_del: pkwhere %s",pkwhere)
         
     if is_versioned:

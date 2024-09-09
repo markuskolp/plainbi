@@ -73,11 +73,21 @@ def prep_pk_from_url(pk) -> dict:
 
 def urlsafe_decode_params(p):
     """
-    if values in the where clause are prefixed with a "#" then decode them
+    if values in are surrounded by "[base64@....]" then decode them
     """
-    if not isinstance(p,dict):
-        log.warning("where clause param list is not a dict")
-    else:
+    if isinstance(p,str):
+        if p[:8] == "[base64@": # it is prefixed with # and not only #
+            try:
+                w=p[8:].strip("]")+"==="
+                p1 = base64.urlsafe_b64decode(w).decode()
+                log.debug("urlsafebase64decode val=%s as %s",p,p1)
+                return p1
+            except Exception as e:
+                log.error("decode_params: val=%s, error:%s",p,str(e))
+                return p
+        else:
+            return p
+    elif isinstance(p,dict):
         for k,v in p.items():
             if isinstance(v,str):
                 if v[:8] == "[base64@": # it is prefixed with # and not only #
@@ -87,8 +97,11 @@ def urlsafe_decode_params(p):
                         log.debug("urlsafebase64decode (%s) %s as %s",k,v,str(p[k]))
                     except Exception as e:
                         log.error("decode_params: key=%s val=%s, error:%s",k,str(v),str(e))
-                        return None
-    return p
+                        return p
+        return p
+    else:
+        log.debug("urlsafebase64decode not a str or dict %s",str(p))
+        return p
 
 def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None):
     """

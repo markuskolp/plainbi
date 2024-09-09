@@ -728,7 +728,7 @@ def get_item(tokdata,db,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql, url_safe_decode=True)
+    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -838,7 +838,7 @@ def get_item_post(tokdata,db,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql, url_safe_decode=False)
+    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
@@ -1042,7 +1042,7 @@ def update_item(tokdata,db,tab,pk):
     #item = {key: request.data[key] for key in request.data}
     log.debug("item %s",item)
     
-    out = db_upd(dbengine, tab, pk, item, pkcols, is_versioned, changed_by=tokdata['username'], customsql=mycustomsql, url_safe_decode=True)
+    out = db_upd(dbengine, tab, pk, item, pkcols, is_versioned, changed_by=tokdata['username'], customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
             return jsonify(out), 400
@@ -1130,7 +1130,7 @@ def delete_item(tokdata,db,tab,pk):
         log.debug("pk columns explicitly from url parameter")
 
     log.debug("############# pk columns for delete is %s",str(pkcols))
-    out = db_del(dbengine, tab, pk, pkcols, is_versioned, changed_by=tokdata['username'], url_safe_decode=True)
+    out = db_del(dbengine, tab, pk, pkcols, is_versioned, changed_by=tokdata['username'])
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200

@@ -793,6 +793,96 @@ def test_2050_clear_cache(test_client):
     print("got=",json_out)
     assert response.status_code == 200
 
+##########################################
+# crud test with base64 encodings
+##########################################
+
+def test_2100_b64_tab_ins(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_api_testtable" -w "%{http_code}\n"
+    nam="item1"
+    id=-8
+    test_url='/api/crud/db/'+t
+    nr_val_orig=10
+    nr_val='[base64@MTA]'
+    nam_val_orig='name encoded'
+    nam_val='[base64@bmFtZSBlbmNvZGVk]'
+    test_data={ "name" : nam_val, "nr" : nr_val}
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam_val_orig
+    assert row1["nr"]==nr_val_orig
+
+def test_2120_b64_upd(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request PUT --data '{\"name\":\"item2\",\"nr\":-8}' "localhost:3002/api/crud/1//dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"
+    nr_val_orig=10
+    nr_val='[base64@MTA=]'
+    nam_val_orig='name encoded updated'
+    nam_val='[base64@bmFtZSBlbmNvZGVkIHVwZGF0ZWQ=]'
+    test_url='/api/crud/db/'+t+'/'+str(nr_val)
+    test_data={ "name" : nam_val, "nr": nr_val }
+    format_url("put", test_url, data=test_data, testname=func_name())
+    response = test_client.put(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam_val_orig
+    assert row1["nr"]==nr_val_orig
+
+def test_2130_b64_get(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers,t
+    log.info('TEST: %s',func_name())
+    nr_val_orig=10
+    nr_val='[base64@MTA=]'
+    nam_val_orig='name encoded updated'
+    test_url='/api/crud/1/'+t+'/'+str(nr_val)
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam_val_orig
+    assert row1["nr"]==nr_val_orig
+
+def test_2130_b64_del(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/1//dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
+    nr_val_orig='10'
+    nr_val='[base64@MTA=]'
+    test_url='/api/crud/1/'+t+'/'+str(nr_val)
+    format_url("delete", test_url, testname=func_name())
+    response = test_client.delete(test_url, headers=headers)
+    assert response.status_code == 200
+
 
 
 ##############################################################
@@ -965,6 +1055,93 @@ def test_3051_vgetall(test_client):
     print("got=",json_out)
     #row1=(json_out["data"])[0]
     assert json_out["total_count"]==1
+
+
+##############################################################
+# versioned table crud tests with encodings
+##############################################################
+def test_b64_3100_vtab_ins(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    nr_orig=200
+    nr='[base64@MjAw]'
+    nam_orig='name encoded'
+    nam='[base64@bmFtZSBlbmNvZGVk]'
+    test_url='/api/crud/1/'+tv+"?v"
+    test_data={ "name" : nam, "nr" : nr }
+    format_url("post", test_url, data=test_data, testname=func_name())
+    response = test_client.post(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam_orig
+
+def test_b64_3110_vtab_upd(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    nr_orig=200
+    nr='[base64@MjAw]'
+    nam_orig='name encoded updated'
+    nam='[base64@bmFtZSBlbmNvZGVkIHVwZGF0ZWQ=]'
+    test_url='/api/crud/1/'+tv+"/"+str(nr)+"?v&pk=nr"
+    test_data= { "name" : nam, "nr" : nr }
+    format_url("put", test_url, data=test_data, testname=func_name())
+    response = test_client.put(test_url, json=test_data, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam_orig
+    assert row1["nr"]==nr_orig
+
+def test_b64_3130_vget(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    nr_orig=200
+    nr='[base64@MjAw]'
+    nam_orig='name encoded updated'
+    nam='[base64@bmFtZSBlbmNvZGVkIHVwZGF0ZWQ=]'
+    test_url='/api/crud/1/'+tv+'/'+str(nr)+"?v&pk=nr"
+    format_url("get", test_url, testname=func_name())
+    response = test_client.get(test_url, headers=headers)
+    assert response.status_code == 200
+    json_out = response.get_json()
+    print("got=",json_out)
+    row1=(json_out["data"])[0]
+    assert row1["name"]==nam_orig
+    assert row1["nr"]==nr_orig
+
+def test_b64_3140_vdel(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/1/dwh.analysis.pytest_api_testtable/-8" -w "%{http_code}\n"    
+    nr_orig='200'
+    nr='[base64@MjAw]'
+    test_url='/api/crud/1/'+tv+'/'+str(nr)+"?v"
+    format_url("delete", test_url, testname=func_name())
+    response = test_client.delete(test_url, headers=headers)
+    assert response.status_code == 200
 
 ##############################################################
 # versioned table crud tests with compound pk
