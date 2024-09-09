@@ -7,12 +7,15 @@ import { message } from "antd";
 import CRUDApp from "../components/CRUDApp";
 import LoadingMessage from "../components/LoadingMessage";
 
-// TODO: get metadata from API (id or alias) -> if not found -> show error on whole page ! (setAppNotFound = false)
-
 const AppRuntime = (props) => {
 
-  let { id } = useParams(); // get URL parameters - here the "id" of a app
+  let { id, page_id } = useParams(); // get URL parameters - here the "id" of a app
   let id_type = Number.isNaN(id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" of the app or its "alias"
+  let start_page_id = (page_id ? page_id : null);
+
+  console.log("AppRuntime - id: " + id);
+  console.log("AppRuntime - id_type: " + id_type);
+  console.log("AppRuntime - page_id: " + page_id);
 
   const [appNotFound, setAppNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +69,7 @@ const AppRuntime = (props) => {
           <LoadingMessage />
         ) : (
           <React.Fragment>
-            <CRUDApp name={appMetadata.name} datasource={appMetadata.datasource_id} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token}/>
+            <CRUDApp name={appMetadata.name} datasource={appMetadata.datasource_id} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token} start_page_id={start_page_id}/>
           </React.Fragment>
         )
       )
