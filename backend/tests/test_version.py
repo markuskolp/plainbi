@@ -233,7 +233,7 @@ def test_000_version(test_client):
     format_url("get",test_url, testname=func_name())
     response = test_client.get(test_url)
     assert response.status_code == 200
-    assert b"0.8" in response.data
+    assert b"0.9" in response.data
 
 
 ##############################################################
@@ -975,7 +975,7 @@ def test_3032_vgetall_filter(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    test_url='/api/crud/1/'+tv+"?v&filter=item"
+    test_url='/api/crud/1/'+tv+"?v&filter=name:item2"
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     assert response.status_code == 200

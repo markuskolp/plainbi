@@ -26,7 +26,7 @@ class MyConfig:
 config = MyConfig()
 
 # the current version number of plainbi backend
-config.version="0.8 06.08.2024"
+config.version="0.9 09.09.2024"
 
 # create a secret for the plainbi backend api jwt token
 config.SECRET_KEY=os.urandom(24)  # for JWT
@@ -171,4 +171,18 @@ def get_config(verbose=None,logfile=None,configfile=None,repository=None,databas
             config.port = os.environ["PLAINBI_BACKEND_PORT"]
         else:
             config.port=3001 # default port
+
+    # backend Date format and Datetime format
+    if "PLAINBI_BACKEND_DATE_FORMAT" in os.environ.keys():
+        config.backend_date_format = "PLAINBI_BACKEND_DATE_FORMAT"
+        log.info("config date format is %s",config.backend_date_format)
+    else: 
+        config.backend_date_format = None
+
+    if "PLAINBI_BACKEND_DATETIME_FORMAT" in os.environ.keys():
+        config.backend_datetime_format = "PLAINBI_BACKEND_DATETIME_FORMAT"
+        log.info("config datetime format is %s",config.backend_datetime_format)
+    else: 
+        config.backend_datetime_format = None
+
     log.info(f"plainbi backend running on port {config.port}")

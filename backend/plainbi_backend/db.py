@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params
+from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, items_transformer
 #import bcrypt
 from threading import Lock
 
@@ -155,6 +155,7 @@ def db_exec(engine,sql,params=None):
         if is_select:
             log.debug(dbgindent+"db_exec: is a select statement and returns data")
             items = [row._asdict() for row in res]
+            items_transformer(items)
             log.debug(dbgindent+"db_exec: anz rows=%d",len(items))
             columns = list(res.keys())
         #close connection

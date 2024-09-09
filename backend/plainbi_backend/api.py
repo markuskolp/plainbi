@@ -170,6 +170,7 @@ api = Blueprint('api', __name__)
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
+        log.debug("CustomJSONEncoder %s / %s",str(type(obj)),str(obj))
         try:
             if isinstance(obj, datetime):
                 return obj.strftime("%Y-%m-%d %H:%M:%S.%f")

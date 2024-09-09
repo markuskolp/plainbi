@@ -6,6 +6,8 @@ Created on Thu May  4 07:43:34 2023
 """
 from typing import Union, List, Dict, Any
 from sqlalchemy.exc import SQLAlchemyError
+from datetime import date, datetime
+from plainbi_backend.config import config
 import base64
 
 import logging
@@ -209,3 +211,24 @@ def last_stmt_has_errors(e,out):
         return True
     return False
 
+def items_transformer(l):
+    """
+    this is called before jsonify to handle object printing for example dates and time
+    parameter is a list of dicts (rows,columns)
+    """
+    if config.backend_datetime_format or config.backend_date_format:
+        if isinstance(l,list):
+            for r in l:
+                if isinstance(r,dict):
+                    r_changed=False
+                    for k,v in r.items():
+                        if isinstance(v,datetime):
+                            if config.backend_datetime_format:
+                                w = v.strftime(config.backend_datetime_format)
+                                r[k]= w
+                                r_changed = True
+                        elif isinstance(v,date):
+                            if config.backend_date_format:
+                                w = v.strftime(config.backend_date_format)
+                                r[k]= w
+                                r_changed = True
