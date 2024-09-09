@@ -268,6 +268,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     db_typ = get_db_type(dbengine)
     total_count=None
     my_where_clause=""
+    my_where_clause_params=None
     w=where_clause
     tab_is_sql_stmt=False
     tabalias="x"
@@ -301,7 +302,9 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
             my_where_clause=" WHERE "
         else:
             my_where_clause+=" AND "
-        my_where_clause = add_filter_to_where_clause(db_typ,tab, my_where_clause, filter, metadata["columns"],is_versioned=versioned )
+        my_where_clause, my_where_clause_params = add_filter_to_where_clause(db_typ, tab, my_where_clause, filter, metadata["columns"], is_versioned=versioned )
+        log.debug("my_where_clause:%s",my_where_clause)
+        log.debug("my_where_clause_params:%s",str(my_where_clause_params))
     # check repo rights
     if is_repo and user_id is not None:
         my_where_clause = add_auth_to_where_clause(tab, my_where_clause, user_id)
@@ -313,9 +316,8 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     sql_without_orderby_offset_limit=sql
     sql+=add_offset_limit(db_typ,offset,limit,order_by)
     log.debug("sql_select: %s",sql)
-
     try:
-        items,columns=db_exec(dbengine,sql)
+        items,columns=db_exec(dbengine,sql, my_where_clause_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in sql_select: %s",str(e_sqlalchemy))
         log.exception(e_sqlalchemy)
@@ -355,7 +357,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     if with_total_count:
         log.debug("check totalcount")
         sql_total_count=f'SELECT COUNT(*) AS total_count FROM ({sql_without_orderby_offset_limit}) x'
-        item_total_count,columns_total_count=db_exec(dbengine,sql_total_count)
+        item_total_count,columns_total_count=db_exec(dbengine,sql_total_count,my_where_clause_params)
         total_count=(item_total_count[0])['total_count']
     return items,columns,total_count,"ok"
 
@@ -1436,13 +1438,31 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
     else:
         concat_operator="||"
     w = where_clause
+    wparam = {}
     if w is None: w=""
     w+="("
     if isinstance(filter,dict):
         #filter is per column
         l_cexp=[]
         for k,v in filter.items():
-            l_cexp.append("lower(cast(coalesce("+k+",'') as varchar)) like lower('%"+v+"%')")
+            log.debug("add filter key=%s val=%s",k,v)
+            if isinstance(v,tuple):
+                op, opval = v
+                log.debug("add filter op=%s opval=%s",op,opval)
+                if op == ":":
+                    l_cexp.append("cast("+k+" as varchar) = :"+k)
+                    wparam[k] = opval
+                elif op == "~":
+                    l_cexp.append("cast("+k+" as varchar) like :"+k)
+                    opval2=urlsafe_decode_params(opval)
+                    wparam[k] = "%"+opval2+"%"
+                elif op == "!":
+                    l_cexp.append("cast("+k+" as varchar) != :"+k)
+                    wparam[k] = opval
+                else:
+                    log.warning("invalid tuple %s = opvar %s",k,str(v))
+            else:
+                l_cexp.append("lower(cast(coalesce("+k+",'') as varchar)) like lower('%"+v+"%')")
         cexp="("+" AND ".join(l_cexp)+")"
         w+=cexp
     else:
@@ -1477,8 +1497,9 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                     if cnt>1: w+=" or "
                     w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
     w+=")"
-    #log.debug("++++++++++ leaving add_filter_to_where_clause with: %s",w)
-    return w
+    wp=None if len(wparam)==0 else wparam 
+    log.debug("++++++++++ leaving add_filter_to_where_clause with: %s params %s",w,str(wp))
+    return w,wp
 
 
 def add_auth_to_where_clause(tab,where_clause,user_id):

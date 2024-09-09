@@ -152,7 +152,7 @@ else:
     except Exception as e_swagger:
         with_swagger = False
 
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause 
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params 
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
@@ -562,7 +562,11 @@ def get_all_items(tokdata,db,tab):
       - name: q
         in: query
         type: string
-        description: filter
+        description: filter condition over all columns. if separated by blanks conditions will be connected with AND over all columns
+      - name: filter
+        in: query
+        type: string
+        description: a comma separated list of filter condition in the form column:value to search in individual columns. "~" instead of ":" means LIKE %value%, "!" means not equal
       - name: offset
         in: query
         type: integer
@@ -578,7 +582,7 @@ def get_all_items(tokdata,db,tab):
       - name: customsql
         in: query
         type: string
-        description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename 
+        description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename, bei "!" not equal
     responses:
       200:
         description: Successful operation
@@ -608,11 +612,22 @@ def get_all_items(tokdata,db,tab):
                 myfilter = {}
                 slist=value.split(",")
                 for s in slist:
-                    p=s.split(":")
-                    if len(p)>1:
-                        myfilter[p[0]]=p[1]
+                    if ":" in s:
+                        p=s.split(":")
+                        v=urlsafe_decode_params(p[1])
+                        myfilter[p[0]]=(":",v)
+                    elif "~" in s:
+                        p=s.split("~")
+                        v=urlsafe_decode_params(p[1])
+                        myfilter[p[0]]=("~",v)
+                    elif "!" in s:
+                        p=s.split("!")
+                        v=urlsafe_decode_params(p[1])
+                        myfilter[p[0]]=("!",v)
                     else:
-                        myfilter=p[0]
+                        out["error"]="invalid-filter-format"
+                        out["message"]=" Ungültige Filterbedingung"
+                        return jsonify(out),500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -629,6 +644,7 @@ def get_all_items(tokdata,db,tab):
         except Exception as ej2:
             log.error("get_all_items: jsonify Error 2: %s",str(ej2))
             log.exception(ej2)
+            json_out2 = "jsonify error"
         return json_out2,500
     out["data"]=items
     out["columns"]=columns
