@@ -152,7 +152,7 @@ else:
     except Exception as e_swagger:
         with_swagger = False
 
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params 
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer 
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
@@ -647,7 +647,7 @@ def get_all_items(tokdata,db,tab):
             log.exception(ej2)
             json_out2 = "jsonify error"
         return json_out2,500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     log.debug("leaving get_all_items and return json result")
@@ -748,7 +748,9 @@ def get_item(tokdata,db,tab,pk):
     out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
-            print("out:"+str(out))
+            #print("out:"+str(out))
+            # jk20240910 for date formatting on output
+            pre_jsonify_items_transformer(out["data"])
             log.debug("out:%s",str(out))
             log.debug("leaving get_item with success and json result")
             try:
@@ -859,6 +861,7 @@ def get_item_post(tokdata,db,tab,pk):
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
+            pre_jsonify_items_transformer(out["data"])
             log.debug("out:%s",str(out))
             log.debug("leaving get_item with success and json result")
             try:
@@ -1195,7 +1198,7 @@ def get_metadata_tables(tokdata,db):
     log.debug("get_metadata_tables sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     return jsonify(out)
@@ -1355,7 +1358,7 @@ from plainbi_external_resource per
     log.debug("get_resource sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     return jsonify(out)
@@ -1393,7 +1396,7 @@ def get_my_groups(tokdata):
     log.debug("get_my_groups sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     return jsonify(out)
@@ -1507,7 +1510,7 @@ and rg.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.us
     log.debug("get_group_resources sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     return jsonify(out)
@@ -1555,7 +1558,7 @@ def get_all_repos(tokdata,tab):
     log.debug("get_all_repos sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     return jsonify(out)
@@ -1618,7 +1621,8 @@ def get_repo(tokdata,tab,pk):
         out=get_item_raw(config.repoengine,repo_table_prefix+tab,pk,pk_column_list=pkcols,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
-            print("out:"+str(out))
+            #print("out:"+str(out))
+            pre_jsonify_items_transformer(out["data"])
             log.debug("out:%s",str(out))
             return jsonify(out)
             #return Response(jsonify(out),status=204)
@@ -1941,7 +1945,7 @@ def get_lookup(tokdata,id):
             log.error("cannot jsonify "+str(out))
             json_out = ("cannot jsonify "+str(out))[:50]
         return json_out,500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     return jsonify(out)
@@ -2093,7 +2097,7 @@ def get_adhoc_data(tokdata,id):
         if not isinstance(items,list):
             return "adhoc json result error",500
         total_count=len(items)
-        out["data"]=items
+        out["data"]=pre_jsonify_items_transformer(items)
         out["columns"]=columns
         out["total_count"]=total_count
         return jsonify(out)
@@ -2891,7 +2895,7 @@ def getsettings():
             log.error("getsettings: jsonify Error 2: %s",str(ej2))
             log.exception(ej2)
         return json_out2,500
-    out["data"]=items
+    out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     log.debug("leaving getsettings and return json result")

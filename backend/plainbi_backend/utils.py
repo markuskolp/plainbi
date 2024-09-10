@@ -211,7 +211,7 @@ def last_stmt_has_errors(e,out):
         return True
     return False
 
-def items_transformer(l):
+def pre_jsonify_items_transformer(l):
     """
     this is called before jsonify to handle object printing for example dates and time
     parameter is a list of dicts (rows,columns)
@@ -232,3 +232,4 @@ def items_transformer(l):
                                 w = v.strftime(config.backend_date_format)
                                 r[k]= w
                                 r_changed = True
+    return l
