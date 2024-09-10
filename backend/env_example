@@ -1,16 +1,18 @@
 # save file as .env locally in users folder (.env files are not versioned in git!)
 
 # example entries for mssql
-db_server=
-db_database=
-db_username=
-db_password=
-db_engine=mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_database}
+PLAINBI_REPOSITORY="mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_database}"
+PLAINBI_DATABASE="mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_database}"
+#db_server=
+#db_database=
+#db_username=
+#db_password=
+#db_engine=mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_database}
 
-repo_server=""
-repo_username=""
-repo_password=""
-repo_engine="sqlite:////Users/<username>/plainbi_repo.db?check_same_thread=False"
+#repo_server=""
+#repo_username=""
+#repo_password=""
+#repo_engine="sqlite:////Users/<username>/plainbi_repo.db?check_same_thread=False"
 
 
 ldap_port="389"
@@ -23,3 +25,11 @@ ldap_bind_user_password=""
 
 
 # curl --header "Content-Type: application/json" --request POST "localhost:3001/api/repo/init_repo" -w "%{http_code}\n"
+
+SMTP_SERVER="{host}"
+SMTP_PORT="{port}"
+SMTP_USER="{user/email}"
+SMTP_PASSWORD=""
+
+PLAINBI_BACKEND_DATE_FORMAT="%Y-%m-%d"
+PLAINBI_BACKEND_DATETIME_FORMAT="%Y-%m-%d %H:%M:%S"
