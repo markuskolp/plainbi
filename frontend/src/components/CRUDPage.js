@@ -264,14 +264,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
     if (_pkColumn.length <= 1) {
       console.log("only 1 pk");
       // if only 1 pk take it directly
-      //pkforurl = _pkColumn[0];
-      pkforurl =  base64UrlSafeEncode(_pkColumn[0]); 
+      pkforurl = _pkColumn[0];
+      //pkforurl =  base64UrlSafeEncode(_pkColumn[0]); 
     } else {
       console.log("composite pk");
       // if composite key, then build url-specific pk string "&pk=key1,key2,..."
       for (var i = 0; i < _pkColumn.length; i++) {
-        //pkforurl += _pkColumn[i];
-        pkforurl += base64UrlSafeEncode(_pkColumn[i]); 
+        pkforurl += _pkColumn[i];
+        //pkforurl += base64UrlSafeEncode(_pkColumn[i]); 
         pkforurl += ",";
       }
       pkforurl = pkforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
