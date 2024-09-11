@@ -22,6 +22,7 @@ import { PageHeader } from "@ant-design/pro-layout";
 import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import CRUDModal from "./CRUDModal";
+import TableModal from "./TableModal";
 import { useSearchParams } from 'react-router-dom';
 const { Link, Text } = Typography;
 
@@ -57,6 +58,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showTableModal, setShowTableModal] = useState(false);
   //const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new"); // new/edit
@@ -307,13 +309,21 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
     // closeModal
     const closeModal = () => {
       setShowModal(false);
-    }
+    };
     // closeAndRefreshModal
     const closeAndRefreshModal = () => {
       setShowModal(false);
       getTableData(tableName);
-    }
-    
+    };
+    const openTableModal = (tableName, jsonData) => {
+      console.log("openTableModal - tableName: " + tableName);
+      console.log("openTableModal - jsonData: " + jsonData);
+      setShowTableModal(true);
+    };
+    const closeTableModal = () => {
+      setShowTableModal(false);
+    }; 
+
     // add action buttons to a table record
    function getColumnAction( deleteAllowed, updateAllowed) {
     return {
@@ -431,14 +441,24 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       render: (text, record) => (
         // if datetime then trim milliseconds
         // tooltip because of ellipsis above
-        <Tooltip placement="topLeft" title={(ui === "html" && text) ? '' : text}> 
+        <Tooltip placement="topLeft" title={(ui === "html" && text) ? '' : ( (ui === "modal_json_to_table" && text) ? '' : text ) }> 
           {
             (datatype === "datetime" && text) ? 
               dayjs(text).format("YYYY-MM-DD HH:mm:ss") : 
               (
                 (ui === "html" && text) ? 
                   <div dangerouslySetInnerHTML={{__html: text}} /> : 
-                  text
+                  (
+                    (ui === "modal_json_to_table" && text) ? 
+                      <Button
+                      onClick={(e) => { openTableModal(tableName, text); }}
+                      size="small"
+                      key="1"
+                      >
+                        ...
+                      </Button> : 
+                      text
+                  )
               )
           }  
         </Tooltip>
@@ -530,6 +550,40 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       );
     }
 
+    
+  const tableModalData = [
+    {
+      key: '1',
+      name: 'Mike',
+      age: 32,
+      address: '10 Downing Street',
+    },
+    {
+      key: '2',
+      name: 'John',
+      age: 42,
+      address: '10 Downing Street',
+    },
+  ];
+
+  const tableModalColumns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Age',
+      dataIndex: 'age',
+      key: 'age',
+    },
+    {
+      title: 'Address',
+      dataIndex: 'address',
+      key: 'address',
+    },
+  ];
+
     return (
       <React.Fragment>
       <PageHeader
@@ -597,6 +651,9 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
             
             {showModal &&
             <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence}/>
+            }
+            {showTableModal &&
+            <TableModal modalName="Datensätze" tableColumns={tableModalColumns} tableData={tableModalData} handleClose={closeTableModal}/>
             }
 
             </React.Fragment>
