@@ -127,7 +127,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
         queryParams.append("order_by", order);
       }
       if(filter && filter.length > 0) {
-        queryParams.append("filter", filter);
+        queryParams.append("q", filter);
       }
       //queryParams.append("q", "test_lauf_id:7");
       console.log("queryParams: " + queryParams.toString());
