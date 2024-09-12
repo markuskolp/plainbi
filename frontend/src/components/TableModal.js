@@ -9,6 +9,8 @@ import {
 
 const TableModal = ({ modalName, tableColumns, tableData, handleClose }) => {
     
+  const [totalCount, setTotalCount]=useState(tableData.length);
+
   console.log("modalName: ", modalName);
   console.log("tableColumns: ", tableColumns);
   console.log("tableData: ", tableData);
@@ -44,6 +46,8 @@ const TableModal = ({ modalName, tableColumns, tableData, handleClose }) => {
           size="small" 
           columns={tableColumns} 
           dataSource={tableData} 
+          tableLayout="auto"
+          pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
         />
       </Modal>
     </React.Fragment>
@@ -54,6 +58,9 @@ const TableModal = ({ modalName, tableColumns, tableData, handleClose }) => {
 export default TableModal;
 
 /*
+                          pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
+                          scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }} // change later from 400px dynamically to the height of the header, page header and footer
+                          tableLayout="auto"
 
 
 const tableData = [

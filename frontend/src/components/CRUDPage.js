@@ -58,7 +58,11 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [showModal, setShowModal] = useState(false);
+
   const [showTableModal, setShowTableModal] = useState(false);
+  const [tableModalData, setTableModalData] = useState([]);
+  const [tableModalColumns, setTableModalColumns] = useState([]);
+
   //const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new"); // new/edit
@@ -315,14 +319,77 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       setShowModal(false);
       getTableData(tableName);
     };
+
+    // return a item to be rendered in a Menu component
+    function getTableColumnDefinition(title, dataIndex, key) {
+      return {
+        title,
+        dataIndex,
+        key
+      };
+    }
+
     const openTableModal = (tableName, jsonData) => {
       console.log("openTableModal - tableName: " + tableName);
       console.log("openTableModal - jsonData: " + jsonData);
-      setShowTableModal(true);
+      try {
+        // JSON as Text converted to Javascript Object
+        let parsedJsonData = JSON.parse(jsonData);
+        setTableModalData(parsedJsonData);
+        // extract columns
+        let parsedJsonDataColumns = Object.keys(parsedJsonData[0]).map((columnName) => { 
+          return getTableColumnDefinition(columnName,columnName,columnName); 
+        })
+        setTableModalColumns(parsedJsonDataColumns);
+        setShowTableModal(true);
+      } catch(er) {
+        setTableModalData([]);
+        setTableModalColumns([]);
+        console.log("openTableModal - JSON.parse(jsonData) - error: " + er);
+        message.error("Fehler beim Anzeigen der Daten");
+      }
     };
     const closeTableModal = () => {
+      setTableModalData([]);
+      setTableModalColumns([]);
       setShowTableModal(false);
     }; 
+
+    
+  /*  
+  const tableModalData = [
+    {
+      key: '1',
+      name: 'Mike',
+      age: 32,
+      address: '10 Downing Street',
+    },
+    {
+      key: '2',
+      name: 'John',
+      age: 42,
+      address: '10 Downing Street',
+    },
+  ];
+
+  const tableModalColumns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Age',
+      dataIndex: 'age',
+      key: 'age',
+    },
+    {
+      title: 'Address',
+      dataIndex: 'address',
+      key: 'address',
+    },
+  ];
+  */
 
     // add action buttons to a table record
    function getColumnAction( deleteAllowed, updateAllowed) {
@@ -550,40 +617,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       );
     }
 
-    
-  const tableModalData = [
-    {
-      key: '1',
-      name: 'Mike',
-      age: 32,
-      address: '10 Downing Street',
-    },
-    {
-      key: '2',
-      name: 'John',
-      age: 42,
-      address: '10 Downing Street',
-    },
-  ];
-
-  const tableModalColumns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Age',
-      dataIndex: 'age',
-      key: 'age',
-    },
-    {
-      title: 'Address',
-      dataIndex: 'address',
-      key: 'address',
-    },
-  ];
-
     return (
       <React.Fragment>
       <PageHeader
@@ -653,7 +686,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
             <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence}/>
             }
             {showTableModal &&
-            <TableModal modalName="Datensätze" tableColumns={tableModalColumns} tableData={tableModalData} handleClose={closeTableModal}/>
+            <TableModal modalName="" tableColumns={tableModalColumns} tableData={tableModalData} handleClose={closeTableModal}/>
             }
 
             </React.Fragment>
