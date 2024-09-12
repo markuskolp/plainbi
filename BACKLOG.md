@@ -22,6 +22,9 @@
 - ~~Swagger~~
 - ~~Datenbankprozedur auslösen über Frontend (z.B. um eine komplexere Verarbeitung anzustossen)~~
 - **SSO (Single Sign On) ermöglichen**
+	- https://www.youtube.com/watch?v=oW1SJxGiaZA
+	- https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-web-app-python-flask?tabs=windows 
+	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
 
 ## Frontend
 
@@ -40,6 +43,7 @@
 	- Suchfeld fehlt
 	- die „berechtigten Inhalte“ weiter strukturieren können (damit es übersichtlich bleibt)
 - **Filter in Spaltentitel (evtl. Backend erweitern)**
+	- Endpunkt notwendig: /api/distinctvalues/{db}/{tab}/{col}
 - 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der Filter beim Einstieg auch sofort ziehen soll
 - **Subpage (Master-Detail)**
 - evtl. auch Applikationsübergreifender Filter (z.B. Veranstaltung auswählen)
@@ -49,13 +53,14 @@
 	- Validierung einbauen
 	- wenn man neben Modal klickt dann nur Schliessen, wenn noch nichts geändert wurde ! (auch bei Abbrechen Button nachfragen ob man wirklich Abbrechen will)
 	- Zahleneingabe mit NK-Stellen - aktuell . statt , (englisch)
-- **Sequence in plainbi Frontend ermöglichen** -> mal testen mit vv_veranstalter und vv_test_case (auch mal IDENTITY Spalte)
+~~- Sequence in plainbi Frontend ermöglichen~~
+- Identity Spalten
 - Parameter bei Adhocs implementieren
 - Adhoc Serverside Pagination nutzen
 - **Tabellenspaltenbreite nicht optimal (Header abgeschnitten, etc.)**
-- **PK mit Sonderzeichen ermöglichen**
+~~- PK mit Sonderzeichen ermöglichen~~
 ~~- HTML Anzeige in Tabelle/Liste ermöglichen z.B. für Links etc. -> "ui":"html"~~
-- **Datum formatieren in Anzeige (date: YYYY-MM-DD, datetime: YYYY-MM-DD HH:mm:ss), auch Sortierung soll dann gehen (Backend muss evtl. auch den Wert so liefern !)**
+~~- Datum formatieren in Anzeige (date: YYYY-MM-DD, datetime: YYYY-MM-DD HH:mm:ss), auch Sortierung soll dann gehen (Backend muss evtl. auch den Wert so liefern !)~~
 ~~- Seite per URL aufrufbar machen (bisher geht nur App) -> /apps/<app_alias>/<page_alias~~
 - **Seite filterbar machen per URL-Parameter /apps/<app_alias>/<page_alias>?<column_name>=<filter_value>&<column_name>=<filter_value>...**
 ~~- page.hide_in_navigation~~
@@ -70,6 +75,7 @@ Bugfixing:
 ~~- Filter bei Settings, Adhoc App, Ressourcen App geht nur auf ID anstatt auf Namen !~~
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
 - environment_color_banner wird noch nicht verwendet
+
 
 Dokumentation schreiben/aktualisieren in Github
 -  zu Applikationen
