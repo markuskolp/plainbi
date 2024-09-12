@@ -129,6 +129,16 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       if(filter && filter.length > 0) {
         queryParams.append("q", filter);
       }
+      let _searchParams = searchParams.toString().replaceAll("&", ",").replaceAll("=", ":"); // <key>=<value>&<key>:<value>&... --> <key>:<value>,<key>:<value>,...
+      //console.log("searchParams: " + searchParams);
+      //console.log(searchParams.toString());
+      //console.log(searchParams.entries());
+      //console.log(Array.from(searchParams.entries()));
+      //searchParams.split("&").map((param) => { return param.replace("=", ":"); })
+
+      if(_searchParams && _searchParams.length > 0) {
+        queryParams.append("filter", _searchParams); 
+      }
       //queryParams.append("q", "test_lauf_id:7");
       console.log("queryParams: " + queryParams.toString());
       var endpoint = api+tableName+'?'+queryParams;
