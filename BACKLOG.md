@@ -25,6 +25,8 @@
 	- https://www.youtube.com/watch?v=oW1SJxGiaZA
 	- https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-web-app-python-flask?tabs=windows 
 	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
+- eindeutige Spaltenwerte einer Tabelle (damit man diese als Spaltenfilter anzeigen könnte)
+	/api/distinctvalues/{db}/{tab}/{col}
 
 ## Frontend
 
