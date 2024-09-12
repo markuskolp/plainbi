@@ -10,7 +10,8 @@ import {
   Popconfirm,
   message,
   Tooltip,
-  Pagination 
+  Pagination ,
+  Breadcrumb
 } from "antd";
 import Table from "./Table";
 import {Sorter} from "../utils/sorter";
@@ -53,7 +54,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, datasource, isRepo, lookups, token, sequence }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems }) => {
     
   const [loading, setLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
@@ -649,14 +650,17 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
             />
                 {lookupData && (
                   <React.Fragment>
-                    <Input.Search
-                      placeholder="Suche ..."
-                      //enterButton
-                      onSearch={(value) => {searchData(value)}}
-                      onChange={(e) => {searchDataWithTimeout(e.target.value)}}
-                      style={{marginBottom:20,width:500}}
-                      allowClear 
-                    />
+                    <Space direction="vertical">
+                      {breadcrumbItems ? <Breadcrumb items={breadcrumbItems} /> : ''}
+                      <Input.Search
+                        placeholder="Suche ..."
+                        //enterButton
+                        onSearch={(value) => {searchData(value)}}
+                        onChange={(e) => {searchDataWithTimeout(e.target.value)}}
+                        style={{marginBottom:20,width:500}}
+                        allowClear 
+                      />
+                    </Space>
                     <Table
                           size="small"
                           columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...

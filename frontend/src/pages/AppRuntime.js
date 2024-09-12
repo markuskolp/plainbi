@@ -69,7 +69,7 @@ const AppRuntime = (props) => {
           <LoadingMessage />
         ) : (
           <React.Fragment>
-            <CRUDApp name={appMetadata.name} datasource={appMetadata.datasource_id} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token} start_page_id={start_page_id}/>
+            <CRUDApp name={appMetadata.name} alias={appMetadata.alias} datasource={appMetadata.datasource_id} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token} start_page_id={start_page_id}/>
           </React.Fragment>
         )
       )

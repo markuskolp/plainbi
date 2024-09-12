@@ -1,14 +1,15 @@
 import React from "react";
 import { useState, useEffect } from "react";
-import { Layout,  Menu, message} from "antd";
+import { Layout,  Menu, message, Typography} from "antd";
 const { Header, Content, Sider } = Layout;
 import CRUDPage from "./CRUDPage";
 import NoPage from "../pages/NoPage";
+const { Link } = Typography;
 
 //TODO: page switch über <Link> ? -> weil sonst die URL sich nicht ändern und immer bleibt
 //TODO: setPageNotFound geht unten nicht /Zeile 33 und 47), weil es dann eine Endlosschleife ist -> rausfinden wie man es behebt
 
-const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
+const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id }) => {
   
   const [pageNotFound, setPageNotFound] = useState(false);
   const [selectedPage, setSelectedPage] = useState(start_page_id ? getPageId(start_page_id) : "1"); // nr of selected page
@@ -62,7 +63,7 @@ const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
             pageHide = true;
           }
           console.log("CRUD / pages: " + page.name + ' - ' + page.id + ' - hide: ' + pageHide);
-          return pageHide ? '' : getItem(page.name, page.id); // return pages without the ones that should be hidden
+          return pageHide ? '' : getItem(<Link href={'/apps/'+alias+'/'+page.alias}>{page.name}</Link>, page.id); // return pages without the ones that should be hidden
         })
       );  
     }, []);
@@ -73,10 +74,12 @@ const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
 
     // Switch page
     const switchPage = (e) => {
-      const pageIndex = e.key - 1;
+      /*const pageIndex = e.key - 1;
       console.log('switchPage() - set page to id: ' + e.key + ' = pageIndex: ' + pageIndex);
       setSelectedPage(e.key);
       setPage(pages[pageIndex]);
+      */
+     // do nothing, because see useEffect() - setPageList() - the Link does its job there
     };
 
     // return a item to be rendered in a Menu component
@@ -123,7 +126,7 @@ const CRUDApp = ({ name, datasource, pages, token, start_page_id }) => {
               <Content style={{ background: "#FFF"}}>
 
                 {page && 
-                <CRUDPage key={page.name} name={page.name} tableName={page.table} tableForList={page.table_for_list} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} datasource={datasource} isRepo={(datasource == "repo" || datasource == "0") ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token} sequence={page.sequence ? page.sequence : null}/>
+                <CRUDPage key={page.name} name={page.name} tableName={page.table} tableForList={page.table_for_list} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} allowedActions={page.allowed_actions} versioned={page.versioned ? page.versioned : false} datasource={datasource} isRepo={(datasource == "repo" || datasource == "0") ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token} sequence={page.sequence ? page.sequence : null} breadcrumbItems={(page.show_breadcrumb && page.show_breadcrumb === 'true') ? [{title:page.parent_page.name, href:'/apps/'+alias+'/'+page.parent_page.alias}, {title:page.name}] : null} />
                 // key property resets state when changed - this is important for page switch (to reset filter, order, offset and limit in page component)!
                 }
 
