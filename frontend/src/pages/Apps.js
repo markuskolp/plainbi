@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Button, Typography, Card, Col, Row, message } from "antd";
+import { Button, Typography, Card, Col, Row, message, Flex } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import {
   EditOutlined,
@@ -32,7 +32,19 @@ const Apps = (props) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         console.log(JSON.stringify(resData));
-        setApps(resData);
+        let resDataSorted = resData.sort((a, b) => {
+          let nameA = a.name.toUpperCase(); // ignore upper and lowercase
+          let nameB = b.name.toUpperCase(); // ignore upper and lowercase
+          if (nameA < nameB) {
+            return -1;
+          }
+          if (nameA > nameB) {
+            return 1;
+          }
+          // names must be equal
+          return 0;
+        });
+        setApps(resDataSorted);
         setLoading(false);
       }
     ).catch(
@@ -68,14 +80,12 @@ const Apps = (props) => {
         <LoadingMessage /> :
         (error ? 
           <h1>Es konnten keine Applikationen gefunden werden.</h1> :
-          <Row gutter={16}>
-            
+          <Flex gap="middle"  wrap>            
             {apps && apps.map((app) => {
               return (
-                <Col span={6}>
                   <Link href={"/apps/"+app.alias}> 
                     <Card
-                      style={{ maxWidth: 300, marginTop: 16 }}
+                      style={{ maxWidth: 300, minWidth: 300, marginTop: 16 }}
                       bodyStyle={{ display: "none" }}
                       type="inner"
                       bordered={true}
@@ -83,11 +93,10 @@ const Apps = (props) => {
                       title={app.name}
                     />
                   </Link>
-                </Col>
               )
               })
             }
-          </Row>
+          </Flex>
         )
                 }
     </React.Fragment>

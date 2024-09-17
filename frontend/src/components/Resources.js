@@ -43,7 +43,8 @@ const Resources = (props) => {
         {value: "adh", label: "Adhoc"},
         {value: "app", label: "Applikation"}
       ]);
-      initializeApp();
+      //initializeApp();
+      setLoading(false);
     }, []);
 
   const initializeApp = async () => {
@@ -269,7 +270,15 @@ const resetGroupID = (e) => {
               {groups.length < 1 ? 
                 <Alert
                   message="Hinweis"
-                  description={"Du bist bisher nicht für irgendwelche Inhalte berechtigt. Bitte wende dich an " + (contact_email ? contact_email : "das zuständige Team.")}
+                  description={
+                    <React.Fragment>
+                    <Text>Du bist bisher nicht für irgendwelche Inhalte berechtigt. Bitte wende dich an </Text> 
+                      {contact_email ? 
+                        <Link href={'mailto:'+contact_email}>{contact_email}</Link> : 
+                        <Text>das zuständige Team.</Text>
+                  }
+                    </React.Fragment>
+                  }
                   type="info"
                   showIcon
                 />  : ''
