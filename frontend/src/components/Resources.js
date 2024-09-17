@@ -43,8 +43,7 @@ const Resources = (props) => {
         {value: "adh", label: "Adhoc"},
         {value: "app", label: "Applikation"}
       ]);
-      //initializeApp();
-      setLoading(false);
+      initializeApp();
     }, []);
 
   const initializeApp = async () => {
