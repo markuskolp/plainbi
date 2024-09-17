@@ -33,6 +33,7 @@ const color_info = window.THEME_COLOR_INFO;
 const font_size = window.THEME_FONT_SIZE;
 const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
 const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
+const contact_email = window.CONTACT_EMAIL;
 
 // set document title if given
 document.title = app_title ? app_title : 'plainbi';

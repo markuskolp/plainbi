@@ -4,7 +4,7 @@
     "@cubejs-client/core": "^0.34.37",
     "@cubejs-client/react": "^0.34.37",
     "@turf/turf": "^6.5.0",
-    "antd": "^5.0.0-rc.1",
+    "antd": "^5.20.6",
     "axios": "^1.6.7",
     "csbbust": "1.0.1",
     "dayjs": "^1.11.10",

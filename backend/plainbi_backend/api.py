@@ -2858,6 +2858,7 @@ def getsettingsjs():
     s=s+f"var THEME_COLOR_ERROR = '"+get_setting_from_list(items,'color_error')+"';\n"
     s=s+f"var THEME_COLOR_INFO = '"+get_setting_from_list(items,'color_info')+"';\n"
     s=s+f"var THEME_FONT_SIZE = "+get_setting_from_list(items,'font_size')+";\n"
+    s=s+f"var CONTACT_EMAIL = '"+get_setting_from_list(items,'contact_email')+"';\n"
     response = make_response(s)
     response.headers.set('Content-Type', "text/javascript; charset=utf-8")
     return response

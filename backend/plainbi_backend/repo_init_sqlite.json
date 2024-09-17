@@ -894,6 +894,9 @@ insert into plainbi_settings values ('color_error','#b31013')
 insert into plainbi_settings values ('color_info','#3b80e0')
 ''',
 '''
+insert into plainbi_settings values ('contact_email',null)
+''',
+'''
 insert into plainbi_settings values ('font_size','13')
 ''',
 ]
