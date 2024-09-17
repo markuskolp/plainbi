@@ -52,11 +52,24 @@ const Resources = (props) => {
         //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         //console.log(JSON.stringify(resData));
-        setGroups(resData);
+        let resDataSorted = resData.sort((a, b) => {
+          let nameA = a.name.toUpperCase(); // ignore upper and lowercase
+          let nameB = b.name.toUpperCase(); // ignore upper and lowercase
+          if (nameA < nameB) {
+            return -1;
+          }
+          if (nameA > nameB) {
+            return 1;
+          }
+          // names must be equal
+          return 0;
+        });
+        setGroups(resDataSorted);
         setLoading(false);
       }
     ).catch(
       function (error) {
+        console.log(error);
         setError(true);
         setLoading(false);
         if (error.response.status === 401) {
@@ -82,7 +95,19 @@ const refreshGroupData = async (groupID) => {
       //const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0]); // take data directly if exists, otherwise take "data" part in JSON response
       const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
       //console.log(JSON.stringify(resData));
-      setResources(resData);
+      let resDataSorted = resData.sort((a, b) => {
+        let nameA = a.name.toUpperCase(); // ignore upper and lowercase
+        let nameB = b.name.toUpperCase(); // ignore upper and lowercase
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+        // names must be equal
+        return 0;
+      });
+      setResources(resDataSorted);
       setLoading(false);
     }
   ).catch(
@@ -217,30 +242,30 @@ const resetGroupID = (e) => {
             </React.Fragment>
             :
             <React.Fragment>
-                {groups && groups.map((group) => {
-                  return (
-                    <Flex gap="middle" align="start" vertical>
-                      <Link onClick={(e) => { handleGroupChange(group.id, group.name, e); }}>
-                        <Card
-                          style={{ maxWidth: 300, minWidth: 300, marginTop: 16, padding:6 }}
-                          bordered={true}
-                          hoverable={true}
-                          >
-                          <Card.Meta
-                            avatar={ 
-                              <Avatar 
-                                icon={<TeamOutlined />} 
-                                style={{backgroundColor: '#fff', color: '#000' }}
-                              />
-                            }
-                            title={group.name}
-                          />
-                        </Card>
-                      </Link>
-                    </Flex>
-                  )
+                <Flex gap="middle"  wrap>
+                  {groups && groups.map((group) => {
+                    return (
+                        <Link onClick={(e) => { handleGroupChange(group.id, group.name, e); }}>
+                          <Card
+                            style={{ maxWidth: 300, minWidth: 300 }}
+                            bordered={true}
+                            hoverable={true}
+                            >
+                            <Card.Meta
+                              avatar={ 
+                                <Avatar 
+                                  icon={<TeamOutlined />} 
+                                  style={{backgroundColor: '#fff', color: '#000', marginTop: '-5px' }}
+                                />
+                              }
+                              title={group.name}
+                            />
+                          </Card>
+                        </Link>
+                    )
                   })
                 }
+                </Flex>
               {groups.length < 1 ? 
                 <Alert
                   message="Hinweis"
