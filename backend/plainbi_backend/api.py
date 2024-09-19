@@ -416,6 +416,76 @@ def sndemail(tokdata):
     return jsonify(out)
 
 
+@api.route(api_root+'/distinctvalues/<db>/<tabnam>/<colnam>', methods=['GET'])
+@token_required
+def distinctvalues(tokdata,db,tabnam,colnam):
+    """
+    get distinct values of a column in a table
+
+    returns json with keys "data", "total_count"
+
+    ---
+    tags:
+      - CRUD
+    security:
+    - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: db
+        in: path
+        type: string
+        required: true
+        description: id or alias of the database connection defined in repository table plainbi_datasource (0=repository)
+      - name: tabnam
+        in: path
+        type: string
+        required: true
+        description: name of table in database 
+      - name: colnam
+        in: path
+        type: string
+        required: true
+        description: name of a column in the table 
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          application/json: 
+            message: Data processed successfully
+    """
+    log.debug("++++++++++ entering distinctvalues")
+    log.debug("distinctvalues param tab is <%s>",str(tabnam))
+    log.debug("distinctvalues param col is <%s>",str(colnam))
+    audit(tokdata,request)
+    dbengine=get_db_by_id_or_alias(db)
+    if dbengine is None:
+        return jsonify(nodb_msg),500
+    out={}
+    sql=f"SELECT DISTINCT {colnam} FROM {tabnam} ORDER BY 1"
+    items,columns,total_count,e=sql_select(dbengine,sql,with_total_count=False)
+    if isinstance(e,str) and e=="ok":
+        log.debug("distinctvalues sql_select ok")
+    else:
+        log.debug("distinctvalues sql_select error %s",str(e))
+    if last_stmt_has_errors(e,out):
+        try:
+            json_out2 = jsonify(out)
+        except Exception as ej2:
+            log.error("distinctvalues: jsonify Error 2: %s",str(ej2))
+            log.exception(ej2)
+            json_out2 = "jsonify error"
+        return json_out2,500
+    out["data"]=pre_jsonify_items_transformer(items)
+    out["columns"]=columns
+    out["total_count"]=len(items)
+    log.debug("leaving distinctvalues and return json result")
+    log.debug("out=%s",str(out))
+    try:
+        json_out = jsonify(out)
+    except Exception as ej:
+        log.error("distinctvalues: jsonify Error: %s",str(ej))
+        log.exception(ej)
+    return json_out
+
 @api.route(api_root+'/exec/<db>/<procname>', methods=['POST'])
 @token_required
 def dbexec(tokdata,db,procname):
