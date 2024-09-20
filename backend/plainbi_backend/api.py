@@ -1420,7 +1420,7 @@ select
 , source
 , dataset
 , 'external_resource' as resource_type
-, 'Extern' as resource_type_de
+, source as resource_type_de
 from plainbi_external_resource per
 {w_ext_res}
 """
@@ -1568,7 +1568,7 @@ select
 , source
 , dataset
 , 'external_resource' as resource_type
-, 'Extern' as resource_type_de
+, source as resource_type_de
 from plainbi_external_resource per
 join plainbi_external_resource_to_group rg
 on per.id=rg.external_resource_id

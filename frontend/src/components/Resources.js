@@ -163,8 +163,7 @@ const columns = [
       </Tooltip>
       </React.Fragment>
       )
-  }, 
-  /*   
+  }, /*
   {
     title: "Daten",
     dataIndex: "dataset",
@@ -173,7 +172,7 @@ const columns = [
     render: (name, record) => (
       record.dataset && <Tag color="blue" style={{textTransform:'uppercase'}}>{record.dataset}</Tag>
     )
-  },    
+  },    */
   {
     title: "Typ",
     dataIndex: "resource_type_de",
@@ -183,7 +182,7 @@ const columns = [
       record.resource_type_de && <Tag color="blue" style={{textTransform:'uppercase'}}>{record.resource_type_de}</Tag>
     )
   }
-  */
+  
   
 ];
 
