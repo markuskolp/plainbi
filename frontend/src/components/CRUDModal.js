@@ -116,6 +116,15 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         }
         ).catch(function (error) {
           setLoading(false);
+          /*console.log("error.message: " + error.message);
+          console.log("error.response: " + error.response);
+          console.log("error.response.data: " + error.response.data);
+          console.log("error.response.data.detail: " + error.response.data.detail);
+          console.log("error.response.data.message: " + error.response.data.message);
+          console.log("error.response.status: " + error.response.status)
+          console.log("error.response.headers: " + error.response.headers)
+          console.error('Request Failed:', error.config);
+          */
           message.error('Es gab einen Fehler beim Speichern.');
           //message.error(res.data);
         }
@@ -146,7 +155,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     //const {name, value} = event.target;
     console.log("handleChange - key: " + key + " / value: " + value);
     
-    setRecordData({...recordData, [key]: value}); 
+    setRecordData({...recordData, [key]: (value === "" ? null : value)}); // leere Inhalte wirklich auf NULL setzen
   }
 
   return (

@@ -27,8 +27,18 @@
 	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
 - eindeutige Spaltenwerte einer Tabelle (damit man diese als Spaltenfilter anzeigen könnte)
 	/api/distinctvalues/{db}/{tab}/{col}
+- TV-Version wird geschlossen  bei Fehlern , aber sollte bleiben
+	Wir haben auch ein Fall, dass beim Editieren ein Fehler auftritt z.B. weil ein NOT NULL Feld nicht gefüllt wurde.
+	Das passt grundsätzlich, aber die TV-Version hängt dann „in der Luft“.
+
+	Vermutlich weil du zuerst das Update auf die TV machst und das invalid setzt.
+	Danach dann das Insert, welches dann fehlschlägt.
+	Kann das irgendwie in 1 Transaktion erfolgen ?
+	Oder umgedreht ?
+
 
 ## Frontend
+
 
 - **Problem mit Lookup bei Anlage von Lookups (datasource_id wird nicht gefüllt) oder bei Adhoc (Anforderer Lookup geht nicht)**
 ~~- Globale Einstellungen/Logos noch nicht ausgerollt bei MM -> build und deploy?~~
@@ -37,7 +47,7 @@
 ~~- bei Adhoc App ist die Pagination auf DEV ganz weit unten ?~~
 ~~- mal bei diesen Apps auch die Sortierung/Filterung umstellen auf Bezeichnung anstatt auf ID !~~
 - **für UIs mit Typ JSON, SQL, ... den MonacoEditor verwenden**
-- **bessere Fehlermeldungen** -> warum wird z.B. bei Adhoc nicht die Meldung ausgegeben oder beim Speichern eines bestehenden Eintrags (z.B. User/Gruppenzuordnung) wie beim lokalen Entwickeln
+- **bessere Fehlermeldungen** -> warum wird z.B. bei Adhoc nicht die Meldung ausgegeben oder beim Speichern eines bestehenden Eintrags (z.B. User/Gruppenzuordnung) wie beim lokalen Entwickeln -> bei CRUD Operationen sehe ich auch keine Fehlerinhalte in error.response... (kommt da noch nichts vom Backend oder geht es nicht ?)
 ~~- Oben ein Homebutton einfügen, damit man immer zurück kommt~~
 - "Extern" mal besser benennen !
 - bei Settings eine Übersicht machen von User<>Gruppe<>Ressource -> damit man das mal in 1 Überblick hat -> später mit Subpage auch immer von Entität ausgehend die Zuordnung/Übersicht erlauben (z.B. User -> zugeordnete Gruppen -> zugeordnete Ressourcen | Gruppe -> zugeordnete User -> zugeordnete Ressourcen) -> damit man das von jeder Richtung pflegen könnte
