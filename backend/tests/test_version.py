@@ -112,7 +112,10 @@ def format_url(method, url, data=None, auth=True, port=3001, testname=None):
         winurl+=" --data '{"
         uxurl+="  --data '{"
         for k,v in data.items():
-            if isinstance(v,int):
+            if v is None:
+               winurl+='\\"'+k+'\\": None'
+               uxurl+='"'+k+'": None'
+            elif isinstance(v,int):
                winurl+='\\"'+k+'\\":'+str(v)
                uxurl+='"'+k+'":'+str(v)
             else:
@@ -942,6 +945,23 @@ def test_3010_vtab_upd(test_client):
     row1=(json_out["data"])[0]
     assert row1["name"]==nam
     assert row1["nr"]==id
+
+def test_3011_vtab_upd_mussfeldnull(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    global headers
+    log.info('TEST: %s',func_name())
+    #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
+    nam="item2"
+    id=-8
+    test_url='/api/crud/1/'+tv+"/"+str(id)+"?v&pk=nr"
+    test_data= { "name" : nam, "nr" : -8, "mussfeld" : None }
+    format_url("put", test_url, data=test_data, testname=func_name())
+    response = test_client.put(test_url, json=test_data, headers=headers)
+    assert response.status_code == 500
 
 def test_3030_vget(test_client):
     """

@@ -177,6 +177,7 @@ def create_pytest_tables(engine):
     CREATE TABLE {tv} (
         nr int NOT NULL
     , name varchar(200)
+    , mussfeld varchar(200) NOT NULL DEFAULT 'muss'
     , dat date
     , valid_from_dt datetime NOT NULL
     , invalid_from_dt datetime NOT NULL

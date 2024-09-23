@@ -87,9 +87,9 @@ repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource
 config.conn={}
 
    
-def db_exec(engine, sql, params=None, begin_transaction : bool = False, do_commit : bool = True ):
+def db_exec(engine, sql, params=None):
     dbgindent="    "
-    log.debug(dbgindent+"++++++++++ entering db_exec "+sql[:25]+" ...")
+    log.debug(dbgindent+"++++++++++ entering db_exec "+str(sql)[:25]+" ...")
     #log.debug(dbgindent+"db_exec: param sql is <%s>",str(sql))
     #log.debug(dbgindent+"db_exec: params is <%s>",str(params))
     #
@@ -97,10 +97,8 @@ def db_exec(engine, sql, params=None, begin_transaction : bool = False, do_commi
     if not engine.url in config.conn.keys():
         config.conn[engine.url]=None
     if params is not None:
-        if not isinstance(params, dict):
-            log.warning(dbgindent+"db_exec called with params WITHOUT dict")
-    #sqlalchemy 2.0
-    mysql=sqlalchemy.text(sql)
+        if not (isinstance(params, dict) or isinstance(params, list)):
+            log.warning(dbgindent+"db_exec called with params WITHOUT dict or list of dict")
     dbtyp=get_db_type(engine)
     # using the flask server with wgsi requires sequential access to the sqlite repo
     with config.database_lock:
@@ -117,57 +115,64 @@ def db_exec(engine, sql, params=None, begin_transaction : bool = False, do_commi
             log.debug(dbgindent+"db_exec: open connection")
             config.conn[engine.url] = engine.connect()
         log.debug(dbgindent+"db_exec: execute")
-
-        #if begin_transaction:
-        #    if dbtyp=="mssql":
-        #        config.conn[engine.url].execute(sqlalchemy.text("begin transaction"))
-        #        log.debug(dbgindent+"db_exec: begin mssql transaction")
-    
-        if sql.lower().strip().startswith("select"):
-            log.debug(dbgindent+"db_exec: sql is a select statement")
-            is_select=True
-        try:
-            if params is not None:
-                # handle encodings
-                params=urlsafe_decode_params(params)
-                # exec in database
-                res=config.conn[engine.url].execute(mysql,params)
-                log.debug(dbgindent+"db_exec: sql=%s params=%s",mysql,params)
+        dml_anz=0
+        if not isinstance(sql,list):
+            stmts=[(sql,params)]
+        else:
+            stmts=[]
+            for i,s in enumerate(sql):
+               stmts.append((sql[i],params[i]))
+        stmt_anz=len(stmts)
+        for stmt_nr,stmt in enumerate(stmts):
+            log.debug("sql entry tuple %d/%d %s",stmt_nr,stmt_anz,str(stmt)[:25]+" ...")
+            mysqltxt=stmt[0]
+            mysql=sqlalchemy.text(mysqltxt)
+            myparams=stmt[1]
+            if mysqltxt.lower().strip().startswith("select") or mysqltxt.lower().strip().startswith("with"):
+                log.debug(dbgindent+"db_exec: sql is a select statement")
+                is_select=True
             else:
-                res=config.conn[engine.url].execute(mysql)
-                log.debug(dbgindent+"db_exec: sql=%s",mysql)
-            if int(sqlalchemy.__version__[:1])>1:  # sqlalchemy 2
-                if not is_select:
-                    #if do_commit:
-                        config.conn[engine.url].commit()
-                        log.debug(dbgindent+"db_exec: committed")
-                    #else:
-                    #    log.debug(dbgindent+"db_exec: not committed due to do_commit parameter")
-            else:
-                log.debug(dbgindent+"db_exec: not committed - pre sqlalchemy 2")
-        except Exception as e:
-            log.error(dbgindent+"db_exec ERROR: %s",str(e))
-            log.error(dbgindent+"db_exec ERROR: SQL is %s",str(sql))
-            log.error(dbgindent+"db_exec ERROR: params are %s",str(params))
-            if "Can't reconnect until invalid transaction is rolled back.  Please rollback()" in str(e):
-                log.error(dbgindent+"Try to rollback")
-                config.conn[engine.url].rollback()
-                log.error(dbgindent+"Rollback done")
-            if "current transaction is aborted, commands ignored until end of transaction block" in str(e):
-                log.error(dbgindent+"Try to rollback (postgres transaction aborted)")
-                config.conn[engine.url].rollback()
-                log.error(dbgindent+"Rollback done (postgres transaction aborted)")
-            if dbtyp == "postgres":
-                log.error(dbgindent+"Try to rollback (postgres transaction)")
-                config.conn[engine.url].rollback()
-                log.error(dbgindent+"Rollback done (postgres transaction)")
-            raise e
-        if is_select:
-            log.debug(dbgindent+"db_exec: is a select statement and returns data")
-            items = [row._asdict() for row in res]
-            #items_transformer(items)
-            log.debug(dbgindent+"db_exec: anz rows=%d",len(items))
-            columns = list(res.keys())
+                is_select=False
+                dml_anz+=1 
+            try:
+                if myparams is not None:
+                    # handle encodings
+                    myparams=urlsafe_decode_params(myparams)
+                    # exec in database
+                    res=config.conn[engine.url].execute(mysql,myparams)
+                    log.debug(dbgindent+"db_exec: sql=%s params=%s",mysql,myparams)
+                else:
+                    res=config.conn[engine.url].execute(mysql)
+                    log.debug(dbgindent+"db_exec: sql=%s",mysql)
+            except Exception as e:
+                log.error(dbgindent+"db_exec ERROR: %s",str(e))
+                log.error(dbgindent+"db_exec ERROR: SQL is %s",str(mysqltxt))
+                log.error(dbgindent+"db_exec ERROR: params are %s",str(myparams))
+                if "Can't reconnect until invalid transaction is rolled back.  Please rollback()" in str(e):
+                    log.error(dbgindent+"Try to rollback")
+                    config.conn[engine.url].rollback()
+                    log.error(dbgindent+"Rollback done")
+                if "current transaction is aborted, commands ignored until end of transaction block" in str(e):
+                    log.error(dbgindent+"Try to rollback (postgres transaction aborted)")
+                    config.conn[engine.url].rollback()
+                    log.error(dbgindent+"Rollback done (postgres transaction aborted)")
+                if dbtyp == "postgres":
+                    log.error(dbgindent+"Try to rollback (postgres transaction)")
+                    config.conn[engine.url].rollback()
+                    log.error(dbgindent+"Rollback done (postgres transaction)")
+                raise e
+            #if not is_select:
+            #    config.conn[engine.url].commit()
+            #   log.debug(dbgindent+"db_exec: committed")
+            if is_select:
+                log.debug(dbgindent+"db_exec: is a select statement and returns data")
+                items = [row._asdict() for row in res]
+                log.debug(dbgindent+"db_exec: anz rows=%d",len(items))
+                columns = list(res.keys())
+        # commit at the end if there was any dml statement
+        if dml_anz>0:
+            config.conn[engine.url].commit()
+            log.debug(dbgindent+"db_exec: committed")
         #close connection
         if isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
             if not config.conn[engine.url].closed:
@@ -176,7 +181,7 @@ def db_exec(engine, sql, params=None, begin_transaction : bool = False, do_commi
             else:
                 log.debug(dbgindent+"db_exec: connection is already closed")
         else:
-                log.debug(dbgindent+"db_exec: connection is not sqlalchemy connection for closing")
+            log.debug(dbgindent+"db_exec: connection is not sqlalchemy connection for closing")
         if is_select:
             log.debug(dbgindent+"++++++++++ leaving db_exec with data result")
             return items, columns
@@ -947,6 +952,8 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     log.debug("db_ins: param pkcols is <%s>",str(pkcols))
     log.debug("db_ins: param is_versioned is <%s>",str(is_versioned))
     log.debug("db_ins: param seq is <%s>",str(seq))
+    stmt=[]
+    stmtparam=[]
     out={}
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
     log.info("db_ins after get_metadata_raw %s",str(metadata))
@@ -1040,21 +1047,23 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                 log.debug("db_ins: terminate deleted record")
                 dsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
                 log.debug("db_ins: terminate rec sql %s",dsql)
-                try:
-                    db_exec(dbeng, dsql, delitem, begin_transaction=True, do_commit=False) # versioned column
-                    log.debug("dbins: deleted record terminated")
-                except SQLAlchemyError as e_sqlalchemy:
-                    log.error("sqlalchemy deleted record terminated; %s",str(e_sqlalchemy))
-                    if last_stmt_has_errors(e_sqlalchemy, out):
-                        out["error"]+="-db_ins-vers"
-                        out["message"]+=" beim Einfügen eines neuen versionierten Datensatzes"
-                    return out
-                except Exception as e:
-                    log.error("excp deleted record terminated: %s",str(e))
-                    if last_stmt_has_errors(e, out):
-                        out["error"]+="-db_ins-vers"
-                        out["message"]+=" beim Einfügen eines neuen versionierten Datensatzes"
-                    return out
+                stmt.append(dsql)
+                stmtparam.append(delitem)
+                #try:
+                #    db_exec(dbeng, dsql, delitem) # versioned column
+                #    log.debug("dbins: deleted record terminated")
+                #except SQLAlchemyError as e_sqlalchemy:
+                #    log.error("sqlalchemy deleted record terminated; %s",str(e_sqlalchemy))
+                #    if last_stmt_has_errors(e_sqlalchemy, out):
+                #        out["error"]+="-db_ins-vers"
+                #        out["message"]+=" beim Einfügen eines neuen versionierten Datensatzes"
+                #    return out
+                #except Exception as e:
+                #    log.error("excp deleted record terminated: %s",str(e))
+                #    if last_stmt_has_errors(e, out):
+                #        out["error"]+="-db_ins-vers"
+                #        out["message"]+=" beim Einfügen eines neuen versionierten Datensatzes"
+                #    return out
                
     param_list=[":"+k for k in myitem.keys()]
     col_list=[k for k in myitem.keys()]
@@ -1063,8 +1072,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     col_list_str=",".join(col_list)
     sql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
     log.debug("db_ins sql: %s",sql)
+
+    stmt.append(sql)
+    stmtparam.append(myitem)
     try:
-        db_exec(dbeng,sql,myitem)
+        #db_exec(dbeng,sql,myitem)
+        db_exec(dbeng,stmt,stmtparam)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("db_ins: sqlalchemy error: %s",str(e_sqlalchemy))
         if last_stmt_has_errors(e_sqlalchemy, out):
@@ -1134,20 +1147,24 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         log.debug("marker values length is %d",len(upditem))
         updsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
         log.debug("db_upd newrec sql: %s", updsql)
-        try:
-            db_exec(dbeng, updsql, upditem, begin_transaction=True, do_commit=False)
-        except SQLAlchemyError as e_sqlalchemy:
-            if last_stmt_has_errors(e_sqlalchemy, out):
-                out["error"]+="-db_upd-old-vers"
-                out["message"]+=" beim Aktualisieren des alten versionierten Datensatzes"
-            log.error("++++++++++ leaving db_upd returning %s", str(out))
-            return out
-        except Exception as e:
-            if last_stmt_has_errors(e, out):
-                out["error"]+="-db_upd-old-vers"
-                out["message"]+=" beim Aktualisieren des alten versionierten Datensatzes"
-            log.error("++++++++++ leaving db_upd returning %s", str(out))
-            return out
+        stmt=[]
+        stmtparam=[]
+        stmt.append(updsql)
+        stmtparam.append(upditem)
+        #try:
+        #    db_exec(dbeng, updsql, upditem)
+        #except SQLAlchemyError as e_sqlalchemy:
+        #    if last_stmt_has_errors(e_sqlalchemy, out):
+        #        out["error"]+="-db_upd-old-vers"
+        #        out["message"]+=" beim Aktualisieren des alten versionierten Datensatzes"
+        #    log.error("++++++++++ leaving db_upd returning %s", str(out))
+        #    return out
+        #except Exception as e:
+        #    if last_stmt_has_errors(e, out):
+        #        out["error"]+="-db_upd-old-vers"
+        #        out["message"]+=" beim Aktualisieren des alten versionierten Datensatzes"
+        #    log.error("++++++++++ leaving db_upd returning %s", str(out))
+        #    return out
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
@@ -1168,8 +1185,11 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         col_list_str=",".join(col_list)
         newsql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
         log.debug("db_upd newrec sql: %s",newsql)
+        stmt.append(newsql)
+        stmtparam.append(newrec)
         try:
-            db_exec(dbeng,newsql,newrec)
+            #db_exec(dbeng,newsql,newrec)
+            db_exec(dbeng,stmt,stmtparam)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_upd-vers"
@@ -1256,20 +1276,24 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         upditem.update(pkwhere_params)
         log.debug("marker values length is %d",len(upditem))
         sql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
-        try:
-            db_exec(dbeng, sql, upditem, begin_transaction=True, do_commit=False)
-        except SQLAlchemyError as e_sqlalchemy:
-            if last_stmt_has_errors(e_sqlalchemy, out):
-                out["error"]+="-db_del-old-vers"
-                out["message"]+=" beim Löschen des alten versionierten Datensatzes"
-            log.error("++++++++++ leaving db_del returning %s", str(out))
-            return out
-        except Exception as e:
-            if last_stmt_has_errors(e, out):
-                out["error"]+="-db_del-old-vers"
-                out["message"]+=" beim Löschen des alten versionierten Datensatzes"
-            log.error("++++++++++ leaving db_del returning %s", str(out))
-            return out
+        stmt=[]
+        stmtparam=[]
+        stmt.append(sql)
+        stmtparam.append(upditem)
+        #try:
+        #    db_exec(dbeng, sql, upditem)
+        #except SQLAlchemyError as e_sqlalchemy:
+        #    if last_stmt_has_errors(e_sqlalchemy, out):
+        #        out["error"]+="-db_del-old-vers"
+        #        out["message"]+=" beim Löschen des alten versionierten Datensatzes"
+        #    log.error("++++++++++ leaving db_del returning %s", str(out))
+        #    return out
+        #except Exception as e:
+        #    if last_stmt_has_errors(e, out):
+        #        out["error"]+="-db_del-old-vers"
+        #        out["message"]+=" beim Löschen des alten versionierten Datensatzes"
+        #    log.error("++++++++++ leaving db_del returning %s", str(out))
+        #    return out
         # neuen datensatz anlegen
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
@@ -1289,8 +1313,11 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         col_list_str=",".join(col_list)
         newsql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
         log.debug("db_del: %s",newsql)
+        stmt.append(newsql)
+        stmtparam.append(newrec)
         try:
-            db_exec(dbeng,newsql,newrec)
+            #db_exec(dbeng,newsql,newrec)
+            db_exec(dbeng,stmt,stmtparam)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_del-vers"
