@@ -152,7 +152,7 @@ else:
     except Exception as e_swagger:
         with_swagger = False
 
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer 
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
@@ -310,6 +310,19 @@ def get_backend_version():
     """
     dbversion=get_dbversion(config.repoengine)
     return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
+
+@api.route(api_root+'/loglevel/<loglevel>', methods=['GET'])
+def set_log_level(loglevel):
+    """
+    set log level log.setLevel(
+    """
+    if loglevel=="INFO":
+      log.setLevel(logging.INFO)
+      log.info("LogLevel INFO enabled")
+    if loglevel=="DEBUG":
+      log.setLevel(logging.DEBUG)
+      log.info("LogLevel DEBUG enabled")
+    return 'set log level', 200
 
 
 @api.route(api_root+'/email', methods=['POST'])
@@ -668,37 +681,10 @@ def get_all_items(tokdata,db,tab):
     if dbengine is None:
         return jsonify(nodb_msg),500
     out={}
-    is_versioned=False
-    myfilter=None
-    # check options
-    if len(request.args) > 0:
-        for key, value in request.args.items():
-            log.debug("arg: %s val: %s",key,value)
-            if key=="v":
-                is_versioned=True
-                log.debug("versions enabled")
-            if key=="q":
-                myfilter = value
-            if key=="filter":
-                myfilter = {}
-                slist=value.split(",")
-                for s in slist:
-                    if ":" in s:
-                        p=s.split(":")
-                        v=urlsafe_decode_params(p[1])
-                        myfilter[p[0]]=(":",v)
-                    elif "~" in s:
-                        p=s.split("~")
-                        v=urlsafe_decode_params(p[1])
-                        myfilter[p[0]]=("~",v)
-                    elif "!" in s:
-                        p=s.split("!")
-                        v=urlsafe_decode_params(p[1])
-                        myfilter[p[0]]=("!",v)
-                    else:
-                        out["error"]="invalid-filter-format"
-                        out["message"]=" Ungültige Filterbedingung"
-                        return jsonify(out),500
+    is_versioned = True if request.args.get('v') is not None else False
+    myfilter, out = parse_filter(request.args.get('q'),request.args.get('filter'), out)
+    if "error" in out.keys():
+        return jsonify(out), 500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -1606,6 +1592,30 @@ def get_all_repos(tokdata,tab):
         type: string
         required: true
         description: name of the repository table
+      - name: q
+        in: query
+        type: string
+        description: filter condition over all columns. if separated by blanks conditions will be connected with AND over all columns
+      - name: filter
+        in: query
+        type: string
+        description: a comma separated list of filter condition in the form column:value to search in individual columns. "~" instead of ":" means LIKE %value%, "!" means not equal
+      - name: offset
+        in: query
+        type: integer
+        description: start with row <offset> (for pagination)
+      - name: limit
+        in: query
+        type: integer
+        description: maximum number of rows to return  (for pagination)
+      - name: order_by
+        in: query
+        type: string
+        description: order by clause
+      - name: customsql
+        in: query
+        type: string
+        description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename, bei "!" not equal
     responses:
       200:
         description: Successful operation
@@ -1618,8 +1628,10 @@ def get_all_repos(tokdata,tab):
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
+    myfilter, out = parse_filter(request.args.get('q'),request.args.get('filter'), out)
+    if "error" in out.keys():
+        return jsonify(out), 500
     offset = request.args.get('offset')
-    myfilter = request.args.get('filter')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')

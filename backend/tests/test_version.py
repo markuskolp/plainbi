@@ -23,13 +23,13 @@ from plainbi_backend.db import db_connect, get_db_type
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
-"""
+##"""
 fh = logging.FileHandler("test_version.log")
 fh_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(fh_formatter)
 fh.setLevel(logging.DEBUG)
 log.addHandler(fh)
-"""
+##"""
 
 home_directory = os.path.expanduser( '~' )
 sys.path.append(home_directory+'/plainbi/backend')
@@ -234,6 +234,18 @@ def test_000_version(test_client):
     response = test_client.get(test_url)
     assert response.status_code == 200
     assert b"0.9" in response.data
+
+def test_001_loglevel_debug(test_client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the '/' page is requested (GET)
+    THEN check that the response is valid
+    """
+    log.info('TEST: %s',func_name())
+    test_url='/api/loglevel/DEBUG'
+    format_url("get",test_url, testname=func_name())
+    response = test_client.get(test_url)
+    assert response.status_code == 200
 
 
 ##############################################################
@@ -1387,7 +1399,7 @@ def test_4101_repo_get_apps_filter(test_client):
     """
     global headers
     log.info('TEST: %s',func_name())
-    test_url='/api/repo/application?filter=testapp'
+    test_url='/api/repo/application?q=testapp'
     format_url("get", test_url, testname=func_name())
     response = test_client.get(test_url, headers=headers)
     json_out = response.get_json()

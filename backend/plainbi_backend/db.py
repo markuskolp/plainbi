@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params
+from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause
 #import bcrypt
 from threading import Lock
 
@@ -87,9 +87,9 @@ repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource
 config.conn={}
 
    
-def db_exec(engine,sql,params=None):
+def db_exec(engine, sql, params=None, begin_transaction : bool = False, do_commit : bool = True ):
     dbgindent="    "
-    log.debug(dbgindent+"++++++++++ entering db_exec")
+    log.debug(dbgindent+"++++++++++ entering db_exec "+sql[:25]+" ...")
     #log.debug(dbgindent+"db_exec: param sql is <%s>",str(sql))
     #log.debug(dbgindent+"db_exec: params is <%s>",str(params))
     #
@@ -117,6 +117,11 @@ def db_exec(engine,sql,params=None):
             log.debug(dbgindent+"db_exec: open connection")
             config.conn[engine.url] = engine.connect()
         log.debug(dbgindent+"db_exec: execute")
+
+        #if begin_transaction:
+        #    if dbtyp=="mssql":
+        #        config.conn[engine.url].execute(sqlalchemy.text("begin transaction"))
+        #        log.debug(dbgindent+"db_exec: begin mssql transaction")
     
         if sql.lower().strip().startswith("select"):
             log.debug(dbgindent+"db_exec: sql is a select statement")
@@ -127,14 +132,19 @@ def db_exec(engine,sql,params=None):
                 params=urlsafe_decode_params(params)
                 # exec in database
                 res=config.conn[engine.url].execute(mysql,params)
+                log.debug(dbgindent+"db_exec: sql=%s params=%s",mysql,params)
             else:
                 res=config.conn[engine.url].execute(mysql)
+                log.debug(dbgindent+"db_exec: sql=%s",mysql)
             if int(sqlalchemy.__version__[:1])>1:  # sqlalchemy 2
                 if not is_select:
-                    config.conn[engine.url].commit()
-                    log.debug(dbgindent+"db_exec: committed")
+                    #if do_commit:
+                        config.conn[engine.url].commit()
+                        log.debug(dbgindent+"db_exec: committed")
+                    #else:
+                    #    log.debug(dbgindent+"db_exec: not committed due to do_commit parameter")
             else:
-                log.debug(dbgindent+"db_exec: not committed")
+                log.debug(dbgindent+"db_exec: not committed - pre sqlalchemy 2")
         except Exception as e:
             log.error(dbgindent+"db_exec ERROR: %s",str(e))
             log.error(dbgindent+"db_exec ERROR: SQL is %s",str(sql))
@@ -952,8 +962,10 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         log.warning("db_ins: implicit pk first column")
     s=None
     # check hash columns
+    log.debug("db_ins: check hash columns")
     if is_repo: check_hash_columns(tab,myitem)
     #                    
+    log.debug("db_ins: after check hash columns")
     if is_versioned:
         log.debug("db_ins: versioned mode" )
         ts=get_current_timestamp(dbeng)
@@ -1029,7 +1041,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                 dsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
                 log.debug("db_ins: terminate rec sql %s",dsql)
                 try:
-                    db_exec(dbeng,dsql,delitem)
+                    db_exec(dbeng, dsql, delitem, begin_transaction=True, do_commit=False) # versioned column
                     log.debug("dbins: deleted record terminated")
                 except SQLAlchemyError as e_sqlalchemy:
                     log.error("sqlalchemy deleted record terminated; %s",str(e_sqlalchemy))
@@ -1123,7 +1135,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         updsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
         log.debug("db_upd newrec sql: %s", updsql)
         try:
-            db_exec(dbeng, updsql, upditem)
+            db_exec(dbeng, updsql, upditem, begin_transaction=True, do_commit=False)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_upd-old-vers"
@@ -1199,30 +1211,6 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
     log.debug("++++++++++ leaving db_upd returning %s", str(out))
     return out
 
-def db_passwd(dbeng,u,p):
-    log.debug("++++++++++ entering db_passwd")
-    log.debug("db_passwd: param u is <%s>",str(u))
-    log.debug("db_passwd: param p (hashed) is <%s>",str(p))
-    out={}
-    sql="UPDATE plainbi_user SET password_hash=:password_hash WHERE username=:username"
-    try:
-        db_exec(dbeng,sql,{ "password_hash":p,"username":u})
-    except SQLAlchemyError as e_sqlalchemy:
-        if last_stmt_has_errors(e_sqlalchemy, out):
-            out["error"]+="-db_passwd"
-            out["message"]+=" beim Aktualisieren des Passwortes"
-        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
-        log.error("++++++++++ leaving db_passwd returning %s", str(out))
-        return out
-    except Exception as e:
-        if last_stmt_has_errors(e, out):
-            out["error"]+="-db_passwd"
-            out["message"]+=" beim Aktualisieren des Passwortes"
-        log.error("++++++++++ leaving db_passwd returning %s", str(out))
-        return out
-    return out
-
-
 def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False, user_id=None):
     log.debug("++++++++++ entering db_del")
     log.debug("db_del: param tab is <%s>",str(tab))
@@ -1269,7 +1257,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         log.debug("marker values length is %d",len(upditem))
         sql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
         try:
-            db_exec(dbeng,sql,upditem)
+            db_exec(dbeng, sql, upditem, begin_transaction=True, do_commit=False)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_del-old-vers"
@@ -1411,6 +1399,29 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq=sequenz)
     return x
 
+def db_passwd(dbeng,u,p):
+    log.debug("++++++++++ entering db_passwd")
+    log.debug("db_passwd: param u is <%s>",str(u))
+    log.debug("db_passwd: param p (hashed) is <%s>",str(p))
+    out={}
+    sql="UPDATE plainbi_user SET password_hash=:password_hash WHERE username=:username"
+    try:
+        db_exec(dbeng,sql,{ "password_hash":p,"username":u})
+    except SQLAlchemyError as e_sqlalchemy:
+        if last_stmt_has_errors(e_sqlalchemy, out):
+            out["error"]+="-db_passwd"
+            out["message"]+=" beim Aktualisieren des Passwortes"
+        if "sql" in e_sqlalchemy.__dict__.keys(): out["error_sql"]=e_sqlalchemy.__dict__['sql']
+        log.error("++++++++++ leaving db_passwd returning %s", str(out))
+        return out
+    except Exception as e:
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-db_passwd"
+            out["message"]+=" beim Aktualisieren des Passwortes"
+        log.error("++++++++++ leaving db_passwd returning %s", str(out))
+        return out
+    return out
+
 def db_add_base64(dbeng,id,filep):
     """
     add a base64 encoded file to static_file
@@ -1427,80 +1438,6 @@ def db_add_base64(dbeng,id,filep):
     x=db_upd(dbeng,"plainbi_static_file",int(id),item,pkcols='id',is_versioned=False)
     return x
 
-def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
-    log.debug("++++++++++ calling add_filter_to_where_clause")
-    #log.debug("++++++++++ entering add_filter_to_where_clause")
-    #log.debug("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
-    #log.debug("add_filter_to_where_clause: param tab is <%s>",str(tab))
-    #log.debug("add_filter_to_where_clause: param filter is <%s>",str(filter))
-    #log.debug("add_filter_to_where_clause: param columns is <%s>",str(columns))
-    if dbtyp=="mssql":
-        concat_operator="+"
-    else:
-        concat_operator="||"
-    w = where_clause
-    wparam = {}
-    if w is None: w=""
-    w+="("
-    if isinstance(filter,dict):
-        #filter is per column
-        l_cexp=[]
-        for k,v in filter.items():
-            log.debug("add filter key=%s val=%s",k,v)
-            if isinstance(v,tuple):
-                op, opval = v
-                log.debug("add filter op=%s opval=%s",op,opval)
-                if op == ":":
-                    l_cexp.append("cast("+k+" as varchar) = :"+k)
-                    wparam[k] = opval
-                elif op == "~":
-                    l_cexp.append("cast("+k+" as varchar) like :"+k)
-                    opval2=urlsafe_decode_params(opval)
-                    wparam[k] = "%"+opval2+"%"
-                elif op == "!":
-                    l_cexp.append("cast("+k+" as varchar) != :"+k)
-                    wparam[k] = opval
-                else:
-                    log.warning("invalid tuple %s = opvar %s",k,str(v))
-            else:
-                l_cexp.append("lower(cast(coalesce("+k+",'') as varchar)) like lower('%"+v+"%')")
-        cexp="("+" AND ".join(l_cexp)+")"
-        w+=cexp
-    else:
-        #filter is global fulltext search over all columns
-        filter_tokens=filter.split(" ")
-        cnt=0
-        cnttok=0
-        if True: # method with string concate all columns
-            csep="|#|#|-|"
-            cexp=""
-            for c in columns:
-                lc=c.lower()
-                if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
-                cnt=cnt+1
-                if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
-                cexp+="lower(coalesce(cast("+lc+" as varchar),''))"
-            log.debug("filter cexp:%s",cexp)
-            for i,ftok in enumerate(filter_tokens):
-                lftok=ftok.lower()
-                if i>0:
-                    w+=" AND "
-                w+=cexp+" like lower('%"+lftok+"%')"
-        else:
-            for ftok in filter_tokens:
-                cnttok+=1
-                lftok=ftok.lower()
-                for c in columns:
-                    lc=c.lower()
-                    # do not filter in version columns
-                    if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
-                    cnt=cnt+1
-                    if cnt>1: w+=" or "
-                    w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
-    w+=")"
-    wp=None if len(wparam)==0 else wparam 
-    log.debug("++++++++++ leaving add_filter_to_where_clause with: %s params %s",w,str(wp))
-    return w,wp
 
 
 def add_auth_to_where_clause(tab,where_clause,user_id):

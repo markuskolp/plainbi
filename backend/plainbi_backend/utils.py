@@ -172,12 +172,11 @@ def last_stmt_has_errors(e,out):
     True if there were errors, else False
 
     """
-    log.debug("++++++++++ calling last_stmt_has_errors to check for sql errors")
+    log.debug("++++++++++ check if sql was successful")
     if str(e)=="ok":
-        #log.debug("last_stmt_has_errors: ok is not an error:")
         return False
-    log.debug("last_stmt_has_errors: param e is <%s>",str(e))
-    log.debug("last_stmt_has_errors: param out is <%s>",str(out))
+    #log.debug("check if sql was successful: param e is <%s>",str(e))
+    #log.debug("check if sql was successful: param out is <%s>",str(out))
     if isinstance(e, SQLAlchemyError):
         log.error("last_stmt_has_errors: %s", str(SQLAlchemyError))
         out["error"]="sql-error"
@@ -233,3 +232,113 @@ def pre_jsonify_items_transformer(l):
                                 r[k]= w
                                 r_changed = True
     return l
+
+def parse_filter(p_q :str, p_filter, out) -> str:
+    """
+    this is called before jsonify to handle object printing for example dates and time
+    parameter is a list of dicts (rows,columns)
+
+    p_q if url has param "q"
+    p_filter if url has param "filter"
+    out dict for common output
+    """
+    if isinstance(p_q,str):
+        myfilter=p_q
+    else:
+        if isinstance(p_filter,str):
+            myfilter = {}
+            slist=p_filter.split(",")  # filter conditions in a commma separated list are connected by AND later
+            for s in slist:
+                if ":" in s:
+                    p=s.split(":")
+                    v=urlsafe_decode_params(p[1])
+                    myfilter[p[0]]=(":",v)
+                elif "~" in s:
+                    p=s.split("~")
+                    v=urlsafe_decode_params(p[1])
+                    myfilter[p[0]]=("~",v)
+                elif "!" in s:
+                    p=s.split("!")
+                    v=urlsafe_decode_params(p[1])
+                    myfilter[p[0]]=("!",v)
+                else:
+                    out["error"]="invalid-filter-format"
+                    out["message"]=" Ungültige Filterbedingung"
+        else:
+            myfilter=None
+    return myfilter, out
+
+def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
+    log.debug("++++++++++ calling add_filter_to_where_clause")
+    #log.debug("++++++++++ entering add_filter_to_where_clause")
+    #log.debug("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
+    #log.debug("add_filter_to_where_clause: param tab is <%s>",str(tab))
+    #log.debug("add_filter_to_where_clause: param filter is <%s>",str(filter))
+    #log.debug("add_filter_to_where_clause: param columns is <%s>",str(columns))
+    if dbtyp=="mssql":
+        concat_operator="+"
+    else:
+        concat_operator="||"
+    w = where_clause
+    wparam = {}
+    if w is None: w=""
+    w+="("
+    if isinstance(filter,dict):
+        #filter is per column
+        l_cexp=[]
+        for k,v in filter.items():
+            log.debug("add filter key=%s val=%s",k,v)
+            if isinstance(v,tuple):
+                op, opval = v
+                log.debug("add filter op=%s opval=%s",op,opval)
+                if op == ":":
+                    l_cexp.append("cast("+k+" as varchar) = :"+k)
+                    wparam[k] = opval
+                elif op == "~":
+                    l_cexp.append("cast("+k+" as varchar) like :"+k)
+                    opval2=urlsafe_decode_params(opval)
+                    wparam[k] = "%"+opval2+"%"
+                elif op == "!":
+                    l_cexp.append("cast("+k+" as varchar) != :"+k)
+                    wparam[k] = opval
+                else:
+                    log.warning("invalid tuple %s = opvar %s",k,str(v))
+            else:
+                l_cexp.append("lower(cast(coalesce("+k+",'') as varchar)) like lower('%"+v+"%')")
+        cexp="("+" AND ".join(l_cexp)+")"
+        w+=cexp
+    else:
+        #filter is global fulltext search over all columns
+        filter_tokens=filter.split(" ")
+        cnt=0
+        cnttok=0
+        if True: # method with string concate all columns
+            csep="|#|#|-|"
+            cexp=""
+            for c in columns:
+                lc=c.lower()
+                if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
+                cnt=cnt+1
+                if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
+                cexp+="lower(coalesce(cast("+lc+" as varchar),''))"
+            log.debug("filter cexp:%s",cexp)
+            for i,ftok in enumerate(filter_tokens):
+                lftok=ftok.lower()
+                if i>0:
+                    w+=" AND "
+                w+=cexp+" like lower('%"+lftok+"%')"
+        else:
+            for ftok in filter_tokens:
+                cnttok+=1
+                lftok=ftok.lower()
+                for c in columns:
+                    lc=c.lower()
+                    # do not filter in version columns
+                    if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
+                    cnt=cnt+1
+                    if cnt>1: w+=" or "
+                    w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
+    w+=")"
+    wp=None if len(wparam)==0 else wparam 
+    log.debug("++++++++++ leaving add_filter_to_where_clause with: %s params %s",w,str(wp))
+    return w,wp
