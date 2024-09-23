@@ -474,7 +474,7 @@ def distinctvalues(tokdata,db,tabnam,colnam):
             log.exception(ej2)
             json_out2 = "jsonify error"
         return json_out2,500
-    out["data"]=pre_jsonify_items_transformer(items)
+    out["data"]=[d[colnam] for d in pre_jsonify_items_transformer(items)]
     out["columns"]=columns
     out["total_count"]=len(items)
     log.debug("leaving distinctvalues and return json result")
