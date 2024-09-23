@@ -442,20 +442,25 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   );
 
   const getLookupDataAll = () => {
-    Promise.all(lookups.map(getLookupData)).then( (data) => {
-      console.log("data length: " + data.length);
-      //console.log("data: " + JSON.stringify(data));
-      /*
-      var tmpArray = [];
-      for(var i = 0; i< data.length; i++) {
-        const resData = data[i];
-        console.log("resData: " + JSON.stringify(resData));
-        tmpArray.push(resData);
-      }
-      console.log("tmpArray: " + JSON.stringify(tmpArray));
-      */
-      setLookupData(data);
-    });
+    try {
+      Promise.all(lookups.map(getLookupData)).then( (data) => {
+        console.log("data length: " + data.length);
+        //console.log("data: " + JSON.stringify(data));
+        /*
+        var tmpArray = [];
+        for(var i = 0; i< data.length; i++) {
+          const resData = data[i];
+          console.log("resData: " + JSON.stringify(resData));
+          tmpArray.push(resData);
+        }
+        console.log("tmpArray: " + JSON.stringify(tmpArray));
+        */
+        setLookupData(data);
+      });
+    } catch(error) {
+      console.log("error in getLookupDataAll");
+      message.error('Es gab einen Fehler beim Laden der Lookup Werte.');
+    }
   }
 
 

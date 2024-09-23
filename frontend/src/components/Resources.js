@@ -244,7 +244,7 @@ const resetGroupID = (e) => {
                 <Flex gap="middle"  wrap>
                   {groups && groups.map((group) => {
                     return (
-                        <Link onClick={(e) => { handleGroupChange(group.id, group.name, e); }}>
+                        <Link key={group.id} onClick={(e) => { handleGroupChange(group.id, group.name, e); }}>
                           <Card
                             style={{ maxWidth: 300, minWidth: 300 }}
                             bordered={true}

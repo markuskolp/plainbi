@@ -1,13 +1,14 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Button, Typography, Card, Col, Row, message, Flex } from "antd";
+import { Button, Typography, Card, Col, Row, message, Flex, Avatar } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import {
   EditOutlined,
   DeleteOutlined,
   SaveOutlined,
-  PlusOutlined
+  PlusOutlined,
+  AppstoreOutlined
 } from "@ant-design/icons";
 import LoadingMessage from "../components/LoadingMessage";
 const { Meta } = Card;
@@ -83,15 +84,22 @@ const Apps = (props) => {
           <Flex gap="middle"  wrap>            
             {apps && apps.map((app) => {
               return (
-                  <Link href={"/apps/"+app.alias}> 
+                  <Link key={app.alias} href={"/apps/"+app.alias}> 
                     <Card
-                      style={{ maxWidth: 300, minWidth: 300, marginTop: 16 }}
-                      bodyStyle={{ display: "none" }}
-                      type="inner"
+                      style={{ maxWidth: 300, minWidth: 300 }}
                       bordered={true}
                       hoverable={true}
-                      title={app.name}
-                    />
+                      >
+                        <Card.Meta
+                              avatar={ 
+                                <Avatar 
+                                  icon={<AppstoreOutlined />} 
+                                  style={{backgroundColor: '#fff', color: '#000', marginTop: '-5px' }}
+                                />
+                              }
+                        title={app.name}
+                      />
+                    </Card>
                   </Link>
               )
               })

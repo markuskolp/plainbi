@@ -5,7 +5,7 @@ const LoadingMessage = () => {
   return (
     <React.Fragment>
       <Space>
-        <Spin size="small">
+        <Spin key="spin" size="small">
           <div className="content" />
         </Spin>
       </Space>
