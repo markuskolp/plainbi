@@ -78,6 +78,10 @@
     ~~show_breadcrumb":"true", "parent_page": {"alias":"testlaeufe","name":"Testläufe"},~~
 ~~- page.hide_in_navigation~~
 
+- Default Sortierung für Pages (z.B. absteigend nach Feld x)
+
+- Datensatz per URL aufrufen (d.h. gleich im Editiermodus / Modal) -> bisher nur Seitenfilterung per URL
+
 - Code komplett überarbeiten, formatieren, schöner schreiben, etc.
 
 - Webapplikation auf Security challengen
