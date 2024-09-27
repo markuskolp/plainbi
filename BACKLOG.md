@@ -4,8 +4,8 @@
 
 - Backend Logging prüfen (Passwörter, etc.) und reduzieren (Daten von Resultset, etc.) bzw. aussagekräftiger
 - plainbi_user 
-	- Passwortfeld: NULL reinschreiben anstatt X beim gehashten Passwortfeld bei lokalen Usern
-	- mit NULL (leerem Passwort) darf man sich aber nicht anmelden können
+	- ~~Passwortfeld: NULL reinschreiben anstatt X beim gehashten Passwortfeld bei lokalen Usern~~
+	- ~~mit NULL (leerem Passwort) darf man sich aber nicht anmelden können~~
 - plainbi_datasource
 	- db_type enthält jdbc-url inkl. PWs !
 - ~~Login~~
@@ -27,14 +27,13 @@
 	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
 - eindeutige Spaltenwerte einer Tabelle (damit man diese als Spaltenfilter anzeigen könnte)
 	/api/distinctvalues/{db}/{tab}/{col}
-- TV-Version wird geschlossen  bei Fehlern , aber sollte bleiben
-	Wir haben auch ein Fall, dass beim Editieren ein Fehler auftritt z.B. weil ein NOT NULL Feld nicht gefüllt wurde.
-	Das passt grundsätzlich, aber die TV-Version hängt dann „in der Luft“.
-
-	Vermutlich weil du zuerst das Update auf die TV machst und das invalid setzt.
-	Danach dann das Insert, welches dann fehlschlägt.
-	Kann das irgendwie in 1 Transaktion erfolgen ?
-	Oder umgedreht ?
+- ~~TV-Version wird geschlossen  bei Fehlern , aber sollte bleiben~~
+	~~Wir haben auch ein Fall, dass beim Editieren ein Fehler auftritt z.B. weil ein NOT NULL Feld nicht gefüllt wurde.~~
+	~~Das passt grundsätzlich, aber die TV-Version hängt dann „in der Luft“.~~
+	~~Vermutlich weil du zuerst das Update auf die TV machst und das invalid setzt.~~
+	~~Danach dann das Insert, welches dann fehlschlägt.~~
+	~~Kann das irgendwie in 1 Transaktion erfolgen ?~~
+	~~Oder umgedreht ?~~
 
 
 ## Frontend
