@@ -167,6 +167,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
             onCancel={handleCancel}
             centered
             width="80vw"
+            maskClosable={false}
             style={{
               maxWidth:"1500px"
             }}

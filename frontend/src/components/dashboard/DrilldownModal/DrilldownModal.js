@@ -30,6 +30,7 @@ export function DrilldownModal({ query, open, onClose, pivotConfig }) {
       afterClose={onClose}
       centered
       width="80vw"
+      maskClosable={false}
       //style={modalStyle}
       style={{
         maxWidth:"1500px"

@@ -37,6 +37,7 @@ const TableModal = ({ modalName, tableColumns, tableData, handleClose }) => {
             onCancel={handleClose} // handleCancel
             centered
             width="80vw"
+            maskClosable={false}
             style={{
               maxWidth:"1500px"
             }}
