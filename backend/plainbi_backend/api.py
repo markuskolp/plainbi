@@ -2155,26 +2155,26 @@ def get_adhoc_data(tokdata,id):
         if order_by_def is not None:
             log.debug("get_adhoc_data: apply default order by")
             adhoc_sql+=" "+order_by_def.replace(":"," ")
-    # execute adhoc sql
-    log.debug("get_adhoc_data: execute adhoc sql")
-    try:
-        items, columns = db_exec(adhoc_dbengine,adhoc_sql)
-    except SQLAlchemyError as e_sqlalchemy:
-        log.error("adhoc_sql_errors: %s", str(e_sqlalchemy))
-        if last_stmt_has_errors(e_sqlalchemy, out):
-            out["error"]+="-get_adhoc_data"
-            out["message"]+=" beim Lesen der Adhoc Daten"
-        return jsonify(out), 500
-    except Exception as e:
-        log.error("get_adhoc_data exception: %s ",str(e))
-        if last_stmt_has_errors(e, out):
-            out["error"]+="-get_adhoc_data"
-            out["message"]+=" beim Lesen der Adhoc Daten"
-        return jsonify(out), 500
     #
     # handle formats
     log.debug("get_adhoc_data: fmt= %s",fmt)
     if fmt=="JSON":
+        # execute adhoc sql
+        log.debug("get_adhoc_data: execute adhoc sql")
+        try:
+            items, columns = db_exec(adhoc_dbengine,adhoc_sql)
+        except SQLAlchemyError as e_sqlalchemy:
+            log.error("adhoc_sql_errors: %s", str(e_sqlalchemy))
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-get_adhoc_data"
+                out["message"]+=" beim Lesen der Adhoc Daten"
+            return jsonify(out), 500
+        except Exception as e:
+            log.error("get_adhoc_data exception: %s ",str(e))
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-get_adhoc_data"
+                out["message"]+=" beim Lesen der Adhoc Daten"
+            return jsonify(out), 500
         log.debug("get_adhoc_data: fmt JSON")
         if not isinstance(items,list):
             return "adhoc json result error",500
@@ -2185,178 +2185,185 @@ def get_adhoc_data(tokdata,id):
         return jsonify(out)
     else:
         log.debug("get_adhoc_data: other formats")
+        # read data with pandas
+        try:
+            log.debug("adhoc_dbengine %s",str(adhoc_dbengine))
+            with adhoc_dbengine.connect() as conn:
+                log.debug("adhoc_dbengine querying")
+                df = pd.read_sql_query(adhoc_sql,conn)
+                log.debug("adhoc_dbengine query done")
+        except SQLAlchemyError as e_sqlalchemy:
+            log.error("adhoc_sql_errors(pd): %s", str(e_sqlalchemy))
+            if last_stmt_has_errors(e_sqlalchemy, out):
+                out["error"]+="-get_adhoc_data(pd)"
+                out["message"]+=" beim Lesen der Adhoc Daten"
+            return jsonify(out), 500
+        except Exception as e:
+            log.error("get_adhoc_data exception(pd): %s ",str(e))
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-get_adhoc_data(pd)"
+                out["message"]+=" beim Lesen der Adhoc Daten"
+            return jsonify(out), 500
+
         #log.debug("get_adhoc_data: items=%s",str(items))
-        if isinstance(items,list):
-            if len(items)==0:
-                out["error"]="adhoc-no-rows"
-                out["message"]="Die Adhoc Abfrage liefert keine Daten"
-                out["detail"]=None
-                log.debug("get_adhoc_data: no rows result")
-                return jsonify(out),500
-            else:
-                try:
-                    df = pd.DataFrame(items, columns=columns)
-                except Exception as e:
-                    log.error("get_adhoc_data df exception: %s ",str(e))
-                    out["error"]="get-adhoc-data-df"
-                    out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (DF)"
-                    out["detail"]=str(e)
-                    log.exception(e)
-                    return jsonify(out), 500
-                try:
-                    # Save the DataFrame to an Excel file
-                    if fmt=="XLSX":
-                        log.debug("get_adhoc_data: XLSX format")
-                        log.debug("adhoc excel")
-                        tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.xlsx')
-                        datasheet_name="daten"
-                        infosheet_name="info"
-                        try:
-                            output = pd.ExcelWriter(tmpfile)
-                            fmt_xl.header_style = None
-                            #pd.formats.format.header_style = None
-                            log.debug("get_adhoc_data: df to excel")
-                            df.to_excel(output, index=False, sheet_name=datasheet_name)
-                            output.close()
-                        except Exception as e0:
-                            log.error("get_adhoc_data to_excel exception: %s ",str(e0))
-                            out["error"]="get-adhoc-data-toxls"
-                            out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (XLSX)"
-                            out["detail"]=str(e0)
-                            log.error(traceback.format_exc())
-                            log.exception(e0)
-                            return jsonify(out), 500
-                        # add sheet with sql
-                        book = load_workbook(tmpfile)
-                        #autofit columns
-                        log.debug("get_adhoc_data: add autofit volumns")
-                        sheet = book[datasheet_name]
-                        sheet_tab = Table(displayName="daten", ref=sheet.dimensions)
-                        #default font
-                        log.debug("get_adhoc_data: default xls font")
-                        deffont = Font(name='Arial', size=9, bold=False, italic=False)
-                        for row in sheet.iter_rows():
-                            for cell in row:
-                                cell.font = deffont
-                        #header font
-                        log.debug("get_adhoc_data: header xls font")
-                        font = Font(name='Arial', size=9, bold=True, italic=False)
-                        for column in sheet.columns:
-                            max_length = 0
-                            column_letter = column[0].column_letter
-                            for cell in column:
-                                try:
-                                    if len(str(cell.value)) > max_length:
-                                        max_length = len(cell.value)
-                                except:
-                                    pass
-                            adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
-                            sheet.column_dimensions[column_letter].width = adjusted_width
-                            sheet[f'{column_letter}1'].font = font
-                        # Iterate over each column and set the filter
-                        #sheet.auto_filter.ref = sheet.dimensions
-                        sheet.add_table(sheet_tab)
-                        #for col_num in range(1, sheet.max_column + 1):
-                        #    column_letter = get_column_letter(col_num)
-                        #    column_range = f'{column_letter}1:{column_letter}{sheet.max_row}'
-                        #    sheet.auto_filter.ref = column_range
-                        # Create a new sheet "info"
-                        log.debug("get_adhoc_data: add info sheet")
-                        book.create_sheet(title=infosheet_name)
-                        new_sheet = book[infosheet_name]
-                        new_sheet['A1'] = "erstellt am:"
-                        new_sheet['A2'] = "adhoc:"
-                        new_sheet['A3'] = "description:"
-                        new_sheet['B1'] = str(datetime.now())
-                        new_sheet['B2'] = id
-                        new_sheet['B3'] = adhoc_desc
-                        # set info field fonts also to Airal 9
-                        for f in ['A1','A2','A3','B1','B2','B3']:
-                            new_sheet[f].font = font
-                        #autofit columns
-                        for column in new_sheet.columns:
-                            max_length = 0
-                            column_letter = column[0].column_letter
-                            for cell in column:
-                                try:
-                                    if len(str(cell.value)) > max_length:
-                                        max_length = len(cell.value)
-                                except:
-                                    pass
-                            adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
-                            new_sheet.column_dimensions[column_letter].width = adjusted_width                    
-                        # new sql sheet
-                        log.debug("get_adhoc_data: add sql sheet")
-                        book.create_sheet(title="sql")
-                        sql_sheet = book["sql"]
-                        sql_sheet.sheet_state = 'hidden'
-                        sql_sheet['A1'] = "sql:"
-                        sql_sheet['A2'] = adhoc_sql
-    
-                        book.save(tmpfile)                    
-                        log.debug("get_adhoc_data: xlsx saved")
-                        # Return the Excel file as a download
-                        with open(tmpfile, 'rb') as file:
-                            response = Response(
-                                file.read(),
-                                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
-                            )
-                            log.debug("get_adhoc_data: return response")
-                            log.debug(response)
-                            return response
-                    elif fmt=="CSV":
-                        log.debug("adhoc csv")
-                        tmpfile='mydata.csv'
-                        # Prepare the CSV file
-                        try:
-                            df.to_csv(tmpfile, index=False)
-                        except Exception as e0:
-                            log.error("get_adhoc_data to_csv exception: %s ",str(e0))
-                            out["error"]="get-adhoc-data-tocsv"
-                            out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (CSV)"
-                            out["detail"]=str(e0)
-                            log.error(traceback.format_exc())
-                            log.exception(e0)
-                            return jsonify(out), 500
-                        # Return the Excel file as a download
-                        with open(tmpfile, 'rb') as file:
-                            response = Response(
-                                file.read(),
-                                mimetype='text/csv',
-                                headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                            )
-                            log.debug(response)
-                            return response
-                    elif fmt=="TXT":
-                        log.debug("adhoc txt separated with tabs")
-                        tmpfile='mydata.csv'
-                        # Prepare the CSV file
-                        df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
-                        # Return the Excel file as a download
-                        with open(tmpfile, 'rb') as file:
-                            response = Response(
-                                file.read(),
-                                mimetype='text/csv',
-                                headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
-                            )
-                            log.debug(response)
-                            return response
-                    else: 
-                        out["error"]="adhoc-invalid-format"
-                        out["message"]="Das Format des Adhocs muss XLSX/CSV/TXT/JSON sein"
-                        out["detail"]=None
-                        return jsonify(out), 500
-                except Exception as e:
-                    log.error("get_adhoc_data exception: %s ",str(e))
-                    out["error"]="get-adhoc-data-fai"
-                    out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download"
-                    out["detail"]=str(e)
-                    return jsonify(out), 500
-        else:
-            out["error"]="get_adhoc_data exception_not-a-list"
-            out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (keine Liste)"
+        log.debug("adhoc_dbengine got pandas dataframe")
+        if len(df)==0:
+            out["error"]="adhoc-no-rows"
+            out["message"]="Die Adhoc Abfrage liefert keine Daten"
+            out["detail"]=None
+            log.debug("get_adhoc_data: no rows result")
             return jsonify(out),500
+        else:
+            try:
+                # Save the DataFrame to an Excel file
+                if fmt=="XLSX":
+                    log.debug("get_adhoc_data: XLSX format")
+                    log.debug("adhoc excel")
+                    tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.xlsx')
+                    datasheet_name="daten"
+                    infosheet_name="info"
+                    try:
+                        output = pd.ExcelWriter(tmpfile)
+                        fmt_xl.header_style = None
+                        #pd.formats.format.header_style = None
+                        log.debug("get_adhoc_data: df to excel")
+                        df.to_excel(output, index=False, sheet_name=datasheet_name)
+                        output.close()
+                    except Exception as e0:
+                        log.error("get_adhoc_data to_excel exception: %s ",str(e0))
+                        out["error"]="get-adhoc-data-toxls"
+                        out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (XLSX)"
+                        out["detail"]=str(e0)
+                        log.error(traceback.format_exc())
+                        log.exception(e0)
+                        return jsonify(out), 500
+                    # add sheet with sql
+                    book = load_workbook(tmpfile)
+                    #autofit columns
+                    log.debug("get_adhoc_data: add autofit volumns")
+                    sheet = book[datasheet_name]
+                    sheet_tab = Table(displayName="daten", ref=sheet.dimensions)
+                    #default font
+                    log.debug("get_adhoc_data: default xls font")
+                    deffont = Font(name='Arial', size=9, bold=False, italic=False)
+                    for row in sheet.iter_rows():
+                        for cell in row:
+                            cell.font = deffont
+                    #header font
+                    log.debug("get_adhoc_data: header xls font")
+                    font = Font(name='Arial', size=9, bold=True, italic=False)
+                    for column in sheet.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(cell.value)
+                            except:
+                                pass
+                        adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
+                        sheet.column_dimensions[column_letter].width = adjusted_width
+                        sheet[f'{column_letter}1'].font = font
+                    # Iterate over each column and set the filter
+                    #sheet.auto_filter.ref = sheet.dimensions
+                    sheet.add_table(sheet_tab)
+                    #for col_num in range(1, sheet.max_column + 1):
+                    #    column_letter = get_column_letter(col_num)
+                    #    column_range = f'{column_letter}1:{column_letter}{sheet.max_row}'
+                    #    sheet.auto_filter.ref = column_range
+                    # Create a new sheet "info"
+                    log.debug("get_adhoc_data: add info sheet")
+                    book.create_sheet(title=infosheet_name)
+                    new_sheet = book[infosheet_name]
+                    new_sheet['A1'] = "erstellt am:"
+                    new_sheet['A2'] = "adhoc:"
+                    new_sheet['A3'] = "description:"
+                    new_sheet['B1'] = str(datetime.now())
+                    new_sheet['B2'] = id
+                    new_sheet['B3'] = adhoc_desc
+                    # set info field fonts also to Airal 9
+                    for f in ['A1','A2','A3','B1','B2','B3']:
+                        new_sheet[f].font = font
+                    #autofit columns
+                    for column in new_sheet.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(cell.value)
+                            except:
+                                pass
+                        adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
+                        new_sheet.column_dimensions[column_letter].width = adjusted_width                    
+                    # new sql sheet
+                    log.debug("get_adhoc_data: add sql sheet")
+                    book.create_sheet(title="sql")
+                    sql_sheet = book["sql"]
+                    sql_sheet.sheet_state = 'hidden'
+                    sql_sheet['A1'] = "sql:"
+                    sql_sheet['A2'] = adhoc_sql
+
+                    book.save(tmpfile)                    
+                    log.debug("get_adhoc_data: xlsx saved")
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
+                        )
+                        log.debug("get_adhoc_data: return response")
+                        log.debug(response)
+                        return response
+                elif fmt=="CSV":
+                    log.debug("adhoc csv")
+                    tmpfile='mydata.csv'
+                    # Prepare the CSV file
+                    try:
+                        df.to_csv(tmpfile, index=False)
+                    except Exception as e0:
+                        log.error("get_adhoc_data to_csv exception: %s ",str(e0))
+                        out["error"]="get-adhoc-data-tocsv"
+                        out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (CSV)"
+                        out["detail"]=str(e0)
+                        log.error(traceback.format_exc())
+                        log.exception(e0)
+                        return jsonify(out), 500
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='text/csv',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                        )
+                        log.debug(response)
+                        return response
+                elif fmt=="TXT":
+                    log.debug("adhoc txt separated with tabs")
+                    tmpfile='mydata.csv'
+                    # Prepare the CSV file
+                    df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
+                    # Return the Excel file as a download
+                    with open(tmpfile, 'rb') as file:
+                        response = Response(
+                            file.read(),
+                            mimetype='text/csv',
+                            headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                        )
+                        log.debug(response)
+                        return response
+                else: 
+                    out["error"]="adhoc-invalid-format"
+                    out["message"]="Das Format des Adhocs muss XLSX/CSV/TXT/JSON sein"
+                    out["detail"]=None
+                    return jsonify(out), 500
+            except Exception as e:
+                log.error("get_adhoc_data exception: %s ",str(e))
+                out["error"]="get-adhoc-data-fai"
+                out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download"
+                out["detail"]=str(e)
+                return jsonify(out), 500
     out["error"]="get_adhoc_data-should-not-occur"
     out["message"] = "adhoc error that should not happen"
     return jsonify(out), 500
