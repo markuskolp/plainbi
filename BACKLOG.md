@@ -38,8 +38,12 @@
 
 ## Frontend
 
+asap
 
 - **Problem mit Lookup bei Anlage von Lookups (datasource_id wird nicht gefüllt) oder bei Adhoc (Anforderer Lookup geht nicht)**
+- **default sort order** bei Adhoc geht nicht - führt zu einem Fehler (siehe auch oben bei Backend)
+- wenn man direkt auf ein Adhoc per URL geht und die Session abgelaufen ist, kommt nur ein Adhocfehler -> er sollte eigentlich auf die Loginseite springen mit Fehlerhinweis "Session abgelaufen"
+
 ~~- Globale Einstellungen/Logos noch nicht ausgerollt bei MM -> build und deploy?~~
 - plainbi_static_files: base64 UI Element besser machen (siehe todos in CRUDFormItem.js)
 - datasource bei Pages rausnehmen in Init-Skripten + MM DEV/TEST/PROD (Applikations-Spezifikationen durchsuchen)
