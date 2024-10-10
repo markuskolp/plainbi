@@ -8,12 +8,14 @@ import base64
 import os
 from plainbi_backend.config import config
 import logging
+import inspect
+
 #log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause
+from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn
 #import bcrypt
 from threading import Lock
 
@@ -88,33 +90,32 @@ config.conn={}
 
    
 def db_exec(engine, sql, params=None):
-    dbgindent="    "
-    log.debug(dbgindent+"++++++++++ entering db_exec "+str(sql)[:25]+" ...")
-    #log.debug(dbgindent+"db_exec: param sql is <%s>",str(sql))
-    #log.debug(dbgindent+"db_exec: params is <%s>",str(params))
+    dbg(f"+++ entering {inspect.currentframe().f_code.co_name} "+str(sql)[:50]+" ...")
+    dbg("sql is <%s>",str(sql),dbglevel=2)
+    dbg("sql params are <%s>",str(params),dbglevel=3)
     #
     is_select=False
     if not engine.url in config.conn.keys():
         config.conn[engine.url]=None
     if params is not None:
         if not (isinstance(params, dict) or isinstance(params, list)):
-            log.warning(dbgindent+"db_exec called with params WITHOUT dict or list of dict")
+            warn("called with params WITHOUT dict or list of dict")
     dbtyp=get_db_type(engine)
     # using the flask server with wgsi requires sequential access to the sqlite repo
     with config.database_lock:
-        log.debug(dbgindent+"db_exec: check connection")
+        dbg("check connection")
         if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
-            log.debug(dbgindent+"db_exec: connect")
+            dbg("connect")
             try:
                 config.conn[engine.url] = engine.connect()
             except Exception as e_connect:
-                log.error("cannot connect to database: %s",str(e_connect))
+                err("cannot connect to database: %s",str(e_connect))
                 log.exception(e_connect)
                 raise e_connect
         if config.conn[engine.url].closed:
-            log.debug(dbgindent+"db_exec: open connection")
+            dbg("open connection")
             config.conn[engine.url] = engine.connect()
-        log.debug(dbgindent+"db_exec: execute")
+        dbg("execute")
         dml_anz=0
         if not isinstance(sql,list):
             stmts=[(sql,params)]
@@ -124,12 +125,12 @@ def db_exec(engine, sql, params=None):
                stmts.append((sql[i],params[i]))
         stmt_anz=len(stmts)
         for stmt_nr,stmt in enumerate(stmts):
-            log.debug("sql entry tuple %d/%d %s",stmt_nr,stmt_anz,str(stmt)[:25]+" ...")
+            dbg("sql entry tuple %d/%d %s",stmt_nr,stmt_anz,str(stmt)[:25]+" ...")
             mysqltxt=stmt[0]
             mysql=sqlalchemy.text(mysqltxt)
             myparams=stmt[1]
             if mysqltxt.lower().strip().startswith("select") or mysqltxt.lower().strip().startswith("with"):
-                log.debug(dbgindent+"db_exec: sql is a select statement")
+                dbg("sql is a select statement")
                 is_select=True
             else:
                 is_select=False
@@ -140,56 +141,60 @@ def db_exec(engine, sql, params=None):
                     myparams=urlsafe_decode_params(myparams)
                     # exec in database
                     res=config.conn[engine.url].execute(mysql,myparams)
-                    log.debug(dbgindent+"db_exec: sql=%s params=%s",mysql,myparams)
+                    dbg("sql=%s params=%s",mysql,myparams,dbglevel=3)
                 else:
                     res=config.conn[engine.url].execute(mysql)
-                    log.debug(dbgindent+"db_exec: sql=%s",mysql)
+                    dbg("sql=%s",mysql,dbglevel=3)
             except Exception as e:
-                log.error(dbgindent+"db_exec ERROR: %s",str(e))
-                log.error(dbgindent+"db_exec ERROR: SQL is %s",str(mysqltxt))
-                log.error(dbgindent+"db_exec ERROR: params are %s",str(myparams))
+                err("ERROR: %s",str(e))
+                err("ERROR: SQL is %s",str(mysqltxt))
+                err("ERROR: params are %s",str(myparams))
                 if "Can't reconnect until invalid transaction is rolled back.  Please rollback()" in str(e):
-                    log.error(dbgindent+"Try to rollback")
+                    err("Try to rollback")
                     config.conn[engine.url].rollback()
-                    log.error(dbgindent+"Rollback done")
+                    err("Rollback done")
                 if "current transaction is aborted, commands ignored until end of transaction block" in str(e):
-                    log.error(dbgindent+"Try to rollback (postgres transaction aborted)")
+                    err("Try to rollback (postgres transaction aborted)")
                     config.conn[engine.url].rollback()
-                    log.error(dbgindent+"Rollback done (postgres transaction aborted)")
+                    err("Rollback done (postgres transaction aborted)")
                 if dbtyp == "postgres":
-                    log.error(dbgindent+"Try to rollback (postgres transaction)")
+                    err("Try to rollback (postgres transaction)")
                     config.conn[engine.url].rollback()
-                    log.error(dbgindent+"Rollback done (postgres transaction)")
+                    err("Rollback done (postgres transaction)")
                 raise e
             #if not is_select:
             #    config.conn[engine.url].commit()
-            #   log.debug(dbgindent+"db_exec: committed")
+            #   dbg("committed")
             if is_select:
-                log.debug(dbgindent+"db_exec: is a select statement and returns data")
+                dbg("is a select statement and returns data")
                 items = [row._asdict() for row in res]
-                log.debug(dbgindent+"db_exec: anz rows=%d",len(items))
+                dbg("anz rows=%d",len(items))
                 columns = list(res.keys())
         # commit at the end if there was any dml statement
         if dml_anz>0:
             config.conn[engine.url].commit()
-            log.debug(dbgindent+"db_exec: committed")
+            dbg("committed")
         #close connection
         if isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
             if not config.conn[engine.url].closed:
                 config.conn[engine.url].close()
-                log.debug(dbgindent+"db_exec: connection closed")
+                dbg("connection closed")
             else:
-                log.debug(dbgindent+"db_exec: connection is already closed")
+                dbg("connection is already closed")
         else:
-            log.debug(dbgindent+"db_exec: connection is not sqlalchemy connection for closing")
+            dbg("connection is not sqlalchemy connection for closing")
         if is_select:
-            log.debug(dbgindent+"++++++++++ leaving db_exec with data result")
+            dbg("+++ leaving with data result")
             return items, columns
         else:
-            log.debug(dbgindent+"++++++++++ leaving db_exec with dml result status")
+            dbg("+++ leaving with dml result status")
             return res
 
 def get_db_type(dbengine):
+    """
+    get type of database by looking at the sqlalchemy connect string
+    default is mssql
+    """
     if "sqlite" in str(dbengine.url).lower():
         return "sqlite"
     elif "oracle" in str(dbengine.url).lower():
@@ -203,7 +208,7 @@ def db_connect_test(db):
     """
     test if a connection string or connection is working
     """
-    log.debug("  ++++++++++ entering db_connect_test")
+    dbg("  ++++++++++ entering db_connect_test")
     if isinstance(db, str):
         # parameter is a string so we need to connect first
         d=db_connect(db)
@@ -228,11 +233,11 @@ def db_connect_test(db):
     else:
         log.error("db_connect_test did not return test row")
         ok=False
-    log.debug("  ++++++++++ leaving db_connect_test")
+    dbg("  ++++++++++ leaving db_connect_test")
     return ok
 
 def add_offset_limit(dbtyp,offset,limit,order_by):
-    log.debug("++++++++++ entering add_offset_limit")
+    dbg("++++++++++ entering add_offset_limit")
     sql=""
     if dbtyp=="mssql":
         # in Microsoft SQL Server a OFFSET or LIMIT clause requires a ORDER_BY
@@ -268,7 +273,7 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
             sql+=" OFFSET "+offset+" ROWS"
         if limit is not None:
             sql+=" FETCH NEXT "+limit+" ROWS ONLY"
-    log.debug("++++++++++ leaving add_offset_limit with <%s>",sql)
+    dbg("++++++++++ leaving add_offset_limit with <%s>",sql)
     return sql
 
 
@@ -280,7 +285,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
       total_count .. anzahl der rows in der Tabelle (count*)
       msg ... ggf error code sonst "ok"
     """
-    log.debug("++++++++++ entering sql_select")
+    dbg("++++++++++ entering sql_select")
     db_typ = get_db_type(dbengine)
     total_count=None
     my_where_clause=""
@@ -290,7 +295,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     tabalias="x"
     if len(tab.split(" "))==1:          # nur ein wort
         if customsql is not None:
-            log.debug("get_item_raw get custom sql id=%s",customsql)
+            dbg("get_item_raw get custom sql id=%s",customsql)
             csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
             sql=f'SELECT {tabalias}.* FROM ({csql}) {tabalias} '
         else:
@@ -319,19 +324,19 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         else:
             my_where_clause+=" AND "
         my_where_clause, my_where_clause_params = add_filter_to_where_clause(db_typ, tab, my_where_clause, filter, metadata["columns"], is_versioned=versioned )
-        log.debug("my_where_clause:%s",my_where_clause)
-        log.debug("my_where_clause_params:%s",str(my_where_clause_params))
+        dbg("my_where_clause:%s",my_where_clause)
+        dbg("my_where_clause_params:%s",str(my_where_clause_params))
     # check repo rights
     if is_repo and user_id is not None:
         my_where_clause = add_auth_to_where_clause(tab, my_where_clause, user_id)
-        log.debug("sql_select auth added:%s",my_where_clause)
+        dbg("sql_select auth added:%s",my_where_clause)
     # filter
     # now add where clause
     if len(my_where_clause)>0:
         sql+=my_where_clause
     sql_without_orderby_offset_limit=sql
     sql+=add_offset_limit(db_typ,offset,limit,order_by)
-    log.debug("sql_select: %s",sql)
+    dbg("sql_select: %s",sql)
     try:
         items,columns=db_exec(dbengine,sql, my_where_clause_params)
     except SQLAlchemyError as e_sqlalchemy:
@@ -369,9 +374,9 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         log.error("sql_select: --- end information about error above ---")
         return None,None,None,e
     
-    log.debug("sql_select: anz rows=%d",len(items))
+    dbg("sql_select: anz rows=%d",len(items))
     if with_total_count:
-        log.debug("check totalcount")
+        dbg("check totalcount")
         sql_total_count=f'SELECT COUNT(*) AS total_count FROM ({sql_without_orderby_offset_limit}) x'
         item_total_count,columns_total_count=db_exec(dbengine,sql_total_count,my_where_clause_params)
         total_count=(item_total_count[0])['total_count']
@@ -384,114 +389,114 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
     überschreibe die PK spezifikation wenn pk_column_list befüllit ist
     retunrs dict mit keys "pk_columns", "error"
     """
-    log.debug("++++++++++ entering get_metadata_raw")
-    log.debug("get_metadata_raw: param tab is <%s>",str(tab))
-    log.debug("get_metadata_raw: param pk_column_list (override) is <%s>",str(pk_column_list))
-    log.debug("get_metadata_raw: param versioned is <%s>",str(versioned))
+    dbg("++++++++++ entering get_metadata_raw")
+    dbg("get_metadata_raw: param tab is <%s>",str(tab))
+    dbg("get_metadata_raw: param pk_column_list (override) is <%s>",str(pk_column_list))
+    dbg("get_metadata_raw: param versioned is <%s>",str(versioned))
     cache_key=str(dbengine.url)+"||||"+str(tab)+'||||'
     if versioned: cache_key+= "v|||"
-    log.debug("get_metadata_raw: cache key prefix is %s",cache_key)
+    dbg("get_metadata_raw: cache key prefix is %s",cache_key)
     if isinstance(pk_column_list,list):
          cache_key+= ";".join(pk_column_list) if pk_column_list is not None else "-"
     else:
         cache_key+=pk_column_list if pk_column_list is not None else ""
-    log.debug("get_metadata_raw: cache key is %s",cache_key)
+    dbg("get_metadata_raw: cache key is %s",cache_key)
     if config.use_cache:
         if hasattr(config,"metadataraw_cache"):
             if cache_key in config.metadataraw_cache.keys():
-                log.debug("get_metadata_raw: metadataraw_cache hit")
+                dbg("get_metadata_raw: metadataraw_cache hit")
                 return config.metadataraw_cache[cache_key]
         else:
             config.metadataraw_cache={}
-            log.debug("get_metadata_raw: cache created")
+            dbg("get_metadata_raw: cache created")
     out={}
     dbtype=get_db_type(dbengine)
     pkcols=[]
     items = None
     if dbtype == "mssql":
         # for mssql try metadata search
-        log.debug("get_metadata_raw: mssql")
+        dbg("get_metadata_raw: mssql")
         collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query_mssql.replace('<fulltablename>',tab))
-        #log.debug("get_metadata_raw: returned error %s",str(e))
+        #dbg("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_metadata_raw"
             out["message"]+=" beim Lesen der Tabellen Metadaten"
-            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+            dbg("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
-        #log.debug("get_metadata_raw: 1 items=%s",str(items))
+        #dbg("get_metadata_raw: 1 items=%s",str(items))
         if items is not None and len(items)>0:
             # got some metadata
-            log.debug("get_metadata_raw: got some metadata from mssql")
+            dbg("get_metadata_raw: got some metadata from mssql")
             # es gibt etwas in den sqlserver metadaten
             if versioned:
                 pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
             else:
                 pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
-            #log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
-            #log.debug("get_metadata_raw from mssql: columns %s",str(columns))
+            #dbg("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+            #dbg("get_metadata_raw from mssql: columns %s",str(columns))
             collist=[i["column_name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
     elif dbtype == "sqlite":
         # for sqlite try metadata search
-        log.debug("get_metadata_raw-sqlite: sqlite")
+        dbg("get_metadata_raw-sqlite: sqlite")
         collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query_sqlite.replace('<fulltablename>',tab))
-        #log.debug("get_metadata_raw-sqlite: returned %s",str(e))
+        #dbg("get_metadata_raw-sqlite: returned %s",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_metadata_raw"
             out["message"]+=" beim Lesen der Tabellen Metadaten"
-            log.debug("++++++++++ leaving get_metadata_raw-sqlite returning for %s data %s",tab,out)
+            dbg("++++++++++ leaving get_metadata_raw-sqlite returning for %s data %s",tab,out)
             return out
         #    
-        #log.debug("get_metadata_raw-sqlite: 1 items=%s",str(items))
+        #dbg("get_metadata_raw-sqlite: 1 items=%s",str(items))
         if items is not None and len(items)>0:
             # got some metadata
-            log.debug("get_metadata_raw-sqlite: got some metadata from sqlite")
+            dbg("get_metadata_raw-sqlite: got some metadata from sqlite")
             # es gibt etwas in den sqlserver metadaten
             if versioned:
                 pkcols=[i["name"] for i in items if i["pk"]==1 and i["name"] != "invalid_from_dt"]
             else:
                 pkcols=[i["name"] for i in items if i["pk"]==1]
-            #log.debug("get_metadata_raw from sqlite: pkcols %s",str(pkcols))
-            #log.debug("get_metadata_raw from sqlite: columns %s",str(columns))
+            #dbg("get_metadata_raw from sqlite: pkcols %s",str(pkcols))
+            #dbg("get_metadata_raw from sqlite: columns %s",str(columns))
             collist=[i["name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
     elif dbtype == "postgres":
         # for postgres try metadata search
-        log.debug("get_metadata_raw: postgres")
+        dbg("get_metadata_raw: postgres")
         collist=[]
         items,columns,total_count,e=sql_select(dbengine,metadata_col_query_postgres.replace('<fulltablename>',tab))
-        #log.debug("get_metadata_raw: returned error %s",str(e))
+        #dbg("get_metadata_raw: returned error %s",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_metadata_raw"
             out["message"]+=" beim Lesen der Tabellen Metadaten"
-            log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+            dbg("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
             return out
-        #log.debug("get_metadata_raw: 1 items=%s",str(items))
+        #dbg("get_metadata_raw: 1 items=%s",str(items))
         if items is not None and len(items)>0:
             # got some metadata
-            log.debug("get_metadata_raw: got some metadata from mssql")
+            dbg("get_metadata_raw: got some metadata from mssql")
             # es gibt etwas in den sqlserver metadaten
             if versioned:
                 pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
             else:
                 pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
-            #log.debug("get_metadata_raw from mssql: pkcols %s",str(pkcols))
-            #log.debug("get_metadata_raw from mssql: columns %s",str(columns))
+            #dbg("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+            #dbg("get_metadata_raw from mssql: columns %s",str(columns))
             collist=[i["column_name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
         
     if "columns" not in out.keys():
         # nothing in metadata - get columns from query
-        log.debug("get_metadata_raw: nothing in metadata - get columns from query")
+        dbg("get_metadata_raw: nothing in metadata - get columns from query")
         # nicht in metadaten gefunden
         try:
             sql=f'SELECT * FROM {tab} WHERE 1=0'
-            log.debug("get_metadata_raw: sql=%s",sql)
+            dbg("get_metadata_raw: sql=%s",sql)
             _,columns=db_exec(dbengine,sql)
             out["columns"]=columns
             #out["metadata"]=mitems
@@ -510,20 +515,20 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             log.error("++++++++++ leaving get_metadata_raw with error returning for %s data %s",tab,out)
             return out
     
-    log.debug("sql_select in get_metadata_raw 4")
+    dbg("sql_select in get_metadata_raw 4")
     out["pk_columns"]=pkcols
-    log.debug("sql_select in get_metadata_raw 4 pk_column_list=%s",str(pk_column_list))
+    dbg("sql_select in get_metadata_raw 4 pk_column_list=%s",str(pk_column_list))
     if pk_column_list is not None:
-        log.debug("sql_select in get_metadata_raw 5")
+        dbg("sql_select in get_metadata_raw 5")
         if isinstance(pk_column_list, list):
-            log.debug("sql_select in get_metadata_raw 6")
+            dbg("sql_select in get_metadata_raw 6")
             if len(pk_column_list) > 0:
-                log.debug("sql_select in get_metadata_raw 7")
+                dbg("sql_select in get_metadata_raw 7")
                 out["pk_columns"]=pk_column_list
-                log.debug("get_metadata_raw returns parameter pk_column_list")
+                dbg("get_metadata_raw returns parameter pk_column_list")
     else:
-        log.debug("get_metadata_raw returns computed column_list")
-    log.debug("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+        dbg("get_metadata_raw returns computed column_list")
+    dbg("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
     config.metadataraw_cache[cache_key] = out
     return out
 
@@ -544,15 +549,15 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     dict mit den keys "data" ggf "errors"
 
     """
-    log.debug("++++++++++ entering get_item_raw[%s]")
-    log.debug("get_item_raw[%s]: param tab is <%s>",str(tab),str(tab))
-    log.debug("get_item_raw[%s]: param pk is <%s>",str(tab),str(pk))
-    log.debug("get_item_raw[%s]: param pk_column_list is <%s>",str(tab),str(pk_column_list))
-    log.debug("get_item_raw[%s]: param versioned is <%s>",str(tab),str(versioned))
-    log.debug("get_item_raw[%s]: param version_deleted is <%s>",str(tab),str(version_deleted))
-    log.debug("get_item_raw[%s]: param is_repo is <%s>",str(tab),str(is_repo))
-    log.debug("get_item_raw[%s]: param user_id is <%s>",str(tab),str(user_id))
-    log.debug("get_item_raw[%s]: param customsql is <%s>",str(tab),str(customsql))
+    dbg("++++++++++ entering get_item_raw[%s]")
+    dbg("get_item_raw[%s]: param tab is <%s>",str(tab),str(tab))
+    dbg("get_item_raw[%s]: param pk is <%s>",str(tab),str(pk))
+    dbg("get_item_raw[%s]: param pk_column_list is <%s>",str(tab),str(pk_column_list))
+    dbg("get_item_raw[%s]: param versioned is <%s>",str(tab),str(versioned))
+    dbg("get_item_raw[%s]: param version_deleted is <%s>",str(tab),str(version_deleted))
+    dbg("get_item_raw[%s]: param is_repo is <%s>",str(tab),str(is_repo))
+    dbg("get_item_raw[%s]: param user_id is <%s>",str(tab),str(user_id))
+    dbg("get_item_raw[%s]: param customsql is <%s>",str(tab),str(customsql))
     out={}
     metadata=get_metadata_raw(dbengine,tab,pk_column_list,versioned)
     if "error" in metadata.keys():
@@ -562,22 +567,22 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         # kein PK default erste spalte
         pkcols=[(metadata["columns"])[0]]
         log.warning("get_item_raw[%s]: implicit pk first column",str(tab))
-    log.debug("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
+    dbg("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
     tabalias="x"
     pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias)
-    log.debug("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
+    dbg("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
         # check repo rights
         pkwhere = add_auth_to_where_clause(tab, pkwhere, user_id)
-        log.debug("get_item_raw[%s]: sql_select auth added: %s",str(tab), pkwhere)
+        dbg("get_item_raw[%s]: sql_select auth added: %s",str(tab), pkwhere)
     if customsql is not None:
-        log.debug("get_item_raw[%s]: get custom sql id=%s",str(tab),customsql)
+        dbg("get_item_raw[%s]: get custom sql id=%s",str(tab),customsql)
         csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
-        log.debug("get_item_raw[%s]: got custom sql id=%s",str(tab),csql)
+        dbg("get_item_raw[%s]: got custom sql id=%s",str(tab),csql)
         sql=f'SELECT {tabalias}.* FROM ({csql}) {tabalias} {pkwhere}'
     else:    
         sql=f'SELECT {tabalias}.* FROM {tab} {tabalias} {pkwhere}'
-    #log.debug("get_item_raw[%s]: sql=%s",str(tab),sql)
+    #dbg("get_item_raw[%s]: sql=%s",str(tab),sql)
     try:
         items, columns = db_exec(dbengine,sql,pkwhere_params)
     except SQLAlchemyError as e_sqlalchemy:
@@ -595,12 +600,12 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
             out["message"]+=" beim Lesen einer Tabelle"
         return out
 
-    log.debug("get_item_raw[%s]: columns: %s",str(tab),columns)
+    dbg("get_item_raw[%s]: columns: %s",str(tab),columns)
     out["data"]=items
     out["columns"]=columns
     out["total_count"]=len(items)
-    #log.debug("++++++++++ leaving get_item_raw[%s]:  returning %s",str(tab),str(out))
-    log.debug("++++++++++ leaving get_item_raw[%s]",str(tab))
+    #dbg("++++++++++ leaving get_item_raw[%s]:  returning %s",str(tab),str(out))
+    dbg("++++++++++ leaving get_item_raw[%s]",str(tab))
     return out
 
 def get_next_seq(dbengine,seq):
@@ -617,20 +622,20 @@ def get_next_seq(dbengine,seq):
 
     """
     out={}
-    log.debug("in get_next_seq")
+    dbg("in get_next_seq")
     dbtyp = get_db_type(dbengine)
     if dbtyp =="sqlite":
-        log.debug("in get_next_seq repo sqlite")
+        dbg("in get_next_seq repo sqlite")
         itemseq={ "seq" : seq}
         sql="SELECT curval FROM plainbi_seq WHERE sequence_name=:seq"
-        log.debug("sql=%s ,%s",sql,str(itemseq))
+        dbg("sql=%s ,%s",sql,str(itemseq))
         items, columns = db_exec(dbengine,sql,itemseq)
-        log.debug("sql done")
-        log.debug("items %s",items)
+        dbg("sql done")
+        dbg("items %s",items)
         curval=items[0]["curval"]
         nextval=curval+1
         sql=f"UPDATE plainbi_seq SET curval={nextval} WHERE sequence_name='{seq}'"
-        log.debug("sql=%s",sql)
+        dbg("sql=%s",sql)
         try:
             _=db_exec(dbengine,sql)    
         except SQLAlchemyError as e_sqlalchemy:
@@ -647,14 +652,14 @@ def get_next_seq(dbengine,seq):
             return out
         out=nextval
     else:
-        log.debug("in get_next_seq not sqlite")
+        dbg("in get_next_seq not sqlite")
         if dbtyp == "mssql":
             sql=f'SELECT NEXT VALUE FOR {seq} AS nextval'
         elif dbtyp == "postgres":
             sql=f"SELECT nextval('{seq}') AS nextval"
         elif dbtyp == "oracle":
             sql=f"SELECT {seq}.nextval AS nextval from dual"
-        log.debug("sql=%s",sql)
+        dbg("sql=%s",sql)
         try:
             #cursor = cnxn.cursor()
             items, columns = db_exec(dbengine,sql)
@@ -674,12 +679,12 @@ def get_next_seq(dbengine,seq):
         out=items[0]["nextval"] 
         #for row in data:
         #    out=row.nextval
-        log.debug("got sequence value %d",out)    
+        dbg("got sequence value %d",out)    
     return out
 
 def get_dbversion(dbengine):
     out={}
-    log.debug("in get_dbversion")
+    dbg("in get_dbversion")
     db_typ = get_db_type(dbengine)
     if db_typ=="mssql":
         sql="Select @@version as version"
@@ -718,9 +723,9 @@ def get_current_timestamp(dbengine):
 
     """
     out={}
-    log.debug("in get_current_timestamp")
+    dbg("in get_current_timestamp")
     sql='SELECT GETDATE() as ts'
-    log.debug("sql=%s",sql)
+    dbg("sql=%s",sql)
     try:
         #cursor = cnxn.cursor()
         items, columns = db_exec(dbengine,sql)
@@ -739,14 +744,14 @@ def get_current_timestamp(dbengine):
     out=items[0]["ts"] 
     #for row in data:
     #    out=row.ts
-    log.debug("got timestamp value %s",out)    
+    dbg("got timestamp value %s",out)    
     return out
 
 def get_db_by_id_or_alias(d):
     """
     returns a sqlalchemy eninge object for the specified id or alias from the plainbi_datasource repo table
     """
-    log.debug("++++++++++ entering get_db_by_id_or_alias params=%s",str(d))
+    dbg("++++++++++ entering get_db_by_id_or_alias params=%s",str(d))
     k=str(d)
     if d is None or k == "def":
         k="1"
@@ -754,7 +759,7 @@ def get_db_by_id_or_alias(d):
         return config.datasources_engine[k]
     else:
         # not found yet - try to connect again
-        log.debug("get_db_by_id_or_alias connection not found -> reload")
+        dbg("get_db_by_id_or_alias connection not found -> reload")
         load_datasources_from_repo()
         if k in config.datasources_engine.keys():
             return config.datasources_engine[k]
@@ -772,18 +777,18 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
       total_count .. anzahl der rows in der Tabelle (count*)
       msg ... ggf error code sonst "ok"
     """
-    log.debug("++++++++++entering repo_lookup_select")
-    log.debug("repo_lookup_select: param id is <%s>",str(id))
+    dbg("++++++++++entering repo_lookup_select")
+    dbg("repo_lookup_select: param id is <%s>",str(id))
     if is_id(id):
         reposql_params={ "id" : id}
         reposql="select * from plainbi_lookup where id=:id"
     else:
         reposql_params={ "alias" : id}
         reposql="select * from plainbi_lookup where alias=:alias"
-    log.debug("repo_lookup_select: repo sql is <%s>",reposql)
+    dbg("repo_lookup_select: repo sql is <%s>",reposql)
     lkp,lkp_columns = db_exec(repoengine, reposql , reposql_params)
     #lkp=[r._asdict() for r in lkpq]
-    log.debug("lkp=%s",str(lkp))
+    dbg("lkp=%s",str(lkp))
     sql=None
     execute_in_repodb=None
     if isinstance(lkp,list):
@@ -792,9 +797,9 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
                 sql=lkp[0]["sql_query"]
                 datasrc_id=lkp[0]["datasource_id"]
         else:
-            log.debug("lkp list len is not 1")
+            dbg("lkp list len is not 1")
     else:
-        log.debug("lkp is not a list, it is a %s",str(lkp.__class__))
+        dbg("lkp is not a list, it is a %s",str(lkp.__class__))
         
     if sql is None:
         msg="no sql in repo_lookup_select"
@@ -802,7 +807,7 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
         return None,None,None,msg
     if username is not None:
         sql=sql.replace("$(APP_USER)",username)
-        log.debug("lkp sql username replaced")
+        dbg("lkp sql username replaced")
 
     dbengine=get_db_by_id_or_alias(datasrc_id)
     try:
@@ -828,8 +833,8 @@ def get_repo_adhoc_sql_stmt(repoengine,id,user_id):
       msg ... ggf error code sonst "ok"
     """
     out={}
-    log.debug("++++++++++entering get_repo_adhoc_sql_stmt")
-    log.debug("get_repo_adhoc_sql_stmt: param id is <%s>",str(id))
+    dbg("++++++++++entering get_repo_adhoc_sql_stmt")
+    dbg("get_repo_adhoc_sql_stmt: param id is <%s>",str(id))
     adhocid = -999
     order_by_def = None
     adhocdesc = None
@@ -845,7 +850,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id,user_id):
     #reposql="select * from plainbi_adhoc where alias=:alias"
     where = add_auth_to_where_clause("plainbi_adhoc", whereclause, user_id)
     reposql+=where
-    log.debug("repo_adhoc_select: repo sql is <%s>",reposql)
+    dbg("repo_adhoc_select: repo sql is <%s>",reposql)
     try:
         lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
     except SQLAlchemyError as e_sqlalchemy:
@@ -894,15 +899,15 @@ def get_repo_customsql_sql_stmt(repoengine,id):
       msg ... ggf error code sonst "ok"
     """
     out={}
-    log.debug("++++++++++entering get_repo_customsql_sql_stmt")
-    log.debug("get_repo_customsql_sql_stmt: param id is <%s>",str(id))
+    dbg("++++++++++entering get_repo_customsql_sql_stmt")
+    dbg("get_repo_customsql_sql_stmt: param id is <%s>",str(id))
     if is_id(id):
         reposql_params={ "id" : id}
         reposql="select * from plainbi_customsql where id=:id"
     else:
         reposql_params={ "alias" : id}
         reposql="select * from plainbi_customsql where alias=:alias"
-    log.debug("get_repo_customsql_sql_stmt: repo sql is <%s>",reposql)
+    dbg("get_repo_customsql_sql_stmt: repo sql is <%s>",reposql)
     try:
         lkp, lkp_columns = db_exec(repoengine, reposql , reposql_params)
     except SQLAlchemyError as e_sqlalchemy:
@@ -924,34 +929,34 @@ def get_repo_customsql_sql_stmt(repoengine,id):
             if isinstance(lkp[0],dict):
                 sql=lkp[0]["sql_query"]
         else:
-            log.debug("lkp list len is not 1, it is %d",len(lkp))
+            dbg("lkp list len is not 1, it is %d",len(lkp))
     else:
-        log.debug("lkp is not a dict, it is a %s",str(lkp.__class__))
-    log.debug("++++++++++leaving get_repo_customsql_sql_stmt with sql=%s",sql)
+        dbg("lkp is not a dict, it is a %s",str(lkp.__class__))
+    dbg("++++++++++leaving get_repo_customsql_sql_stmt with sql=%s",sql)
     return sql, execute_in_repodb
 
 
 def check_hash_columns(tab,item):
-    log.debug("check_hash_columns for %s item %s",tab,item)
+    dbg("check_hash_columns for %s item %s",tab,item)
     if tab in repo_columns_to_hash.keys():
         for c in repo_columns_to_hash[tab]:
             if c in item.keys():
                 p=config.bcrypt.generate_password_hash(item[c])
                 #p=bcrypt.hashpw(item[c].encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
                 item[c]=p.decode()
-                log.debug("check_hash_columns: hashed %s.%s",tab,c)
+                dbg("check_hash_columns: hashed %s.%s",tab,c)
 
 ## crud ops
 def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False, user_id=None, customsql=None):
     """ 
     insert record
     """
-    log.debug("++++++++++ entering db_ins")
-    log.debug("db_ins: param tab is <%s>",str(tab))
-    log.debug("db_ins: param item is <%s>",str(item))
-    log.debug("db_ins: param pkcols is <%s>",str(pkcols))
-    log.debug("db_ins: param is_versioned is <%s>",str(is_versioned))
-    log.debug("db_ins: param seq is <%s>",str(seq))
+    dbg("++++++++++ entering db_ins")
+    dbg("db_ins: param tab is <%s>",str(tab))
+    dbg("db_ins: param item is <%s>",str(item))
+    dbg("db_ins: param pkcols is <%s>",str(pkcols))
+    dbg("db_ins: param is_versioned is <%s>",str(is_versioned))
+    dbg("db_ins: param seq is <%s>",str(seq))
     stmt=[]
     stmtparam=[]
     out={}
@@ -959,7 +964,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     log.info("db_ins after get_metadata_raw %s",str(metadata))
     myitem=item
     if "error" in metadata.keys():
-        log.debug("db_ins: error in get_metadata_raw returned")
+        dbg("db_ins: error in get_metadata_raw returned")
         return metadata
     pkcols=metadata["pk_columns"]
     log.info("db_ins: now pkols=%s",str(pkcols))
@@ -969,32 +974,32 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         log.warning("db_ins: implicit pk first column")
     s=None
     # check hash columns
-    log.debug("db_ins: check hash columns")
+    dbg("db_ins: check hash columns")
     if is_repo: check_hash_columns(tab,myitem)
     #                    
-    log.debug("db_ins: after check hash columns")
+    dbg("db_ins: after check hash columns")
     if is_versioned:
-        log.debug("db_ins: versioned mode" )
+        dbg("db_ins: versioned mode" )
         ts=get_current_timestamp(dbeng)
-        log.debug("db_ins: ts=%s",ts)
+        dbg("db_ins: ts=%s",ts)
         myitem["valid_from_dt"]=ts
         myitem["invalid_from_dt"]="9999-12-31 00:00:00"
         myitem["last_changed_dt"]=ts
         myitem["is_latest_period"]="Y"
         myitem["is_deleted"]="N"
         myitem["is_current_and_active"]="Y"
-        log.debug("db_ins: check last_changed_by user=%s", changed_by)
+        dbg("db_ins: check last_changed_by user=%s", changed_by)
         if "last_changed_by" in metadata["columns"] and changed_by is not None:
             myitem["last_changed_by"]=changed_by
     else:
-        log.debug("db_ins: non versioned mode" )
-    log.debug("db_ins: prepare sql" )
-    log.debug("add missing pk columns ")
+        dbg("db_ins: non versioned mode" )
+    dbg("db_ins: prepare sql" )
+    dbg("add missing pk columns ")
     # add missing primary key columns
     for pkcol in pkcols:
         if pkcol not in myitem.keys():
             # id ist nicht in data list so generate
-            log.debug("db_ins: pk column %s is not in data list so generate",pkcol)
+            dbg("db_ins: pk column %s is not in data list so generate",pkcol)
             myitem[pkcol]=None
     # check if sequence should be applied
     pkout={}
@@ -1008,10 +1013,10 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                     out["detail"]="sequences are only allowed for single column primary keys"
                     return out
                 s=get_next_seq(dbeng,seq)
-                log.debug("db_ins: got seq %d",s)
+                dbg("db_ins: got seq %d",s)
                 myitem[pkcol]=s
                 pkout[pkcol]=s
-                log.debug("db_ins: seqence %s inserted",seq)
+                dbg("db_ins: seqence %s inserted",seq)
         else:
             pkout[pkcol]=myitem[pkcol]
 
@@ -1043,15 +1048,15 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                 delitem["invalid_from_dt"]=ts
                 delitem["last_changed_dt"]=ts
                 delitem.update(pkwhere_params)
-                log.debug("marker values length is %d",len(delitem))
-                log.debug("db_ins: terminate deleted record")
+                dbg("marker values length is %d",len(delitem))
+                dbg("db_ins: terminate deleted record")
                 dsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-                log.debug("db_ins: terminate rec sql %s",dsql)
+                dbg("db_ins: terminate rec sql %s",dsql)
                 stmt.append(dsql)
                 stmtparam.append(delitem)
                 #try:
                 #    db_exec(dbeng, dsql, delitem) # versioned column
-                #    log.debug("dbins: deleted record terminated")
+                #    dbg("dbins: deleted record terminated")
                 #except SQLAlchemyError as e_sqlalchemy:
                 #    log.error("sqlalchemy deleted record terminated; %s",str(e_sqlalchemy))
                 #    if last_stmt_has_errors(e_sqlalchemy, out):
@@ -1067,11 +1072,11 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                
     param_list=[":"+k for k in myitem.keys()]
     col_list=[k for k in myitem.keys()]
-    log.debug("db_ins: construct sql" )
+    dbg("db_ins: construct sql" )
     param_list_str=",".join(param_list)
     col_list_str=",".join(col_list)
     sql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
-    log.debug("db_ins sql: %s",sql)
+    dbg("db_ins sql: %s",sql)
 
     stmt.append(sql)
     stmtparam.append(myitem)
@@ -1092,18 +1097,18 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         return out
     # read new record from database and send it back
     out=get_item_raw(dbeng,tab,pkout,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
-    log.debug("++++++++++ leaving db_ins returning %s", str(out))
+    dbg("++++++++++ leaving db_ins returning %s", str(out))
     return out
 
 ## crud ops
 def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=False, user_id=None, customsql=None):
-    log.debug("++++++++++ entering db_upd")
-    log.debug("db_upd: param tab is <%s>",str(tab))
-    log.debug("db_upd: param pk is <%s>",str(pk))
-    log.debug("db_upd: pkcols tab is <%s>",str(pkcols))
-    log.debug("db_upd: param is_versioned is <%s>",str(is_versioned))
+    dbg("++++++++++ entering db_upd")
+    dbg("db_upd: param tab is <%s>",str(tab))
+    dbg("db_upd: param pk is <%s>",str(pk))
+    dbg("db_upd: pkcols tab is <%s>",str(pkcols))
+    dbg("db_upd: param is_versioned is <%s>",str(is_versioned))
     out={}
-    log.debug("item-keys %s",item.keys())
+    dbg("item-keys %s",item.keys())
     myitem=item
     
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
@@ -1127,14 +1132,14 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         return out
     
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
-    log.debug("update_item: pkwhere %s",pkwhere)
+    dbg("update_item: pkwhere %s",pkwhere)
 
     # check hash columns
     if is_repo: check_hash_columns(tab,myitem)
 
-    log.debug("pk_columns %s",pkcols)
+    dbg("pk_columns %s",pkcols)
     if is_versioned:
-        log.debug("update_item: 1")
+        dbg("update_item: 1")
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
         ts=get_current_timestamp(dbeng)
@@ -1144,9 +1149,9 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         upditem["invalid_from_dt"]=ts
         upditem["last_changed_dt"]=ts
         upditem.update(pkwhere_params)
-        log.debug("marker values length is %d",len(upditem))
+        dbg("marker values length is %d",len(upditem))
         updsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
-        log.debug("db_upd newrec sql: %s", updsql)
+        dbg("db_upd newrec sql: %s", updsql)
         stmt=[]
         stmtparam=[]
         stmt.append(updsql)
@@ -1178,13 +1183,13 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         newrec["is_current_and_active"]='Y'
         if "last_changed_by" in metadata["columns"] and changed_by is not None:
             newrec["last_changed_by"]=changed_by
-        log.debug("db_upd: construct sql" )
+        dbg("db_upd: construct sql" )
         param_list=[":"+k for k in newrec.keys()]
         col_list=[k for k in newrec.keys()]
         param_list_str=",".join(param_list)
         col_list_str=",".join(col_list)
         newsql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
-        log.debug("db_upd newrec sql: %s",newsql)
+        dbg("db_upd newrec sql: %s",newsql)
         stmt.append(newsql)
         stmtparam.append(newrec)
         try:
@@ -1205,43 +1210,43 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
     else:
         # nicht versionierter Standardfall
         othercols=[col for col in myitem.keys() if col not in pkcols]
-        log.debug("othercols %s",othercols)
+        dbg("othercols %s",othercols)
         osetexp=[k+"=:"+k for k in othercols]
         osetexp_str=",".join(osetexp)
         myitem.update(pkwhere_params)
         sql=f"UPDATE {tab} SET {osetexp_str} {pkwhere}"
-        log.debug("update item sql %s",sql)
-        log.debug("update item params %s",myitem)
+        dbg("update item sql %s",sql)
+        dbg("update item params %s",myitem)
         try:
             db_exec(dbeng,sql,myitem)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_upd"
                 out["message"]+=" beim Aktualisieren eines Datensatzes"
-            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            dbg("++++++++++ leaving db_upd returning %s", str(out))
             return out
         except Exception as e:
             if last_stmt_has_errors(e, out):
                 out["error"]+="-db_upd"
                 out["message"]+=" beim Aktualisieren eines Datensatzes"
-            log.debug("++++++++++ leaving db_upd returning %s", str(out))
+            dbg("++++++++++ leaving db_upd returning %s", str(out))
             return out
     # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
     out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
-    log.debug("++++++++++ leaving db_upd returning %s", str(out))
+    dbg("++++++++++ leaving db_upd returning %s", str(out))
     return out
 
 def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False, user_id=None):
-    log.debug("++++++++++ entering db_del")
-    log.debug("db_del: param tab is <%s>",str(tab))
-    log.debug("db_del: param pk is <%s>",str(pk))
-    log.debug("db_del: pkcols tab is <%s>",str(pkcols))
-    log.debug("db_del: param is_versioned is <%s>",str(is_versioned))
+    dbg("++++++++++ entering db_del")
+    dbg("db_del: param tab is <%s>",str(tab))
+    dbg("db_del: param pk is <%s>",str(pk))
+    dbg("db_del: pkcols tab is <%s>",str(pkcols))
+    dbg("db_del: param is_versioned is <%s>",str(is_versioned))
     # check options
     out={}
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
     if "error" in metadata.keys():
-        log.debug("++++++++++ leaving db_del returning %s", str(metadata))
+        dbg("++++++++++ leaving db_del returning %s", str(metadata))
         return metadata
     pkcols=metadata["pk_columns"]
     if len(pkcols)==0:
@@ -1254,16 +1259,16 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         if chkout["total_count"]==0:
             out["error"]="db_del-pk-id-not-found"
             out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
-            log.debug("++++++++++ leaving db_del returning %s", str(out))
+            dbg("++++++++++ leaving db_del returning %s", str(out))
             return out
     else:
         out["error"]="db_del-pk-check-id-not-found"
         out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
-        log.debug("++++++++++ leaving db_del returning %s", str(out))
+        dbg("++++++++++ leaving db_del returning %s", str(out))
         return out
 
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
-    log.debug("db_del: pkwhere %s",pkwhere)
+    dbg("db_del: pkwhere %s",pkwhere)
         
     if is_versioned:
         # aktuellen Datensatz abschließen
@@ -1274,7 +1279,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         upditem["invalid_from_dt"]=ts
         upditem["last_changed_dt"]=ts
         upditem.update(pkwhere_params)
-        log.debug("marker values length is %d",len(upditem))
+        dbg("marker values length is %d",len(upditem))
         sql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
         stmt=[]
         stmtparam=[]
@@ -1306,13 +1311,13 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         newrec["is_deleted"]='Y'
         if "last_changed_by" in metadata["columns"] and changed_by is not None:
             newrec["last_changed_by"]=changed_by
-        log.debug("db_upd: construct sql" )
+        dbg("db_upd: construct sql" )
         param_list=[":"+k for k in newrec.keys()]
         col_list=[k for k in newrec.keys()]
         param_list_str=",".join(param_list)
         col_list_str=",".join(col_list)
         newsql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
-        log.debug("db_del: %s",newsql)
+        dbg("db_del: %s",newsql)
         stmt.append(newsql)
         stmtparam.append(newrec)
         try:
@@ -1332,8 +1337,8 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
             return out
     else:
         sql=f"DELETE FROM {tab} {pkwhere}"
-        log.debug("db_del sql %s",sql)
-        log.debug("db_del marker values length is %d",len(pkwhere_params))
+        dbg("db_del sql %s",sql)
+        dbg("db_del marker values length is %d",len(pkwhere_params))
         try:
             db_exec(dbeng,sql,pkwhere_params)
         except SQLAlchemyError as e_sqlalchemy:
@@ -1349,7 +1354,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
                 out["message"]+=" beim Löschen eines Datensatzes"
             log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
-    log.debug("++++++++++ leaving db_del returning %s", str(out))
+    dbg("++++++++++ leaving db_del returning %s", str(out))
     return out
 
 def get_profile(repoengine,u):
@@ -1359,11 +1364,11 @@ def get_profile(repoengine,u):
     if config.use_cache:
         if hasattr(config,"profile_cache"):
             if u in config.profile_cache.keys():
-                log.debug("get_profile: cache hit")
+                dbg("get_profile: cache hit")
                 return config.profile_cache[u]
         else:
             config.profile_cache={}
-            log.debug("get_profile: cache created")
+            dbg("get_profile: cache created")
 
     usr_sql = "select * from plainbi_user where username=:username"
     usr_items, usr_columns = db_exec(repoengine,usr_sql,{ "username" : u })
@@ -1414,7 +1419,7 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
         item["password_hash"]=p.decode()
 
     db_typ = get_db_type(dbeng)
-    log.debug("db_adduser: database type is %s",db_typ)
+    dbg("db_adduser: database type is %s",db_typ)
     if db_typ=="sqlite":
         sequenz="user"
     elif db_typ in ("mssql","postgres","oracle"):
@@ -1422,14 +1427,14 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     else:
         log.error("db_adduser: unknown repo database type")
         sequenz=None
-    log.debug("db_adduser: database seq is %s",sequenz)
+    dbg("db_adduser: database seq is %s",sequenz)
     x=db_ins(dbeng,"plainbi_user",item,pkcols='id',seq=sequenz)
     return x
 
 def db_passwd(dbeng,u,p):
-    log.debug("++++++++++ entering db_passwd")
-    log.debug("db_passwd: param u is <%s>",str(u))
-    log.debug("db_passwd: param p (hashed) is <%s>",str(p))
+    dbg("++++++++++ entering db_passwd")
+    dbg("db_passwd: param u is <%s>",str(u))
+    dbg("db_passwd: param p (hashed) is <%s>",str(p))
     out={}
     sql="UPDATE plainbi_user SET password_hash=:password_hash WHERE username=:username"
     try:
@@ -1468,14 +1473,14 @@ def db_add_base64(dbeng,id,filep):
 
 
 def add_auth_to_where_clause(tab,where_clause,user_id):
-    log.debug("++++++++++ entering add_auth_to_where_clause")
-    log.debug("add_auth_to_where_clause: param tab is <%s>",str(tab))
-    log.debug("add_auth_to_where_clause: param where_clause is <%s>",str(where_clause))
-    log.debug("add_auth_to_where_clause: param user_id is <%s>",str(user_id))
+    dbg("++++++++++ entering add_auth_to_where_clause")
+    dbg("add_auth_to_where_clause: param tab is <%s>",str(tab))
+    dbg("add_auth_to_where_clause: param where_clause is <%s>",str(where_clause))
+    dbg("add_auth_to_where_clause: param user_id is <%s>",str(user_id))
     w = where_clause
     if w is None: w=""
     if tab == 'plainbi_application' and user_id is not None:
-        log.debug("add_auth_to_where_clause: apply auth for application")
+        dbg("add_auth_to_where_clause: apply auth for application")
         if len(w)==0: 
             w=" WHERE "
         else:
@@ -1496,7 +1501,7 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
   and u.role_id = 1
 )"""
     if tab == 'plainbi_adhoc' and user_id is not None:
-        log.debug("add_auth_to_where_clause: apply auth for adhoc")
+        dbg("add_auth_to_where_clause: apply auth for adhoc")
         if len(w)==0: 
             w=" WHERE "
         else:
@@ -1521,7 +1526,7 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
   where a.owner_user_id = {user_id}
 )"""
     if tab == 'plainbi_external_resource' and user_id is not None:
-        log.debug("add_auth_to_where_clause: apply auth for external_resource")
+        dbg("add_auth_to_where_clause: apply auth for external_resource")
         if len(w)==0: 
             w=" WHERE "
         else:
@@ -1541,7 +1546,7 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
   where u.id = {user_id}
   and u.role_id = 1
 )"""
-    log.debug("++++++++++ leaving add_auth_to_where_clause with: %s",w)
+    dbg("++++++++++ leaving add_auth_to_where_clause with: %s",w)
     return w
 
 #b = base64.b64encode(bytes('your string', 'utf-8')) # bytes
@@ -1549,7 +1554,7 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
 
 
 def postgres_set_search_path(dbapi_connection, connection_record):
-    log.debug("++++++++++ entering postgres_set_search_path")
+    dbg("++++++++++ entering postgres_set_search_path")
     try:
         with dbapi_connection.cursor() as cursor:
             cursor.execute('SET search_path TO plainbi, "$user", public')
@@ -1561,13 +1566,13 @@ def postgres_set_search_path(dbapi_connection, connection_record):
     with dbapi_connection.cursor() as cursor:
         cursor.execute(sql)
         res = cursor.fetchall()
-    log.debug("postgres search path is not %s",str(res))
-    log.debug("++++++++++ leaving postgres_set_search_path")
+    dbg("postgres search path is not %s",str(res))
+    dbg("++++++++++ leaving postgres_set_search_path")
 
 def db_connect(p_enginestr, params=None):
-    log.debug("++++++++++ entering db_connect")
-    log.debug("db_connect: param enginestr is <%s>",str(p_enginestr)[:15]+"...")
-    log.debug("db_connect: param params is <%s>",str(params))
+    dbg("++++++++++ entering db_connect")
+    dbg("db_connect: param enginestr is <%s>",str(p_enginestr)[:15]+"...")
+    dbg("db_connect: param params is <%s>",str(params))
     if p_enginestr is None:
         log.error("PLAINBI needs a connection string in the .env File to properly connect to a database")
     dstr=p_enginestr.split("|")
@@ -1576,12 +1581,12 @@ def db_connect(p_enginestr, params=None):
         dbengine = sqlalchemy.create_engine(enginestr % params)
     else:
         if "postgres" in p_enginestr:
-            log.debug("++++++++++ enable pool_pre_ping for postgres")
+            dbg("++++++++++ enable pool_pre_ping for postgres")
             dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True)
         else:
             dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: engine url %s",dbengine.url)
-    log.debug("++++++++++ leaving db_connect")
+    dbg("++++++++++ leaving db_connect")
     dbtyp=get_db_type(dbengine)
     if len(dstr)>1:
         for kv in dstr[1:]:
@@ -1595,19 +1600,19 @@ def db_connect(p_enginestr, params=None):
                     elif dbtyp == "mssql":
                         sql="use "+kl[1]
                         db_exec(dbengine,sql)
-                        log.debug("++++++++++ use schema %",kl[1])
+                        dbg("++++++++++ use schema %",kl[1])
 
     return dbengine
 
 def audit(tokdata,req,id=None,msg=None):
-    log.debug("++++++++++ entering audit")
+    dbg("++++++++++ entering audit")
     if isinstance(tokdata,dict):
         usrnam=tokdata["username"]
     else:
         usrnam=tokdata
-    log.debug('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,req.url,str(id),str(msg))
+    dbg('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,req.url,str(id),str(msg))
     if id is not None:
-        log.debug("Audit Adhoc %d",id)
+        dbg("Audit Adhoc %d",id)
     if "/login" in req.url: 
         audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body": None}
     else:
@@ -1617,24 +1622,24 @@ def audit(tokdata,req,id=None,msg=None):
         audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data)}
     audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body)"
     try:
-        log.debug('Audit sql:%s',audit_sql )
-        log.debug('Audit params:%s',audit_params )
+        dbg('Audit sql:%s',audit_sql )
+        dbg('Audit params:%s',audit_params )
         db_exec(config.repoengine, audit_sql, audit_params)
-        log.debug('Audit executed')
+        dbg('Audit executed')
     except SQLAlchemyError as e_sqlalchemy:
         log.error("audit error: %s",str(e_sqlalchemy))
         log.exception(e_sqlalchemy)
-        log.debug("continuing")
+        dbg("continuing")
     except Exception as e:
         log.error("audit exception: %s",str(e))
-        log.debug("continuing")
-    log.debug("++++++++++ leaving audit")
+        dbg("continuing")
+    dbg("++++++++++ leaving audit")
 
 def load_datasources_from_repo():
     """
     loads all datasources into a config global dictionary config.datasources and connects to config.datasources_engine
     """
-    log.debug("++++++++++ entering load_datasources_from_repo")
+    dbg("++++++++++ entering load_datasources_from_repo")
     config.datasources={}
     config.datasources_engine={}
     def nvl(b):
@@ -1646,7 +1651,7 @@ def load_datasources_from_repo():
     datasrc_sql = "select * from plainbi_datasource where id <> 0"
     datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
     for i in datasrc_items:
-        #log.debug("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
+        #dbg("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
         db_type = i["db_type"]
         id = i["id"]
         alias = i["alias"]
@@ -1679,7 +1684,7 @@ def load_datasources_from_repo():
                 sql_dbengine_str=sql_dbengine_str.replace("{host}",host)
             if "{port}" in sql_dbengine_str and port is not None:
                 sql_dbengine_str=sql_dbengine_str.replace("{port}",port)
-        #log.debug(sql_dbengine_str)
+        #dbg(sql_dbengine_str)
         config.datasources[str(id)]=sql_dbengine_str
         config.datasources[alias]=sql_dbengine_str
         if db_connect_test(sql_dbengine_str):

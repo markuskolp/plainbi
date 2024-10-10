@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import date, datetime
 from plainbi_backend.config import config
 import base64
+import inspect
 
 import logging
 log = logging.getLogger(__name__)
@@ -342,3 +343,63 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
     wp=None if len(wparam)==0 else wparam 
     log.debug("++++++++++ leaving add_filter_to_where_clause with: %s params %s",w,str(wp))
     return w,wp
+
+def get_call_stack_function_names(s):
+    """
+    get the calling stack (only if level >=3)
+    """
+    fl=[]
+    for f in s[1:]:
+        func=f.function
+        if func in ["dispatch_request","decorated"]: break  # above that it's of no interest
+        if func!='<module>':
+            fl.append(func)
+    fl.reverse()
+    return fl
+
+def dbg(msg, *args, dbglevel=1, **kwargs):
+    """
+    customized debug log function
+    implements 3 types of debug level message
+    start backend with paramters -v -vv or -vvv
+    """
+    if dbglevel <= config.dbg_level:
+        caller_frame=inspect.currentframe().f_back
+        if config.dbg_level >= 3:
+            func_name=str(get_call_stack_function_names(inspect.stack()))
+        else:
+            func_name=[caller_frame.f_code.co_name]
+        fullmsg=f"{func_name}: {msg}"
+        log.debug(fullmsg,*args,**kwargs)
+
+def err(msg, *args, **kwargs):
+    """
+    customized log function
+    start backend with paramters -v -vv or -vvv
+    """
+    if config.dbg: 
+        if config.dbg_level >= 3:
+            func_name=str(get_call_stack_function_names(inspect.stack()))
+        else:
+            caller_frame=inspect.currentframe().f_back
+            func_name=[caller_frame.f_code.co_name]
+        fullmsg=f"{func_name}: {msg}"
+    else:
+        fullmsg = msg
+    log.error(fullmsg,*args,**kwargs)
+
+def warn(msg, *args, **kwargs):
+    """
+    customized log function
+    start backend with paramters -v -vv or -vvv
+    """
+    if config.dbg: 
+        if config.dbg_level >= 3:
+            func_name=str(get_call_stack_function_names(inspect.stack()))
+        else:
+            caller_frame=inspect.currentframe().f_back
+            func_name=[caller_frame.f_code.co_name]
+        fullmsg=f"{func_name}: {msg}"
+    else:
+        fullmsg = msg
+    log.warning(fullmsg,*args,**kwargs)

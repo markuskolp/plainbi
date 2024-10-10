@@ -18,6 +18,7 @@ import logging
 log = logging.getLogger()
 
 from plainbi_backend.config import config, get_config
+from plainbi_backend.utils import dbg
 from plainbi_backend.db import db_passwd, db_connect, db_connect_test, db_exec, db_add_base64
 from plainbi_backend.api import create_app
 from plainbi_backend.repo import create_repo_db
@@ -27,7 +28,8 @@ from plainbi_backend.repo import create_repo_db
 parser = argparse.ArgumentParser(description='PlainBI Application Backend')
 # Define the command-line arguments
 #parser.add_argument('-h', '--help', action='help', help='Show this help message and exit')
-parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode (debug=True)')
+#parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode (debug=True)')
+parser.add_argument('-v', '--verbose', action='count', default=0, help='verbose mode (debug=True)')
 parser.add_argument('-c', '--config', type=str, help='path to the config file')
 parser.add_argument('-l', '--logfile', type=str, help='logfile')
 parser.add_argument('-P', '--port', type=int, help='The port number to use (default 3001)')

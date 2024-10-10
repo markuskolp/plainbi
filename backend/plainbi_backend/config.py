@@ -26,7 +26,7 @@ class MyConfig:
 config = MyConfig()
 
 # the current version number of plainbi backend
-config.version="0.9 09.09.2024"
+config.version="0.91 10.10.2024"
 
 # create a secret for the plainbi backend api jwt token
 config.SECRET_KEY=os.urandom(24)  # for JWT
@@ -36,7 +36,9 @@ log.debug("secret key generated")
 # global variables for caches, it holds metadata and profiles so that they are fetched only once from the database
 config.use_cache = False
 config.metadataraw_cache = {}
-config.profile_cache = {}
+config.profile_cache = {}#
+config.dbg = False
+config.dbg_level = 1
 
 def get_config(verbose=None,logfile=None,configfile=None,repository=None,database=None,port=None):
     """
@@ -62,11 +64,11 @@ def get_config(verbose=None,logfile=None,configfile=None,repository=None,databas
     # logging
 
     # logging level
-    config.dbg = False
-    if verbose:
+    if verbose>0:
         # parameter verbose has priority
         config.loglevel = logging.DEBUG
         config.dbg = True
+        config.dbg_level = verbose
     else:
         # otherwise  check environment setting
         if "PLAINBI_BACKEND_LOG_DEBUG" in os.environ.keys():
