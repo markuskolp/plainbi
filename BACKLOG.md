@@ -40,7 +40,7 @@
 
 asap
 
-- Problem bei Mapping App (Geschlecht): Uncaught InvalidCharacterError: Failed to execute 'btoa' on 'Window': The string to be encoded contains characters outside of the Latin1 range.    at te (CRUDPage.js:252:16)
+~~- Problem bei Mapping App (Geschlecht): Uncaught InvalidCharacterError: Failed to execute 'btoa' on 'Window': The string to be encoded contains characters outside of the Latin1 range.    at te (CRUDPage.js:252:16)~~
 ~~- Problem mit Lookup bei Anlage von Lookups (datasource_id wird nicht gefüllt) oder bei Adhoc (Anforderer Lookup geht nicht)~~
 - **default sort order** bei Adhoc geht nicht - führt zu einem Fehler (siehe auch oben bei Backend)
 - wenn man direkt auf ein Adhoc per URL geht und die Session abgelaufen ist, kommt nur ein Adhocfehler -> er sollte eigentlich auf die Loginseite springen mit Fehlerhinweis "Session abgelaufen"
