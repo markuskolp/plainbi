@@ -283,7 +283,7 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                      "column_label":"Anforderer",
                      "datatype":"text",
                      "ui":"lookupn",
-                     "lookup":"user",
+                     "lookup":"username",
                      "editable":"true",
                      "required":"false",
                      "showdetailsonly":"true"
