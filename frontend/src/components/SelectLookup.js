@@ -26,7 +26,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
         const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
         //console.log("getLookupData result: " + JSON.stringify(resData));
         setLookupData(resData.map((row) => ({
-          value: row.r,
+          value: row.r === 0 ? row.r.toString() : row.r, // Ant Select Element cannot handle the value 0 - it turns it to NULL - therefore it is casted to a string here
           label: row.d
         })));
         setLoading(false);
@@ -70,7 +70,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
             showSearch
             disabled={disabled}
             options={lookupData}
-            defaultValue={multiple ? (defaultValue || "").split(",") : defaultValue} // if multiple, then split default value
+            defaultValue={multiple ? (defaultValue || "").split(",") : (defaultValue === 0 ? defaultValue.toString(): defaultValue)} // if multiple, then split default value // Ant Select Element cannot handle the value 0 - it turns it to NULL - therefore it is casted to a string here
             //defaultValue={defaultValue} // if multiple, then split default value
             onChange={handleChange}
             onSearch={onSearch}
