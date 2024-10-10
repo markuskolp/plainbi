@@ -244,14 +244,29 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       )
   };
 
+  // ToBinary for Latin1, etc. characters
+  const ToBinary = (str) => {
+      let result="";
+      str=encodeURIComponent(str);
+      for(let i=0;i<str.length;i++)
+          if(str[i]=="%")
+          {
+              result+=String.fromCharCode(parseInt(str.substring(i+1,i+3),16));
+              i+=2;
+          }
+          else
+              result+=str[i];
+      return result;
+  }
+
   // base64 encoded for "crud" endpoint, not for "repo" endpoint
   const base64UrlSafeEncode = (input) => {
     if(isRepo === 'true') {
       return input;
     } 
-    let base64=btoa(input);
+    let base64=btoa(ToBinary(input)); 
     return "[base64@" + base64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') + "]";
-    }    
+  }    
 
   const getPKForURL = (record, _pkColumn) => {
     var pkforurl = "";
