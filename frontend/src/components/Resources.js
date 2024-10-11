@@ -244,23 +244,25 @@ const resetGroupID = (e) => {
                 <Flex gap="middle"  wrap>
                   {groups && groups.map((group) => {
                     return (
+                      <Tooltip title={group.name}>
                         <Link key={group.id} onClick={(e) => { handleGroupChange(group.id, group.name, e); }}>
-                          <Card
-                            style={{ maxWidth: 300, minWidth: 300 }}
-                            bordered={true}
-                            hoverable={true}
-                            >
-                            <Card.Meta
-                              avatar={ 
-                                <Avatar 
-                                  icon={<TeamOutlined />} 
-                                  style={{backgroundColor: '#fff', color: '#000', marginTop: '-5px' }}
-                                />
-                              }
-                              title={group.name}
-                            />
-                          </Card>
-                        </Link>
+                            <Card
+                              style={{ maxWidth: 300, minWidth: 300 }}
+                              bordered={true}
+                              hoverable={true}
+                              >
+                              <Card.Meta
+                                avatar={ 
+                                  <Avatar 
+                                    icon={<TeamOutlined />} 
+                                    style={{backgroundColor: '#fff', color: '#000', marginTop: '-5px' }}
+                                  />
+                                }
+                                title={group.name}
+                              />
+                            </Card>
+                          </Link>
+                        </Tooltip>
                     )
                   })
                 }
