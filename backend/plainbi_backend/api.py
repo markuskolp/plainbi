@@ -152,7 +152,7 @@ else:
     except Exception as e_swagger:
         with_swagger = False
 
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter, dbg, err, warn
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
@@ -170,7 +170,7 @@ api = Blueprint('api', __name__)
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
-        log.debug("CustomJSONEncoder %s / %s",str(type(obj)),str(obj))
+        dbg("CustomJSONEncoder %s / %s",str(type(obj)),str(obj))
         try:
             if isinstance(obj, datetime):
                 return obj.strftime("%Y-%m-%d %H:%M:%S.%f")
@@ -190,18 +190,18 @@ class CustomJSONEncoder(JSONEncoder):
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        log.debug("token req")
+        dbg("token req")
         token = request.headers.get('Authorization')
-        log.debug("token=%s",str(token))
+        dbg("token=%s",str(token))
 
         if not token:
             return jsonify({'message': 'Token is missing'}), 401
 
         try:
             tokdata = jwt.decode(token, config.SECRET_KEY, algorithms=['HS256'])
-            log.debug("data2=%s",str(tokdata))
+            dbg("data2=%s",str(tokdata))
             #config.current_user=tokdata['username']
-            #log.debug("cur user=%s",str(config.current_user))
+            #dbg("cur user=%s",str(config.current_user))
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token has expired'}), 401
         except jwt.InvalidTokenError:
@@ -322,6 +322,18 @@ def set_log_level(loglevel):
     if loglevel=="DEBUG":
       log.setLevel(logging.DEBUG)
       log.info("LogLevel DEBUG enabled")
+    if loglevel=="DEBUG1":
+      log.setLevel(logging.DEBUG)
+      log.info("LogLevel DEBUG enabled")
+      config.dbg_level = 1
+    if loglevel=="DEBUG2":
+      log.setLevel(logging.DEBUG)
+      log.info("LogLevel DEBUG enabled")
+      config.dbg_level = 2
+    if loglevel=="DEBUG3":
+      log.setLevel(logging.DEBUG)
+      log.info("LogLevel DEBUG enabled")
+      config.dbg_level = 3
     return 'set log level', 200
 
 
@@ -371,16 +383,16 @@ def sndemail(tokdata):
             error: sendemail
             message: Email konnte nicht versendet werden
     """
-    log.debug("++++++++++ entering sndemail")
+    dbg("++++++++++ entering sndemail")
     audit(tokdata,request)
     out={}
 
-    log.debug("sndemail: parse request data")
+    dbg("sndemail: parse request data")
     data_bytes = request.get_data()
     data_string = data_bytes.decode('utf-8')
     item = json.loads(data_string.strip("'"))
     
-    log.debug("sndemail: get smtp config")
+    dbg("sndemail: get smtp config")
     try:
         # SMTP server configuration
         smtp_server = os.environ["SMTP_SERVER"] # "smtp.gmail.com"
@@ -397,28 +409,28 @@ def sndemail(tokdata):
         return jsonify(out), 500
         # Create the email headers and body
 
-    log.debug("sndemail: check email params")
+    dbg("sndemail: check email params")
     if "to" not in item.keys() or "subject" not in item.keys() or "body" not in item.keys():
         log.error("sendmail error: to, subject or body in request post arguments missing")
         out["error"]="sendemail"
         out["message"]="Email invalid"
         return jsonify(out), 500
     email_message = f"From: {smtp_user}\nTo: {item['to']}\nSubject: {item['subject']}\n\n{item['body']}"
-    log.debug("sndemail: send email")
+    dbg("sndemail: send email")
     try:
         # Connect to the SMTP server
-        log.debug("sndemail: connect to smtp server")
+        dbg("sndemail: connect to smtp server")
         server = smtplib.SMTP(smtp_server, smtp_port)
         # Log in to the server
         if smtp_password is not None:
             # login to mailserver if password is specified
-            log.debug("sndemail: login to smtp server (there is a password)")
+            dbg("sndemail: login to smtp server (there is a password)")
             server.login(smtp_user, smtp_password)
         # Send the email
-        log.debug("sndemail: send the mail")
+        dbg("sndemail: send the mail")
         server.sendmail(smtp_user, item["to"], email_message)
         # Disconnect from the server
-        log.debug("sndemail: quit from server")
+        dbg("sndemail: quit from server")
         server.quit()
     except Exception as e:
         log.error("sendmail error: %s", str(e))
@@ -465,9 +477,9 @@ def distinctvalues(tokdata,db,tabnam,colnam):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering distinctvalues")
-    log.debug("distinctvalues param tab is <%s>",str(tabnam))
-    log.debug("distinctvalues param col is <%s>",str(colnam))
+    dbg("++++++++++ entering distinctvalues")
+    dbg("distinctvalues param tab is <%s>",str(tabnam))
+    dbg("distinctvalues param col is <%s>",str(colnam))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -476,9 +488,9 @@ def distinctvalues(tokdata,db,tabnam,colnam):
     sql=f"SELECT DISTINCT {colnam} FROM {tabnam} ORDER BY 1"
     items,columns,total_count,e=sql_select(dbengine,sql,with_total_count=False)
     if isinstance(e,str) and e=="ok":
-        log.debug("distinctvalues sql_select ok")
+        dbg("distinctvalues sql_select ok")
     else:
-        log.debug("distinctvalues sql_select error %s",str(e))
+        dbg("distinctvalues sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
             json_out2 = jsonify(out)
@@ -490,8 +502,8 @@ def distinctvalues(tokdata,db,tabnam,colnam):
     out["data"]=[d[colnam] for d in pre_jsonify_items_transformer(items)]
     out["columns"]=columns
     out["total_count"]=len(items)
-    log.debug("leaving distinctvalues and return json result")
-    log.debug("out=%s",str(out))
+    dbg("leaving distinctvalues and return json result")
+    dbg("out=%s",str(out))
     try:
         json_out = jsonify(out)
     except Exception as ej:
@@ -551,7 +563,7 @@ def dbexec(tokdata,db,procname):
 
     """
     global nodb_msg
-    log.debug("++++++++++ entering dbexec")
+    dbg("++++++++++ entering dbexec")
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -578,12 +590,12 @@ def dbexec(tokdata,db,procname):
         else:
             sqlstmt += ", "
         sqlstmt += f"{key} = {value}"
-    log.debug("dbexec: sql=%s",sqlstmt)
+    dbg("dbexec: sql=%s",sqlstmt)
 
     try:
         #items, columns = db_exec(dbengine,sqlstmt)
         x = db_exec(dbengine,sqlstmt)
-        log.debug(str(type(x)))
+        dbg(str(type(x)))
         if isinstance(x,tuple):
             out["data"]=x[0]
             out["columns"]=x[1]
@@ -674,8 +686,8 @@ def get_all_items(tokdata,db,tab):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_all_items")
-    log.debug("get_all_items: param tab is <%s>",str(tab))
+    dbg("++++++++++ entering get_all_items")
+    dbg("get_all_items: param tab is <%s>",str(tab))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -689,12 +701,12 @@ def get_all_items(tokdata,db,tab):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')
-    log.debug("pagination offset=%s limit=%s",offset,limit)
+    dbg("pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
     if isinstance(e,str) and e=="ok":
-        log.debug("get_all_items sql_select ok")
+        dbg("get_all_items sql_select ok")
     else:
-        log.debug("get_all_items sql_select error %s",str(e))
+        dbg("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
             json_out2 = jsonify(out)
@@ -706,8 +718,8 @@ def get_all_items(tokdata,db,tab):
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    log.debug("leaving get_all_items and return json result")
-    log.debug("out=%s",str(out))
+    dbg("leaving get_all_items and return json result")
+    dbg("out=%s",str(out))
     try:
         json_out = jsonify(out)
     except Exception as ej:
@@ -767,9 +779,9 @@ def get_item(tokdata,db,tab,pk):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_item")
-    log.debug("get_items: param tab is <%s>",str(tab))
-    log.debug("get_items: param pk/id is <%s>",str(pk))
+    dbg("++++++++++ entering get_item")
+    dbg("get_items: param tab is <%s>",str(tab))
+    dbg("get_items: param pk/id is <%s>",str(pk))
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return jsonify(nodb_msg),500
@@ -783,19 +795,19 @@ def get_item(tokdata,db,tab,pk):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
+                dbg("versions enabled")
     mycustomsql = request.args.get('customsql')
-    log.debug("tab %s pk %s")
+    dbg("tab %s pk %s")
     # check if pk is compound
     if pk == '#' or pk == '@':
         data_bytes = request.get_data()
-        log.debug("get_item: data")
-        log.debug("get_item: databytes: %s",data_bytes)
+        dbg("get_item: data")
+        dbg("get_item: databytes: %s",data_bytes)
         data_string = data_bytes.decode('utf-8')
-        log.debug("datastring: %s",data_string)
+        dbg("datastring: %s",data_string)
         pk = json.loads(data_string.strip("'"))
     else:
         pk=prep_pk_from_url(pk)
@@ -807,8 +819,8 @@ def get_item(tokdata,db,tab,pk):
             #print("out:"+str(out))
             # jk20240910 for date formatting on output
             pre_jsonify_items_transformer(out["data"])
-            log.debug("out:%s",str(out))
-            log.debug("leaving get_item with success and json result")
+            dbg("out:%s",str(out))
+            dbg("leaving get_item with success and json result")
             try:
                 json_out = jsonify(out)
             except Exception as ej:
@@ -818,12 +830,12 @@ def get_item(tokdata,db,tab,pk):
             return json_out
             #return Response(jsonify(out),status=204)
         else:
-            log.debug("no record found")
+            dbg("no record found")
             # return Response(status=204)
-            log.debug("leaving get_item with 204 no record forund")
+            dbg("leaving get_item with 204 no record forund")
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
-    log.debug("leaving get_item with error 500 and return json result")
+    dbg("leaving get_item with error 500 and return json result")
     return jsonify(out),500
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['POST'])
@@ -879,9 +891,9 @@ def get_item_post(tokdata,db,tab,pk):
             data: x,y,...
             total_count: 1
     """
-    log.debug("++++++++++ entering get_item_post")
-    log.debug("get_items: param tab is <%s>",str(tab))
-    log.debug("get_items: param pk/id is <%s>",str(pk))
+    dbg("++++++++++ entering get_item_post")
+    dbg("get_items: param tab is <%s>",str(tab))
+    dbg("get_items: param pk/id is <%s>",str(pk))
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return jsonify(nodb_msg),500
@@ -895,19 +907,19 @@ def get_item_post(tokdata,db,tab,pk):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
+                dbg("versions enabled")
     mycustomsql = request.args.get('customsql')
-    log.debug("tab %s pk %s")
+    dbg("tab %s pk %s")
     # check if pk is compound
     if pk == '#' or pk == '@':
         data_bytes = request.get_data()
-        log.debug("get_item: data")
-        log.debug("get_item: databytes: %s",data_bytes)
+        dbg("get_item: data")
+        dbg("get_item: databytes: %s",data_bytes)
         data_string = data_bytes.decode('utf-8')
-        log.debug("datastring: %s",data_string)
+        dbg("datastring: %s",data_string)
         pk = json.loads(data_string.strip("'"))
     else:
         pk=prep_pk_from_url(pk)
@@ -918,8 +930,8 @@ def get_item_post(tokdata,db,tab,pk):
         if len(out["data"])>0:
             print("out:"+str(out))
             pre_jsonify_items_transformer(out["data"])
-            log.debug("out:%s",str(out))
-            log.debug("leaving get_item with success and json result")
+            dbg("out:%s",str(out))
+            dbg("leaving get_item with success and json result")
             try:
                 json_out = jsonify(out)
             except Exception as ej:
@@ -929,12 +941,12 @@ def get_item_post(tokdata,db,tab,pk):
             return json_out
             #return Response(jsonify(out),status=204)
         else:
-            log.debug("no record found")
+            dbg("no record found")
             # return Response(status=204)
-            log.debug("leaving get_item with 204 no record forund")
+            dbg("leaving get_item with 204 no record forund")
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
-    log.debug("leaving get_item with error 500 and return json result")
+    dbg("leaving get_item with error 500 and return json result")
     return jsonify(out),500
 
 
@@ -982,8 +994,8 @@ def create_item(tokdata,db,tab):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering create_item")
-    log.debug("create_item: param tab is <%s>",str(tab))
+    dbg("++++++++++ entering create_item")
+    dbg("create_item: param tab is <%s>",str(tab))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -998,21 +1010,21 @@ def create_item(tokdata,db,tab):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
             if key=="seq":
                 seq=value
-                log.debug("pk sequence %s",seq)
+                dbg("pk sequence %s",seq)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("create_item tab %s pkcols %s seq %s",tab,pkcols,seq)
+                dbg("versions enabled")
+    dbg("create_item tab %s pkcols %s seq %s",tab,pkcols,seq)
     mycustomsql = request.args.get('customsql')
 
     data_bytes = request.get_data()
-    log.debug("create_item 7")
-    log.debug("databytes: %s",data_bytes)
+    dbg("create_item 7")
+    dbg("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    dbg("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
 
     out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
@@ -1077,9 +1089,9 @@ def update_item(tokdata,db,tab,pk):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering update_item")
-    log.debug("update_item: param tab is <%s>",str(tab))
-    log.debug("update_item: param pk is <%s>",str(pk))
+    dbg("++++++++++ entering update_item")
+    dbg("update_item: param tab is <%s>",str(tab))
+    dbg("update_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -1093,10 +1105,10 @@ def update_item(tokdata,db,tab,pk):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
+                dbg("versions enabled")
     mycustomsql = request.args.get('customsql')
     # check if pk is compound
     pk=prep_pk_from_url(pk)
@@ -1106,17 +1118,17 @@ def update_item(tokdata,db,tab,pk):
         if isinstance(pk,dict):
            # there is an url pk in form (col:val)
            pkcols=list(pk.keys())
-           log.debug("pk columns from url form (col:val[:col2:val2...])")
+           dbg("pk columns from url form (col:val[:col2:val2...])")
     else:
-        log.debug("pk columns explicitly from url parameter")
+        dbg("pk columns explicitly from url parameter")
     #
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    dbg("databytes: %s",data_bytes,dbglevel=3)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    dbg("datastring: %s",data_string,dbglevel=3)
     item = json.loads(data_string.strip("'"))
     #item = {key: request.data[key] for key in request.data}
-    log.debug("item %s",item)
+    dbg("item %s",item,dbglevel=3)
     
     out = db_upd(dbengine, tab, pk, item, pkcols, is_versioned, changed_by=tokdata['username'], customsql=mycustomsql)
     if isinstance(out,dict):
@@ -1171,9 +1183,9 @@ def delete_item(tokdata,db,tab,pk):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering delete_item")
-    log.debug("delete_item: param tab is <%s>",str(tab))
-    log.debug("delete_item: param pk is <%s>",str(pk))
+    dbg("++++++++++ entering delete_item")
+    dbg("delete_item: param tab is <%s>",str(tab))
+    dbg("delete_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -1187,25 +1199,25 @@ def delete_item(tokdata,db,tab,pk):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("delete_item tab %s pkcols %s ",tab,pkcols)
+                dbg("versions enabled")
+    dbg("delete_item tab %s pkcols %s ",tab,pkcols)
 
     pk=prep_pk_from_url(pk)
-    log.debug("delete_item tab %s pk %s",tab,pk)
+    dbg("delete_item tab %s pk %s",tab,pk)
     # check pk from compound key 
     if len(pkcols)==0:
         # pk columns are not explicitly given as url parameter
         if isinstance(pk,dict):
            # there is an url pk in form (col:val)
            pkcols=list(pk.keys())
-           log.debug("pk columns from url form (col:val[:col2:val2...])")
+           dbg("pk columns from url form (col:val[:col2:val2...])")
     else:
-        log.debug("pk columns explicitly from url parameter")
+        dbg("pk columns explicitly from url parameter")
 
-    log.debug("############# pk columns for delete is %s",str(pkcols))
+    dbg("############# pk columns for delete is %s",str(pkcols))
     out = db_del(dbengine, tab, pk, pkcols, is_versioned, changed_by=tokdata['username'])
     if isinstance(out,dict):
         if "error" not in out.keys():
@@ -1241,7 +1253,7 @@ def get_metadata_tables(tokdata,db):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_metadata_tables")
+    dbg("++++++++++ entering get_metadata_tables")
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -1251,7 +1263,7 @@ def get_metadata_tables(tokdata,db):
     order_by = request.args.get('order_by')
     out={}
     items,columns,total_count,e=sql_select(dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
-    log.debug("get_metadata_tables sql_select error %s",str(e))
+    dbg("get_metadata_tables sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
@@ -1290,8 +1302,8 @@ def get_metadata_tab_columns(tokdata,db,tab):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_metadata_tab_columns")
-    log.debug("get_metadata_tab_columns: param tab is <%s>",str(tab))
+    dbg("++++++++++ entering get_metadata_tab_columns")
+    dbg("get_metadata_tab_columns: param tab is <%s>",str(tab))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -1303,8 +1315,8 @@ def get_metadata_tab_columns(tokdata,db,tab):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
-    log.debug('get_metadata_tab_columns: for %s',tab)
+                dbg("pk option %s",pkcols)
+    dbg('get_metadata_tab_columns: for %s',tab)
     try:
         metadata=get_metadata_raw(dbengine,tab,pk_column_list=pkcols)
     except SQLAlchemyError as e_sqlalchemy:
@@ -1346,7 +1358,7 @@ def get_resource(tokdata):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_resource")
+    dbg("++++++++++ entering get_resource")
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
@@ -1354,19 +1366,19 @@ def get_resource(tokdata):
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("pagination offset=%s limit=%s",offset,limit)
+    dbg("pagination offset=%s limit=%s",offset,limit)
     
     w_app=add_auth_to_where_clause("plainbi_application",None,user_id)
     w_adhoc=add_auth_to_where_clause("plainbi_adhoc",None,user_id)
     w_ext_res=add_auth_to_where_clause("plainbi_external_resource",None,user_id)
     if not hasattr(config,"repo_db_type"):
         config.repo_db_type=get_db_type(config.repoengine)
-    log.debug("get_resource config.repo_db_type=%s",config.repo_db_type)
+    dbg("get_resource config.repo_db_type=%s",config.repo_db_type)
     if config.repo_db_type == 'mssql':
         concat_op='+'
     else:
         concat_op='||'
-    log.debug("get_resource concat_op=%s",concat_op)
+    dbg("get_resource concat_op=%s",concat_op)
     
     resource_sql=f"""select
 'application_'{concat_op}cast(id as varchar) as id
@@ -1411,7 +1423,7 @@ from plainbi_external_resource per
 {w_ext_res}
 """
     items,columns,total_count,e=sql_select(config.repoengine,resource_sql,order_by,offset,limit,with_total_count=True,is_repo=True,user_id=prof["user_id"])
-    log.debug("get_resource sql_select error %s",str(e))
+    dbg("get_resource sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
@@ -1438,7 +1450,7 @@ def get_my_groups(tokdata):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_my_groups")
+    dbg("++++++++++ entering get_my_groups")
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
@@ -1447,9 +1459,9 @@ def get_my_groups(tokdata):
         config.repo_db_type=get_db_type(config.repoengine)
     #mysql="select g.id, g.name from plainbi_user_to_group ug join plainbi_group g on ug.group_id = g.id where ug.user_id="+prof["user_id"]
     mysql=f"select distinct g.id, g.name from plainbi_user_to_group ug join plainbi_group g on ug.group_id = g.id where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1)"
-    log.debug("get_my_groups sql: %s",mysql)
+    dbg("get_my_groups sql: %s",mysql)
     items,columns,total_count,e=sql_select(config.repoengine,mysql,order_by=None,offset=None,limit=None,with_total_count=True,is_repo=True,user_id=prof["user_id"])
-    log.debug("get_my_groups sql_select error %s",str(e))
+    dbg("get_my_groups sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
@@ -1481,7 +1493,7 @@ def get_group_resources(tokdata,gid):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_my_groups")
+    dbg("++++++++++ entering get_my_groups")
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
@@ -1504,12 +1516,12 @@ def get_group_resources(tokdata,gid):
     if not hasattr(config,"repo_db_type"):
         config.repo_db_type=get_db_type(config.repoengine)
 
-    log.debug("get_resource config.repo_db_type=%s",config.repo_db_type)
+    dbg("get_resource config.repo_db_type=%s",config.repo_db_type)
     if config.repo_db_type == 'mssql':
         concat_op='+'
     else:
         concat_op='||'
-    log.debug("get_resource concat_op=%s",concat_op)
+    dbg("get_resource concat_op=%s",concat_op)
     resource_sql=f"""select
 'application_'{concat_op}cast(id as varchar) as id
 , name
@@ -1561,9 +1573,9 @@ on per.id=rg.external_resource_id
 and rg.group_id={gid}
 and rg.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
 """
-    log.debug("get_group_resources sql: %s",resource_sql)
+    dbg("get_group_resources sql: %s",resource_sql)
     items,columns,total_count,e=sql_select(config.repoengine,resource_sql,order_by=None,offset=None,limit=None,with_total_count=True,is_repo=True,user_id=prof["user_id"])
-    log.debug("get_group_resources sql_select error %s",str(e))
+    dbg("get_group_resources sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
@@ -1623,8 +1635,8 @@ def get_all_repos(tokdata,tab):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_all_repos")
-    log.debug("get_all_repos: param tab is <%s>",str(tab))
+    dbg("++++++++++ entering get_all_repos")
+    dbg("get_all_repos: param tab is <%s>",str(tab))
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
@@ -1635,9 +1647,9 @@ def get_all_repos(tokdata,tab):
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')
-    log.debug("pagination offset=%s limit=%s",offset,limit)
+    dbg("pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,e=sql_select(config.repoengine,repo_table_prefix+tab,order_by,offset,limit,filter=myfilter,with_total_count=True,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
-    log.debug("get_all_repos sql_select error %s",str(e))
+    dbg("get_all_repos sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return jsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
@@ -1680,9 +1692,9 @@ def get_repo(tokdata,tab,pk):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_repo")
-    log.debug("get_repo: param tab is <%s>",str(tab))
-    log.debug("get_repo: param pk is <%s>",str(pk))
+    dbg("++++++++++ entering get_repo")
+    dbg("get_repo: param tab is <%s>",str(tab))
+    dbg("get_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
     # check options
     prof=get_profile(config.repoengine,tokdata['username'])
@@ -1692,7 +1704,7 @@ def get_repo(tokdata,tab,pk):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
     # check if pk is compound
     mycustomsql = request.args.get('customsql')
     pk=prep_pk_from_url(pk)
@@ -1705,11 +1717,11 @@ def get_repo(tokdata,tab,pk):
         if len(out["data"])>0:
             #print("out:"+str(out))
             pre_jsonify_items_transformer(out["data"])
-            log.debug("out:%s",str(out))
+            dbg("out:%s",str(out))
             return jsonify(out)
             #return Response(jsonify(out),status=204)
         else:
-            log.debug("no record found")
+            dbg("no record found")
             # return Response(status=204)
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
@@ -1753,31 +1765,31 @@ def create_repo(tokdata,tab):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering create_repo")
-    log.debug("create_repo: param tab is <%s>",str(tab))
+    dbg("++++++++++ entering create_repo")
+    dbg("create_repo: param tab is <%s>",str(tab))
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     pkcols=[]
     is_versioned=False
     # check options
-    log.debug("create_repo: check url params")
+    dbg("create_repo: check url params")
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("create_repo tab %s pkcols %s",tab,pkcols)
+                dbg("versions enabled")
+    dbg("create_repo tab %s pkcols %s",tab,pkcols)
     mycustomsql = request.args.get('customsql')
 
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    dbg("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    dbg("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     db_typ = get_db_type(config.repoengine)
     if tab in ["adhoc","application","datasource","external_resource","group","lookup","role","user","group","customsql","adhoc_parameter"]:
@@ -1836,9 +1848,9 @@ def update_repo(tokdata,tab,pk):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering update_repo")
-    log.debug("update_repo: param tab is <%s>",str(tab))
-    log.debug("update_repo: param pk is <%s>",str(pk))
+    dbg("++++++++++ entering update_repo")
+    dbg("update_repo: param tab is <%s>",str(tab))
+    dbg("update_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
@@ -1850,7 +1862,7 @@ def update_repo(tokdata,tab,pk):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
     mycustomsql = request.args.get('customsql')
     # check if pk is compound
     pk=prep_pk_from_url(pk)
@@ -1860,15 +1872,16 @@ def update_repo(tokdata,tab,pk):
         if isinstance(pk,dict):
            # there is an url pk in form (col:val)
            pkcols=list(pk.keys())
-           log.debug("pk columns from url form (col:val[:col2:val2...])")
+           dbg("pk columns from url form (col:val[:col2:val2...])")
     else:
-        log.debug("pk columns explicitly from url parameter")
+        dbg("pk columns explicitly from url parameter")
     
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    dbg("databytes: %s",data_bytes,dbglevel=3)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    dbg("datastring: %s",data_string,dbglevel=3)
     item = json.loads(data_string.strip("'"))
+    dbg("datastring: %s",str(item),dbglevel=3)
 
     out = db_upd(config.repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True,customsql=mycustomsql)
     return jsonify(out)
@@ -1912,9 +1925,9 @@ def delete_repo(tokdata,tab,pk):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering delete_repo")
-    log.debug("delete_repo: param tab is <%s>",str(tab))
-    log.debug("delete_repo: param pk is <%s>",str(pk))
+    dbg("++++++++++ entering delete_repo")
+    dbg("delete_repo: param tab is <%s>",str(tab))
+    dbg("delete_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
@@ -1926,25 +1939,25 @@ def delete_repo(tokdata,tab,pk):
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
-                log.debug("pk option %s",pkcols)
+                dbg("pk option %s",pkcols)
             if key=="v":
                 is_versioned=True
-                log.debug("versions enabled")
-    log.debug("delete_item tab %s pkcols %s ",tab,pkcols)
+                dbg("versions enabled")
+    dbg("delete_item tab %s pkcols %s ",tab,pkcols)
 
     pk=prep_pk_from_url(pk)
-    log.debug("delete_repo tab %s pk %s",tab,pk)
+    dbg("delete_repo tab %s pk %s",tab,pk)
     # check pk from compound key 
     if len(pkcols)==0:
         # pk columns are not explicitly given as url parameter
         if isinstance(pk,dict):
            # there is an url pk in form (col:val)
            pkcols=list(pk.keys())
-           log.debug("pk columns from url form (col:val[:col2:val2...])")
+           dbg("pk columns from url form (col:val[:col2:val2...])")
     else:
-        log.debug("pk columns explicitly from url parameter")
+        dbg("pk columns explicitly from url parameter")
 
-    log.debug("############# pk columns for delete is %s",str(pkcols))
+    dbg("############# pk columns for delete is %s",str(pkcols))
     out = db_del(config.repoengine,repo_table_prefix+tab,pk,pkcols,is_versioned,is_repo=True)
     if isinstance(out,dict):
         if "error" not in out.keys():
@@ -1972,7 +1985,7 @@ def init_repo():
         examples:
           text/html: 'Repo initialized successfully'
     """
-    log.debug("++++++++++ entering init_repo")
+    dbg("++++++++++ entering init_repo")
     #audit(tokdata,request)
     with config.repoengine.connect() as conn:
         pass
@@ -2010,16 +2023,16 @@ def get_lookup(tokdata,id):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_lookup")
-    log.debug("get_lookup: param id is <%s>",str(id))
+    dbg("++++++++++ entering get_lookup")
+    dbg("get_lookup: param id is <%s>",str(id))
     audit(tokdata,request)
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("get_lookup pagination offset=%s limit=%s",offset,limit)
+    dbg("get_lookup pagination offset=%s limit=%s",offset,limit)
     items,columns,total_count,e=repo_lookup_select(config.repoengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
-    log.debug("get_lookup sql_select error %s",str(e))
+    dbg("get_lookup sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
             json_out = jsonify(out)
@@ -2066,20 +2079,20 @@ def get_adhoc_data(tokdata,id):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("++++++++++ entering get_adhoc_data")
-    log.debug("get_adhoc_data: param id is <%s>",str(id))
+    dbg("++++++++++ entering get_adhoc_data")
+    dbg("get_adhoc_data: param id is <%s>",str(id))
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
     out={}
     myparams=None
     fmt="JSON"
-    log.debug("get_adhoc_data: check request arguments")
+    dbg("get_adhoc_data: check request arguments")
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
             if key=="format":
                 fmt=value
-                log.debug("adhoc format %s",fmt)
+                dbg("adhoc format %s",fmt)
             if key=="params":
                 myparams = {}
                 slist=value.split(",")
@@ -2090,26 +2103,26 @@ def get_adhoc_data(tokdata,id):
                     else:
                         return "adhoc json parameter is invalid, does not contain semicolon",500
 
-    log.debug("get_adhoc_data: get request data")
+    dbg("get_adhoc_data: get request data")
     data_bytes = request.get_data()
-    log.debug("get_adhoc_data: databytes: %s",data_bytes)
+    dbg("get_adhoc_data: databytes: %s",data_bytes)
     dataitem = None
     if data_bytes is not None:
-        log.debug("get_adhoc_data: databytes is not None: %s",data_bytes)
+        dbg("get_adhoc_data: databytes is not None: %s",data_bytes)
         if len(data_bytes)>0:
-            log.debug("get_adhoc_data: databytes len > 0: %s",data_bytes)
+            dbg("get_adhoc_data: databytes len > 0: %s",data_bytes)
             data_string = data_bytes.decode('utf-8')
-            log.debug("get_adhoc_data: datastring: %s",data_string)
+            dbg("get_adhoc_data: datastring: %s",data_string)
             if data_string is not None:
                 dataitem = json.loads(data_string)
-                log.debug("get_adhoc_data: dataitem: %s",str(dataitem))
+                dbg("get_adhoc_data: dataitem: %s",str(dataitem))
 
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
-    log.debug("get_adhoc_data pagination order_by=%s",order_by)
-    log.debug("get_adhoc_data: get adhoc stmt")
+    dbg("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+    dbg("get_adhoc_data pagination order_by=%s",order_by)
+    dbg("get_adhoc_data: get adhoc stmt")
     get_rep_adhoc_res = get_repo_adhoc_sql_stmt(config.repoengine,id,user_id)
     if "error" in get_rep_adhoc_res.keys():
         return jsonify(get_rep_adhoc_res), 500
@@ -2124,43 +2137,43 @@ def get_adhoc_data(tokdata,id):
         adhoc_datasrc_id = 1
         #log.warning(msg) 
         #return msg, 500
-    log.debug("get_adhoc_data: parameter substitution")
+    dbg("get_adhoc_data: parameter substitution")
     # substitute params
     if isinstance(myparams,dict):
         for p,v in myparams.items():
             adhoc_sql=adhoc_sql.replace("$("+p+")",v)
-        log.debug("get_adhoc_data: adhoc sql after subsitution: %s",adhoc_sql)
+        dbg("get_adhoc_data: adhoc sql after subsitution: %s",adhoc_sql)
     # substitute global environment params
     adhoc_sql=adhoc_sql.replace("$(APP_USER)",tokdata['username'])
     # substitute request data
     if isinstance(dataitem,dict):
         for p,v in dataitem.items():
             adhoc_sql=adhoc_sql.replace("$("+p+")",v)
-    log.debug("get_adhoc_data: adhoc sql after data subsitution: %s",adhoc_sql)
+    dbg("get_adhoc_data: adhoc sql after data subsitution: %s",adhoc_sql)
     if adhoc_sql is None:
         msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
         log.error(msg)
         return msg, 500
-    log.debug("get_adhoc_data: get db type")
+    dbg("get_adhoc_data: get db type")
     adhoc_dbengine = get_db_by_id_or_alias(adhoc_datasrc_id)
     db_typ = get_db_type(adhoc_dbengine)
-    log.debug("get_adhoc_data: prepare json pagination")
+    dbg("get_adhoc_data: prepare json pagination")
     if fmt=="JSON":
-        log.debug("get_adhoc_data: fmt JSON")
+        dbg("get_adhoc_data: fmt JSON")
         adhoc_sql= f"select x.* from ({adhoc_sql}) x"
         adhoc_sql += add_offset_limit(db_typ,offset,limit,order_by)
-        log.debug("get_adhoc_data JSON pagination: %s",adhoc_sql)
-        log.debug("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
+        dbg("get_adhoc_data JSON pagination: %s",adhoc_sql)
+        dbg("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     else:
         if order_by_def is not None:
-            log.debug("get_adhoc_data: apply default order by")
+            dbg("get_adhoc_data: apply default order by")
             adhoc_sql+=" "+order_by_def.replace(":"," ")
     #
     # handle formats
-    log.debug("get_adhoc_data: fmt= %s",fmt)
+    dbg("get_adhoc_data: fmt= %s",fmt)
     if fmt=="JSON":
         # execute adhoc sql
-        log.debug("get_adhoc_data: execute adhoc sql")
+        dbg("get_adhoc_data: execute adhoc sql")
         try:
             items, columns = db_exec(adhoc_dbengine,adhoc_sql)
         except SQLAlchemyError as e_sqlalchemy:
@@ -2175,7 +2188,7 @@ def get_adhoc_data(tokdata,id):
                 out["error"]+="-get_adhoc_data"
                 out["message"]+=" beim Lesen der Adhoc Daten"
             return jsonify(out), 500
-        log.debug("get_adhoc_data: fmt JSON")
+        dbg("get_adhoc_data: fmt JSON")
         if not isinstance(items,list):
             return "adhoc json result error",500
         total_count=len(items)
@@ -2184,14 +2197,14 @@ def get_adhoc_data(tokdata,id):
         out["total_count"]=total_count
         return jsonify(out)
     else:
-        log.debug("get_adhoc_data: other formats")
+        dbg("get_adhoc_data: other formats")
         # read data with pandas
         try:
-            log.debug("adhoc_dbengine %s",str(adhoc_dbengine))
+            dbg("adhoc_dbengine %s",str(adhoc_dbengine))
             with adhoc_dbengine.connect() as conn:
-                log.debug("adhoc_dbengine querying")
+                dbg("adhoc_dbengine querying")
                 df = pd.read_sql_query(adhoc_sql,conn)
-                log.debug("adhoc_dbengine query done")
+                dbg("adhoc_dbengine query done")
         except SQLAlchemyError as e_sqlalchemy:
             log.error("adhoc_sql_errors(pd): %s", str(e_sqlalchemy))
             if last_stmt_has_errors(e_sqlalchemy, out):
@@ -2205,20 +2218,20 @@ def get_adhoc_data(tokdata,id):
                 out["message"]+=" beim Lesen der Adhoc Daten"
             return jsonify(out), 500
 
-        #log.debug("get_adhoc_data: items=%s",str(items))
-        log.debug("adhoc_dbengine got pandas dataframe")
+        #dbg("get_adhoc_data: items=%s",str(items))
+        dbg("adhoc_dbengine got pandas dataframe")
         if len(df)==0:
             out["error"]="adhoc-no-rows"
             out["message"]="Die Adhoc Abfrage liefert keine Daten"
             out["detail"]=None
-            log.debug("get_adhoc_data: no rows result")
+            dbg("get_adhoc_data: no rows result")
             return jsonify(out),500
         else:
             try:
                 # Save the DataFrame to an Excel file
                 if fmt=="XLSX":
-                    log.debug("get_adhoc_data: XLSX format")
-                    log.debug("adhoc excel")
+                    dbg("get_adhoc_data: XLSX format")
+                    dbg("adhoc excel")
                     tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.xlsx')
                     datasheet_name="daten"
                     infosheet_name="info"
@@ -2226,7 +2239,7 @@ def get_adhoc_data(tokdata,id):
                         output = pd.ExcelWriter(tmpfile)
                         fmt_xl.header_style = None
                         #pd.formats.format.header_style = None
-                        log.debug("get_adhoc_data: df to excel")
+                        dbg("get_adhoc_data: df to excel")
                         df.to_excel(output, index=False, sheet_name=datasheet_name)
                         output.close()
                     except Exception as e0:
@@ -2240,17 +2253,17 @@ def get_adhoc_data(tokdata,id):
                     # add sheet with sql
                     book = load_workbook(tmpfile)
                     #autofit columns
-                    log.debug("get_adhoc_data: add autofit volumns")
+                    dbg("get_adhoc_data: add autofit volumns")
                     sheet = book[datasheet_name]
                     sheet_tab = Table(displayName="daten", ref=sheet.dimensions)
                     #default font
-                    log.debug("get_adhoc_data: default xls font")
+                    dbg("get_adhoc_data: default xls font")
                     deffont = Font(name='Arial', size=9, bold=False, italic=False)
                     for row in sheet.iter_rows():
                         for cell in row:
                             cell.font = deffont
                     #header font
-                    log.debug("get_adhoc_data: header xls font")
+                    dbg("get_adhoc_data: header xls font")
                     font = Font(name='Arial', size=9, bold=True, italic=False)
                     for column in sheet.columns:
                         max_length = 0
@@ -2272,7 +2285,7 @@ def get_adhoc_data(tokdata,id):
                     #    column_range = f'{column_letter}1:{column_letter}{sheet.max_row}'
                     #    sheet.auto_filter.ref = column_range
                     # Create a new sheet "info"
-                    log.debug("get_adhoc_data: add info sheet")
+                    dbg("get_adhoc_data: add info sheet")
                     book.create_sheet(title=infosheet_name)
                     new_sheet = book[infosheet_name]
                     new_sheet['A1'] = "erstellt am:"
@@ -2297,7 +2310,7 @@ def get_adhoc_data(tokdata,id):
                         adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
                         new_sheet.column_dimensions[column_letter].width = adjusted_width                    
                     # new sql sheet
-                    log.debug("get_adhoc_data: add sql sheet")
+                    dbg("get_adhoc_data: add sql sheet")
                     book.create_sheet(title="sql")
                     sql_sheet = book["sql"]
                     sql_sheet.sheet_state = 'hidden'
@@ -2305,7 +2318,7 @@ def get_adhoc_data(tokdata,id):
                     sql_sheet['A2'] = adhoc_sql
 
                     book.save(tmpfile)                    
-                    log.debug("get_adhoc_data: xlsx saved")
+                    dbg("get_adhoc_data: xlsx saved")
                     # Return the Excel file as a download
                     with open(tmpfile, 'rb') as file:
                         response = Response(
@@ -2313,11 +2326,11 @@ def get_adhoc_data(tokdata,id):
                             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                             headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
                         )
-                        log.debug("get_adhoc_data: return response")
-                        log.debug(response)
+                        dbg("get_adhoc_data: return response")
+                        dbg(response)
                         return response
                 elif fmt=="CSV":
-                    log.debug("adhoc csv")
+                    dbg("adhoc csv")
                     tmpfile='mydata.csv'
                     # Prepare the CSV file
                     try:
@@ -2337,10 +2350,10 @@ def get_adhoc_data(tokdata,id):
                             mimetype='text/csv',
                             headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
                         )
-                        log.debug(response)
+                        dbg(response)
                         return response
                 elif fmt=="TXT":
-                    log.debug("adhoc txt separated with tabs")
+                    dbg("adhoc txt separated with tabs")
                     tmpfile='mydata.csv'
                     # Prepare the CSV file
                     df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
@@ -2351,7 +2364,7 @@ def get_adhoc_data(tokdata,id):
                             mimetype='text/csv',
                             headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
                         )
-                        log.debug(response)
+                        dbg(response)
                         return response
                 else: 
                     out["error"]="adhoc-invalid-format"
@@ -2375,7 +2388,7 @@ def load_repo_users():
     load all users defined in the repository into a global dictionary "user"
     i.e. caching for performance reasons
     """
-    log.debug("++++++++++ entering load_repo_users")
+    dbg("++++++++++ entering load_repo_users")
     global users
     out={}
     plainbi_users,columns,cnt,e=sql_select(config.repoengine,'plainbi_user')
@@ -2388,7 +2401,7 @@ def authenticate_local(username,password):
     """
     authenticate a local (repository) user
     """
-    log.debug("++++++++++ entering authenticate_local")
+    dbg("++++++++++ entering authenticate_local")
     global users
     load_repo_users()
     if not username or not password:
@@ -2397,14 +2410,14 @@ def authenticate_local(username,password):
 
     p=config.bcrypt.generate_password_hash(password)
     pwd_hashed=p.decode()
-    log.debug("login: hashed input pwd is %s",pwd_hashed)
+    dbg("login: hashed input pwd is %s",pwd_hashed)
     if username in users.keys():
         if config.bcrypt.check_password_hash(users[username]["password_hash"], password):
-            log.debug("login: pwd ok")
+            dbg("login: pwd ok")
             return True
     else:
-        log.debug("login: user %s is unknown in repo",username)
-    log.debug("++++++++++ leaving login")
+        dbg("login: user %s is unknown in repo",username)
+    dbg("++++++++++ leaving login")
     return False
     
     """
@@ -2415,7 +2428,7 @@ def authenticate_ldap(login_username,password):
     authenticate a user via LDAP Active Directory
     login_username can be ntaccount (cn) or email (mail)
     """
-    log.debug("++++++++++ entering authenticate_ldap")
+    dbg("++++++++++ entering authenticate_ldap")
     global users
     mail=None
     full_name=None
@@ -2424,7 +2437,7 @@ def authenticate_ldap(login_username,password):
     bindpwd=os.environ.get("LDAP_BIND_USER_PASSWORD")
     bindpwd=bindpwd.strip()
     username=login_username
-    log.debug("login username from ldap=%s",username)
+    dbg("login username from ldap=%s",username)
     s = ldap3.Server(host=os.environ.get("LDAP_HOST"), port=int(os.environ.get("LDAP_PORT")), use_ssl=False, get_info=ldap3.ALL)
     conn_bind = ldap3.Connection(s, user=os.environ.get("LDAP_BIND_USER_DN"), password=bindpwd, auto_bind='NONE', version=3, authentication='SIMPLE')
     if not conn_bind.bind():
@@ -2432,7 +2445,7 @@ def authenticate_ldap(login_username,password):
         log.error('check environent variables LDAP_HOST=%s LDAP_PORT=%s LDAP_BIND_USER_DN=%s', os.environ.get("LDAP_HOST"),os.environ.get("LDAP_PORT"),os.environ.get("LDAP_BIND_USER_DN"))
         if "LDAP_BIND_USER_PASSWORD" not in list(dict(os.environ).keys()):
             log.error("environment variable LDAP_BIND_USER_PASSWORD is missing")
-        log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
+        dbg("++++++++++ entering authenticate_ldap with status %s",authenticated)
         return authenticated,username
     if "LDAP_BASE_DN" not in list(dict(os.environ).keys()):
         log.error("environment variable LDAP_BASE_DN is missing")
@@ -2446,18 +2459,18 @@ def authenticate_ldap(login_username,password):
             search_expr=f'(mail={username})'
         else:
             search_expr=f'(&(cn={username}))'
-    log.debug("LDAP Search Expression is %s",search_expr)
+    dbg("LDAP Search Expression is %s",search_expr)
     conn_bind.search(os.environ.get("LDAP_BASE_DN"), search_expr, attributes=['*'])
     for entry in conn_bind.entries:
-        log.debug("ldap entry=%s",entry.entry_dn)
+        dbg("ldap entry=%s",entry.entry_dn)
         # substitute username by returned cn
         #username=entry.cn.value
         try:
             username=entry.sAMAccountName.value.lower()
         except Exception as e:
-            log.debug("authenticate_ldap:%s",str(e))
+            dbg("authenticate_ldap:%s",str(e))
             return authenticated, username
-        log.debug("username (sAMAccountName) from ldap=%s",username)
+        dbg("username (sAMAccountName) from ldap=%s",username)
         conn_auth = ldap3.Connection(s, user=entry.entry_dn, password=password, auto_bind='NONE', version=3, authentication='SIMPLE')
         if not conn_auth.bind():
             log.warning("error in bind ldap entry=%s",entry.entry_dn)
@@ -2469,10 +2482,10 @@ def authenticate_ldap(login_username,password):
                 mail = entry.mail.value if 'mail' in entry else None
                 full_name = entry.displayName.value if 'displayName' in entry else None
                 db_adduser(config.repoengine,username,pwd=None,is_admin=False,email=mail,fullname=full_name)
-                log.debug("refresh profile cache")
+                dbg("refresh profile cache")
                 config.profile_cache={}
             break
-    log.debug("++++++++++ entering authenticate_ldap with status %s",authenticated)
+    dbg("++++++++++ entering authenticate_ldap with status %s",authenticated)
     return authenticated,username
 
 
@@ -2524,18 +2537,18 @@ def login():
             "message": "Benutzername oder Passwort ist falsch"
     """
     out={}
-    log.debug("++++++++++ entering login")
-    log.debug("login")
+    dbg("++++++++++ entering login")
+    dbg("login")
     data_bytes = request.get_data()
     username = None # init
-    #log.debug("databytes: %s",data_bytes)
+    #dbg("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    #log.debug("datastring: %s",data_string)
+    #dbg("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     #print("login items ",str(item))
 
     login_username = item['username'].lower()
-    log.debug("login: username=%s",login_username)
+    dbg("login: username=%s",login_username)
     password = item['password']
     if len(login_username)==0:
         out["message"]='Username muss angegeben werden'
@@ -2548,7 +2561,7 @@ def login():
         out["detail"]="invalid-credentials no password"
         return jsonify(out), 401
 
-    #log.debug("login: password=%s",password)
+    #dbg("login: password=%s",password)
     #audit(item['username'],request)
     audit(item['username'],request)
 
@@ -2558,23 +2571,23 @@ def login():
     if "LDAP_HOST" in list(dict(os.environ).keys()):  # if LDAP is defined in environment
         used_ldap=True
         authenticated,username = authenticate_ldap(login_username,password)
-        log.debug("login authenticated by ldap = %s",authenticated)
+        dbg("login authenticated by ldap = %s",authenticated)
         if not authenticated:
-            log.debug("try locally authenticated")
+            dbg("try locally authenticated")
             username = login_username  # use original name in login mask for local auth
             authenticated = authenticate_local(username,password)
-            log.debug("login authenticated local = %s",authenticated)
+            dbg("login authenticated local = %s",authenticated)
     else:
         username = login_username 
-        log.debug("ldap authentication skipped because no LDAP_HOST environment variable")
+        dbg("ldap authentication skipped because no LDAP_HOST environment variable")
         used_local=True
         authenticated = authenticate_local(username,password)
-        log.debug("login authenticated local = %s",authenticated)
+        dbg("login authenticated local = %s",authenticated)
     if authenticated:
-        log.debug("login authenticated")
+        dbg("login authenticated")
         token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
         if username not in users.keys():
-            log.debug('refresh users array')
+            dbg('refresh users array')
             load_repo_users()
         if len(request.args) > 0:
             for key, value in request.args.items():
@@ -2616,11 +2629,11 @@ def passwd(tokdata):
             message: Data processed successfully
     """
     out={}
-    log.debug("passwd")
+    dbg("passwd")
     data_bytes = request.get_data()
-    log.debug("databytes: %s",data_bytes)
+    dbg("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
-    log.debug("datastring: %s",data_string)
+    dbg("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
     print("passwd items ",str(item))
     prof=get_profile(config.repoengine,tokdata['username'])
@@ -2632,26 +2645,26 @@ def passwd(tokdata):
     print(str(users))
 
     password = item['password']
-    log.debug("login: password=%s",password)
+    dbg("login: password=%s",password)
     p=config.bcrypt.generate_password_hash(password)
     pwd_hashed=p.decode()
     print(pwd_hashed)
     
     if prof["role"] == "Admin":
         username = item['username']
-        log.debug("passwd: username=%s",username)
+        dbg("passwd: username=%s",username)
     else:
         username=prof["username"]
         oldpassword = item['old_password']
-        log.debug("login: password=%s",oldpassword)
+        dbg("login: password=%s",oldpassword)
         if username in users.keys():
             if config.bcrypt.check_password_hash(users[username], oldpassword):
-                log.debug("old pwd ok")
+                dbg("old pwd ok")
                 out["error"]="old-password-does-not-match"
                 out["message"]="Altes Passwort ist falsch"
                 return jsonify(out)
     out=db_passwd(config.repoengine,username,p)
-    log.debug("++++++++++ leaving passwd with %s",out)
+    dbg("++++++++++ leaving passwd with %s",out)
     return jsonify(out)
 
 
@@ -2710,26 +2723,26 @@ def cache(tokdata):
     """
     config.metadataraw_cache={}
     config.profile_cache={}
-    log.debug("clear_cache: get_metadata_raw: cache created")
-    log.debug("clear_cache: get_profile: cache created")
+    dbg("clear_cache: get_metadata_raw: cache created")
+    dbg("clear_cache: get_profile: cache created")
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
             if key=="on":
                 config.use_cache=True
-                log.debug("caching enabled")
+                dbg("caching enabled")
                 config.metadataraw_cache = {}
                 config.profile_cache = {}
                 return 'cacheing endabled', 200
             if key=="off":
                 config.use_cache=False
-                log.debug("caching disabled")
+                dbg("caching disabled")
                 return 'cacheing disabled', 200
             if key=="clear":
                 config.metadataraw_cache={}
                 config.profile_cache={}
-                log.debug("clear_cache: get_metadata_raw: cache created")
-                log.debug("clear_cache: get_profile: cache created")
+                dbg("clear_cache: get_metadata_raw: cache created")
+                dbg("clear_cache: get_profile: cache created")
                 return 'caches cleared', 200
             if key=="status":
                 if config.use_cache:
@@ -2762,8 +2775,8 @@ def clear_cache(tokdata):
     """
     config.metadataraw_cache={}
     config.profile_cache={}
-    log.debug("clear_cache: get_metadata_raw: cache cleared")
-    log.debug("clear_cache: get_profile: cache cleared")
+    dbg("clear_cache: get_metadata_raw: cache cleared")
+    dbg("clear_cache: get_profile: cache cleared")
     return 'caches cleared', 200
 
 @api.route('/protected', methods=['GET'])
@@ -2786,7 +2799,7 @@ def protected(tokdata):
           application/json: 
             message: Data processed successfully
     """
-    log.debug("current user=%s",tokdata['username'])
+    dbg("current user=%s",tokdata['username'])
     u=tokdata['username']
     return jsonify({'message': f'Hello, {u}! You are authenticated.'}), 200
 
@@ -2830,7 +2843,7 @@ def logout(tokdata):
           application/json: 
             message: logged out
     """
-    log.debug("logout")
+    dbg("logout")
     audit(tokdata,request)
     return jsonify({'message': 'logged out'})
 
@@ -2877,9 +2890,9 @@ def getstatic(id):
     else:
         sql_params={ "alias" : id}
         sql="select * from plainbi_static_file where alias=:alias"
-    log.debug("getstatic: sql is <%s>",sql)
+    dbg("getstatic: sql is <%s>",sql)
     s,s_columns = db_exec(config.repoengine, sql , sql_params)
-    #log.debug("static resource = %s",str(s))
+    #dbg("static resource = %s",str(s))
     if len(s)>0:
         for r in s:
             b64 = r["content_base64"]
@@ -2906,15 +2919,15 @@ def getsettingsjs():
         examples:
           text/javascript: "var APP_TITLE = ...."
     """
-    log.debug("++++++++++ entering getsettingsjs")
+    dbg("++++++++++ entering getsettingsjs")
     
     out={}
-    log.debug("getsettings from db")
+    dbg("getsettings from db")
     items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
     if isinstance(e,str) and e=="ok":
-        log.debug("getsettings sql_select ok")
+        dbg("getsettings sql_select ok")
     else:
-        log.debug("getsettings sql_select error %s",str(e))
+        dbg("getsettings sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
             json_out2 = jsonify(out)
@@ -2931,8 +2944,8 @@ def getsettingsjs():
                     return i["setting_value"]
         return ""
 
-    log.debug("construct javascript")
-    log.debug("settings are %s",str(items))
+    dbg("construct javascript")
+    dbg("settings are %s",str(items))
     s=  "// header and footer\n"
     s=s+f"var APP_TITLE = '"+get_setting_from_list(items,'app_title')+"';\n"
     s=s+f"var HEADER_TITLE = '"+get_setting_from_list(items,'header_title')+"';\n"
@@ -2972,12 +2985,12 @@ def getsettings():
         description: getting setting failed
     """
     out={}
-    log.debug("++++++++++ entering getsettings")
+    dbg("++++++++++ entering getsettings")
     items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
     if isinstance(e,str) and e=="ok":
-        log.debug("getsettings sql_select ok")
+        dbg("getsettings sql_select ok")
     else:
-        log.debug("getsettings sql_select error %s",str(e))
+        dbg("getsettings sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:
             json_out2 = jsonify(out)
@@ -2988,8 +3001,8 @@ def getsettings():
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    log.debug("leaving getsettings and return json result")
-    log.debug("out=%s",str(out))
+    dbg("leaving getsettings and return json result")
+    dbg("out=%s",str(out))
     try:
         json_out = jsonify(out)
     except Exception as ej:
@@ -3021,12 +3034,12 @@ def getsetting(name):
       404:
         description: Setting not found
     """
-    log.debug("++++++++++ entering getsetting")
+    dbg("++++++++++ entering getsetting")
     sql_params={ "name" : name}
     sql="select * from plainbi_settings where setting_name=:name"
-    log.debug("getsetting: sql is <%s>",sql)
+    dbg("getsetting: sql is <%s>",sql)
     s,s_columns = db_exec(config.repoengine, sql , sql_params)
-    log.debug("setting %s = %s",name,str(s))
+    dbg("setting %s = %s",name,str(s))
     out={}
     if len(s)>0:
         for r in s:
@@ -3047,7 +3060,7 @@ def create_app(p_repository=None, p_database=None):
       - unittest scripts (the parameters p_repository and p_database are important here)
     that's why the get_config handling is necessary
     """
-    log.debug("++++++++++ entering create_app")
+    dbg("++++++++++ entering create_app")
     global app
     log.info("creating flask app")
     app = Flask(__name__)
