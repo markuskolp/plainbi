@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Button, Typography, Card, Col, Row, message, Flex, Avatar } from "antd";
+import { Button, Typography, Card, Col, Row, message, Flex, Avatar, Tooltip } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import {
   EditOutlined,
@@ -84,23 +84,25 @@ const Apps = (props) => {
           <Flex gap="middle"  wrap>            
             {apps && apps.map((app) => {
               return (
-                  <Link key={app.alias} href={"/apps/"+app.alias}> 
-                    <Card
-                      style={{ maxWidth: 300, minWidth: 300 }}
-                      bordered={true}
-                      hoverable={true}
-                      >
-                        <Card.Meta
-                              avatar={ 
-                                <Avatar 
-                                  icon={<AppstoreOutlined />} 
-                                  style={{backgroundColor: '#fff', color: '#000', marginTop: '-5px' }}
-                                />
-                              }
-                        title={app.name}
-                      />
-                    </Card>
-                  </Link>
+                  <Tooltip title={app.name}>
+                    <Link key={app.alias} href={"/apps/"+app.alias}> 
+                      <Card
+                        style={{ maxWidth: 300, minWidth: 300 }}
+                        bordered={true}
+                        hoverable={true}
+                        >
+                          <Card.Meta
+                                avatar={ 
+                                  <Avatar 
+                                    icon={<AppstoreOutlined />} 
+                                    style={{backgroundColor: '#fff', color: '#000', marginTop: '-5px' }}
+                                  />
+                                }
+                          title={app.name}
+                        />
+                      </Card>
+                    </Link>
+                  </Tooltip>
               )
               })
             }
