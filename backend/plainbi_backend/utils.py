@@ -16,6 +16,53 @@ log = logging.getLogger(__name__)
 
 import urllib.parse
 
+def dbg(msg, *args, dbglevel=1, **kwargs):
+    """
+    customized debug log function
+    implements 3 types of debug level message
+    start backend with paramters -v -vv or -vvv
+    """
+    if dbglevel <= config.dbg_level:
+        caller_frame=inspect.currentframe().f_back
+        if config.dbg_level >= 3:
+            func_name=str(get_call_stack_function_names(inspect.stack()))
+        else:
+            func_name=[caller_frame.f_code.co_name]
+        fullmsg=f"{func_name}: {msg}"
+        log.debug(fullmsg,*args,**kwargs)
+
+def err(msg, *args, **kwargs):
+    """
+    customized log function
+    start backend with paramters -v -vv or -vvv
+    """
+    if config.dbg: 
+        if config.dbg_level >= 3:
+            func_name=str(get_call_stack_function_names(inspect.stack()))
+        else:
+            caller_frame=inspect.currentframe().f_back
+            func_name=[caller_frame.f_code.co_name]
+        fullmsg=f"{func_name}: {msg}"
+    else:
+        fullmsg = msg
+    log.error(fullmsg,*args,**kwargs)
+
+def warn(msg, *args, **kwargs):
+    """
+    customized log function
+    start backend with paramters -v -vv or -vvv
+    """
+    if config.dbg: 
+        if config.dbg_level >= 3:
+            func_name=str(get_call_stack_function_names(inspect.stack()))
+        else:
+            caller_frame=inspect.currentframe().f_back
+            func_name=[caller_frame.f_code.co_name]
+        fullmsg=f"{func_name}: {msg}"
+    else:
+        fullmsg = msg
+    log.warning(fullmsg,*args,**kwargs)
+
 def db_subs_env(s: str, d: dict):
     """
     replace parts of a string in the form "xx{k}yy" with values from a dictionary d which contains a key k
@@ -65,7 +112,7 @@ def prep_pk_from_url(pk) -> dict:
                 #pkd[pkl[i]]=pkl[i+1].replace("+++", "/").replace("---", "?").replace("***", "%") # URL encoding problem: decode +++ to /, --- to ?, *** to %
                 #pkd[pkl[i]]=urllib.parse.unquote(pkl[i+1]) # get pk value and decode it (url decoding)
                 i+=2
-            log.debug("prep_pk_from_url: compound key:%s",str(pkd))
+            dbg("prep_pk_from_url: compound key:%s",str(pkd))
             return pkd
         else:
             return pk
@@ -83,10 +130,10 @@ def urlsafe_decode_params(p):
             try:
                 w=p[8:].strip("]")+"==="
                 p1 = base64.urlsafe_b64decode(w).decode()
-                log.debug("urlsafebase64decode val=%s as %s",p,p1)
+                dbg("urlsafebase64decode val=%s as %s",p,p1)
                 return p1
             except Exception as e:
-                log.error("decode_params: val=%s, error:%s",p,str(e))
+                err("decode_params: val=%s, error:%s",p,str(e))
                 return p
         else:
             return p
@@ -97,13 +144,13 @@ def urlsafe_decode_params(p):
                     try:
                         w=v[8:].strip("]")+"==="
                         p[k] = base64.urlsafe_b64decode(w).decode()
-                        log.debug("urlsafebase64decode (%s) %s as %s",k,v,str(p[k]))
+                        dbg("urlsafebase64decode (%s) %s as %s",k,v,str(p[k]))
                     except Exception as e:
-                        log.error("decode_params: key=%s val=%s, error:%s",k,str(v),str(e))
+                        err("decode_params: key=%s val=%s, error:%s",k,str(v),str(e))
                         return p
         return p
     else:
-        log.debug("urlsafebase64decode not a str or dict %s",str(p))
+        dbg("urlsafebase64decode not a str or dict %s",str(p))
         return p
 
 def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None):
@@ -116,10 +163,10 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, tab
       returns  where_clause, vallist
              the where clause part with params and the value list as a Dict
     """
-    log.debug("++++++++++ entering make_pk_where_clause")
-    log.debug("make_pk_where_clause: param pk is <%s>",str(pk))
-    log.debug("make_pk_where_clause: param pkcols is <%s>",str(pkcols))
-    log.debug("make_pk_where_clause: param table_alias is <%s>",str(table_alias))
+    dbg("++++++++++ entering make_pk_where_clause")
+    dbg("make_pk_where_clause: param pk is <%s>",str(pk))
+    dbg("make_pk_where_clause: param pkcols is <%s>",str(pkcols))
+    dbg("make_pk_where_clause: param table_alias is <%s>",str(table_alias))
     if table_alias is None:
         alias_prefix=""
     else:
@@ -154,7 +201,7 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, tab
            w+=f" AND {alias_prefix}invalid_from_dt='9999-12-31 00:00:00'" 
        else:
            w+=f" AND {alias_prefix}is_current_and_active = 'Y'" 
-    log.debug("++++++++++ leaving make_pk_where_clause return whereclause=%s , vallist=%s",w,str(mypk))
+    dbg("++++++++++ leaving make_pk_where_clause return whereclause=%s , vallist=%s",w,str(mypk))
     return w, mypk
 
 def last_stmt_has_errors(e,out):
@@ -173,13 +220,13 @@ def last_stmt_has_errors(e,out):
     True if there were errors, else False
 
     """
-    log.debug("++++++++++ check if sql was successful")
+    dbg("++++++++++ check if sql was successful")
     if str(e)=="ok":
         return False
-    #log.debug("check if sql was successful: param e is <%s>",str(e))
-    #log.debug("check if sql was successful: param out is <%s>",str(out))
+    #dbg("check if sql was successful: param e is <%s>",str(e))
+    #dbg("check if sql was successful: param out is <%s>",str(out))
     if isinstance(e, SQLAlchemyError):
-        log.error("last_stmt_has_errors: %s", str(SQLAlchemyError))
+        err("last_stmt_has_errors: %s", str(SQLAlchemyError))
         out["error"]="sql-error"
         out["message"]="SQL Exception"
         if hasattr(e, 'code'):
@@ -187,7 +234,7 @@ def last_stmt_has_errors(e,out):
         if hasattr(e,"__dict__"):
             if isinstance(e.__dict__,dict):
                 if "orig" in e.__dict__.keys():
-                    out["detail"]=e.__dict__['orig']
+                    out["detail"]=str(e.__dict__['orig'])
                 else:
                     out["detail"]=str(e)
                 if "sql" in e.__dict__.keys():
@@ -197,17 +244,18 @@ def last_stmt_has_errors(e,out):
         else:
             out["detail"]=str(e)
         log.exception(e)
-        log.debug("++++++++++ leaving last_stmt_has_errors with SQL Error")
+        dbg("===out is:%s",out)
+        dbg("++++++++++ leaving last_stmt_has_errors with SQL Error")
         return True
     if isinstance(e,Exception):
-        log.error("last_stmt_has_errors: exception: %s", str(e))
+        err("last_stmt_has_errors: exception: %s", str(e))
         out["error"]="python-error"
         out["message"]="Python Exception"
         out["detail"]=str(e.__class__)
         if hasattr(e, "__dict__"):
              if "message" in e.__dict__.keys(): out["detail"]+="/"+str(e.__dict__['message'])
         log.exception(e)
-        log.debug("++++++++++ leaving last_stmt_has_errors with non-SQL Error")
+        dbg("++++++++++ leaving last_stmt_has_errors with non-SQL Error")
         return True
     return False
 
@@ -270,12 +318,12 @@ def parse_filter(p_q :str, p_filter, out) -> str:
     return myfilter, out
 
 def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
-    log.debug("++++++++++ calling add_filter_to_where_clause")
-    #log.debug("++++++++++ entering add_filter_to_where_clause")
-    #log.debug("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
-    #log.debug("add_filter_to_where_clause: param tab is <%s>",str(tab))
-    #log.debug("add_filter_to_where_clause: param filter is <%s>",str(filter))
-    #log.debug("add_filter_to_where_clause: param columns is <%s>",str(columns))
+    dbg("++++++++++ calling add_filter_to_where_clause")
+    #dbg("++++++++++ entering add_filter_to_where_clause")
+    #dbg("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
+    #dbg("add_filter_to_where_clause: param tab is <%s>",str(tab))
+    #dbg("add_filter_to_where_clause: param filter is <%s>",str(filter))
+    #dbg("add_filter_to_where_clause: param columns is <%s>",str(columns))
     if dbtyp=="mssql":
         concat_operator="+"
     else:
@@ -288,10 +336,10 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
         #filter is per column
         l_cexp=[]
         for k,v in filter.items():
-            log.debug("add filter key=%s val=%s",k,v)
+            dbg("add filter key=%s val=%s",k,v)
             if isinstance(v,tuple):
                 op, opval = v
-                log.debug("add filter op=%s opval=%s",op,opval)
+                dbg("add filter op=%s opval=%s",op,opval)
                 if op == ":":
                     l_cexp.append("cast("+k+" as varchar) = :"+k)
                     wparam[k] = opval
@@ -322,7 +370,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 cnt=cnt+1
                 if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
                 cexp+="lower(coalesce(cast("+lc+" as varchar),''))"
-            log.debug("filter cexp:%s",cexp)
+            dbg("filter cexp:%s",cexp)
             for i,ftok in enumerate(filter_tokens):
                 lftok=ftok.lower()
                 if i>0:
@@ -341,7 +389,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                     w+="lower(cast("+lc+" as varchar)) like lower('%"+lftok+"%')"
     w+=")"
     wp=None if len(wparam)==0 else wparam 
-    log.debug("++++++++++ leaving add_filter_to_where_clause with: %s params %s",w,str(wp))
+    dbg("++++++++++ leaving add_filter_to_where_clause with: %s params %s",w,str(wp))
     return w,wp
 
 def get_call_stack_function_names(s):
@@ -357,49 +405,3 @@ def get_call_stack_function_names(s):
     fl.reverse()
     return fl
 
-def dbg(msg, *args, dbglevel=1, **kwargs):
-    """
-    customized debug log function
-    implements 3 types of debug level message
-    start backend with paramters -v -vv or -vvv
-    """
-    if dbglevel <= config.dbg_level:
-        caller_frame=inspect.currentframe().f_back
-        if config.dbg_level >= 3:
-            func_name=str(get_call_stack_function_names(inspect.stack()))
-        else:
-            func_name=[caller_frame.f_code.co_name]
-        fullmsg=f"{func_name}: {msg}"
-        log.debug(fullmsg,*args,**kwargs)
-
-def err(msg, *args, **kwargs):
-    """
-    customized log function
-    start backend with paramters -v -vv or -vvv
-    """
-    if config.dbg: 
-        if config.dbg_level >= 3:
-            func_name=str(get_call_stack_function_names(inspect.stack()))
-        else:
-            caller_frame=inspect.currentframe().f_back
-            func_name=[caller_frame.f_code.co_name]
-        fullmsg=f"{func_name}: {msg}"
-    else:
-        fullmsg = msg
-    log.error(fullmsg,*args,**kwargs)
-
-def warn(msg, *args, **kwargs):
-    """
-    customized log function
-    start backend with paramters -v -vv or -vvv
-    """
-    if config.dbg: 
-        if config.dbg_level >= 3:
-            func_name=str(get_call_stack_function_names(inspect.stack()))
-        else:
-            caller_frame=inspect.currentframe().f_back
-            func_name=[caller_frame.f_code.co_name]
-        fullmsg=f"{func_name}: {msg}"
-    else:
-        fullmsg = msg
-    log.warning(fullmsg,*args,**kwargs)

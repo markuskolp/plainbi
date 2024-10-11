@@ -40,7 +40,7 @@ config.profile_cache = {}#
 config.dbg = False
 config.dbg_level = 1
 
-def get_config(verbose=None,logfile=None,configfile=None,repository=None,database=None,port=None):
+def get_config(verbose=0,logfile=None,configfile=None,repository=None,database=None,port=None):
     """
     get_config initializes the configuration from different sources
     values from the this function parameter list override the values found in environment or config file

@@ -113,6 +113,7 @@ import sys
 from datetime import date,datetime
 import json
 import base64
+import pprint
 #import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 import decimal
@@ -124,7 +125,6 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font
 from openpyxl.worksheet.table import Table #, TableStyleInfo
 import smtplib
-
 import pandas.io.formats.excel as fmt_xl
 
 try:
@@ -132,11 +132,7 @@ try:
 except:
     print("LDAP disabled because not installed")
 
-#import bcrypt
-
 from functools import wraps
-
-
 from flask import Flask, jsonify, request, Response, Blueprint, make_response
 #from flask.json import JSONEncoder
 from json import JSONEncoder
@@ -159,14 +155,24 @@ from plainbi_backend.repo import create_repo_db
 # import the global variable config
 from plainbi_backend.config import config, get_config
 
-
 #log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
 
-
 api = Blueprint('api', __name__)
 
-#pbi_env = load_pbi_env()
+def myjsonify(d: dict):
+    try:
+        jd=jsonify(d)
+    except Exception as e:
+        err("cannot jsonify dict %s",str(d))
+        jd=jsonify({"error":"cannot jsonify output", "detail":str(e)})
+        log.exception(e)
+        dbg("set status_code to 500 due to jsonify error")
+        #jd.status_code=500
+    if config.dbg_level >= 3:
+        pprint.pprint(jd)
+        pprint.pprint(d)
+    return jd
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -195,7 +201,7 @@ def token_required(f):
         dbg("token=%s",str(token))
 
         if not token:
-            return jsonify({'message': 'Token is missing'}), 401
+            return myjsonify({'message': 'Token is missing'}), 401
 
         try:
             tokdata = jwt.decode(token, config.SECRET_KEY, algorithms=['HS256'])
@@ -203,9 +209,9 @@ def token_required(f):
             #config.current_user=tokdata['username']
             #dbg("cur user=%s",str(config.current_user))
         except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired'}), 401
+            return myjsonify({'message': 'Token has expired'}), 401
         except jwt.InvalidTokenError:
-            return jsonify({'message': 'Invalid token x'}), 401
+            return myjsonify({'message': 'Invalid token x'}), 401
 
         return f(tokdata, *args, **kwargs)
 
@@ -406,7 +412,7 @@ def sndemail(tokdata):
         log.error("sendmail error: %s", str(e))
         out["error"]="sendemail"
         out["message"]="Email Konfiguration invalid"
-        return jsonify(out), 500
+        return myjsonify(out), 500
         # Create the email headers and body
 
     dbg("sndemail: check email params")
@@ -414,7 +420,7 @@ def sndemail(tokdata):
         log.error("sendmail error: to, subject or body in request post arguments missing")
         out["error"]="sendemail"
         out["message"]="Email invalid"
-        return jsonify(out), 500
+        return myjsonify(out), 500
     email_message = f"From: {smtp_user}\nTo: {item['to']}\nSubject: {item['subject']}\n\n{item['body']}"
     dbg("sndemail: send email")
     try:
@@ -436,9 +442,9 @@ def sndemail(tokdata):
         log.error("sendmail error: %s", str(e))
         out["error"]="sendemail"
         out["message"]="Email konnte nicht versendet werden"
-        return jsonify(out), 500
+        return myjsonify(out), 500
     out["message"]="Email wurde versendet"
-    return jsonify(out)
+    return myjsonify(out)
 
 
 @api.route(api_root+'/distinctvalues/<db>/<tabnam>/<colnam>', methods=['GET'])
@@ -483,7 +489,7 @@ def distinctvalues(tokdata,db,tabnam,colnam):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     out={}
     sql=f"SELECT DISTINCT {colnam} FROM {tabnam} ORDER BY 1"
     items,columns,total_count,e=sql_select(dbengine,sql,with_total_count=False)
@@ -492,24 +498,13 @@ def distinctvalues(tokdata,db,tabnam,colnam):
     else:
         dbg("distinctvalues sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        try:
-            json_out2 = jsonify(out)
-        except Exception as ej2:
-            log.error("distinctvalues: jsonify Error 2: %s",str(ej2))
-            log.exception(ej2)
-            json_out2 = "jsonify error"
-        return json_out2,500
+        return myjsonify(out),500
     out["data"]=[d[colnam] for d in pre_jsonify_items_transformer(items)]
     out["columns"]=columns
     out["total_count"]=len(items)
     dbg("leaving distinctvalues and return json result")
     dbg("out=%s",str(out))
-    try:
-        json_out = jsonify(out)
-    except Exception as ej:
-        log.error("distinctvalues: jsonify Error: %s",str(ej))
-        log.exception(ej)
-    return json_out
+    return myjsonify(out)
 
 @api.route(api_root+'/exec/<db>/<procname>', methods=['POST'])
 @token_required
@@ -567,7 +562,7 @@ def dbexec(tokdata,db,procname):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     out={}
     dbtype=get_db_type(dbengine)
 
@@ -580,7 +575,7 @@ def dbexec(tokdata,db,procname):
     else:
         out["error"] = "dbexec"
         out["message"] = "database type not supported"
-        return jsonify(out), 500
+        return myjsonify(out), 500
 
     first_key=True
     for key, value in item.items():
@@ -606,18 +601,18 @@ def dbexec(tokdata,db,procname):
         if last_stmt_has_errors(e_sqlalchemy, out):
             out["error"]+="-dbexec"
             out["message"]+=" bei dbexec"
-        return jsonify(out), 500
+        return myjsonify(out), 500
     except Exception as e:
         log.error("dbexec exception: %s ",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-dbexec"
             out["message"]+=" beim dbexec"
-        return jsonify(out), 500
+        return myjsonify(out), 500
 
     if isinstance(out,dict):
         if "error" in out.keys():
-            return jsonify(out), 500
-    return jsonify(out)
+            return myjsonify(out), 500
+    return myjsonify(out)
 
 ###########################
 ##
@@ -691,12 +686,12 @@ def get_all_items(tokdata,db,tab):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     out={}
     is_versioned = True if request.args.get('v') is not None else False
     myfilter, out = parse_filter(request.args.get('q'),request.args.get('filter'), out)
     if "error" in out.keys():
-        return jsonify(out), 500
+        return myjsonify(out), 500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -708,24 +703,13 @@ def get_all_items(tokdata,db,tab):
     else:
         dbg("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        try:
-            json_out2 = jsonify(out)
-        except Exception as ej2:
-            log.error("get_all_items: jsonify Error 2: %s",str(ej2))
-            log.exception(ej2)
-            json_out2 = "jsonify error"
-        return json_out2,500
+        return myjsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
     dbg("leaving get_all_items and return json result")
     dbg("out=%s",str(out))
-    try:
-        json_out = jsonify(out)
-    except Exception as ej:
-        log.error("get_all_items: jsonify Error: %s",str(ej))
-        log.exception(ej)
-    return json_out
+    return myjsonify(out)
 
 # Define routes for CRUD operations
 
@@ -784,7 +768,7 @@ def get_item(tokdata,db,tab,pk):
     dbg("get_items: param pk/id is <%s>",str(pk))
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     audit(tokdata,request)
     # check options
     out={}
@@ -827,7 +811,7 @@ def get_item(tokdata,db,tab,pk):
                 log.error("get_item: jsonify Error: %s",str(ej))
                 log.exception(ej)
                 return "get_item: jsonify Error",500
-            return json_out
+            return myjsonify(out)
             #return Response(jsonify(out),status=204)
         else:
             dbg("no record found")
@@ -836,7 +820,7 @@ def get_item(tokdata,db,tab,pk):
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
     dbg("leaving get_item with error 500 and return json result")
-    return jsonify(out),500
+    return myjsonify(out),500
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['POST'])
 @token_required
@@ -896,7 +880,7 @@ def get_item_post(tokdata,db,tab,pk):
     dbg("get_items: param pk/id is <%s>",str(pk))
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     audit(tokdata,request)
     # check options
     out={}
@@ -938,7 +922,7 @@ def get_item_post(tokdata,db,tab,pk):
                 log.error("get_item: jsonify Error: %s",str(ej))
                 log.exception(ej)
                 return "get_item: jsonify Error",500
-            return json_out
+            return myjsonify(out)
             #return Response(jsonify(out),status=204)
         else:
             dbg("no record found")
@@ -947,7 +931,7 @@ def get_item_post(tokdata,db,tab,pk):
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
     dbg("leaving get_item with error 500 and return json result")
-    return jsonify(out),500
+    return myjsonify(out),500
 
 
 @api.route(api_prefix+'/<db>/<tab>', methods=['POST'])
@@ -999,7 +983,7 @@ def create_item(tokdata,db,tab):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -1030,8 +1014,8 @@ def create_item(tokdata,db,tab):
     out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
-            return jsonify(out), 400
-    return jsonify(out)
+            return myjsonify(out), 400
+    return myjsonify(out)
 
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['PUT'])
@@ -1095,7 +1079,7 @@ def update_item(tokdata,db,tab,pk):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -1133,9 +1117,13 @@ def update_item(tokdata,db,tab,pk):
     out = db_upd(dbengine, tab, pk, item, pkcols, is_versioned, changed_by=tokdata['username'], customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
-            return jsonify(out), 400
+            print("==============================================")
+            print("=update_item out error================================")
+            pprint.pprint(out)
+            print("==============================================")
+            return myjsonify(out), 400
 
-    return jsonify(out)
+    return myjsonify(out)
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['DELETE'])
 @token_required
@@ -1189,7 +1177,7 @@ def delete_item(tokdata,db,tab,pk):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     out={}
     pkcols=[]
     is_versioned=False
@@ -1223,8 +1211,8 @@ def delete_item(tokdata,db,tab,pk):
         if "error" not in out.keys():
             return 'Record deleted successfully', 200
         else:
-            return jsonify(out), 400
-    return jsonify(out)
+            return myjsonify(out), 400
+    return myjsonify(out)
 
 
 @api.route(api_metadata_prefix+'/<db>/tables', methods=['GET'])
@@ -1257,7 +1245,7 @@ def get_metadata_tables(tokdata,db):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -1265,11 +1253,11 @@ def get_metadata_tables(tokdata,db):
     items,columns,total_count,e=sql_select(dbengine,metadata_tab_query,order_by,offset,limit,with_total_count=False)
     dbg("get_metadata_tables sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        return myjsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    return jsonify(out)
+    return myjsonify(out)
 
 @api.route(api_metadata_prefix+'/<db>/table/<tab>', methods=['GET'])
 @token_required
@@ -1307,7 +1295,7 @@ def get_metadata_tab_columns(tokdata,db,tab):
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
-        return jsonify(nodb_msg),500
+        return myjsonify(nodb_msg),500
     out={}
     pkcols=None
     if len(request.args) > 0:
@@ -1323,13 +1311,13 @@ def get_metadata_tab_columns(tokdata,db,tab):
         if last_stmt_has_errors(e_sqlalchemy, out):
             out["error"]+="-get_metadata_tab_columns"
             out["message"]+=" beim Lesen der Tabellen Metadaten"
-        return jsonify(out),500
+        return myjsonify(out),500
     except Exception as e:
         if last_stmt_has_errors(e, out):
             out["error"]+="-get_metadata_tab_columns"
             out["message"]+=" beim Lesen der Tabellen Metadaten"
-        return jsonify(out),500
-    return jsonify(metadata)
+        return myjsonify(out),500
+    return myjsonify(metadata)
 
 ###########################
 ##
@@ -1425,11 +1413,11 @@ from plainbi_external_resource per
     items,columns,total_count,e=sql_select(config.repoengine,resource_sql,order_by,offset,limit,with_total_count=True,is_repo=True,user_id=prof["user_id"])
     dbg("get_resource sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        return myjsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    return jsonify(out)
+    return myjsonify(out)
 
 
 # mir zugeordnete Gruppen
@@ -1463,11 +1451,11 @@ def get_my_groups(tokdata):
     items,columns,total_count,e=sql_select(config.repoengine,mysql,order_by=None,offset=None,limit=None,with_total_count=True,is_repo=True,user_id=prof["user_id"])
     dbg("get_my_groups sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        return myjsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    return jsonify(out)
+    return myjsonify(out)
 
 # 
 @api.route(repo_api_prefix+'/group/<gid>/resources', methods=['GET'])
@@ -1505,13 +1493,13 @@ def get_group_resources(tokdata,gid):
         else:
             out["error"]="no-such-group-alias"
             out["message"]=f"Berechtigungsgruppe mit dem alias {gid} nicht gefunden"
-            return jsonify(out), 500
+            return myjsonify(out), 500
     else:
         items, columns = db_exec(config.repoengine,f"select id from plainbi_group where id={gid}")
         if len(items) < 1:
             out["error"]="no-such-group-id"
             out["message"]=f"Berechtigungsgruppe mit der ID {gid} nicht gefunden"
-            return jsonify(out), 500
+            return myjsonify(out), 500
 
     if not hasattr(config,"repo_db_type"):
         config.repo_db_type=get_db_type(config.repoengine)
@@ -1577,11 +1565,11 @@ and rg.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.us
     items,columns,total_count,e=sql_select(config.repoengine,resource_sql,order_by=None,offset=None,limit=None,with_total_count=True,is_repo=True,user_id=prof["user_id"])
     dbg("get_group_resources sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        return myjsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    return jsonify(out)
+    return myjsonify(out)
 
 
 # Define routes for REPO operations
@@ -1642,7 +1630,7 @@ def get_all_repos(tokdata,tab):
     out={}
     myfilter, out = parse_filter(request.args.get('q'),request.args.get('filter'), out)
     if "error" in out.keys():
-        return jsonify(out), 500
+        return myjsonify(out), 500
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
@@ -1651,11 +1639,11 @@ def get_all_repos(tokdata,tab):
     items,columns,total_count,e=sql_select(config.repoengine,repo_table_prefix+tab,order_by,offset,limit,filter=myfilter,with_total_count=True,is_repo=True,user_id=prof["user_id"],customsql=mycustomsql)
     dbg("get_all_repos sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
-        return jsonify(out),500
+        return myjsonify(out),500
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    return jsonify(out)
+    return myjsonify(out)
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['GET'])
 @token_required
@@ -1718,14 +1706,14 @@ def get_repo(tokdata,tab,pk):
             #print("out:"+str(out))
             pre_jsonify_items_transformer(out["data"])
             dbg("out:%s",str(out))
-            return jsonify(out)
+            return myjsonify(out)
             #return Response(jsonify(out),status=204)
         else:
             dbg("no record found")
             # return Response(status=204)
             return ("kein datensatz gefunden",204,"")
     # return (resp.text, resp.status_code, resp.headers.items())
-    return jsonify(out),500
+    return myjsonify(out),500
 
 
 @api.route(repo_api_prefix+'/<tab>', methods=['POST'])
@@ -1803,7 +1791,7 @@ def create_repo(tokdata,tab):
     else:
         seq=None
     out = db_ins(config.repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True,customsql=mycustomsql)
-    return jsonify(out)
+    return myjsonify(out)
 
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['PUT'])
@@ -1884,7 +1872,7 @@ def update_repo(tokdata,tab,pk):
     dbg("datastring: %s",str(item),dbglevel=3)
 
     out = db_upd(config.repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True,customsql=mycustomsql)
-    return jsonify(out)
+    return myjsonify(out)
 
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['DELETE'])
@@ -1962,7 +1950,7 @@ def delete_repo(tokdata,tab,pk):
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Repo Record deleted successfully', 200
-    return jsonify(out)
+    return myjsonify(out)
 
 
 
@@ -2043,7 +2031,7 @@ def get_lookup(tokdata,id):
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
-    return jsonify(out)
+    return myjsonify(out)
 
 ###########################
 ##
@@ -2125,7 +2113,7 @@ def get_adhoc_data(tokdata,id):
     dbg("get_adhoc_data: get adhoc stmt")
     get_rep_adhoc_res = get_repo_adhoc_sql_stmt(config.repoengine,id,user_id)
     if "error" in get_rep_adhoc_res.keys():
-        return jsonify(get_rep_adhoc_res), 500
+        return myjsonify(get_rep_adhoc_res), 500
     adhoc_sql = get_rep_adhoc_res["sql"]
     adhoc_datasrc_id = get_rep_adhoc_res["datasrc_id"]
     adhocid  = get_rep_adhoc_res["adhocid"]
@@ -2181,13 +2169,13 @@ def get_adhoc_data(tokdata,id):
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-get_adhoc_data"
                 out["message"]+=" beim Lesen der Adhoc Daten"
-            return jsonify(out), 500
+            return myjsonify(out), 500
         except Exception as e:
             log.error("get_adhoc_data exception: %s ",str(e))
             if last_stmt_has_errors(e, out):
                 out["error"]+="-get_adhoc_data"
                 out["message"]+=" beim Lesen der Adhoc Daten"
-            return jsonify(out), 500
+            return myjsonify(out), 500
         dbg("get_adhoc_data: fmt JSON")
         if not isinstance(items,list):
             return "adhoc json result error",500
@@ -2195,7 +2183,7 @@ def get_adhoc_data(tokdata,id):
         out["data"]=pre_jsonify_items_transformer(items)
         out["columns"]=columns
         out["total_count"]=total_count
-        return jsonify(out)
+        return myjsonify(out)
     else:
         dbg("get_adhoc_data: other formats")
         # read data with pandas
@@ -2210,13 +2198,13 @@ def get_adhoc_data(tokdata,id):
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-get_adhoc_data(pd)"
                 out["message"]+=" beim Lesen der Adhoc Daten"
-            return jsonify(out), 500
+            return myjsonify(out), 500
         except Exception as e:
             log.error("get_adhoc_data exception(pd): %s ",str(e))
             if last_stmt_has_errors(e, out):
                 out["error"]+="-get_adhoc_data(pd)"
                 out["message"]+=" beim Lesen der Adhoc Daten"
-            return jsonify(out), 500
+            return myjsonify(out), 500
 
         #dbg("get_adhoc_data: items=%s",str(items))
         dbg("adhoc_dbengine got pandas dataframe")
@@ -2225,7 +2213,7 @@ def get_adhoc_data(tokdata,id):
             out["message"]="Die Adhoc Abfrage liefert keine Daten"
             out["detail"]=None
             dbg("get_adhoc_data: no rows result")
-            return jsonify(out),500
+            return myjsonify(out),500
         else:
             try:
                 # Save the DataFrame to an Excel file
@@ -2249,7 +2237,7 @@ def get_adhoc_data(tokdata,id):
                         out["detail"]=str(e0)
                         log.error(traceback.format_exc())
                         log.exception(e0)
-                        return jsonify(out), 500
+                        return myjsonify(out), 500
                     # add sheet with sql
                     book = load_workbook(tmpfile)
                     #autofit columns
@@ -2342,7 +2330,7 @@ def get_adhoc_data(tokdata,id):
                         out["detail"]=str(e0)
                         log.error(traceback.format_exc())
                         log.exception(e0)
-                        return jsonify(out), 500
+                        return myjsonify(out), 500
                     # Return the Excel file as a download
                     with open(tmpfile, 'rb') as file:
                         response = Response(
@@ -2370,16 +2358,16 @@ def get_adhoc_data(tokdata,id):
                     out["error"]="adhoc-invalid-format"
                     out["message"]="Das Format des Adhocs muss XLSX/CSV/TXT/JSON sein"
                     out["detail"]=None
-                    return jsonify(out), 500
+                    return myjsonify(out), 500
             except Exception as e:
                 log.error("get_adhoc_data exception: %s ",str(e))
                 out["error"]="get-adhoc-data-fai"
                 out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download"
                 out["detail"]=str(e)
-                return jsonify(out), 500
+                return myjsonify(out), 500
     out["error"]="get_adhoc_data-should-not-occur"
     out["message"] = "adhoc error that should not happen"
-    return jsonify(out), 500
+    return myjsonify(out), 500
 
 users=dict()
 
@@ -2554,12 +2542,12 @@ def login():
         out["message"]='Username muss angegeben werden'
         out["error"]="empty-credentials"
         out["detail"]="invalid-credentials no username"
-        return jsonify(out), 401
+        return myjsonify(out), 401
     if len(password)==0:
         out["message"]='Passwort darf nicht leer sein'
         out["error"]="empty-credentials"
         out["detail"]="invalid-credentials no password"
-        return jsonify(out), 401
+        return myjsonify(out), 401
 
     #dbg("login: password=%s",password)
     #audit(item['username'],request)
@@ -2595,7 +2583,7 @@ def login():
                 if key=="tokenonly":  # this helps for testing
                     return token
         else:
-            return jsonify({'access_token': token, "message":"Login erfolgreich", 'role': users[username]["rolename"]}), 200
+            return myjsonify({'access_token': token, "message":"Login erfolgreich", 'role': users[username]["rolename"]}), 200
     else:
         out["message"]='Benutzername oder Passwort ist falsch'
         out["error"]="invalid-credentials"
@@ -2607,7 +2595,7 @@ def login():
             out["detail"]="invalid-credentials in local auth"
         else:
             out["detail"]="invalid-credentials without ldap and local"
-    return jsonify(out), 401
+    return myjsonify(out), 401
 
 @api.route('/passwd', methods=['POST'])
 @api.route('/api/passwd', methods=['POST'])
@@ -2640,7 +2628,7 @@ def passwd(tokdata):
     
     plainbi_users,columns,cnt,e=sql_select(config.repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
-        return jsonify({'error': 'Invalid User collecting'}), 500
+        return myjsonify({'error': 'Invalid User collecting'}), 500
     users = {u["username"]: u["password_hash"] for u in plainbi_users}
     print(str(users))
 
@@ -2662,10 +2650,10 @@ def passwd(tokdata):
                 dbg("old pwd ok")
                 out["error"]="old-password-does-not-match"
                 out["message"]="Altes Passwort ist falsch"
-                return jsonify(out)
+                return myjsonify(out)
     out=db_passwd(config.repoengine,username,p)
     dbg("++++++++++ leaving passwd with %s",out)
-    return jsonify(out)
+    return myjsonify(out)
 
 
 @api.route('/hash_passwd/<pwd>', methods=['GET'])
@@ -2692,7 +2680,7 @@ def hash_passwd(pwd):
     pwd_hashed=p.decode()
     out["hashed"]=pwd_hashed
     print(pwd_hashed)
-    return jsonify(out)
+    return myjsonify(out)
 
 @api.route('/cache', methods=['GET'])
 @api.route('/api/cache', methods=['GET'])
@@ -2801,7 +2789,7 @@ def protected(tokdata):
     """
     dbg("current user=%s",tokdata['username'])
     u=tokdata['username']
-    return jsonify({'message': f'Hello, {u}! You are authenticated.'}), 200
+    return myjsonify({'message': f'Hello, {u}! You are authenticated.'}), 200
 
 @api.route('/profile', methods=['GET'])
 @api.route('/api/profile', methods=['GET'])
@@ -2824,7 +2812,7 @@ def profile(tokdata):
     """
     audit(tokdata,request)
     out=get_profile(config.repoengine,tokdata['username'])
-    return jsonify(out)
+    return myjsonify(out)
 
 
 @api.route('/logout', methods=['GET'])
@@ -2845,7 +2833,7 @@ def logout(tokdata):
     """
     dbg("logout")
     audit(tokdata,request)
-    return jsonify({'message': 'logged out'})
+    return myjsonify({'message': 'logged out'})
 
 
 ###########################
@@ -3003,12 +2991,7 @@ def getsettings():
     out["total_count"]=total_count
     dbg("leaving getsettings and return json result")
     dbg("out=%s",str(out))
-    try:
-        json_out = jsonify(out)
-    except Exception as ej:
-        log.error("getsettings: jsonify Error: %s",str(ej))
-        log.exception(ej)
-    return json_out
+    return myjsonify(out)
 
 @api.route('/api/setting/<name>', methods=['GET'])
 def getsetting(name):
@@ -3045,7 +3028,7 @@ def getsetting(name):
         for r in s:
             out["setting_name"] = r["setting_name"]
             out["setting_value"] = r["setting_value"]
-            return jsonify(out)
+            return myjsonify(out)
     else:
         return "no data found", 404
 
@@ -3086,7 +3069,7 @@ def create_app(p_repository=None, p_database=None):
     app.register_blueprint(api)
    
     # get the configuration
-    get_config(repository=p_repository,database=p_database)
+    get_config(repository=p_repository,database=p_database,verbose=3)
     
     # connect to the repository
     config.repoengine = db_connect(config.repository)
