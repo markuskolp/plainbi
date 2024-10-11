@@ -53,12 +53,10 @@ asap
 - **für UIs mit Typ JSON, SQL, ... den MonacoEditor verwenden**
 - **bessere Fehlermeldungen** -> warum wird z.B. bei Adhoc nicht die Meldung ausgegeben oder beim Speichern eines bestehenden Eintrags (z.B. User/Gruppenzuordnung) wie beim lokalen Entwickeln -> bei CRUD Operationen sehe ich auch keine Fehlerinhalte in error.response... (kommt da noch nichts vom Backend oder geht es nicht ?)
 ~~- Oben ein Homebutton einfügen, damit man immer zurück kommt~~
-- "Extern" mal besser benennen !
 - bei Settings eine Übersicht machen von User<>Gruppe<>Ressource -> damit man das mal in 1 Überblick hat -> später mit Subpage auch immer von Entität ausgehend die Zuordnung/Übersicht erlauben (z.B. User -> zugeordnete Gruppen -> zugeordnete Ressourcen | Gruppe -> zugeordnete User -> zugeordnete Ressourcen) -> damit man das von jeder Richtung pflegen könnte
 - Homepage
 	- Suchfeld fehlt
-	- die „berechtigten Inhalte“ weiter strukturieren können (damit es übersichtlich bleibt)
-- **Filter in Spaltentitel (evtl. Backend erweitern)**
+- **Filter in Spaltentitel (Backend ist bereits erweitert dafür)**
 	- Endpunkt notwendig: /api/distinctvalues/{db}/{tab}/{col}
 - 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der Filter beim Einstieg auch sofort ziehen soll
 - **Subpage (Master-Detail)**
@@ -70,7 +68,7 @@ asap
 	- wenn man neben Modal klickt dann nur Schliessen, wenn noch nichts geändert wurde ! (auch bei Abbrechen Button nachfragen ob man wirklich Abbrechen will)
 	- Zahleneingabe mit NK-Stellen - aktuell . statt , (englisch)
 ~~- Sequence in plainbi Frontend ermöglichen~~
-- Identity Spalten
+- Identity Spalten bei PK ermöglichen
 - Parameter bei Adhocs implementieren
 - Adhoc Serverside Pagination nutzen
 - **Tabellenspaltenbreite nicht optimal (Header abgeschnitten, etc.)**
