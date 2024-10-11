@@ -195,3 +195,8 @@ div.monaco-editor {
   background: #fffbe6;
   border-color: #ffe58f;
 }
+
+/* for big tooltips overwrite the default width of 250px */
+.ant-tooltip {
+  max-width: 80vw !important;
+}
