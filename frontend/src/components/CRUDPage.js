@@ -51,7 +51,10 @@ Enum ui {
   textarea_markdown
   switch
   password
+  password_nomem
   email
+  html (only in tabular view)
+  modal_json_to_table (only in tabular view)
 }
 */
 
