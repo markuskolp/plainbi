@@ -28,9 +28,9 @@ A CRUD application is defined as code. Following syntax is possible:
          "table":"<table>", // table fully qualified <database.schema.tablename>
          "table_for_list":"<table>", // optional: used as an alternative only for the tabular view of a page - can be a different table or a view e.g. with labels for ID columns etc.
          "sequence":"<sequence>", // optional: sequence to use for the primary key column when adding a new record
-		 "hide_in_navigation":"true", // optional: hides the page in the side navigation
-		 "show_breadcrumb":"true", // optional: shows a breadcrumb above the page (use in combination with "parent_page")
-		 "parent_page": {"alias":"<alias_of_parent_page>","name":"<Label of parent page>"}, // optional: refers to the parent page (used for the breadcrumb to show a navigation e.g. "parent page" > "current page")
+         "hide_in_navigation":"true", // optional: hides the page in the side navigation
+         "show_breadcrumb":"true", // optional: shows a breadcrumb above the page (use in combination with "parent_page")
+         "parent_page": {"alias":"<alias_of_parent_page>","name":"<Label of parent page>"}, // optional: refers to the parent page (used for the breadcrumb to show a navigation e.g. "parent page" > "current page")
          "table_columns":[ // one or more table columns
             {
                "column_name":"<technical_column_name>",
