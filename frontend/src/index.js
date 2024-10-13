@@ -39,6 +39,7 @@ const App = () => {
               <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} />} />
               <Route path="apps" element={<Apps token={token} setToken={setToken} />} />
               <Route path="apps/:id/:page_id?" element={<AppRuntime token={token} setToken={setToken} />} />
+              <Route path="apps/:id/:page_id?/:pk?" element={<AppRuntime token={token} setToken={setToken} />} />
               <Route path="dashboard/:id" element={<DashboardPage token={token} setToken={setToken} />} />
               <Route path="erd" element={<ERD token={token} setToken={setToken} />} />
               <Route path="*" element={<NoPage />} />

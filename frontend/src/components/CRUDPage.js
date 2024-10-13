@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Button,
   Typography,
@@ -77,6 +78,19 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   const [activateLookups, setActivateLookups]=useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   console.log("searchParams: " + searchParams);
+  let { pk } = useParams(); // get URL parameters - here the "pk" (primary key) of a record - if provided, then immediately open edit dialog for this record
+  console.log("CRUDPage - pk: " + pk);
+  console.log("CRUDPage - pkColumns: " + pkColumns);
+  let record_pk = (pk ? pk.toString() : null);
+  let recordForPKLoaded = false;
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {pathname} = location;
+  const parentpath = pathname.substring(0, pathname.lastIndexOf('/'));
+  console.log("location: " + location);
+  console.log("location pathname: " + pathname);
+  console.log("location parent path: " + parentpath);
 
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource+'/' : ''); // switch between repository tables and other datasources /api/crud/<db>/<table>
@@ -87,9 +101,18 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   console.log("lookups: " + lookups);
   console.log("tableForList: " + tableForList);
 
+  function findIndexByKeyValue(arr, key, value) {
+    return arr.reduce((index, obj, i) => (obj[key] == value ? i : index), -1);
+  }
+
   useEffect(() => {
     getTableData(tableName);
-    lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
+    // if pk was provided in URL, then retrieve record from enpoint and open edit dialog (modal) for this record
+    if (record_pk && allowedActions.includes("update") && !recordForPKLoaded) {
+      console.log("CRUDPage - pk provided and update allowed");
+      getPKRecordOpenModal(tableName);
+    }
+      lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
     //setPkColumn(pkColumns); 
   }, [tableName, tableParamChanged]);
 
@@ -165,6 +188,34 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
           setTableData(resData);
           //console.log(JSON.stringify(tableData));
           setLoading(false);
+                
+        }
+        ).catch(function (error) {
+          setLoading(false);
+          message.error('Es gab einen Fehler beim Laden der Daten.');
+        }
+        )
+    };
+
+
+    const getPKRecordOpenModal = async (tableName) => {
+
+      const queryParams = new URLSearchParams();
+      queryParams.append("filter", pkColumns + ":" + record_pk); 
+      console.log("getPKRecord queryParams: " + queryParams.toString());
+      var endpoint = api+tableName+'?'+queryParams;
+      console.log("getPKRecord endpoint: " + endpoint);
+
+      await Axios.get(endpoint, {headers: {Authorization: token}}).then(
+        (res) => {
+          const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response                
+          //let pos = findIndexByKeyValue(resData, pkColumns, record_pk); // TODO: also solution for composite key - not just single key
+          //console.log("CRUDPage - pk - position in result: " + pos);
+          //console.log("CRUDPage get pk record: " + JSON.stringify(resData));
+          if(resData) {
+            showEditModal(resData[0]);
+            recordForPKLoaded = true;
+          }
         }
         ).catch(function (error) {
           setLoading(false);
@@ -321,6 +372,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       removeTableRow(tableName, record, getPKForURL(record, pkColumns));
     };
 
+    // if PK for a record was set in URL, then navigate to parent URL path on close (so it gets rid of the delivered PK)
+    const handelPkModalNavigation = () => {
+      if (record_pk && allowedActions.includes("update")) {
+        console.log("Modal closing and navigating to parentpah (because PK was provided for direct editing).");
+        navigate(parentpath);
+      }
+    }
+
     // showModal
     const showEditModal = (record) => {
       console.log("showEditModal for table: " + tableName);
@@ -339,10 +398,12 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
     // closeModal
     const closeModal = () => {
       setShowModal(false);
+      handelPkModalNavigation();
     };
     // closeAndRefreshModal
     const closeAndRefreshModal = () => {
       setShowModal(false);
+      handelPkModalNavigation();
       getTableData(tableName);
     };
 

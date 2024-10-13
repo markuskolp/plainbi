@@ -9,7 +9,7 @@ const { Link } = Typography;
 //TODO: page switch über <Link> ? -> weil sonst die URL sich nicht ändern und immer bleibt
 //TODO: setPageNotFound geht unten nicht /Zeile 33 und 47), weil es dann eine Endlosschleife ist -> rausfinden wie man es behebt
 
-const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id }) => {
+const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_pk }) => {
   
   const [pageNotFound, setPageNotFound] = useState(false);
   const [selectedPage, setSelectedPage] = useState(start_page_id ? getPageId(start_page_id) : "1"); // nr of selected page

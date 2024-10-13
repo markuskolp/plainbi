@@ -82,7 +82,8 @@ asap
 
 - Default Sortierung für Pages (z.B. absteigend nach Feld x)
 
-- Datensatz per URL aufrufen (d.h. gleich im Editiermodus / Modal) -> bisher nur Seitenfilterung per URL
+~~- Datensatz per URL aufrufen (d.h. gleich im Editiermodus / Modal) -> bisher nur Seitenfilterung per URL~~
+	- offen: auch für composite key ermöglichen !
 
 - Code komplett überarbeiten, formatieren, schöner schreiben, etc.
 
