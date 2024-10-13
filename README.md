@@ -20,7 +20,7 @@ A CRUD application is defined as code. Following syntax is possible:
          "id":"1", // just any ID: 1,2,3,... - has to be unique between the pages
          "name":"<Page name>",
          "alias":"<page_alias>", // used for the url
-         "versioned": "true", // optional 
+         "versioned": "true", // optional
          "allowed_actions":[ // optional: leave empty array if no actions allowed or select between these three options (in any combination)
             "update", "create", "delete" 
          ],
@@ -65,3 +65,23 @@ A CRUD application is defined as code. Following syntax is possible:
   ]
 }
 ```
+
+#### Page options
+
+##### versioned
+
+Treats a table as a versioned table (SCD2) and is able to generate appropriate records.
+Following fields are required in such a table:
+
+```sql
+last_changed_by varchar(100)
+valid_from_dt datetime
+invalid_from_dt datetime
+last_changed_dt datetime
+is_deleted char(1) -- Y/N
+is_latest_period char(1) -- Y/N
+is_current_and_active char(1) -- Y/N
+```
+
+The `last_changed_by` field is filled with the username. So you can track who creates, edits or deletes a record.
+
