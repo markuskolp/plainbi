@@ -56,7 +56,7 @@ asap
 - bei Settings eine Übersicht machen von User<>Gruppe<>Ressource -> damit man das mal in 1 Überblick hat -> später mit Subpage auch immer von Entität ausgehend die Zuordnung/Übersicht erlauben (z.B. User -> zugeordnete Gruppen -> zugeordnete Ressourcen | Gruppe -> zugeordnete User -> zugeordnete Ressourcen) -> damit man das von jeder Richtung pflegen könnte
 - Homepage
 	- Suchfeld fehlt
-- **Filter in Spaltentitel (Backend ist bereits erweitert dafür)**
+- **Filter in Spaltentitel (Backend ist bereits erweitert dafür: /distinctvalues/<db>/<tabnam>/<colnam>)**
 	- Endpunkt notwendig: /api/distinctvalues/{db}/{tab}/{col}
 - 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der Filter beim Einstieg auch sofort ziehen soll
 - **Subpage (Master-Detail)**

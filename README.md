@@ -85,3 +85,31 @@ is_current_and_active char(1) -- Y/N
 
 The `last_changed_by` field is filled with the username. So you can track who creates, edits or deletes a record.
 
+#### Human friendly URLs and parameters
+
+Every application and page can be adressed by a well formed and human friendly URL. This is defined by the aliases.
+
+Application:
+```
+https://<server>/apps/<app_alias>
+```
+
+Page within application:
+```
+https://<server>/apps/<app_alias>/<page_alias>
+```
+
+Also by using parameters you can achieve following...
+
+Directly edit a record within a page:
+```
+https://<server>/apps/<app_alias>/<page_alias>/<id_of_a_record> # if record has 1 pk (primary key field) ... # todo: composite key
+```
+
+Filter the tabular view:
+
+```
+https://<server>/apps/<app_alias>/<page_alias>?<field>=<value> # field = technical column name
+https://<server>/apps/<app_alias>/<page_alias>?<field>=<value>&<field>:<value>&... # also more than 1 field is possible
+```
+
