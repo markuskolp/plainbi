@@ -54,6 +54,9 @@ EXPOSE 80
 ENV PYTHONPATH="/opt/app/portal/backend"
 ENV PLAINBI_BACKEND_LOGFILE="/opt/app/portal/logs/plainbi_backend.log"
 ENV PLAINBI_BACKEND_LOG_DEBUG="true"
+ENV PLAINBI_BACKEND_DATE_FORMAT="%Y-%m-%d"
+ENV PLAINBI_BACKEND_DATETIME_FORMAT="%Y-%m-%d %H:%M:%S"
+
 
 #STOPSIGNAL SIGTERM
 #CMD ["nginx", "-g", "daemon off;"]
