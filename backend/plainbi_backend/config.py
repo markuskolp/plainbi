@@ -26,7 +26,7 @@ class MyConfig:
 config = MyConfig()
 
 # the current version number of plainbi backend
-config.version="0.91 10.10.2024"
+config.version="0.92 17.10.2024"
 
 # create a secret for the plainbi backend api jwt token
 config.SECRET_KEY=os.urandom(24)  # for JWT

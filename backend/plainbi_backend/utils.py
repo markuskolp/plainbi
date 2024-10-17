@@ -326,8 +326,13 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
     #dbg("add_filter_to_where_clause: param columns is <%s>",str(columns))
     if dbtyp=="mssql":
         concat_operator="+"
+        cast_coltyp="varchar"
+    elif dbtyp=="oracle":
+        concat_operator="||"
+        cast_coltyp="varchar2(4000)"
     else:
         concat_operator="||"
+        cast_coltyp="varchar"
     w = where_clause
     wparam = {}
     if w is None: w=""
@@ -341,19 +346,19 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 op, opval = v
                 dbg("add filter op=%s opval=%s",op,opval)
                 if op == ":":
-                    l_cexp.append("cast("+k+" as varchar) = :"+k)
+                    l_cexp.append(f"cast({k} as {cast_coltyp}) = :{k}")
                     wparam[k] = opval
                 elif op == "~":
-                    l_cexp.append("cast("+k+" as varchar) like :"+k)
+                    l_cexp.append(f"cast({k} as {cast_coltyp}) like :{k}")
                     opval2=urlsafe_decode_params(opval)
                     wparam[k] = "%"+opval2+"%"
                 elif op == "!":
-                    l_cexp.append("cast("+k+" as varchar) != :"+k)
+                    l_cexp.append(f"cast({k} as {cast_coltyp}) != :{k}")
                     wparam[k] = opval
                 else:
                     log.warning("invalid tuple %s = opvar %s",k,str(v))
             else:
-                l_cexp.append("lower(cast(coalesce("+k+",'') as varchar)) like lower('%"+v+"%')")
+                l_cexp.append(f"lower(cast(coalesce({k},'') as {cast_coltyp})) like lower('%{v}%')")
         cexp="("+" AND ".join(l_cexp)+")"
         w+=cexp
     else:

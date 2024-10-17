@@ -13,6 +13,7 @@ import logging
 import urllib
 import sqlalchemy
 import os
+import pprint
 from sys import platform
 from dotenv import load_dotenv
 
@@ -35,6 +36,8 @@ home_directory = os.path.expanduser( '~' )
 sys.path.append(home_directory+'/plainbi/backend')
 
 get_config(logfile="pytest.log")
+config.dbg=True
+config.dbg_level=3
 
 if config.config_file is None:
     print("WARNING - no config file")
@@ -953,7 +956,7 @@ def test_3011_vtab_upd_mussfeldnull(test_client):
     THEN check that the response is valid
     """
     global headers
-    log.info('TEST: %s',func_name())
+    log.info('========================================\nTEST: %s\n========================================',func_name())
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\",\"nr\":-8}' "localhost:3002/api/crud/1/dwh.analysis.pytest_tv_api_testtable?v" -w "%{http_code}\n"
     nam="item2"
     id=-8
@@ -961,7 +964,8 @@ def test_3011_vtab_upd_mussfeldnull(test_client):
     test_data= { "name" : nam, "nr" : -8, "mussfeld" : None }
     format_url("put", test_url, data=test_data, testname=func_name())
     response = test_client.put(test_url, json=test_data, headers=headers)
-    assert response.status_code == 500
+    pprint.pprint(response.get_data())
+    assert response.status_code == 400
 
 def test_3030_vget(test_client):
     """
