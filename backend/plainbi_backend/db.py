@@ -666,16 +666,15 @@ def get_next_seq(dbengine,seq):
         except SQLAlchemyError as e_sqlalchemy:
             log.error("sqlalchemy exception in get_next_seq: %s",str(e_sqlalchemy))
             if last_stmt_has_errors(e_sqlalchemy, out):
-                out["error"]+="-get_next_seq-sqlite"
-                out["message"]+=" beim Erzeugen einer Sequenz-Id"
+                out["error"]="sqlerr-get_next_seq"
+                out["message"]=" beim Erzeugen einer Sequenz-Id"
             return out
         except Exception as e:
             log.error("exception in get_next_seq: %s ",str(e))
             if last_stmt_has_errors(e, out):
-                out["error"]+="-get_next_seq-sqlite"
-                out["message"]+=" beim Erzeugen einer Sequenz-Id"
+                out["error"]="err-get_next_seq"
+                out["message"]=" beim Erzeugen einer Sequenz-Id"
             return out
-
         out=items[0]["nextval"] 
         #for row in data:
         #    out=row.nextval
@@ -797,12 +796,14 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
                 sql=lkp[0]["sql_query"]
                 datasrc_id=lkp[0]["datasource_id"]
         else:
-            dbg("lkp list len is not 1")
+            msg="lookup with id/alias "+str(id)+" not found (or multiple defined)"
+            log.error(msg)
+            return None,None,None,msg
     else:
         dbg("lkp is not a list, it is a %s",str(lkp.__class__))
         
     if sql is None:
-        msg="no sql in repo_lookup_select"
+        msg="no sql in repo_lookup_select id="+str(id)
         log.error(msg)
         return None,None,None,msg
     if username is not None:
@@ -1013,10 +1014,23 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                     out["detail"]="sequences are only allowed for single column primary keys"
                     return out
                 s=get_next_seq(dbeng,seq)
-                dbg("db_ins: got seq %d",s)
-                myitem[pkcol]=s
-                pkout[pkcol]=s
-                dbg("db_ins: seqence %s inserted",seq)
+                if isinstance(s,dict):
+                    log.error("returned sequence has error %s",str(s))
+                    dbg("Forward sequence error to caller")
+                    if "error" in s.keys():
+                        out["error"]="sequence error in db_ins: "+s["error"]
+                    else:
+                        out["error"]="sequence error in db_ins"
+                    if "detail" in s.keys():
+                        out["detail"]="sequence error in db_ins: "+s["detail"]
+                    else:
+                        out["detail"]="unspecific sequence error in db_ins"
+                    return out
+                else:
+                    dbg("db_ins: got seq %d",s)
+                    myitem[pkcol]=s
+                    pkout[pkcol]=s
+                    dbg("db_ins: seqence %s inserted",seq)
         else:
             pkout[pkcol]=myitem[pkcol]
 

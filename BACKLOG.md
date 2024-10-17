@@ -34,7 +34,8 @@
 	~~Danach dann das Insert, welches dann fehlschlägt.~~
 	~~Kann das irgendwie in 1 Transaktion erfolgen ?~~
 	~~Oder umgedreht ?~~
-query mit "q", cast as varchar ohne länge geht nicht in oracle
+- query mit "q", cast as varchar ohne länge geht nicht in oracle
+- username last_changed_by in oracle instead of triggers  
 
 ## Frontend
 
