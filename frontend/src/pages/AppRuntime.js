@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import NoPage from "./NoPage";
 import Axios from "axios";
-import { message } from "antd";
+import { message, Alert } from "antd";
 import CRUDApp from "../components/CRUDApp";
 import LoadingMessage from "../components/LoadingMessage";
 
@@ -20,6 +20,9 @@ const AppRuntime = (props) => {
   const [appNotFound, setAppNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const [appMetadata, setAppMetadata] = useState([]);
+  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
 
   /***
    * Process of the CRUD* components (CRUDApp, CRUDPage)
@@ -42,6 +45,7 @@ const AppRuntime = (props) => {
   }, []);
 
   const initializeApp = async () => {
+    setError(false);
     // get app metadata
     await Axios.get("/api/repo/application/"+id, {headers: {Authorization: props.token}}).then(
         (res) => {
@@ -50,7 +54,15 @@ const AppRuntime = (props) => {
         //console.log(JSON.stringify(resData));
         //console.log(JSON.parse(resData.spec_json).pages);
         //console.log(resData);
-        setAppMetadata(resData);
+        try {
+          let check=JSON.parse(resData.spec_json).pages;
+          setAppMetadata(resData);
+        } catch(error) {
+          setError(true);
+          setErrorMessage('Applikations Spezifikation hat einen Fehler.');
+          setErrorDetail(error.toString());
+          console.log(error);  
+        }
         setLoading(false);
       }
     ).catch(
@@ -58,19 +70,30 @@ const AppRuntime = (props) => {
         setAppNotFound(true);
         setLoading(false);
         message.error('Es gab einen Fehler beim Laden der Applikation.');
-      }
+        console.log(error);
+        //console.log(error.response.data.message);
+        //console.log(error.response.data.detail);
+    }
     );
   };
   
 
   return appNotFound === true ? (
         <NoPage />
-      ) : (loading ? (
-          <LoadingMessage />
-        ) : (
-          <React.Fragment>
-            <CRUDApp name={appMetadata.name} alias={appMetadata.alias} datasource={appMetadata.datasource_id} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token} start_page_id={start_page_id}/>
-          </React.Fragment>
+      ) : (error ? (
+            <Alert
+              message={errorMessage}
+              description={errorDetail}
+              type="error"
+              showIcon
+            />
+          ) : (loading ? (
+            <LoadingMessage />
+          ) : (
+            <React.Fragment>
+              <CRUDApp name={appMetadata.name} alias={appMetadata.alias} datasource={appMetadata.datasource_id} pages={JSON.parse(appMetadata.spec_json).pages} token={props.token} start_page_id={start_page_id}/>
+            </React.Fragment>
+          )
         )
       )
   ;

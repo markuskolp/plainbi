@@ -9,7 +9,6 @@ const { Title, Link, Text } = Typography;
 
 const TileVA = (props) => {
 
-  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState([]); 
   const [selectedYear, setSelectedYear] = useState(); 
@@ -17,6 +16,9 @@ const TileVA = (props) => {
   const [selectedCategory, setSelectedCategory] = useState(); 
   const [availableYears, setAvailableYears] = useState(); 
   const [availableCategories, setAvailableCategories] = useState(); 
+  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
 
   useEffect(() => {
     setSelectedYear(new Date().getFullYear()); // set current year as initially selected year
@@ -53,8 +55,10 @@ const TileVA = (props) => {
       function (error) {
         setError(true);
         setLoading(false);
-        message.error('Es gab einen Fehler beim Laden der Daten.');
-      }
+        setErrorMessage('Es gab einen Fehler beim Laden der Daten.');
+        setErrorDetail(error.toString());
+        console.log(error);  
+    }
     );
   };
 
@@ -156,40 +160,49 @@ const handleCategoryChange = (value) => {
 };
 
   return (
-    <React.Fragment>
-      <Space direction="vertical" size="middle" >
-        <PageHeader
-                //onBack={() => window.history.back()}
-                title="Veranstaltungen"
-                subTitle=""
+    error ? (
+      <Alert
+        message={errorMessage}
+        description={errorDetail}
+        type="error"
+        showIcon
+      />
+    ) : (
+      <React.Fragment>
+        <Space direction="vertical" size="middle" >
+          <PageHeader
+                  //onBack={() => window.history.back()}
+                  title="Veranstaltungen"
+                  subTitle=""
+                />
+            <Space>
+              <Select 
+                defaultValue={defaultYear}
+                style={{
+                  width: 120,
+                }}
+                onChange={handleYearChange}
+                options={availableYears}
               />
-          <Space>
-            <Select 
-              defaultValue={defaultYear}
-              style={{
-                width: 120,
-              }}
-              onChange={handleYearChange}
-              options={availableYears}
-            />
-            <Segmented 
-              defaultValue="Eigenveranstaltung" 
-              options={availableCategories}
-              onChange={handleCategoryChange}
-            />
-          </Space>
-        <Table 
-              pagination={false} 
-              size="middle" 
-              columns={columns}
-              //dataSource={data} 
-              dataSource={data && selectedYear && selectedCategory && data.filter((row) => (row.jahr == selectedYear && row.kategorie == selectedCategory))} // show fair events belonging to selected year
-              onChange={onTableChange}
-              loading={loading}
-              rowKey="id"
+              <Segmented 
+                defaultValue="Eigenveranstaltung" 
+                options={availableCategories}
+                onChange={handleCategoryChange}
               />
-      </Space>
-    </React.Fragment>
+            </Space>
+          <Table 
+                pagination={false} 
+                size="middle" 
+                columns={columns}
+                //dataSource={data} 
+                dataSource={data && selectedYear && selectedCategory && data.filter((row) => (row.jahr == selectedYear && row.kategorie == selectedCategory))} // show fair events belonging to selected year
+                onChange={onTableChange}
+                loading={loading}
+                rowKey="id"
+                />
+        </Space>
+      </React.Fragment>
+    )
   );
 };
 

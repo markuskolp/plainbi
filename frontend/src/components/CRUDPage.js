@@ -12,7 +12,7 @@ import {
   message,
   Tooltip,
   Pagination ,
-  Breadcrumb
+  Breadcrumb, Alert
 } from "antd";
 import Table from "./Table";
 import {Sorter} from "../utils/sorter";
@@ -61,6 +61,10 @@ Enum ui {
 const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems }) => {
     
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
+
   const [tableData, setTableData] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -195,7 +199,11 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
         }
         ).catch(function (error) {
           setLoading(false);
-          message.error('Es gab einen Fehler beim Laden der Daten.');
+          setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+          setErrorDetail(error.response.data.detail);
+          setError(true);
+          console.log(error);
+          console.log(error.response.data.message);
         }
         )
     };
@@ -222,7 +230,13 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
         }
         ).catch(function (error) {
           setLoading(false);
-          message.error('Es gab einen Fehler beim Laden der Daten.');
+          if(!error) {
+            setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+            setErrorDetail(error.response.data.detail);
+          }
+          setError(true);
+          console.log(error);
+          //console.log(error.response.data.message);
         }
         )
     };
@@ -745,6 +759,17 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                         allowClear 
                       />
                     </Space>
+                    
+                    {error && 
+                    (
+                      <Alert
+                        message={errorMessage}
+                        description={errorDetail}
+                        type="error"
+                        showIcon
+                      />
+                    )}
+                    {!error && (
                     <Table
                           size="small"
                           columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
@@ -776,6 +801,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                           //  total: totalCount // total count returned from backend
                           //}}
                         />
+                     )}
                     </React.Fragment>
                   ) 
                 }

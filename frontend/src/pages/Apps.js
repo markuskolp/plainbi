@@ -16,9 +16,9 @@ const { Title, Link } = Typography;
 
 const Apps = (props) => {
 
-  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState([]); // metadata of all apps
+  const [error, setError] = useState(false);
 
   console.log("apps / token: " + props.token);
 
