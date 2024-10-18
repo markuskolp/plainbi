@@ -319,11 +319,10 @@ def parse_filter(p_q :str, p_filter, out) -> str:
 
 def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
     dbg("++++++++++ calling add_filter_to_where_clause")
-    #dbg("++++++++++ entering add_filter_to_where_clause")
-    #dbg("add_filter_to_where_clause: dbtyp tab is <%s>",str(dbtyp))
-    #dbg("add_filter_to_where_clause: param tab is <%s>",str(tab))
-    #dbg("add_filter_to_where_clause: param filter is <%s>",str(filter))
-    #dbg("add_filter_to_where_clause: param columns is <%s>",str(columns))
+    dbg("add_filter_to_where_clause: param dbtyp is <%s>",str(dbtyp))
+    dbg("add_filter_to_where_clause: param tab is <%s>",str(tab))
+    dbg("add_filter_to_where_clause: param filter is <%s>",str(filter))
+    dbg("add_filter_to_where_clause: param columns is <%s>",str(columns))
     if dbtyp=="mssql":
         concat_operator="+"
         cast_coltyp="varchar"
@@ -374,7 +373,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
                 cnt=cnt+1
                 if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
-                cexp+="lower(coalesce(cast("+lc+" as varchar),''))"
+                cexp+=f"lower(coalesce(cast({lc} as {{cast_coltyp}}),''))"
             dbg("filter cexp:%s",cexp)
             for i,ftok in enumerate(filter_tokens):
                 lftok=ftok.lower()
