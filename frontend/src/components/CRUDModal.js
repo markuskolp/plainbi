@@ -6,12 +6,16 @@ import {
   Button,
   Modal,
   Form,
-  message
+  message,
+  Alert
 } from "antd";
 
 const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, versioned, datasource, isRepo, token, sequence }) => {
     
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
   const [recordData, setRecordData] = useState([]);
   console.log("Rendering with: ", recordData);
   console.log("pkColumns: ", pkColumns);
@@ -51,7 +55,11 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       }
       ).catch(function (error) {
         setLoading(false);
-        message.error('Es gab einen Fehler beim Laden der Daten.');
+        setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+        try{setErrorDetail(error.response.data.detail);}catch(err){}
+        setError(true);
+        console.log(error);
+        //console.log(error.response.data.message);
       }
       )
   };
@@ -97,7 +105,10 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       }
       ).catch(function (error) {
         setLoading(false);
-        message.error('Es gab einen Fehler beim Speichern.');
+        setErrorMessage('Es gab einen Fehler beim Speichern');
+        try{setErrorDetail(error.toString());}catch(err){}
+        setError(true);
+        console.log(error);
       }
       )
   };
@@ -115,7 +126,6 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
           handleSave();
         }
         ).catch(function (error) {
-          setLoading(false);
           /*console.log("error.message: " + error.message);
           console.log("error.response: " + error.response);
           console.log("error.response.data: " + error.response.data);
@@ -125,8 +135,11 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
           console.log("error.response.headers: " + error.response.headers)
           console.error('Request Failed:', error.config);
           */
-          message.error('Es gab einen Fehler beim Speichern.');
-          //message.error(res.data);
+          setLoading(false);
+          setErrorMessage('Es gab einen Fehler beim Speichern');
+          try{setErrorDetail(error.toString());}catch(err){}
+          setError(true);
+          console.log(error);
         }
         )
     };
@@ -185,6 +198,15 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
             ]}
             
           >
+
+          {error && (
+            <Alert
+              message={errorMessage}
+              description={errorDetail}
+              type="error"
+              showIcon
+            />
+          )}
 
           <Form {...layoutpage} layout="horizontal">
                 { tableColumns && tableColumns.map((column) => {

@@ -223,17 +223,20 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
           //let pos = findIndexByKeyValue(resData, pkColumns, record_pk); // TODO: also solution for composite key - not just single key
           //console.log("CRUDPage - pk - position in result: " + pos);
           //console.log("CRUDPage get pk record: " + JSON.stringify(resData));
-          if(resData) {
+          //console.log("CRUDPage get pk record length: " + resData.length);
+          if(resData && resData.length > 0) {
             showEditModal(resData[0]);
             recordForPKLoaded = true;
+          } else {
+            setLoading(false);
+            setErrorMessage('Es gab einen Fehler mit der aufgerufenen URL.');
+            setErrorDetail('Ein Eintrag mit dieser ID existiert nicht: ' + record_pk);  
+            setError(true)
           }
         }
         ).catch(function (error) {
           setLoading(false);
-          if(!error) {
-            setErrorMessage('Es gab einen Fehler beim Laden der Daten');
-            setErrorDetail(error.response.data.detail);
-          }
+          setErrorMessage('Es gab einen Fehler beim Laden der Daten');
           setError(true);
           console.log(error);
           //console.log(error.response.data.message);
@@ -307,7 +310,10 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       }
       ).catch(function (error) {
         setLoading(false);
-        message.error('Es gab einen Fehler beim Löschen.');
+        setErrorMessage('Es gab einen Fehler beim Löschen');
+        try{setErrorDetail(error.toString());}catch(err){}
+        setError(true);
+        console.log(error);
       }
       )
   };
@@ -552,6 +558,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       });
     } catch(error) {
       console.log("error in getLookupDataAll");
+      console.log(error);
       message.error('Es gab einen Fehler beim Laden der Lookup Werte.');
     }
   }
