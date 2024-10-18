@@ -106,7 +106,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       ).catch(function (error) {
         setLoading(false);
         setErrorMessage('Es gab einen Fehler beim Speichern');
-        try{setErrorDetail(error.toString());}catch(err){}
+        try{setErrorDetail(error.response.data.detail);}catch(err){}
         setError(true);
         console.log(error);
       }
@@ -137,7 +137,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
           */
           setLoading(false);
           setErrorMessage('Es gab einen Fehler beim Speichern');
-          try{setErrorDetail(error.toString());}catch(err){}
+          try{setErrorDetail(error.response.data.detail);}catch(err){}
           setError(true);
           console.log(error);
         }
