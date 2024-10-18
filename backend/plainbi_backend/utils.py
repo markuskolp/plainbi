@@ -373,7 +373,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
                 cnt=cnt+1
                 if cnt>1: cexp+=concat_operator+"'"+csep+"'"+concat_operator
-                cexp+=f"lower(coalesce(cast({lc} as {{cast_coltyp}}),''))"
+                cexp+=f"lower(coalesce(cast({lc} as {cast_coltyp}),''))"
             dbg("filter cexp:%s",cexp)
             for i,ftok in enumerate(filter_tokens):
                 lftok=ftok.lower()
