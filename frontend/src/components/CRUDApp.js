@@ -19,12 +19,12 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
     const [page, setPage] = useState(); // page metadata
     const [pageList, setPageList] = useState(); // page metadata
     console.log("selectedPage: " + selectedPage);
+    //console.log("start_page_id: " + start_page_id);
 
     //console.log("datasource:" + datasource);
     
     useEffect(() => {
-      setSelectedPage(start_page_id ? getPageId(start_page_id) : "1");
-      //setPage(pages[selectedPage-1]);
+      setSelectedPage(getPageId(start_page_id ? start_page_id : 1).toString()); 
       setPageList(pages.map((page) => {
           // check if page should be hidden from navigation
           let pageHide = false;
@@ -70,7 +70,8 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
           console.log("CRUDApp - getPageId - found_page_id: " + found_page_id);
         }
       }
-      setPage(pages[found_page_id-1]);
+      found_page_id = (found_page_id ? found_page_id : 1);
+      setPage(pages[found_page_id-1]); // get found page or default page (the first = 1-1)
       return found_page_id;
     }
 
