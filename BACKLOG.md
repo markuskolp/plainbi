@@ -15,6 +15,8 @@ Weiterentwicklung:
 	- https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-web-app-python-flask?tabs=windows 
 	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
 - username last_changed_by in oracle instead of triggers  
+- **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
+- **Zahlen-Datentyp** bei Adhocs richtig ausgeben im Excel
 
 Bugs:
 
@@ -50,7 +52,7 @@ Weiterentwicklung:
 - **Tabellenspaltenbreite nicht optimal (Header abgeschnitten, etc.)**
 - **Datensatz per URL aufrufen** (d.h. gleich im Editiermodus / Modal)
 	- offen: auch für composite key ermöglichen !
-- Default Sortierung für Pages (z.B. absteigend nach Feld x)
+- **Default Sortierung für Pages** (z.B. absteigend nach Feld x)
 - Code komplett überarbeiten, formatieren, schöner schreiben, etc.
 - Webapplikation auf Security challengen
   - Anforderungen von OWASP für NODE.JS umgesetzt werden (siehe Nodejs Security - OWASP Cheat Sheet Series  sowie Best Practices Top 10 Node.js Security Best Practices for 2023 - Risks & Prevention | Snyk) .
