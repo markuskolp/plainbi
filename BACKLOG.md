@@ -6,9 +6,9 @@
 Weiterentwicklung:
 
 - Backend Logging prüfen (Passwörter, etc.) und reduzieren (Daten von Resultset, etc.) bzw. aussagekräftiger
-- plainbi_datasource: db_type enthält jdbc-url inkl. PWs !
 - Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
 - Adhoc Export Excel -> Infoseite in Arial 9 ;-)
+- Adhoc Export Excel/CSV -> bessere Fehlermeldung zurückliefern (d.h. Responsebody anstatt BLOB)
 - Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
 - **SSO (Single Sign On) ermöglichen**
 	- https://www.youtube.com/watch?v=oW1SJxGiaZA
@@ -16,20 +16,12 @@ Weiterentwicklung:
 	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
 - username last_changed_by in oracle instead of triggers  
 - **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
-- **Zahlen-Datentyp** bei Adhocs richtig ausgeben im Excel
-
-Bugs:
-
-- query mit "q", cast as varchar ohne länge geht nicht in Oracle
-- **bei „Neu“ in TV-Tabelle, kein Überschreiben eines Datensatzes erlauben**
+- plainbi_datasource: db_type enthält jdbc-url inkl. pw's !
 
 ## Frontend
 
 Weiterentwicklung:
 
-- **bessere Fehlermeldungen**
-  - lokal geht es, aber NGINX muss noch richtig konfiguriert werden damit es die Fehler von Flask zu React durchreicht
-  - ansonsten werden jetzt überall mehr Fehler ausgegeben
 - **Parameter bei Adhocs** implementieren
 - Adhoc Serverside Pagination nutzen
 - **Filter in Spaltentitel**
@@ -63,13 +55,21 @@ Bugs:
 
 - **default sort order** bei Adhoc geht nicht - führt zu einem Fehler (siehe auch oben bei Backend)
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
-- wenn man direkt auf ein Adhoc per URL geht und die Session abgelaufen ist, kommt nur ein Adhocfehler -> er sollte eigentlich auf die Loginseite springen mit Fehlerhinweis "Session abgelaufen"
+- **abgelaufene Session/Token** wird bisher nicht immer erkannt und es kommt ein allgemeiner Fehler
+  - dies immer erkennen und auf Loginseite leiten mit Info "Session/Token abgelaufen"
+  - bekannter Fall: wenn man direkt auf ein Adhoc per URL geht und die Session abgelaufen ist, kommt nur ein Adhocfehler -> er sollte eigentlich auf die Loginseite springen mit Fehlerhinweis "Session abgelaufen"
 - TileVA.js -> Image verzieht sich wenn die Bildschirmbreite zu klein wird -> div und img element - das img übernimmt die Höhe, wenn man diese entfernt geht es -> aber wie lösen?
 
 
 erledigt:
 
-~~- plainbi_audit_adhoc View ergänzen um "username"git~~ 
+- ~~bessere Fehlermeldungen~~
+  - ~~lokal geht es, aber NGINX muss noch richtig konfiguriert werden damit es die Fehler von Flask zu React durchreicht~~
+  - ~~ansonsten werden jetzt überall mehr Fehler ausgegeben~~
+- ~~query mit "q", cast as varchar ohne länge geht nicht in Oracle~~
+- ~~bei „Neu“ in TV-Tabelle, kein Überschreiben eines Datensatzes erlauben~~
+- ~~Zahlen-Datentyp bei Adhocs richtig ausgeben im Excel~~
+- ~~ plainbi_audit_adhoc View ergänzen um "username"git~~ 
 - ~~E-Mail auslösen z.B. beim Speichern („Berichtsempfänger“)~~
 	~~z.B. ein Email Endpoint (an/cc/bcc, subject, body)~~
 - ~~plainbi_user~~
