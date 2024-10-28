@@ -53,7 +53,6 @@ Weiterentwicklung:
 
 Bugs:
 
-- **default sort order** bei Adhoc geht nicht - führt zu einem Fehler (siehe auch oben bei Backend)
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
 - **abgelaufene Session/Token** wird bisher nicht immer erkannt und es kommt ein allgemeiner Fehler
   - dies immer erkennen und auf Loginseite leiten mit Info "Session/Token abgelaufen"
@@ -63,6 +62,7 @@ Bugs:
 
 erledigt:
 
+- ~~default sort order bei Adhoc geht nicht - führt zu einem Fehler (siehe auch oben bei Backend)~~
 - ~~bessere Fehlermeldungen~~
   - ~~lokal geht es, aber NGINX muss noch richtig konfiguriert werden damit es die Fehler von Flask zu React durchreicht~~
   - ~~ansonsten werden jetzt überall mehr Fehler ausgegeben~~
