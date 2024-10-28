@@ -243,6 +243,7 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                ],
                "datasource":"repo",
                "pk_columns":["id"],
+               "table_for_list":"v_adhoc",
                "table":"adhoc",
                "table_columns":[
                   {
@@ -258,7 +259,17 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                      "datatype":"text",
                      "ui":"textinput",
                      "editable":"true",
-                     "required":"true"
+                     "required":"true",
+                     "showdetailsonly":"true"
+                  },
+                  {
+                     "column_name":"name_link",
+                     "column_label":"Name",
+                     "ui":"html",
+                     "datatype":"text",
+                     "editable":"false",
+                     "required":"false" ,
+                     "showsummaryonly":"true"
                   },
                   {
                      "column_name":"description",
@@ -276,7 +287,18 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                      "ui":"lookup",
                      "lookup":"user",
                      "editable":"true",
-                     "required":"true"
+                     "required":"true",
+                     "showdetailsonly":"true"
+                  },
+                  {
+                     "column_name":"owner_user",
+                     "column_label":"Besitzer",
+                     "datatype":"number",
+                     "ui":"lookup",
+                     "lookup":"user",
+                     "editable":"true",
+                     "required":"true",
+                     "showsummaryonly":"true"
                   },
                   {
                      "column_name":"owner_department",
@@ -715,6 +737,16 @@ create table plainbi_audit (
  ,request_method varchar2(100)
  ,request_body varchar2(1000)
 )
+''',
+'''
+create or replace view plainbi_v_adhoc
+as
+select 
+    a.id, a.name, a.alias, a.sql_query , a.output_format , a.datasource_id , a.owner_user_id , a.order_by_default , a.description , a.owner_department , a.sensitive_data , a.reason 
+    , concat('<a title="Adhoc aufrufen..." style="color: rgb(106, 145, 206) !important" target="_blank" href="/adhoc/', a.id, case when coalesce(a.output_format, 'HTML') != 'HTML' then concat('?format=', a.output_format) else '' end, '"' , ' >', a.name, '</a>') as name_link
+    , coalesce(concat(u.fullname, ' (', u.username, ' - id: ', u.id, ')'), u.username) as owner_user
+from plainbi_adhoc a left join plainbi_user u on a.owner_user_id = u.id
+;
 ''',
 '''
 create or replace view plainbi_audit_adhoc
