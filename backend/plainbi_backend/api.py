@@ -2155,15 +2155,8 @@ def get_adhoc_data(tokdata,id):
     else:
         dbg("get_adhoc_data: not fmt JSON/HTML")
         if order_by_def is not None:
-            if "order" in lower(adhoc_sql) and " by" in lower(adhoc_sql):
-                dbg("get_adhoc_data: apply default order by skipped coz already in configured adhoc sql")
-            else:
-              if "order" in lower(order_by_def) and " by" in lower(order_by_def):
-                  dbg("get_adhoc_data: apply default order by")
-                  adhoc_sql+=" "+order_by_def.replace(":"," ")
-              else:
-                  dbg("get_adhoc_data: apply default order by (order by added)")
-                  adhoc_sql+=" order by "+order_by_def.replace(":"," ")
+            dbg("get_adhoc_data: apply default order by (order by added)")
+            adhoc_sql+=" order by "+order_by_def.replace(":"," ")
     #
     # handle formats
     dbg("get_adhoc_data: fmt= %s",fmt)
