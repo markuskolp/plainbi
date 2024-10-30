@@ -17,11 +17,15 @@ Weiterentwicklung:
 - username last_changed_by in oracle instead of triggers  
 - **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
 - plainbi_datasource: db_type enthält jdbc-url inkl. pw's !
+- URL-Parameter "columns", damit man beim Holen von Daten nur die Spalten verwendet werden die man auch anzeigt / ebenso bei der Suche beachten
+
 
 ## Frontend
 
 Weiterentwicklung:
 
+- insert/update plainbi - nur felder liefern die in der gui angezeigt werden
+- plainbi - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - **Parameter bei Adhocs** implementieren
 - Adhoc Serverside Pagination nutzen
 - **Filter in Spaltentitel**
