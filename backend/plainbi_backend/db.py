@@ -9,6 +9,7 @@ import os
 from plainbi_backend.config import config
 import logging
 import inspect
+from datetime import datetime
 
 #log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
@@ -81,6 +82,31 @@ AND c.table_name = pk.table_name
 AND c.column_name = pk.column_name
 where 1=1
 and current_database()||'-'||c.table_schema||'.'||c.table_name = '<fulltablename>'
+"""
+
+metadata_col_query_oracle="""SELECT
+    to_char(null) AS database_name,
+    atc.owner AS schema_name,
+    atc.table_name,
+    atc.owner||'.'||atc.table_name AS full_table_name,
+    atc.column_name,
+    atc.column_id,
+    atc.data_type,
+    atc.data_length  as max_length,
+    atc.data_precision  as precision,
+    atc.data_scale as scale,
+    case when acc.owner is not null then 1 else 0 end as is_primary_key
+from all_tab_columns atc
+LEFT JOIN all_constraints ac
+ON atc.table_name = ac.table_name
+AND atc.owner = ac.owner
+AND ac.constraint_type='P'
+LEFT JOIN all_cons_columns acc
+ON ac.owner=acc.owner
+AND ac.constraint_name=acc.constraint_name
+AND atc.column_name=acc.column_name
+where 1=1
+and atc.owner||'.'||atc.table_name = UPPER('<fulltablename>')
 """
 
 
@@ -383,7 +409,7 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     return items,columns,total_count,"ok"
 
 
-def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
+def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
     """
     holt die struktur einer Tabelle entweder aus sys.columns oder aus der query selbst
     überschreibe die PK spezifikation wenn pk_column_list befüllit ist
@@ -489,6 +515,31 @@ def get_metadata_raw(dbengine,tab,pk_column_list,versioned):
             collist=[i["column_name"] for i in items]
             out["columns"]=collist
             out["column_data"]=items
+    elif dbtype == "oracle":
+            # for oracle try metadata search
+            dbg("get_metadata_raw: oracle")
+            collist=[]
+            items,columns,total_count,e=sql_select(dbengine,metadata_col_query_oracle.replace('<fulltablename>',tab))
+            #dbg("get_metadata_raw: returned error %s",str(e))
+            if last_stmt_has_errors(e, out):
+                out["error"]+="-get_metadata_raw"
+                out["message"]+=" beim Lesen der Tabellen Metadaten"
+                dbg("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
+                return out
+            #dbg("get_metadata_raw: 1 items=%s",str(items))
+            if items is not None and len(items)>0:
+                # got some metadata
+                dbg("get_metadata_raw: got some metadata from mssql")
+                # es gibt etwas in den sqlserver metadaten
+                if versioned:
+                    pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
+                else:
+                    pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
+                #dbg("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+                #dbg("get_metadata_raw from mssql: columns %s",str(columns))
+                collist=[i["column_name"] for i in items]
+                out["columns"]=collist
+                out["column_data"]=items
         
     if "columns" not in out.keys():
         # nothing in metadata - get columns from query
@@ -947,6 +998,60 @@ def check_hash_columns(tab,item):
                 item[c]=p.decode()
                 dbg("check_hash_columns: hashed %s.%s",tab,c)
 
+def get_column_metadata(c,metadata):
+    if "column_data" in metadata.keys():
+        for k in metadata["column_data"]:
+            if k["column_name"]==c:
+                return k
+    else:
+        return None    
+
+def handle_oracle_date_literals(pitemlist,metadata):
+    """
+    oracle cannot handle date literals directly from strings as postgres does.
+    that's why we have to transform data strings to datetime objects before
+    passing it as dict parameters to exec sql
+    we assume here that oracle column names are always upper case 
+    param p_itemlist is modified (for output)
+    """
+    dbg("++++++++++ entering handle_oracle_date_literals")
+    cnt=0
+    if "column_data" not in metadata.keys():
+        dbg("warning: metadata does not contain column_data datatypes")
+        return
+    if isinstance(pitemlist,dict):
+        itemlist = [pitemlist]
+    else:
+        itemlist = pitemlist
+    for item in itemlist:
+        for k,v in item.items():
+            coldat=get_column_metadata(k.upper(),metadata)
+            if coldat is not None:
+                if coldat["data_type"] == "DATE" or coldat["data_type"] == "TIMESTAMP":
+                    if v is not None:
+                        dbg(f"handle oracle date literal {k} value {v}")
+                        if len(v)==10:
+                            if config.backend_date_format is not None:
+                                d = datetime.strptime(v,config.backend_date_format)
+                                dbg(f"date literal fmt {config.backend_date_format} {k} value {v} becomes {str(d)}")
+                            else:
+                                d = datetime.strptime(v,"%Y-%m-%d")
+                                dbg(f"date literal {k} value {v} becomes {str(d)}")
+                            item[k]=d
+                            cnt+=1
+                        elif len(v)>10:
+                            if config.backend_datetime_format is not None:
+                                d = datetime.strptime(v,config.backend_datetime_format)
+                                dbg(f"datetime literal fmt {config.backend_datetime_format} {k} value {v} becomes {str(d)}")
+                            else:
+                                d = datetime.strptime(v,"%Y-%m-%d %H:%M:%S")
+                                dbg(f"datetime literal {k} value {v} becomes {str(d)}")
+                            item[k]=d
+                            cnt+=1
+            else:
+                dbg(f"warning: column {k} should be in metadata list")
+    dbg("++++++++++ leaving handle_oracle_date_literals with %d date literal substitutions",cnt)
+
 ## crud ops
 def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False, user_id=None, customsql=None):
     """ 
@@ -961,6 +1066,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     stmt=[]
     stmtparam=[]
     out={}
+    db_typ = get_db_type(dbeng)
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
     log.info("db_ins after get_metadata_raw %s",str(metadata))
     myitem=item
@@ -1094,6 +1200,10 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
 
     stmt.append(sql)
     stmtparam.append(myitem)
+
+    if db_typ=="oracle":
+        handle_oracle_date_literals(stmtparam,metadata)
+
     try:
         #db_exec(dbeng,sql,myitem)
         db_exec(dbeng,stmt,stmtparam)
@@ -1114,6 +1224,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     dbg("++++++++++ leaving db_ins returning %s", str(out))
     return out
 
+
 ## crud ops
 def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=False, user_id=None, customsql=None):
     dbg("++++++++++ entering db_upd")
@@ -1124,7 +1235,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
     out={}
     dbg("item-keys %s",item.keys())
     myitem=item
-    
+    db_typ = get_db_type(dbeng)
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
     if "error" in metadata.keys():
         return metadata
@@ -1206,6 +1317,8 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         dbg("db_upd newrec sql: %s",newsql)
         stmt.append(newsql)
         stmtparam.append(newrec)
+        if db_typ=="oracle":
+            handle_oracle_date_literals(stmtparam,metadata)
         try:
             #db_exec(dbeng,newsql,newrec)
             db_exec(dbeng,stmt,stmtparam)
@@ -1231,6 +1344,8 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         sql=f"UPDATE {tab} SET {osetexp_str} {pkwhere}"
         dbg("update item sql %s",sql)
         dbg("update item params %s",myitem)
+        if db_typ=="oracle":
+            handle_oracle_date_literals(myitem,metadata)
         try:
             db_exec(dbeng,sql,myitem)
         except SQLAlchemyError as e_sqlalchemy:
@@ -1258,6 +1373,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
     dbg("db_del: param is_versioned is <%s>",str(is_versioned))
     # check options
     out={}
+    db_typ = get_db_type(dbeng)
     metadata=get_metadata_raw(dbeng,tab,pk_column_list=pkcols,versioned=is_versioned)
     if "error" in metadata.keys():
         dbg("++++++++++ leaving db_del returning %s", str(metadata))
@@ -1334,6 +1450,8 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         dbg("db_del: %s",newsql)
         stmt.append(newsql)
         stmtparam.append(newrec)
+        if db_typ=="oracle":
+            handle_oracle_date_literals(stmtparam,metadata)
         try:
             #db_exec(dbeng,newsql,newrec)
             db_exec(dbeng,stmt,stmtparam)
@@ -1353,6 +1471,8 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         sql=f"DELETE FROM {tab} {pkwhere}"
         dbg("db_del sql %s",sql)
         dbg("db_del marker values length is %d",len(pkwhere_params))
+        if db_typ=="oracle":
+            handle_oracle_date_literals(pkwhere_params,metadata)
         try:
             db_exec(dbeng,sql,pkwhere_params)
         except SQLAlchemyError as e_sqlalchemy:
