@@ -1497,7 +1497,7 @@ def get_group_resources(tokdata,gid):
         in: path
         type: string
         required: true
-        description: group id
+        description: group id  (or "nogroup" for all resoures not in a group (admins only))
     responses:
       200:
         description: Successful operation
@@ -1509,82 +1509,128 @@ def get_group_resources(tokdata,gid):
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
+    user_is_admin_flag=prof["user_is_admin"]
     out={}
-    if not is_id(gid):
-        items, columns = db_exec(config.repoengine,f"select id from plainbi_group where alias='{gid}'")
-        if len(items) > 0:
-            gid=items[0]["id"]
-        else:
-            out["error"]="no-such-group-alias"
-            out["message"]=f"Berechtigungsgruppe mit dem alias {gid} nicht gefunden"
-            return myjsonify(out), 500
-    else:
-        items, columns = db_exec(config.repoengine,f"select id from plainbi_group where id={gid}")
-        if len(items) < 1:
-            out["error"]="no-such-group-id"
-            out["message"]=f"Berechtigungsgruppe mit der ID {gid} nicht gefunden"
-            return myjsonify(out), 500
-
     if not hasattr(config,"repo_db_type"):
         config.repo_db_type=get_db_type(config.repoengine)
-
     dbg("get_resource config.repo_db_type=%s",config.repo_db_type)
     if config.repo_db_type == 'mssql':
         concat_op='+'
     else:
         concat_op='||'
     dbg("get_resource concat_op=%s",concat_op)
-    resource_sql=f"""select
-'application_'{concat_op}cast(id as varchar) as id
-, name
-, '/apps/'{concat_op}alias as url
-, '_self' as target
-, null as output_format
-, null as description
-, null as source
-, null as dataset
-, 'application' as resource_type
-, 'Applikation' as resource_type_de
-from plainbi_application pa
-join plainbi_application_to_group ag
-on pa.id=ag.application_id
-and ag.group_id={gid}
-and ag.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
-union all
-select
-'adhoc_'{concat_op}cast(id as varchar) as id
-, name
-, '/adhoc/' {concat_op} cast(id as varchar) {concat_op} case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='{concat_op}output_format else '' end as url
-, '_self' as target
-, coalesce(output_format, 'HTML') output_format
-, description
-, 'Adhoc' as source
-, null as dataset
-, 'adhoc' as resource_type
-, 'Adhoc' as resource_type_de
-from plainbi_adhoc padh
-join plainbi_adhoc_to_group ag
-on padh.id = ag.adhoc_id
-and ag.group_id={gid}
-and ag.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
-union all
-select
-'external_resource_'{concat_op}cast(id as varchar) as id
-, name
-, url
-, '_blank' as target
-, null as output_format
-, description
-, source
-, dataset
-, 'external_resource' as resource_type
-, source as resource_type_de
-from plainbi_external_resource per
-join plainbi_external_resource_to_group rg
-on per.id=rg.external_resource_id
-and rg.group_id={gid}
-and rg.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
-"""
+    if gid=="nogroup":
+        resource_sql=f"""select
+    'application_'{concat_op}cast(id as varchar) as id
+    , name
+    , '/apps/'{concat_op}alias as url
+    , '_self' as target
+    , null as output_format
+    , null as description
+    , null as source
+    , null as dataset
+    , 'application' as resource_type
+    , 'Applikation' as resource_type_de
+    from plainbi_application pa
+    where '{user_is_admin_flag}'='Y'
+    and pa.id not in (select application_id from plainbi_application_to_group)
+    union all
+    select
+    'adhoc_'{concat_op}cast(id as varchar) as id
+    , name
+    , '/adhoc/' {concat_op} cast(id as varchar) {concat_op} case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='{concat_op}output_format else '' end as url
+    , '_self' as target
+    , coalesce(output_format, 'HTML') output_format
+    , description
+    , 'Adhoc' as source
+    , null as dataset
+    , 'adhoc' as resource_type
+    , 'Adhoc' as resource_type_de
+    from plainbi_adhoc padh
+    where '{user_is_admin_flag}'='Y'
+    and padh.id not in (select adhoc_id from plainbi_adhoc_to_group)
+    union all
+    select
+    'external_resource_'{concat_op}cast(id as varchar) as id
+    , name
+    , url
+    , '_blank' as target
+    , null as output_format
+    , description
+    , source
+    , dataset
+    , 'external_resource' as resource_type
+    , source as resource_type_de
+    from plainbi_external_resource per
+    where '{user_is_admin_flag}'='Y'
+    and per.id not in (select external_resource_id from plainbi_external_resource_to_group)
+    """
+    else:
+        if not is_id(gid):
+            items, columns = db_exec(config.repoengine,f"select id from plainbi_group where alias='{gid}'")
+            if len(items) > 0:
+                gid=items[0]["id"]
+            else:
+                out["error"]="no-such-group-alias"
+                out["message"]=f"Berechtigungsgruppe mit dem alias {gid} nicht gefunden"
+                return myjsonify(out), 500
+        else:
+            items, columns = db_exec(config.repoengine,f"select id from plainbi_group where id={gid}")
+            if len(items) < 1:
+                out["error"]="no-such-group-id"
+                out["message"]=f"Berechtigungsgruppe mit der ID {gid} nicht gefunden"
+                return myjsonify(out), 500
+        resource_sql=f"""select
+    'application_'{concat_op}cast(id as varchar) as id
+    , name
+    , '/apps/'{concat_op}alias as url
+    , '_self' as target
+    , null as output_format
+    , null as description
+    , null as source
+    , null as dataset
+    , 'application' as resource_type
+    , 'Applikation' as resource_type_de
+    from plainbi_application pa
+    join plainbi_application_to_group ag
+    on pa.id=ag.application_id
+    and ag.group_id={gid}
+    and ag.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
+    union all
+    select
+    'adhoc_'{concat_op}cast(id as varchar) as id
+    , name
+    , '/adhoc/' {concat_op} cast(id as varchar) {concat_op} case when coalesce(output_format, 'HTML') <> 'HTML' then '?format='{concat_op}output_format else '' end as url
+    , '_self' as target
+    , coalesce(output_format, 'HTML') output_format
+    , description
+    , 'Adhoc' as source
+    , null as dataset
+    , 'adhoc' as resource_type
+    , 'Adhoc' as resource_type_de
+    from plainbi_adhoc padh
+    join plainbi_adhoc_to_group ag
+    on padh.id = ag.adhoc_id
+    and ag.group_id={gid}
+    and ag.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
+    union all
+    select
+    'external_resource_'{concat_op}cast(id as varchar) as id
+    , name
+    , url
+    , '_blank' as target
+    , null as output_format
+    , description
+    , source
+    , dataset
+    , 'external_resource' as resource_type
+    , source as resource_type_de
+    from plainbi_external_resource per
+    join plainbi_external_resource_to_group rg
+    on per.id=rg.external_resource_id
+    and rg.group_id={gid}
+    and rg.group_id in (select ug.group_id from plainbi_user_to_group ug where ug.user_id={user_id} or {user_id} in (select id from plainbi_user where role_id=1))
+    """
     dbg("get_group_resources sql: %s",resource_sql)
     items,columns,total_count,e=sql_select(config.repoengine,resource_sql,order_by=None,offset=None,limit=None,with_total_count=True,is_repo=True,user_id=prof["user_id"])
     dbg("get_group_resources sql_select error %s",str(e))
@@ -2309,7 +2355,7 @@ def get_adhoc_data(tokdata,id):
                     new_sheet['B3'] = adhoc_desc
                     # set info field fonts also to Airal 9
                     for f in ['A1','A2','A3','B1','B2','B3']:
-                        new_sheet[f].font = font
+                        new_sheet[f].font = deffont
                     #autofit columns
                     for column in new_sheet.columns:
                         max_length = 0

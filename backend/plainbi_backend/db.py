@@ -1540,6 +1540,10 @@ def get_profile(repoengine,u):
         user_id = (usr_items[0])["id"]
         prof["user_id"] = user_id
         role_id=(usr_items[0])["role_id"]
+        if role_id==1:
+            prof["user_is_admin"] = "Y"
+        else:
+            prof["user_is_admin"] = "N"
         role_sql = "select * from plainbi_role where id=:role_id"
         role_items, role_columns = db_exec(repoengine,role_sql,{ "role_id": role_id})
         if len(role_items)==1:

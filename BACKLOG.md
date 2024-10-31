@@ -7,7 +7,7 @@ Weiterentwicklung:
 
 - Backend Logging prüfen (Passwörter, etc.) und reduzieren (Daten von Resultset, etc.) bzw. aussagekräftiger
 - Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
-- Adhoc Export Excel -> Infoseite in Arial 9 ;-)
+- ~~Adhoc Export Excel -> Infoseite in Arial 9 ;-)~~
 - Adhoc Export Excel/CSV -> bessere Fehlermeldung zurückliefern (d.h. Responsebody anstatt BLOB)
 - Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
 - **SSO (Single Sign On) ermöglichen**
@@ -15,9 +15,9 @@ Weiterentwicklung:
 	- https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-web-app-python-flask?tabs=windows 
 	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
 - username last_changed_by in oracle instead of triggers  
-- **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
+- ~~**ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind) .> als gid "nogroup" verwenden~~
 - plainbi_datasource: db_type enthält jdbc-url inkl. pw's !
-- URL-Parameter "columns", damit man beim Holen von Daten nur die Spalten verwendet werden die man auch anzeigt / ebenso bei der Suche beachten
+- ~~URL-Parameter "cols", damit man beim Holen von Daten nur die Spalten verwendet werden die man auch anzeigt / ebenso bei der Suche beachten~~
 
 
 ## Frontend
