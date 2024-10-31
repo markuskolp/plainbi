@@ -327,7 +327,7 @@ INSERT INTO plainbi_application (id,name,alias,spec_json,datasource_id) VALUES
                      "datatype":"text",
                      "editable":"true",
                      "required":"false",
-                     "tooltip":"nur die Spalten kommasepariert angeben (z.b. spalte1,spalte2) oder die Spaltennummer (z.B. 1,2,3) - gern auch den Zusatz 'desc'",
+                     "tooltip":"nur die Spalten kommasepariert angeben (z.b. spalte1,spalte2) oder die Spaltennummer (z.B. 1,2,3) - gern auch den Zusatz <desc>",
                      "showdetailsonly":"true"
                   },
                   {

@@ -381,6 +381,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                     w+=" AND "
                 w+=cexp+" like lower('%"+lftok+"%')"
         else:
+            # disabled method with indivdual casts and or connected
             for ftok in filter_tokens:
                 cnttok+=1
                 lftok=ftok.lower()

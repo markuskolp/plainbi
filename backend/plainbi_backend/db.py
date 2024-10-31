@@ -302,8 +302,19 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
     dbg("++++++++++ leaving add_offset_limit with <%s>",sql)
     return sql
 
+def get_selectliststr(column_list,tabalias):
+    if column_list is not None:
+        if isinstance(column_list,str):
+           mycols=column_list.split(",")
+        else:
+           mycols=column_list
+        selectliststr = ",".join([tabalias+"."+c.strip() for c in mycols])
+    else:
+        selectliststr=tabalias+".*"
+    return selectliststr
 
-def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False,is_repo=False,user_id=None, customsql=None):
+
+def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,versioned=False,is_repo=False,user_id=None, customsql=None,column_list=None):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -319,13 +330,14 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     w=where_clause
     tab_is_sql_stmt=False
     tabalias="x"
+    selectliststr=get_selectliststr(column_list,tabalias)
     if len(tab.split(" "))==1:          # nur ein wort
         if customsql is not None:
             dbg("get_item_raw get custom sql id=%s",customsql)
             csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
-            sql=f'SELECT {tabalias}.* FROM ({csql}) {tabalias} '
+            sql=f'SELECT {selectliststr} FROM ({csql}) {tabalias} '
         else:
-            sql=f'SELECT {tabalias}.* FROM {tab} {tabalias} '
+            sql=f'SELECT {selectliststr} FROM {tab} {tabalias} '
         tab_is_sql_stmt = False
     else:                               # ein komplettes select statement expected
         sql=tab
@@ -349,7 +361,17 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
             my_where_clause=" WHERE "
         else:
             my_where_clause+=" AND "
-        my_where_clause, my_where_clause_params = add_filter_to_where_clause(db_typ, tab, my_where_clause, filter, metadata["columns"], is_versioned=versioned )
+        if column_list is not None:
+            if isinstance(column_list,str):
+                # column list is a comma separated string
+                mycolumns=[c.strip() for c in column_list.split(",")]
+            else:
+                # column_list shoe already be a list 
+                mycolumns=column_list
+        else:
+            # column list comes (usually) from metadata
+            mycolumns=metadata["columns"]
+        my_where_clause, my_where_clause_params = add_filter_to_where_clause(db_typ, tab, my_where_clause, filter, mycolumns, is_versioned=versioned )
         dbg("my_where_clause:%s",my_where_clause)
         dbg("my_where_clause_params:%s",str(my_where_clause_params))
     # check repo rights
@@ -583,7 +605,8 @@ def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
     config.metadataraw_cache[cache_key] = out
     return out
 
-def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None):
+
+def get_item_raw(dbengine,tab,pk,pk_column_list=None,column_list=None,versioned=False,version_deleted=False, is_repo=False, user_id=None, customsql=None):
     """
     Hole einen bestimmten Datensatz aus einer Tabelle ub der Datenbank
 
@@ -592,6 +615,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     tab : Name der Tabelle
     pk : Wert des Datensatz Identifier (Primary Key)
     pk_column_list : Wert des Datensatz Identifier (Primary Key)
+    column_list: comma separated list of columns to get
     version : table is versioned
     version_deleted : return also delete item
 
@@ -604,6 +628,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
     dbg("get_item_raw[%s]: param tab is <%s>",str(tab),str(tab))
     dbg("get_item_raw[%s]: param pk is <%s>",str(tab),str(pk))
     dbg("get_item_raw[%s]: param pk_column_list is <%s>",str(tab),str(pk_column_list))
+    dbg("get_item_raw[%s]: param column_list is <%s>",str(tab),str(column_list))
     dbg("get_item_raw[%s]: param versioned is <%s>",str(tab),str(versioned))
     dbg("get_item_raw[%s]: param version_deleted is <%s>",str(tab),str(version_deleted))
     dbg("get_item_raw[%s]: param is_repo is <%s>",str(tab),str(is_repo))
@@ -620,6 +645,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         log.warning("get_item_raw[%s]: implicit pk first column",str(tab))
     dbg("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
     tabalias="x"
+    selectliststr=get_selectliststr(column_list,tabalias)
     pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias)
     dbg("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
@@ -630,10 +656,9 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,versioned=False,version_del
         dbg("get_item_raw[%s]: get custom sql id=%s",str(tab),customsql)
         csql, csql_exec_in_repo = get_repo_customsql_sql_stmt(config.repoengine, customsql)
         dbg("get_item_raw[%s]: got custom sql id=%s",str(tab),csql)
-        sql=f'SELECT {tabalias}.* FROM ({csql}) {tabalias} {pkwhere}'
+        sql=f'SELECT {selectliststr} FROM ({csql}) {tabalias} {pkwhere}'
     else:    
-        sql=f'SELECT {tabalias}.* FROM {tab} {tabalias} {pkwhere}'
-    #dbg("get_item_raw[%s]: sql=%s",str(tab),sql)
+        sql=f'SELECT {selectliststr} FROM {tab} {tabalias} {pkwhere}'
     try:
         items, columns = db_exec(dbengine,sql,pkwhere_params)
     except SQLAlchemyError as e_sqlalchemy:

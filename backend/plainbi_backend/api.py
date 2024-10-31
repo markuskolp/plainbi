@@ -650,6 +650,11 @@ def get_all_items(tokdata,db,tab):
         type: boolean
         allowEmptyValue: true
         description: versions enabled 
+      - name: cols
+        in: query
+        type: string
+        required: false
+        description: comma separated list of columns to get
       - name: q
         in: query
         type: string
@@ -688,6 +693,7 @@ def get_all_items(tokdata,db,tab):
     if dbengine is None:
         return myjsonify(nodb_msg),500
     out={}
+    cols=request.args.get('cols')
     is_versioned = True if request.args.get('v') is not None else False
     myfilter, out = parse_filter(request.args.get('q'),request.args.get('filter'), out)
     if "error" in out.keys():
@@ -697,7 +703,7 @@ def get_all_items(tokdata,db,tab):
     order_by = request.args.get('order_by')
     mycustomsql = request.args.get('customsql')
     dbg("pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql)
+    items,columns,total_count,e=sql_select(dbengine,tab,order_by,offset,limit,with_total_count=True,versioned=is_versioned,filter=myfilter,customsql=mycustomsql,column_list=cols)
     if isinstance(e,str) and e=="ok":
         dbg("get_all_items sql_select ok")
     else:
@@ -742,6 +748,11 @@ def get_item(tokdata,db,tab,pk):
         type: string
         required: true
         description: value of the primary key for the row to get  if more then one column in pk then comma separated. Values can be transferred url-safe-base64-encoded when string is in form [base64@<base64urlsafeencodedstring>]
+      - name: cols
+        in: query
+        type: string
+        required: false
+        description: comma separated list of columns to get
       - name: pk
         in: query
         type: string
@@ -774,12 +785,16 @@ def get_item(tokdata,db,tab,pk):
     out={}
     is_versioned=False
     pkcols=[]
+    cols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
+            if key=="cols":
+                cols=value
+                dbg("cols option %s",cols)
             if key=="v":
                 is_versioned=True
                 dbg("versions enabled")
@@ -797,7 +812,7 @@ def get_item(tokdata,db,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql)
+    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, column_list=cols, versioned=is_versioned, customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             #print("out:"+str(out))
@@ -851,6 +866,11 @@ def get_item_post(tokdata,db,tab,pk):
         type: string
         required: true
         description: value of the primary key for the row to get  if pk="#" or pk="@" then pk is taken request.data    if more then on column in pk then comma separated
+      - name: cols
+        in: query
+        type: string
+        required: false
+        description: comma separated list of columns to get
       - name: v
         in: query
         type: boolean
@@ -886,12 +906,16 @@ def get_item_post(tokdata,db,tab,pk):
     out={}
     is_versioned=False
     pkcols=[]
+    cols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
             log.info("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
+            if key=="cols":
+                cols=value
+                dbg("cols option %s",cols)
             if key=="v":
                 is_versioned=True
                 dbg("versions enabled")
@@ -909,7 +933,7 @@ def get_item_post(tokdata,db,tab,pk):
         pk=prep_pk_from_url(pk)
 
     #
-    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, versioned=is_versioned, customsql=mycustomsql)
+    out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, column_list=cols, versioned=is_versioned, customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
             print("out:"+str(out))
