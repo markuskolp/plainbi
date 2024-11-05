@@ -24,7 +24,8 @@ Weiterentwicklung:
 
 Weiterentwicklung:
 
-- insert/update plainbi - nur felder liefern die in der gui angezeigt werden
+- "usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)
+- insert/update plainbi - nur felder liefern die verändert wurden (bisher wird immer der gesamte Record geliefert im PUT/POST Body)
 - plainbi - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - **Parameter bei Adhocs** implementieren
 - Adhoc Serverside Pagination nutzen
@@ -66,6 +67,7 @@ Bugs:
 
 erledigt:
 
+- ~~insert/update plainbi - nur felder liefern die in der gui angezeigt werden~~
 - ~~default sort order bei Adhoc geht nicht - führt zu einem Fehler (siehe auch oben bei Backend)~~
 - ~~bessere Fehlermeldungen~~
   - ~~lokal geht es, aber NGINX muss noch richtig konfiguriert werden damit es die Fehler von Flask zu React durchreicht~~
