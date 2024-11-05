@@ -90,6 +90,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
   console.log("CRUDPage - pkColumns: " + pkColumns);
   let record_pk = (pk ? pk.toString() : null);
   let recordForPKLoaded = false;
+  //console.log("CRUDPage - tableColumns: " + JSON.stringify(tableColumns));
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,7 +171,10 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
       if(_searchParams && _searchParams.length > 0) {
         queryParams.append("filter", _searchParams); 
       }
-      //queryParams.append("q", "test_lauf_id:7");
+
+      let _cols = getColsParamForURL(tableColumns);
+      queryParams.append("cols", _cols); 
+
       console.log("queryParams: " + queryParams.toString());
       var endpoint = api+tableName+'?'+queryParams;
 
@@ -384,6 +388,30 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
     }
     console.log("getPKParamForURL: " + pkforurl);
     return pkforurl;
+  }
+
+  const getColsParamForURL = (_cols) => {
+    var colsforurl = "";
+    if (_cols.length <= 1) {
+      console.log("only 1 column");
+      // if only 1 column take it directly
+      colsforurl = _cols[0].column_name;
+    } else {
+      console.log("several columns");
+      // if several columns, then build url-specific string "&cols=<column_name1>,<column_name2>,..."
+      for (var i = 0; i < _cols.length; i++) {
+        if (_cols[i].showdetailsonly == 'true') {
+          // do nothing
+          console.log("getColsParamForURL - showdetailsonly: " + _cols[i].showdetailsonly + " - ignore column: " + _cols[i].column_name);
+        } else {
+          colsforurl += _cols[i].column_name;
+          colsforurl += ",";
+        }
+      }
+      colsforurl = colsforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
+    }
+    console.log("getColsParamForURL: " + colsforurl);
+    return colsforurl;
   }
 
     // deleteConfirm

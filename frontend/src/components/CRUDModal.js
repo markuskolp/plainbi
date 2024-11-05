@@ -31,10 +31,16 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     setRecordData(null);
 
     const queryParams = new URLSearchParams();
+    
     if(versioned) {
       queryParams.append("v", 1);
     }
+
     queryParams.append("pk", getPKParamForURL(pkColumns));
+    
+    let _cols = getColsParamForURL(tableColumns);
+    queryParams.append("cols", _cols); 
+
     console.log("queryParams: " + queryParams.toString());
     //var endpoint = api+tableName+'/' + encodeURIComponent(encodeURIComponent(pk)) + '?'+queryParams;
     var endpoint = api+tableName+'/' + pk + '?'+queryParams;
@@ -82,6 +88,30 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     }
     console.log("getPKParamForURL: " + pkforurl);
     return pkforurl;
+  }
+
+  const getColsParamForURL = (_cols) => {
+    var colsforurl = "";
+    if (_cols.length <= 1) {
+      console.log("only 1 column");
+      // if only 1 column take it directly
+      colsforurl = _cols[0].column_name;
+    } else {
+      console.log("several columns");
+      // if several columns, then build url-specific string "&cols=<column_name1>,<column_name2>,..."
+      for (var i = 0; i < _cols.length; i++) {
+        if (_cols[i].showsummaryonly == 'true') {
+          // do nothing
+          console.log("getColsParamForURL - showsummaryonly: " + _cols[i].showsummaryonly + " - ignore column: " + _cols[i].column_name);
+        } else {
+          colsforurl += _cols[i].column_name;
+          colsforurl += ",";
+        }
+      }
+      colsforurl = colsforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
+    }
+    console.log("getColsParamForURL: " + colsforurl);
+    return colsforurl;
   }
 
   /*{  
