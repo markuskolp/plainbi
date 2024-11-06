@@ -987,6 +987,10 @@ def create_item(tokdata,db,tab):
         type: boolean
         allowEmptyValue: true
         description: versions enabled 
+      - name: usercol
+        type: string
+        required: false
+        description: name of the column which should be filled with the username
       - name: pk
         in: query
         type: string
@@ -1012,6 +1016,7 @@ def create_item(tokdata,db,tab):
     pkcols=[]
     is_versioned=False
     seq=None
+    usercol=None
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -1022,6 +1027,9 @@ def create_item(tokdata,db,tab):
             if key=="seq":
                 seq=value
                 dbg("pk sequence %s",seq)
+            if key=="usercol":
+                usercol=value
+                dbg("usercol %s",usercol)
             if key=="v":
                 is_versioned=True
                 dbg("versions enabled")
@@ -1034,7 +1042,9 @@ def create_item(tokdata,db,tab):
     data_string = data_bytes.decode('utf-8')
     dbg("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
-
+    if usercol is not None:
+        item[usercol]=tokdata['username']
+        dbg("usercol %s set to %s",usercol,item[usercol])
     out = db_ins(dbengine,tab,item,pkcols,is_versioned,seq,changed_by=tokdata['username'],customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
@@ -1079,6 +1089,10 @@ def update_item(tokdata,db,tab,pk):
         type: boolean
         allowEmptyValue: true
         description: versioning enabled 
+      - name: usercol
+        type: string
+        required: false
+        description: name of the column which should be filled with the username
       - name: body
         in: body
         required: true
@@ -1107,6 +1121,7 @@ def update_item(tokdata,db,tab,pk):
     out={}
     pkcols=[]
     is_versioned=False
+    usercol=None
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -1117,6 +1132,9 @@ def update_item(tokdata,db,tab,pk):
             if key=="v":
                 is_versioned=True
                 dbg("versions enabled")
+            if key=="usercol":
+                usercol=value
+                dbg("usercol enabled for col %s",usercol)
     mycustomsql = request.args.get('customsql')
     # check if pk is compound
     pk=prep_pk_from_url(pk)
@@ -1137,6 +1155,10 @@ def update_item(tokdata,db,tab,pk):
     item = json.loads(data_string.strip("'"))
     #item = {key: request.data[key] for key in request.data}
     dbg("item %s",item,dbglevel=3)
+    if usercol is not None:
+        item[usercol]=tokdata['username']
+        dbg("usercol %s set to %s",usercol,item[usercol])
+
     
     out = db_upd(dbengine, tab, pk, item, pkcols, is_versioned, changed_by=tokdata['username'], customsql=mycustomsql)
     if isinstance(out,dict):
@@ -1188,6 +1210,10 @@ def delete_item(tokdata,db,tab,pk):
         type: boolean
         allowEmptyValue: true
         description: versioning enabled 
+      - name: usercol
+        type: string
+        required: false
+        description: name of the column which should be filled with the username
     responses:
       200:
         description: Successful operation
@@ -1205,6 +1231,7 @@ def delete_item(tokdata,db,tab,pk):
     out={}
     pkcols=[]
     is_versioned=False
+    usercol=None
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
@@ -1215,6 +1242,9 @@ def delete_item(tokdata,db,tab,pk):
             if key=="v":
                 is_versioned=True
                 dbg("versions enabled")
+            if key=="usercol":
+                usercol=value
+                dbg("usercol enabled for col %s",usercol)
     dbg("delete_item tab %s pkcols %s ",tab,pkcols)
 
     pk=prep_pk_from_url(pk)
