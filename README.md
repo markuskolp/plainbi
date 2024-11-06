@@ -31,6 +31,7 @@ A CRUD application is defined as code. Following syntax is possible:
          "hide_in_navigation":"true", 
          "show_breadcrumb":"true", 
          "parent_page": {"alias":"<alias_of_parent_page>","name":"<Label of parent page>"}, 
+         "user_column":"<column>",
          "table_columns":[ 
             {
                "column_name":"<technical_column_name>",
@@ -41,9 +42,9 @@ A CRUD application is defined as code. Following syntax is possible:
                "multiple":"true", 
                "tooltip":"<just a tooltip>", 
                "editable":"false|true", 
-               "required":"false|true" 
-               "showdetailsonly":"true" 
-               "showsummaryonly":"true" 
+               "required":"false|true", 
+               "showdetailsonly":"true", 
+               "showsummaryonly":"true"
             },
             {
                ...
@@ -134,6 +135,10 @@ Has to be the fully qualified name: `<database>.schema.tablename>`
 **optional**: 
 - show_breadcrumb: shows a breadcrumb above the page 
 - parent_page: refers to the parent page (used for the breadcrumb to show a navigation e.g. "parent page" > "current page") - array of "alias" and "name" of the parent page
+
+##### user_column
+
+**optional**: defines which column contains the username and tells plainbi to write the username of the logged in user into this column, when creating or editing a record (insert / update)
 
 ##### table_columns
 

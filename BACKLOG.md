@@ -5,10 +5,11 @@
 
 Weiterentwicklung:
 
+- "usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)
+- Adhoc Export Excel/CSV -> bessere Fehlermeldung zurückliefern (d.h. Responsebody anstatt BLOB)
 - Backend Logging prüfen (Passwörter, etc.) und reduzieren (Daten von Resultset, etc.) bzw. aussagekräftiger
 - Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
 - ~~Adhoc Export Excel -> Infoseite in Arial 9 ;-)~~
-- Adhoc Export Excel/CSV -> bessere Fehlermeldung zurückliefern (d.h. Responsebody anstatt BLOB)
 - Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
 - **SSO (Single Sign On) ermöglichen**
 	- https://www.youtube.com/watch?v=oW1SJxGiaZA
@@ -24,7 +25,6 @@ Weiterentwicklung:
 
 Weiterentwicklung:
 
-- "usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)
 - insert/update plainbi - nur felder liefern die verändert wurden (bisher wird immer der gesamte Record geliefert im PUT/POST Body)
 - plainbi - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - **Parameter bei Adhocs** implementieren
@@ -67,6 +67,7 @@ Bugs:
 
 erledigt:
 
+- ~~"usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)~~
 - ~~insert/update plainbi - nur felder liefern die in der gui angezeigt werden~~
 - ~~default sort order bei Adhoc geht nicht - führt zu einem Fehler (siehe auch oben bei Backend)~~
 - ~~bessere Fehlermeldungen~~

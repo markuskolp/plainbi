@@ -58,7 +58,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems }) => {
     
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -842,7 +842,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, allo
                 }
             
             {showModal &&
-            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence}/>
+            <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} userColumn={userColumn} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence}/>
             }
             {showTableModal &&
             <TableModal modalName="" tableColumns={tableModalColumns} tableData={tableModalData} handleClose={closeTableModal}/>

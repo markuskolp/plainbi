@@ -10,7 +10,7 @@ import {
   Alert
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, versioned, datasource, isRepo, token, sequence }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence }) => {
     
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -125,10 +125,25 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   const updateTableRow = async (tableName, record, pk) => {
     setLoading(true);
     console.log("updateTableRow: " + JSON.stringify(record));
-    //await Axios.put("/api/crud/"+tableName+"/"+pk, record).then( 
-    let endPoint = api+tableName+"/"+pk+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns));
-    console.log("updateTableRow: endpoint: " + endPoint);
-    await Axios.put(endPoint, record, {headers: {Authorization: token}}).then(  
+
+    const queryParams = new URLSearchParams();
+    
+    if(versioned) {
+      queryParams.append("v", 1);
+    }
+
+    queryParams.append("pk", getPKParamForURL(pkColumns));
+    
+    if(userColumn) {
+      queryParams.append("usercol", userColumn);
+    }
+
+    console.log("queryParams: " + queryParams.toString());
+    var endpoint = api+tableName+'/' + pk + '?'+queryParams;
+    //let endPoint = api+tableName+"/"+pk+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns));
+
+    console.log("updateTableRow: endpoint: " + endpoint);
+    await Axios.put(endpoint, record, {headers: {Authorization: token}}).then(  
         (res) => {
         message.success('Erfolgreich gespeichert.');
         handleSave();
@@ -147,10 +162,28 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     const addTableRow = async (tableName, record) => {
       setLoading(true);
       console.log("addTableRow: " + JSON.stringify(record));
-      //await Axios.post("/api/crud/"+tableName, record).then( 
-      let endPoint = api+tableName+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns): "?pk="+getPKParamForURL(pkColumns))+(sequence ? "&seq="+sequence : "");
-      console.log("addTableRow: endpoint: " + endPoint);
-      await Axios.post(endPoint, record, {headers: {Authorization: token}}).then( 
+      
+      const queryParams = new URLSearchParams();
+    
+      if(versioned) {
+        queryParams.append("v", 1);
+      }
+  
+      queryParams.append("pk", getPKParamForURL(pkColumns));
+      
+      if(userColumn) {
+        queryParams.append("usercol", userColumn);
+      }
+  
+      if(sequence) {
+        queryParams.append("seq", sequence);
+      }
+
+      console.log("queryParams: " + queryParams.toString());
+      var endpoint = api+tableName+'?'+queryParams;
+
+      console.log("addTableRow: endpoint: " + endpoint);
+      await Axios.post(endpoint, record, {headers: {Authorization: token}}).then( 
           (res) => {
           message.success('Erfolgreich gespeichert.');
           handleSave();
