@@ -294,9 +294,24 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   // removeTableRow
   const removeTableRow = async (tableName, record, pk) => {
     setLoading(true);
-    let endPoint = api+tableName+"/"+pk+(versioned ? "?v" : "")+(versioned ? "&pk="+getPKParamForURL(pkColumns) : "?pk="+getPKParamForURL(pkColumns));
-    console.log("removeTableRow: endPoint: " + endPoint);
-    await Axios.delete(endPoint
+
+    const queryParams = new URLSearchParams();
+    
+    if(versioned) {
+      queryParams.append("v", 1);
+    }
+
+    queryParams.append("pk", getPKParamForURL(pkColumns));
+    
+    if(userColumn) {
+      queryParams.append("usercol", userColumn);
+    }
+
+    console.log("queryParams: " + queryParams.toString());
+    var endpoint = api+tableName+'/' + pk + '?'+queryParams;
+
+    console.log("removeTableRow: endPoint: " + endpoint);
+    await Axios.delete(endpoint
     , {  
         headers: { 
           'Accept': 'application/json',
