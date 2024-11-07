@@ -2160,6 +2160,26 @@ def get_adhoc_data(tokdata,id):
         type: string
         required: true
         description: id or alias of the adhoc defined in the repository
+      - name: params
+        in: query
+        type: string
+        description: adhoc parameter
+      - name: format
+        in: query
+        type: string
+        description: output format JSON/XLSX/CSV
+      - name: offset
+        in: query
+        type: integer
+        description: start with row <offset> (for pagination)
+      - name: limit
+        in: query
+        type: integer
+        description: maximum number of rows to return  (for pagination)
+      - name: order_by
+        in: query
+        type: string
+        description: order by clause
     responses:
       200:
         description: Successful operation
@@ -2312,7 +2332,7 @@ def get_adhoc_data(tokdata,id):
         if len(df)==0:
             out["error"]="adhoc-no-rows"
             out["message"]="Die Adhoc Abfrage liefert keine Daten"
-            out["detail"]=None
+            out["detail"]="Die Adhoc Abfrage liefert keine Daten"
             dbg("get_adhoc_data: no rows result")
             return myjsonify(out),500
         else:
@@ -2325,7 +2345,8 @@ def get_adhoc_data(tokdata,id):
                     datasheet_name="daten"
                     infosheet_name="info"
                     try:
-                        output = pd.ExcelWriter(tmpfile)
+                        output = pd.ExcelWriter(tmpfile,engine="xlsxwriter")
+                        output.book.set_properties({"encoding":"utf-8"})
                         fmt_xl.header_style = None
                         #pd.formats.format.header_style = None
                         dbg("get_adhoc_data: df to excel")
