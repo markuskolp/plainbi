@@ -36,7 +36,7 @@ const App = () => {
               <Route index element={<Home token={token} setToken={setToken} removeToken={removeToken}/>} />
               {userRole == 'ADMIN' && <Route path="settings" element={<Settings token={token} setToken={setToken} />} /> }
               <Route path="myprofile" element={<UserProfile token={token} setToken={setToken} />} />
-              <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} />} />
+              <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} removeToken={removeToken}/>} />
               <Route path="apps" element={<Apps token={token} setToken={setToken} />} />
               <Route path="apps/:id/:page_id?" element={<AppRuntime token={token} setToken={setToken} />} />
               <Route path="apps/:id/:page_id?/:pk?" element={<AppRuntime token={token} setToken={setToken} />} />

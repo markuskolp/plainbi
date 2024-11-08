@@ -5,7 +5,7 @@
 
 Weiterentwicklung:
 
-- "usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)
+- Tausendertrennzeichen in Adhoc Excelexport (5.321 anstatt 5321) - NK-Stellen so belassen (aber evtl. geht vorformatieren auf 2 NK-Stellen, aber nur wenn es ein Float/Decimal ist ?)
 - Adhoc Export Excel/CSV -> bessere Fehlermeldung zurückliefern (d.h. Responsebody anstatt BLOB)
 - Backend Logging prüfen (Passwörter, etc.) und reduzieren (Daten von Resultset, etc.) bzw. aussagekräftiger
 - Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
@@ -16,8 +16,9 @@ Weiterentwicklung:
 	- https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-web-app-python-flask?tabs=windows 
 	- https://learn.microsoft.com/de-de/entra/external-id/customers/sample-web-app-python-flask-sign-in?tabs=windows
 - username last_changed_by in oracle instead of triggers  
-- ~~**ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind) .> als gid "nogroup" verwenden~~
 - plainbi_datasource: db_type enthält jdbc-url inkl. pw's !
+- ~~ohne Gruppenzuordnung ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind) .> als gid "nogroup" verwenden~~
+- ~~"usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)~~
 - ~~URL-Parameter "cols", damit man beim Holen von Daten nur die Spalten verwendet werden die man auch anzeigt / ebenso bei der Suche beachten~~
 
 
@@ -25,6 +26,8 @@ Weiterentwicklung:
 
 Weiterentwicklung:
 
+-  **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
+  - Endpoint /group/<gid>/resources -> hier kann man für <gid> auch **nogroup** schreiben, dann kommen alle Ressourcen die keiner Gruppe zugeordnet sind (Admins only)
 - insert/update plainbi - nur felder liefern die verändert wurden (bisher wird immer der gesamte Record geliefert im PUT/POST Body)
 - plainbi - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - **Parameter bei Adhocs** implementieren

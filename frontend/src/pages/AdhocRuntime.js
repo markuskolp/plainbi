@@ -57,7 +57,12 @@ const AdhocRuntime = (props) => {
         function (error) {
           setLoading(false);
           setError(true);
-          setErrorMessage('Es gab einen Fehler beim Laden des Adhoc.');
+          if (error.response.status === 401) {
+            props.removeToken()
+            message.error('Session ist abgelaufen');
+          } else {
+            setErrorMessage('Es gab einen Fehler beim Laden des Adhoc.');
+          }
           console.log("error.message: " + error.message);
           console.log("error.response: " + error.response);
           console.error('Request Failed:', error.config);
@@ -91,9 +96,14 @@ const AdhocRuntime = (props) => {
       ).catch(
         function (error) {
           setLoading(false);
-          setErrorMessage('Es gab einen Fehler beim Laden der Daten');
-          setErrorDetail(error.response.data.detail);
           setError(true);
+          if (error.response.status === 401) {
+            props.removeToken()
+            message.error('Session ist abgelaufen');
+          } else {
+            setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+            setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+           }
           console.log(error);
           console.log(error.response.data.message);
         }
@@ -140,9 +150,14 @@ const AdhocRuntime = (props) => {
       ).catch(
         function (error) {
           setLoading(false);
-          setErrorMessage('Es gab einen Fehler beim Laden der Daten als ' + _format);
-          setErrorDetail(error.response.data.detail);
           setError(true);
+          if (error.response.status === 401) {
+            props.removeToken()
+            message.error('Session ist abgelaufen');
+          } else {
+            setErrorMessage('Es gab einen Fehler beim Laden der Daten als ' + _format);
+            setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+           }
           console.log("getBlobData - error: " + error);
           console.log(error);
           console.log(error.response.data.message);
