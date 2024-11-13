@@ -415,13 +415,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       console.log("several columns");
       // if several columns, then build url-specific string "&cols=<column_name1>,<column_name2>,..."
       for (var i = 0; i < _cols.length; i++) {
-        if (_cols[i].showdetailsonly == 'true') {
+        // TODO: do not ignore all columns with "showdetailsonly", because one might be part of primary key ! -> look for pk as well and keep them !
+        //if (_cols[i].showdetailsonly == 'true') {
           // do nothing
-          console.log("getColsParamForURL - showdetailsonly: " + _cols[i].showdetailsonly + " - ignore column: " + _cols[i].column_name);
-        } else {
+          //console.log("getColsParamForURL - showdetailsonly: " + _cols[i].showdetailsonly + " - ignore column: " + _cols[i].column_name);
+        //} else {
           colsforurl += _cols[i].column_name;
           colsforurl += ",";
-        }
+        //}
       }
       colsforurl = colsforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
     }
