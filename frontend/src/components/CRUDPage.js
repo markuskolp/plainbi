@@ -405,6 +405,15 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     return pkforurl;
   }
 
+  const pkExists = (value) => {
+    for (var i = 0; i < pkColumns.length; i++) {
+      if (pkColumns[i].toLowerCase() === value.toLowerCase() ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   const getColsParamForURL = (_cols) => {
     var colsforurl = "";
     if (_cols.length <= 1) {
@@ -415,14 +424,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       console.log("several columns");
       // if several columns, then build url-specific string "&cols=<column_name1>,<column_name2>,..."
       for (var i = 0; i < _cols.length; i++) {
-        // TODO: do not ignore all columns with "showdetailsonly", because one might be part of primary key ! -> look for pk as well and keep them !
-        //if (_cols[i].showdetailsonly == 'true') {
+        // ignore columns with "showdetailsonly", but not the ones that are part of the primary key
+        if (_cols[i].showdetailsonly == 'true' && !pkExists(_cols[i].column_name)) {
           // do nothing
-          //console.log("getColsParamForURL - showdetailsonly: " + _cols[i].showdetailsonly + " - ignore column: " + _cols[i].column_name);
-        //} else {
+          console.log("getColsParamForURL - not PK and showdetailsonly: " + _cols[i].showdetailsonly + " - ignore column: " + _cols[i].column_name);
+        } else {
           colsforurl += _cols[i].column_name;
           colsforurl += ",";
-        //}
+        }
       }
       colsforurl = colsforurl.replace(/^,+|,+$/g, ''); // trim "," at beginning and end of string
     }
