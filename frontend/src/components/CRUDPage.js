@@ -21,7 +21,7 @@ import {
   CaretDownFilled
 } from '@ant-design/icons';
 import { PageHeader } from "@ant-design/pro-layout";
-import { EditOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { EditOutlined, PlusOutlined, DeleteOutlined, CopyOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import CRUDModal from "./CRUDModal";
 import TableModal from "./TableModal";
@@ -471,6 +471,15 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       setModalMode("new");
       setShowModal(true);
     };
+    const showDuplicateModal = (record) => { // same as create modal, but gets values of selected row and prefills the form with it
+      console.log("showDuplicateModal for table: " + tableName);
+      console.log(record);
+      pkColumns ? console.log(record[pkColumns[0]]) : console.log("no pk");
+      //setCurrentPK(record[pkColumns[0]]);
+      setCurrentPK(getPKForURL(record, pkColumns));
+      setModalMode("duplicate");
+      setShowModal(true);
+    };
     // closeModal
     const closeModal = () => {
       setShowModal(false);
@@ -555,7 +564,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   */
 
     // add action buttons to a table record
-   function getColumnAction( deleteAllowed, updateAllowed) {
+   function getColumnAction( deleteAllowed, updateAllowed, duplicateAllowed) {
     return {
       title: " ",
       key: "action",
@@ -579,6 +588,11 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
           {updateAllowed && pkColumns &&
           <Link onClick={(e) => { showEditModal(record, e); }}>
             <EditOutlined style={{ fontSize: "18px" }} />
+          </Link>
+          }
+          {duplicateAllowed && pkColumns &&
+          <Link onClick={(e) => { showDuplicateModal(record, e); }}>
+            <CopyOutlined style={{ fontSize: "18px" }} />
           </Link>
           }
         </Space>
@@ -836,7 +850,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                             .map((column) => {
                               return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype, column.ui));
                             })
-                            .concat((allowedActions.includes("delete") || allowedActions.includes("update")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update")) : [])} // .. also add action buttons (delete, edit), if allowed
+                            .concat((allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate")) : [])} // .. also add action buttons (delete, edit), if allowed
 
                           dataSource={filteredTableData == null ? tableData : filteredTableData}
                           //rowKey="key"

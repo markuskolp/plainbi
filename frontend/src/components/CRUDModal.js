@@ -19,11 +19,12 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   const [recordData, setRecordData] = useState([]);
   console.log("Rendering with: ", recordData);
   console.log("pkColumns: ", pkColumns);
+  console.log("pk: ", pk);
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource+'/' : '');  // switch between repository tables and other datasources /api/crud/<db>/<table>
 
   useEffect(() => {
-    type == 'edit' ? getRecordData(tableName, pk) : setRecordData([]);
+    (type == 'edit' || type == 'duplicate') ? getRecordData(tableName, pk) : setRecordData([]);
   }, [type, tableName, pk]);
 
   // getRecordData
@@ -212,7 +213,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     // add or update to API
     // TODO: check if all required fields are filled (except fields with increment)
     console.log("type: " + type + " / pk: " + pk);
-    type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData);
+    type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData); // add is used for 'new' and 'duplicate'
   };
 
   const layout = {
@@ -280,7 +281,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
                   //const dataValue = recordData[column.column_name]; // get record data of the current column or set to nothing
 
                   return (
-                    ((type == 'new' || recordData ) && !column.showsummaryonly) ? // only show if type is "new" or the data record could be retrieved (for "editing") AND the if it is not only displayed on summary page (list view)
+                    ((type == 'new' || recordData ) && !column.showsummaryonly) ? // only show if type is "new" or the data record could be retrieved (for "editing" a record or creating a "duplicate") AND if it is not only displayed on summary page (list view)
                     // only make item editable if it is not part of the primary key
                     <CRUDFormItem type={type} name={column.column_name} label={column.column_label} required={column.required} isprimarykey={pkColumns.includes(column.column_name)} editable={column.editable} lookupid={column.lookup} ui={column.ui} defaultValue={dataValue} onChange={handleChange} tooltip={column.tooltip} multiple={column.multiple} token={token}/>
                     : ""

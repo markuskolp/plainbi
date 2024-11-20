@@ -21,7 +21,7 @@ A CRUD application is defined as code. Following syntax is possible:
          "name":"<Page name>",
          "alias":"<page_alias>", 
          "allowed_actions":[ 
-            "update", "create", "delete" 
+            "update", "create", "delete", "duplicate"
          ],
          "pk_columns":["<primary_key_column>, ..."], 
          "table":"<table>", 
@@ -103,10 +103,11 @@ The `last_changed_by` field is filled with the username. So you can track who cr
 
 ##### allowed_actions
 
-leave empty array if no actions allowed or select between these three options (in any combination)
+leave **empty array** if no actions allowed or select between these options (in any combination)
 - `update`
 - `create`
 - `delete`
+- `duplicate` (same as `create`, but prefills the form with the data of the selected row)
 
 ##### pk_columns
 

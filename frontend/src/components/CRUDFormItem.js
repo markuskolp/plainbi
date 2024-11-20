@@ -106,11 +106,11 @@ const handleSwitchChange = (checked, e) => {
                 tooltip={tooltip}
               >
                 {
-                  ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") && ui === "lookupn") ? (
+                  ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new" && type != "duplicate") && ui === "lookupn") ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} allowNewValues="true" multiple={(multiple === "true" ? true : false)}/>
-                ) : ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") && ui === "lookup") ? (
+                ) : ((editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new" && type != "duplicate") && ui === "lookup") ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} multiple={(multiple === "true" ? true : false)}/>
-                ) : (editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new") ? (
+                ) : (editable.toString() === "false" || (isprimarykey.toString() === "true") && type != "new" && type != "duplicate") ? (
                   <Text>{defaultValue}</Text>
                 ) : ui === "lookupn" ? (
                   <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} allowNewValues="true" multiple={(multiple === "true" ? true : false)}/>
