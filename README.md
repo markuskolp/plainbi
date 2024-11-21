@@ -165,6 +165,7 @@ Here following options are possible:
   - `password_nomem` (same, but does not allow the browser to memorize/cache the entered value)
   - `html` (only used in tabular view e.g. to represent anly html code)
   - `modal_json_to_table` (only used in tabular view)
+  - `textarea_base64` (textarea that displays a base64 encoded string underneath. can be used for images.)
 - lookup: refers to a lookup with its alias - only used for "ui":"lookup"
 - editable: allowed values `false`, `true`
 - required: allowed values `false`, `true`
