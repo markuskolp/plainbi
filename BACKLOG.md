@@ -60,6 +60,17 @@ Weiterentwicklung:
 - **Dokumentation**
 - Bilder hochladen (als BLOB speichern) und anzeigen (bisher sonst nur base64 möglich) - evtl. auch Angabe eines Pfads zur Bilddatei (http...) mit Anzeigefunktion
 
+- Edit only if in certain user or group (otherwise read only or hidden)
+- Grid edit
+- Tree view (mit Editiermöglichkeit / Iconauswahl)
+- Conditional row formatting (e.g. background color for the row)
+
+- Cascading prompts: also having a label dependent on a selected/entered value (e.g. ID of a address -> show the full address for this)
+- Input search box (Lookup) with onSearch loading from server: https://ant.design/components/input#input-demo-search-input-loading
+- Validation rules  (e.g. entered value really exists)
+  - in SQL ? Javascript ? ...
+
+
 Bugs:
 
 - wenn man User löscht und dieser zu einer Gruppe gehört, dann wird "erfolgreich" gezeigt (obwohl dieser nicht gelöscht wurde) - es sollte der Fehler gezeigt werden
