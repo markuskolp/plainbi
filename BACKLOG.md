@@ -29,7 +29,6 @@ Weiterentwicklung:
 -  **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
   - Endpoint /group/<gid>/resources -> hier kann man für <gid> auch **nogroup** schreiben, dann kommen alle Ressourcen die keiner Gruppe zugeordnet sind (Admins only)
 - insert/update plainbi - nur felder liefern die verändert wurden (bisher wird immer der gesamte Record geliefert im PUT/POST Body)
-- plainbi - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - **Parameter bei Adhocs** implementieren
 - Adhoc Serverside Pagination nutzen
 - **Filter in Spaltentitel**
@@ -76,10 +75,7 @@ Bugs:
 - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - wenn man User löscht und dieser zu einer Gruppe gehört, dann wird "erfolgreich" gezeigt (obwohl dieser nicht gelöscht wurde) - es sollte der Fehler gezeigt werden
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
-- **abgelaufene Session/Token** wird bisher nicht immer erkannt und es kommt ein allgemeiner Fehler
-  - in AppRuntime- und Settings-Bereich auch auf abgelaufenes Token achten !
-  - dies immer erkennen und auf Loginseite leiten mit Info "Session/Token abgelaufen"
-  - bekannter Fall: wenn man direkt auf ein Adhoc per URL geht und die Session abgelaufen ist, kommt nur ein Adhocfehler -> er sollte eigentlich auf die Loginseite springen mit Fehlerhinweis "Session abgelaufen"
+- **abgelaufene Session/Token**: in Settings-Bereich auch auf abgelaufenes Token achten -> ruft aber CRUDPage auf ?!
 - TileVA.js -> Image verzieht sich wenn die Bildschirmbreite zu klein wird -> div und img element - das img übernimmt die Höhe, wenn man diese entfernt geht es -> aber wie lösen?
 
 

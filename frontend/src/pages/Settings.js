@@ -202,7 +202,7 @@ const Settings = (props) => {
     return getItem(obj.name // label
         , obj.id // key
         , null // icon
-        , <CRUDPage key={obj.name} name={obj.name} tableName={obj.table} tableForList={obj.table_for_list} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} datasource={obj.datasource} isRepo="true" lookups={getLookups(obj.table_columns)} token={props.token}/>
+        , <CRUDPage key={obj.name} name={obj.name} tableName={obj.table} tableForList={obj.table_for_list} tableColumns={obj.table_columns} pkColumns={obj.pk_columns} allowedActions={obj.allowed_actions} datasource={obj.datasource} isRepo="true" lookups={getLookups(obj.table_columns)} token={props.token} removeToken={props.removeToken}/>
         , null // type
         );
   })

@@ -58,7 +58,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken }) => {
     
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -204,14 +204,15 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         ).catch(function (error) {
           setLoading(false);
           setError(true);
-          // not necessary to check token here because AppRuntime.js does this
-          //if (error.response.status === 401) {
-            //props.removeToken()
-            //message.error('Session ist abgelaufen');
-          //} else {
+          if (error.response.status === 401) {
+            try{removeToken();}catch(err){}
+            message.error('Session ist abgelaufen');
             setErrorMessage('Es gab einen Fehler beim Laden der Daten');
             setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
-          //}
+          } else {
+            setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+            setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+          }
           console.log(error);
           console.log(error.response.data.message);
         }
@@ -611,6 +612,19 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       (res) => {
         return {lookup: lookupid, lookupdata: (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data)}
       }
+  ).catch(function (error) {
+    setLoading(false);
+    setError(true);
+    if (error.response.status === 401) {
+      try{removeToken();}catch(err){}
+      message.error('Session ist abgelaufen');
+    } else {
+      setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+      setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+    }
+    console.log(error);
+    console.log(error.response.data.message);
+  }
   );
 
   const getLookupDataAll = () => {
