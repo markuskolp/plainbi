@@ -36,6 +36,9 @@ create table plainbi_user (
 )
 ''',
 '''
+ALTER TABLE plainbi_user ADD CONSTRAINT uk_plainbi_user UNIQUE (username)
+''',
+'''
 insert into plainbi_user (id,username,password_hash,role_id) values (1,'admin','$2b$12$fb81v4oi7JdcBIofmi/JoeHfAK0WJUo7Mq648C2dAiewztltywHHu',1)
 ''',
 '''
