@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import Axios from "axios";
-import { Button, Typography, Card, Col, Row, message, Flex, Avatar, Tooltip } from "antd";
+import { Button, Typography, Card, Col, Row, message, Flex, Avatar, Tooltip, Alert } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import {
   EditOutlined,
@@ -19,6 +19,8 @@ const Apps = (props) => {
   const [loading, setLoading] = useState(true);
   const [apps, setApps] = useState([]); // metadata of all apps
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorDetail, setErrorDetail] = useState('');
 
   console.log("apps / token: " + props.token);
 
@@ -50,9 +52,17 @@ const Apps = (props) => {
       }
     ).catch(
       function (error) {
-        setError(true);
         setLoading(false);
-        message.error('Es gab einen Fehler beim Laden der Applikationen.');
+        setError(true);
+        if (error.response.status === 401) {
+          props.removeToken()
+          message.error('Session ist abgelaufen');
+        } else {
+          setErrorMessage('Es gab einen Fehler beim Laden der Applikationen');
+          setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+         }
+        console.log(error);
+        console.log(error.response.data.message);
       }
     );
   };
@@ -80,7 +90,14 @@ const Apps = (props) => {
         
         <LoadingMessage /> :
         (error ? 
-          <h1>Es konnten keine Applikationen gefunden werden.</h1> :
+          (
+            <Alert
+              message={errorMessage}
+              description={errorDetail}
+              type="error"
+              showIcon
+            />
+          )  :
           <Flex gap="middle"  wrap>            
             {apps && apps.map((app) => {
               return (

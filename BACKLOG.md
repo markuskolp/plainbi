@@ -73,10 +73,11 @@ Weiterentwicklung:
 
 Bugs:
 
+- applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - wenn man User löscht und dieser zu einer Gruppe gehört, dann wird "erfolgreich" gezeigt (obwohl dieser nicht gelöscht wurde) - es sollte der Fehler gezeigt werden
-- in Settings-Bereich auch auf abgelaufenes Token achten !
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
 - **abgelaufene Session/Token** wird bisher nicht immer erkannt und es kommt ein allgemeiner Fehler
+  - in AppRuntime- und Settings-Bereich auch auf abgelaufenes Token achten !
   - dies immer erkennen und auf Loginseite leiten mit Info "Session/Token abgelaufen"
   - bekannter Fall: wenn man direkt auf ein Adhoc per URL geht und die Session abgelaufen ist, kommt nur ein Adhocfehler -> er sollte eigentlich auf die Loginseite springen mit Fehlerhinweis "Session abgelaufen"
 - TileVA.js -> Image verzieht sich wenn die Bildschirmbreite zu klein wird -> div und img element - das img übernimmt die Höhe, wenn man diese entfernt geht es -> aber wie lösen?

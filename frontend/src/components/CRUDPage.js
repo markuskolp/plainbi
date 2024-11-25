@@ -203,9 +203,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         }
         ).catch(function (error) {
           setLoading(false);
-          setErrorMessage('Es gab einen Fehler beim Laden der Daten');
-          setErrorDetail(error.response.data.detail);
           setError(true);
+          if (error.response.status === 401) {
+            props.removeToken()
+            message.error('Session ist abgelaufen');
+          } else {
+            setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+            setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+           }
           console.log(error);
           console.log(error.response.data.message);
         }

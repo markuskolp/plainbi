@@ -69,10 +69,16 @@ const AppRuntime = (props) => {
       function (error) {
         setAppNotFound(true);
         setLoading(false);
-        message.error('Es gab einen Fehler beim Laden der Applikation.');
+        //setError(true);
+        if (error.response.status === 401) {
+          props.removeToken()
+          message.error('Session ist abgelaufen');
+        } else {
+          setErrorMessage('Es gab einen Fehler beim Laden der Applikation');
+          setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+          }
         console.log(error);
-        //console.log(error.response.data.message);
-        //console.log(error.response.data.detail);
+        console.log(error.response.data.message);
     }
     );
   };
