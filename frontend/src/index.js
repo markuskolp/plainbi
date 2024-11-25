@@ -34,12 +34,12 @@ const App = () => {
           <Routes>
             <Route path="/" element={<ThemeLayout removeToken={removeToken} />} >
               <Route index element={<Home token={token} setToken={setToken} removeToken={removeToken}/>} />
-              {userRole == 'ADMIN' && <Route path="settings" element={<Settings token={token} setToken={setToken} />} /> }
-              <Route path="myprofile" element={<UserProfile token={token} setToken={setToken} />} />
+              {userRole == 'ADMIN' && <Route path="settings" element={<Settings token={token} setToken={setToken} removeToken={removeToken} />} /> }
+              <Route path="myprofile" element={<UserProfile token={token} setToken={setToken} removeToken={removeToken}/>} />
               <Route path="adhoc/:id" element={<AdhocRuntime token={token} setToken={setToken} removeToken={removeToken}/>} />
-              <Route path="apps" element={<Apps token={token} setToken={setToken} />} />
-              <Route path="apps/:id/:page_id?" element={<AppRuntime token={token} setToken={setToken} />} />
-              <Route path="apps/:id/:page_id?/:pk?" element={<AppRuntime token={token} setToken={setToken} />} />
+              <Route path="apps" element={<Apps token={token} setToken={setToken} removeToken={removeToken}/>} />
+              <Route path="apps/:id/:page_id?" element={<AppRuntime token={token} setToken={setToken} removeToken={removeToken} />} />
+              <Route path="apps/:id/:page_id?/:pk?" element={<AppRuntime token={token} setToken={setToken} removeToken={removeToken} />} />
               <Route path="dashboard/:id" element={<DashboardPage token={token} setToken={setToken} />} />
               <Route path="erd" element={<ERD token={token} setToken={setToken} />} />
               <Route path="*" element={<NoPage />} />

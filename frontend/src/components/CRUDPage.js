@@ -204,13 +204,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         ).catch(function (error) {
           setLoading(false);
           setError(true);
-          if (error.response.status === 401) {
-            props.removeToken()
-            message.error('Session ist abgelaufen');
-          } else {
+          // not necessary to check token here because AppRuntime.js does this
+          //if (error.response.status === 401) {
+            //props.removeToken()
+            //message.error('Session ist abgelaufen');
+          //} else {
             setErrorMessage('Es gab einen Fehler beim Laden der Daten');
             setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
-           }
+          //}
           console.log(error);
           console.log(error.response.data.message);
         }
