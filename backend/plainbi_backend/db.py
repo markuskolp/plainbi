@@ -1756,7 +1756,8 @@ def db_connect(p_enginestr, params=None):
     else:
         if "postgres" in p_enginestr:
             dbg("++++++++++ enable pool_pre_ping for postgres")
-            dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True)
+            dbg("++++++++++ enable echo_pool debug for postgres")
+            dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True, echo_pool='debug', connect_args={'connect_timeout': 10}, pool_recycle=600)
         else:
             dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: engine url %s",dbengine.url)
