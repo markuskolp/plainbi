@@ -115,7 +115,7 @@ repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource
 config.conn={}
 
    
-def db_exec(engine, sql, params=None):
+def db_exec(engine, sql, params=None, metadata=None):
     dbg(f"+++ entering {inspect.currentframe().f_code.co_name} "+str(sql)[:50]+" ...")
     dbg("sql is <%s>",str(sql),dbglevel=2)
     dbg("sql params are <%s>",str(params),dbglevel=3)
@@ -165,6 +165,12 @@ def db_exec(engine, sql, params=None):
                 if myparams is not None:
                     # handle encodings
                     myparams=urlsafe_decode_params(myparams)
+                    if dbtyp=="oracle" and metadata is not None:
+                        if isinstance(metadata,list):
+                            mymetadata=metadata[stmt_nr]
+                        else:
+                            mymetadata=metadata
+                        handle_oracle_date_literals(myparams,mymetadata)
                     # exec in database
                     res=config.conn[engine.url].execute(mysql,myparams)
                     dbg("sql=%s params=%s",mysql,myparams,dbglevel=3)
@@ -660,7 +666,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,column_list=None,versioned=
     else:    
         sql=f'SELECT {selectliststr} FROM {tab} {tabalias} {pkwhere}'
     try:
-        items, columns = db_exec(dbengine,sql,pkwhere_params)
+        items, columns = db_exec(dbengine,sql,pkwhere_params,metadata)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("get_item_raw[%s]: sqlalchemy exception: %s",str(tab),str(e_sqlalchemy))
         log.error("get_item_raw[%s]: failing sql=%s",str(tab),sql)
@@ -1054,25 +1060,30 @@ def handle_oracle_date_literals(pitemlist,metadata):
             if coldat is not None:
                 if coldat["data_type"] == "DATE" or coldat["data_type"] == "TIMESTAMP":
                     if v is not None:
-                        dbg(f"handle oracle date literal {k} value {v}")
-                        if len(v)==10:
-                            if config.backend_date_format is not None:
-                                d = datetime.strptime(v,config.backend_date_format)
-                                dbg(f"date literal fmt {config.backend_date_format} {k} value {v} becomes {str(d)}")
-                            else:
-                                d = datetime.strptime(v,"%Y-%m-%d")
-                                dbg(f"date literal {k} value {v} becomes {str(d)}")
-                            item[k]=d
-                            cnt+=1
-                        elif len(v)>10:
-                            if config.backend_datetime_format is not None:
-                                d = datetime.strptime(v,config.backend_datetime_format)
-                                dbg(f"datetime literal fmt {config.backend_datetime_format} {k} value {v} becomes {str(d)}")
-                            else:
-                                d = datetime.strptime(v,"%Y-%m-%d %H:%M:%S")
-                                dbg(f"datetime literal {k} value {v} becomes {str(d)}")
-                            item[k]=d
-                            cnt+=1
+                        if isinstance(v,str):
+                            dbg(f"handle oracle date literal {k} value {v}")
+                            if len(v)==10:
+                                if config.backend_date_format is not None:
+                                    d = datetime.strptime(v,config.backend_date_format)
+                                    dbg(f"date literal fmt {config.backend_date_format} {k} value {v} becomes {str(d)}")
+                                else:
+                                    d = datetime.strptime(v,"%Y-%m-%d")
+                                    dbg(f"date literal {k} value {v} becomes {str(d)}")
+                                item[k]=d
+                                cnt+=1
+                            elif len(v)>10:
+                                if config.backend_datetime_format is not None:
+                                    d = datetime.strptime(v,config.backend_datetime_format)
+                                    dbg(f"datetime literal fmt {config.backend_datetime_format} {k} value {v} becomes {str(d)}")
+                                else:
+                                    d = datetime.strptime(v,"%Y-%m-%d %H:%M:%S")
+                                    dbg(f"datetime literal {k} value {v} becomes {str(d)}")
+                                item[k]=d
+                                cnt+=1
+                        else:
+                            dbg(f"date/time column {k} handling skipped because value is not string but a {v.__class__.__name__}")
+                    else:
+                        dbg(f"date/time column {k} handling skipped because None")
             else:
                 dbg(f"warning: column {k} should be in metadata list")
     dbg("++++++++++ leaving handle_oracle_date_literals with %d date literal substitutions",cnt)
@@ -1226,12 +1237,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     stmt.append(sql)
     stmtparam.append(myitem)
 
-    if db_typ=="oracle":
-        handle_oracle_date_literals(stmtparam,metadata)
+    #if db_typ=="oracle":
+    #    handle_oracle_date_literals(stmtparam,metadata)
 
     try:
         #db_exec(dbeng,sql,myitem)
-        db_exec(dbeng,stmt,stmtparam)
+        db_exec(dbeng,stmt,stmtparam,metadata)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("db_ins: sqlalchemy error: %s",str(e_sqlalchemy))
         if last_stmt_has_errors(e_sqlalchemy, out):
@@ -1342,11 +1353,11 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         dbg("db_upd newrec sql: %s",newsql)
         stmt.append(newsql)
         stmtparam.append(newrec)
-        if db_typ=="oracle":
-            handle_oracle_date_literals(stmtparam,metadata)
+        #if db_typ=="oracle":
+        #    handle_oracle_date_literals(stmtparam,metadata)
         try:
             #db_exec(dbeng,newsql,newrec)
-            db_exec(dbeng,stmt,stmtparam)
+            db_exec(dbeng,stmt,stmtparam,metadata)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_upd-vers"
@@ -1369,10 +1380,10 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         sql=f"UPDATE {tab} SET {osetexp_str} {pkwhere}"
         dbg("update item sql %s",sql)
         dbg("update item params %s",myitem)
-        if db_typ=="oracle":
-            handle_oracle_date_literals(myitem,metadata)
+        #if db_typ=="oracle":
+        #    handle_oracle_date_literals(myitem,metadata)
         try:
-            db_exec(dbeng,sql,myitem)
+            db_exec(dbeng,sql,myitem,metadata)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_upd"
@@ -1475,11 +1486,11 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         dbg("db_del: %s",newsql)
         stmt.append(newsql)
         stmtparam.append(newrec)
-        if db_typ=="oracle":
-            handle_oracle_date_literals(stmtparam,metadata)
+        #if db_typ=="oracle":
+        #    handle_oracle_date_literals(stmtparam,metadata)
         try:
             #db_exec(dbeng,newsql,newrec)
-            db_exec(dbeng,stmt,stmtparam)
+            db_exec(dbeng,stmt,stmtparam,metadata)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_del-vers"
@@ -1496,10 +1507,10 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         sql=f"DELETE FROM {tab} {pkwhere}"
         dbg("db_del sql %s",sql)
         dbg("db_del marker values length is %d",len(pkwhere_params))
-        if db_typ=="oracle":
-            handle_oracle_date_literals(pkwhere_params,metadata)
+        #if db_typ=="oracle":
+        #    handle_oracle_date_literals(pkwhere_params,metadata)
         try:
-            db_exec(dbeng,sql,pkwhere_params)
+            db_exec(dbeng,sql,pkwhere_params,metadata)
         except SQLAlchemyError as e_sqlalchemy:
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-db_del-vers"
