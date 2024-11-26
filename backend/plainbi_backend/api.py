@@ -1891,6 +1891,9 @@ def create_repo(tokdata,tab):
     else:
         seq=None
     out = db_ins(config.repoengine,repo_table_prefix+tab,item,pkcols,is_versioned,seq,is_repo=True,customsql=mycustomsql)
+    if isinstance(out,dict):
+        if "error" in out.keys():
+            return myjsonify(out), 400
     return myjsonify(out)
 
 
@@ -1972,6 +1975,13 @@ def update_repo(tokdata,tab,pk):
     dbg("datastring: %s",str(item),dbglevel=3)
 
     out = db_upd(config.repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True,customsql=mycustomsql)
+    if isinstance(out,dict):
+        if "error" in out.keys():
+            print("==============================================")
+            print("=update_repo out error================================")
+            pprint.pprint(out)
+            print("==============================================")
+            return myjsonify(out), 400
     return myjsonify(out)
 
 
@@ -2050,10 +2060,9 @@ def delete_repo(tokdata,tab,pk):
     if isinstance(out,dict):
         if "error" not in out.keys():
             return 'Repo Record deleted successfully', 200
+        else:
+            return myjsonify(out), 400
     return myjsonify(out)
-
-
-
 
 ###@token_required
 ###put tokdata as arguemnt in function
