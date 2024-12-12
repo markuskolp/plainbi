@@ -20,4 +20,6 @@ SQLAlchemy>=2.0.15
 pyuwsgi>=2.0.21
 XlsxWriter>=3.2
 flasgger
-
+# for sso
+identity
+msal

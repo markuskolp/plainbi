@@ -174,6 +174,11 @@ def get_config(verbose=0,logfile=None,configfile=None,repository=None,database=N
         else:
             config.port=3001 # default port
 
+    if "PLAINBI_BACKEND_PORT" in os.environ.keys():
+        config.host = os.environ["PLAINBI_BACKEND_HOST"]
+    else:
+        config.host = "0.0.0.0"
+
     # backend Date format and Datetime format
     if "PLAINBI_BACKEND_DATE_FORMAT" in os.environ.keys():
         config.backend_date_format = os.environ["PLAINBI_BACKEND_DATE_FORMAT"]
@@ -188,3 +193,28 @@ def get_config(verbose=0,logfile=None,configfile=None,repository=None,database=N
         config.backend_datetime_format = None
 
     log.info(f"plainbi backend running on port {config.port}")
+
+    if "PLAINBI_SSO_APPLIKATION" in os.environ.keys():
+        config.PLAINBI_SSO_APPLIKATION = os.environ["PLAINBI_SSO_APPLIKATION"]
+    else: 
+        config.PLAINBI_SSO_APPLIKATION = None
+    if "PLAINBI_SSO_APPLICATION_ID" in os.environ.keys():
+        config.PLAINBI_SSO_APPLICATION_ID = os.environ["PLAINBI_SSO_APPLICATION_ID"]
+    else: 
+        config.PLAINBI_SSO_APPLICATION_ID = None
+    if "PLAINBI_SSO_TENANTID" in os.environ.keys():
+        config.PLAINBI_SSO_TENANTID = os.environ["PLAINBI_SSO_TENANTID"]
+    else: 
+        config.PLAINBI_SSO_TENANTID = None
+    if "PLAINBI_SSO_CLIENT_SECRET" in os.environ.keys():
+        config.PLAINBI_SSO_CLIENT_SECRET = os.environ["PLAINBI_SSO_CLIENT_SECRET"]
+    else: 
+        config.PLAINBI_SSO_CLIENT_SECRET = None
+    if "PLAINBI_SSO_REDIRECT_PATH" in os.environ.keys():
+        config.PLAINBI_SSO_REDIRECT_PATH = os.environ["PLAINBI_SSO_REDIRECT_PATH"]
+    else: 
+        config.PLAINBI_SSO_REDIRECT_PATH = None
+    if "PLAINBI_SSO_AUTHORITY" in os.environ.keys():
+        config.PLAINBI_SSO_AUTHORITY = os.environ["PLAINBI_SSO_AUTHORITY"]
+    else: 
+        config.PLAINBI_SSO_AUTHORITY = None
