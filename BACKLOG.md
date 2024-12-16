@@ -26,6 +26,13 @@ Weiterentwicklung:
 
 Weiterentwicklung:
 
+
+- Zurückbutton: durch den neuen Home-Button lass ich den Zurückbutton evtl. komplett verschwinden.
+- Navigation links automatisch einklappen lassen wenn die Breite zu gering wird (also etwas responsive)
+- Anzahl Datensätze pro Tabelle nicht überall einstellbar, warum ?
+
+- Ressource "page" und "page_attachment" hinzufügen, damit man per Markdown eine Doku pflegen kann (Seiten oder News/Blogeintrag)
+- User auch vorab anlegen -> am besten über ein Button wo man aus dem AD auch die auslesen kann (falls AD in .env hinterlegt ist)
 -  **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
   - Endpoint /group/<gid>/resources -> hier kann man für <gid> auch **nogroup** schreiben, dann kommen alle Ressourcen die keiner Gruppe zugeordnet sind (Admins only)
 - insert/update plainbi - nur felder liefern die verändert wurden (bisher wird immer der gesamte Record geliefert im PUT/POST Body)
@@ -56,7 +63,6 @@ Weiterentwicklung:
 - Webapplikation auf Security challengen
   - Anforderungen von OWASP für NODE.JS umgesetzt werden (siehe Nodejs Security - OWASP Cheat Sheet Series  sowie Best Practices Top 10 Node.js Security Best Practices for 2023 - Risks & Prevention | Snyk) .
 - environment_color_banner wird noch nicht verwendet
-- **Dokumentation**
 - Bilder hochladen (als BLOB speichern) und anzeigen (bisher sonst nur base64 möglich) - evtl. auch Angabe eines Pfads zur Bilddatei (http...) mit Anzeigefunktion
 
 - Edit only if in certain user or group (otherwise read only or hidden)
@@ -72,6 +78,7 @@ Weiterentwicklung:
 
 Bugs:
 
+- Seitenfilter und dann im Suchfeld suchen -> Seitenfilter wird aufgehoben z.B. https://dwh.mmgmuc.de/apps/dwh_testsuite/testlauf?test_lauf_id=202
 - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - wenn man User löscht und dieser zu einer Gruppe gehört, dann wird "erfolgreich" gezeigt (obwohl dieser nicht gelöscht wurde) - es sollte der Fehler gezeigt werden
 - **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
