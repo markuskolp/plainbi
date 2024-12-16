@@ -43,10 +43,13 @@ import smtplib
 import pandas.io.formats.excel as fmt_xl
 
 from functools import wraps
-from flask import Flask, jsonify, request, Response, Blueprint, make_response
+from flask import Flask, jsonify, request, Response, Blueprint, make_response, session, url_for
+from flask_session import Session
+
 #from flask.json import JSONEncoder
 from json import JSONEncoder
 import jwt
+from jwt import PyJWKClient
 
 with_swagger = False
 if "PLAINBI_NOSWAGGER" in list(dict(os.environ).keys()):
@@ -63,7 +66,9 @@ from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_co
 from plainbi_backend.repo import create_repo_db
 
 # import the global variable config
-from plainbi_backend.config import config, get_config
+import plainbi_backend.config as cfg
+from plainbi_backend.config import config
+
 
 #log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
@@ -78,8 +83,10 @@ except:
     log.info("LDAP disabled because not installed")
 
 # try to load identiy for microsoft sso authentication if available
+auth = None
 try:
-    from msal import ConfidentialClientApplication, ClientCredential
+    #from msal import ConfidentialClientApplication, ClientCredential
+    import identity.web
     config.with_sso=True
     log.info("Microsoft SSO enabled")
 except:
@@ -132,7 +139,7 @@ def token_required(f):
         if not token:
             return myjsonify({'message': 'Token is missing'}), 401
 
-        if config.PLAINBI_SSO_APPLICATION_ID is not None:
+        if False and config.PLAINBI_SSO_APPLICATION_ID is not None:
             # use sso microsoft validation
             ssoapp = ConfidentialClientApplication(client_id=config.PLAINBI_SSO_APPLICATION_ID, authority=config.PLAINBI_SSO_AUTHORITY,client_credential=config.PLAINBI_SSO_CLIENT_SECRET)
             result = ssoapp.acquire_token_silent_with_error(scopes=["User.Read"], account=None, token=token)
@@ -2664,6 +2671,103 @@ def login():
             out["detail"]="invalid-credentials without ldap and local"
     return myjsonify(out), 401
 
+@api.route("/api/hugo" if config.PLAINBI_SSO_REDIRECT_PATH is None else config.PLAINBI_SSO_REDIRECT_PATH)
+def auth_response():
+    """
+    this is called a redirect from Microsof
+    try LDAP first if it is configured (environment variables)
+    otherwise of if no success try local authentication
+    summary: login to plainbi backend (Active Directory LDAP or internal user management)
+    If the login is successful one can enter the returned access token into the dialog of the Swagger Authorize button. Afterwards you can try out the protected endpoints
+    """
+
+    global app, auth
+    dbg('auth_response> request args: ')
+    dbg("auth_response> "+str(request.args))
+    result = auth.complete_log_in(request.args)
+    dbg('auth_response> results: ')
+    dbg("auth_response> "+str(result))
+    if "error" in result:
+        return myjsonify(result), 401
+    return redirect(url_for("index"))
+
+def sso_token_is_valid(tenant_id, audience, token):
+    jwks_url = f"https://login.microsoftonline.com/{tenant_id}/discovery/v2.0/keys"
+    issuer_url = f"https://login.microsoftonline.com/{tenant_id}/v2.0"
+    jwks_client = PyJWKClient ( jwks_url,)
+    signing_key = jwks_client.get_signing_key_from_jwt(token)
+    return jwt.decode(token, signing_key.key, verify=True, algorithms=["RS256"], audience=audience, issuer=issurer_url,)
+
+
+@api.route('/login_sso', methods=['POST'])
+@api.route('/api/login_sso', methods=['POST'])
+def login_sso():
+    """
+    User login with sso, authenticate a user
+    ---
+    tags:
+      - Authentication
+    description: Login endpoint for user authentication with SSO
+    responses:
+      200:
+        description: Successful login
+        examples:
+          application/json: 
+            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIn0.w08k-KbwtT8DphvaFEn0Ruwf6Px0pGoSh1-E9UakpyE"
+            "message": "Login erfolgreich"
+            "role": "Admin"
+      401:
+        description: Unauthorized
+        examples:
+          application/json: 
+            "detail": "invalid-credentials in login_sso"
+            "error": "invalid-credentials"
+            "message": "Benutzername oder Passwort ist falsch"
+    """
+    out={}
+    dbg("++++++++++ entering login_sso")
+    dbg("login_sso")
+    data_bytes = request.get_data()
+    #audit(item['username'],request)
+    used_ldap=False
+    used_local=False
+    authenticated = False
+
+    sso_token = request.args.get('token')
+    j=sso_token_is_valid(config.PLAINBI_SSO_TENANTID, config.PLAINBI_SSO_APPLICATION_ID, sso_token)
+    dbg("token valid result: %s",str(j))
+    ### TODO
+    authenticated = True
+    username = "hugo" # get from j
+    ### TODO
+
+    if authenticated:
+        dbg("login authenticated by SSO")
+        token = jwt.encode({'username': username}, config.SECRET_KEY, algorithm='HS256')
+        if username not in users.keys():
+            dbg('refresh users array')
+            load_repo_users()
+        if len(request.args) > 0:
+            for key, value in request.args.items():
+                log.info("arg: %s val: %s",key,value)
+                if key=="tokenonly":  # this helps for testing
+                    return token
+        else:
+            return myjsonify({'access_token': token, "message":"Login erfolgreich", 'role': users[username]["rolename"]}), 200
+    else:
+        out["message"]='SSO Login war nicht erfolgreich'
+        out["error"]="sso invalid-credentials"
+        if used_ldap and used_local:
+            out["detail"]="invalid-credentials in ldap and local auth"
+        elif used_ldap:
+            out["detail"]="invalid-credentials in ldap auth"
+        elif used_local:
+            out["detail"]="invalid-credentials in local auth"
+        else:
+            out["detail"]="invalid-credentials without ldap and local"
+    return myjsonify(out), 401
+
+
 @api.route('/passwd', methods=['POST'])
 @api.route('/api/passwd', methods=['POST'])
 @token_required
@@ -2974,6 +3078,7 @@ def getsettingsjs():
         examples:
           text/javascript: "var APP_TITLE = ...."
     """
+    global app, auth
     dbg("++++++++++ entering getsettingsjs")
     
     out={}
@@ -3016,6 +3121,25 @@ def getsettingsjs():
     s=s+f"var THEME_COLOR_INFO = '"+get_setting_from_list(items,'color_info')+"';\n"
     s=s+f"var THEME_FONT_SIZE = "+get_setting_from_list(items,'font_size')+";\n"
     s=s+f"var CONTACT_EMAIL = '"+get_setting_from_list(items,'contact_email')+"';\n"
+    if config.PLAINBI_SSO_APPLICATION_ID is not None:
+        log.info("get SSO signin Link")
+        #config.PLAINBI_SSO_REDIRECT_PATH
+        config.PLAINBI_SSO_SCOPE = ["User.Read"]
+        log.info(f"config.PLAINBI_SSO_SCOPE = {config.PLAINBI_SSO_SCOPE}")
+        log.info(f"config.PLAINBI_SSO_REDIRECT_PATH = {config.PLAINBI_SSO_REDIRECT_PATH}")
+        auth_result = auth.log_in(
+          scopes=config.PLAINBI_SSO_SCOPE, # Have user consent to scopes during log-in
+          #redirect_uri=url_for("auth_response", _external=True), # Optional. If present, this absolute URL must match your app's redirect_uri registered in Azure Portal
+          redirect_uri=config.PLAINBI_SSO_REDIRECT_PATH, 
+          prompt="select_account",  # Optional. More values defined in  https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+          )
+        dbg("SSO executed auth.log_in")
+        dbg("SSO auth.log_in result: %s ",str(auth_result))
+        if "auth_uri" in auth_result:
+            log.info("auth uri is %s",auth_result["auth_uri"])
+            s=s+f"var SSO_SIGNIN_LINK = '"+auth_result["auth_uri"]+"';\n"
+        else:
+            login.error("No SignIn Link for SSO")
     response = make_response(s)
     response.headers.set('Content-Type', "text/javascript; charset=utf-8")
     return response
@@ -3099,8 +3223,8 @@ def getsetting(name):
     else:
         return "no data found", 404
 
-
-def create_app(p_repository=None, p_database=None):
+#p_verbose=args.verbose, p_logfile=args.logfile, p_configfile=args.config, p_repository=args.repository, p_database=args.database, p_port=args.port 
+def create_app(p_verbose=None, p_logfile=None, p_configfile=None, p_repository=None, p_database=None, p_port=None):
     """
     create app is the standard Flask application definition
 
@@ -3111,7 +3235,7 @@ def create_app(p_repository=None, p_database=None):
     that's why the get_config handling is necessary
     """
     dbg("++++++++++ entering create_app")
-    global app
+    global app, auth
     log.info("creating flask app")
     app = Flask(__name__)
     if with_swagger:
@@ -3134,12 +3258,21 @@ def create_app(p_repository=None, p_database=None):
 
     app.json_encoder = CustomJSONEncoder ## wegen jsonify datetimes
     app.register_blueprint(api)
+    
+    app.config.from_object(cfg)
+
+    if p_repository:
+        app.config["PLAINBI_REPOSITORY"] = p_repository
+
+    log.info(f"app.config.SESSION_TYPE = {app.config['SESSION_TYPE']}")
+    Session(app)
    
     # get the configuration
-    get_config(repository=p_repository,database=p_database,verbose=3)
+    #get_config(repository=p_repository,database=p_database,verbose=3)
     
     # connect to the repository
-    config.repoengine = db_connect(config.repository)
+    #config.repoengine = db_connect(config.repository)
+    config.repoengine = db_connect(app.config["PLAINBI_REPOSITORY"])
     if not db_connect_test(config.repoengine):
         log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
         sys.exit(0)
@@ -3171,6 +3304,20 @@ def create_app(p_repository=None, p_database=None):
     # handle Java Web Tokens
     app.config['JWT_SECRET_KEY'] = config.SECRET_KEY
     config.bcrypt = Bcrypt(app)
+
+    if config.PLAINBI_SSO_AUTHORITY is not None:
+        log.info("prepare SSO Login")
+        #config.PLAINBI_SSO_REDIRECT_PATH
+        dbg(f"config.PLAINBI_SSO_AUTHORITY = {config.PLAINBI_SSO_AUTHORITY}")
+        dbg(f"config.PLAINBI_SSO_APPLICATION_ID = {config.PLAINBI_SSO_APPLICATION_ID}")
+        dbg(f"config.PLAINBI_SSO_CLIENT_SECRET = {config.PLAINBI_SSO_CLIENT_SECRET}")
+        auth = identity.web.Auth(
+            session=session,
+            authority=config.PLAINBI_SSO_AUTHORITY,
+            client_id=config.PLAINBI_SSO_APPLICATION_ID,
+            client_credential=config.PLAINBI_SSO_CLIENT_SECRET,
+        )
+        log.info("SSO auth initialized")
 
     # begin: multi process uwsgi database connection pool handling
     # https://stackoverflow.com/questions/59248806/how-to-correctly-setup-flask-uwsgi-sqlalchemy-to-avoid-database-connection-i
