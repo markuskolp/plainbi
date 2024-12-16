@@ -6,102 +6,17 @@ Created on Thu Mar  9 11:19:08 2023
 
 how to run
 first window
-~/plainbi> npm start
+~/plainbi/frontend> npm start
 second window
 ~/plainbi/backend> python plainbi_backend.py
 
+
 in Browser:
 http://localhost:3001/
-
-in Windows/Linux
-# get version
-curl -H "Content-Type: application/json" --request GET "localhost:3001/api/version" -w "\n%{http_code}\n"
-# get static
-curl -H "Content-Type: application/json" --request GET "localhost:3001/api/static" -w "\n%{http_code}\n"
-
-
-# login
-curl -H "Content-Type: application/json" --request POST --data '{\"username\":\"joe\",\"password\":\"joe123\"}' "localhost:3001/login" -w "%{http_code}\n"
-windows comman cmd set tok=ldkasaölsfjaölsdkf
-
-# dbexec
-curl -H "Content-Type: application/json" --request GET "localhost:3001/api/exec/db" -w "\n%{http_code}\n"
-
-curl -H "Content-Type: application/json" --request POST --data '{\"sql\":\"SELECT 1\"}' localhost:3001/api/exec/db
-
-
-python -m pytest tests\test_version.py
-
-# resource
-curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/repo/resource?order_by=name&offset=1" -w "%{http_code}\n"
-
-# GET ALL
-curl -H "Content-Type: application/json"  -H "Authorization: %tok%" --request GET "localhost:3002/api/crud/db/DWH.analysis.crud_api_testtable?order_by=name&offset=1" -w "%{http_code}\n"
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?order_by=name&offset=1" -w "%{http_code}\n"
-# GET
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/1" -w "%{http_code}\n"
-# POST
-curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"1\",\"name\":\"name1\",\"dat\":\"2023-04-24\"}' localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable
-curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"2\",\"name\":\"name2\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable?pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
-curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"23\",\"name\":\"wert22\",\"dat\":\"2023-04-20\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable"
-# PUT
-curl -H "Content-Type: application/json" --request PUT --data '{\"nr\":\"24\",\"name\":\"wert24\",\"dat\":\"2023.04-20\"}' localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/4
-# DELETE
-curl -H "Content-Type: application/json" --request DELETE localhost:3001/api/crud/DWH.CONFIG.crud_api_testtable/6 -w "%{http_code}\n"
-curl -H "Content-Type: application/json" --request DELETE localhost:3002/api/crud/DWH.CONFIG.crud_api_testtable/9?pk=nr -w "%{http_code}\n"
-
-# METADATA tables
-curl -H "Content-Type: application/json" --request GET localhost:3002/api/metadata/tables -w "%{http_code}\n"
-
-# METADATA
-curl -H "Content-Type: application/json" --request GET localhost:3002/api/metadata/table/DWH.CONFIG.crud_api_testtable -w "%{http_code}\n"
-
-#versioned 
-# GET
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1" -w "%{http_code}\n"
-# POST
-curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"1\",\"name\":\"name1\",\"dat\":\"2023-04-24\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?v&pk=nr"
-curl -H "Content-Type: application/json" --request POST --data '{\"nr\":\"2\",\"name\":\"name2\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable?v&pk=nr&seq=DWH.CONFIG.crud_api_test_seq"
-# PUT
-curl -H "Content-Type: application/json" --request PUT --data '{\"nr\":\"1\",\"name\":\"wert1_v2\",\"dat\":\"2023-04-27\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr"
-curl -H "Content-Type: application/json" --request PUT --data '{\"nr\":\"1\",\"name\":\"wert1_v3\",\"dat\":\"2023-04-27\"}' "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr"
-# DELETE
-curl -H "Content-Type: application/json" --request DELETE "localhost:3002/api/crud/DWH.CONFIG.crud_api_tv_testtable/1?v&pk=nr" -w "%{http_code}\n"
-
-# Repo
-curl -H "Content-Type: application/json" --request POST "localhost:3002/api/repo/init_repo" -w "%{http_code}\n"
-Latin1_General_100_CS_AS_WS_SC_UTF8
-# new application POST
-curl -H "Content-Type: application/json" --request POST --data '{\"name\":\"testapp\"}' "localhost:3002/api/repo/application" -w "%{http_code}\n"
-curl -H "Content-Type: application/json" --request POST --data '{\"name\":\"app2\"}' "localhost:3002/api/repo/application"
-curl -H "Content-Type: application/json" --request POST --data '{\"name\":\"group1\"}' "localhost:3002/api/repo/group"
-curl -H "Content-Type: application/json" --request POST --data '{\"application_id\":\"1\",\"group_id\":\"7\"}' "localhost:3002/api/repo/application_to_group?pk=application_id,group_id"
-
-# GET ALL
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application?order_by=name&offset=1" -w "%{http_code}\n"
-# GET
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/5" -w "%{http_code}\n"
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application/adhoc" -w "%{http_code}\n"
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/application_to_group/(application_id:1:group_id:7)" -w "%{http_code}\n"
-
-
-# PUT
-curl -H "Content-Type: application/json" --request PUT --data '{\"name\":\"app3\"}' localhost:3002/api/repo/application/3
-curl -H "Content-Type: application/json" --request PUT --data '{\"id\":\"3\",\"name\":\"app3\"}' localhost:3002/api/repo/application/3
-# DELETE
-curl -H "Content-Type: application/json" --request DELETE localhost:3002/api/repo/application/5 -w "%{http_code}\n"
-
-# lookup
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/lookup/1" -w "%{http_code}\n"
-#adhoc
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data?format=XLSX" -w "%{http_code}\n" -o hugo.xlsx
-curl -H "Content-Type: application/json" --request GET "localhost:3002/api/repo/adhoc/1/data" -w "%{http_code}\n" -o hugo.csv
-
-
-curl -H "Content-Type: application/json" --request POST -H "Authorization: %tok%" --data '{\"nr\":\"-8\",\"typ\":\"-2\",\"name\":\"xx\"}' "localhost:3002/api/crud/dwh.analysis.pytest_tv_api_testtable_2pk?v" -w "%{http_code}\n"
+# swagger testing
+http://localhost:3001/apidocs/
 
 """
-
 
 #import urllib
 import logging
@@ -126,11 +41,6 @@ from openpyxl.styles import Font
 from openpyxl.worksheet.table import Table #, TableStyleInfo
 import smtplib
 import pandas.io.formats.excel as fmt_xl
-
-try:
-    import ldap3
-except:
-    print("LDAP disabled because not installed")
 
 from functools import wraps
 from flask import Flask, jsonify, request, Response, Blueprint, make_response
@@ -157,6 +67,25 @@ from plainbi_backend.config import config, get_config
 
 #log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
+
+try:
+    import ldap3
+    config.with_ldap3=True
+    log.info("LDAP3 enabled")
+except:
+    print("LDAP disabled because not installed")
+    config.with_ldap3=False
+    log.info("LDAP disabled because not installed")
+
+# try to load identiy for microsoft sso authentication if available
+try:
+    from msal import ConfidentialClientApplication, ClientCredential
+    config.with_sso=True
+    log.info("Microsoft SSO enabled")
+except:
+    config.with_sso=False
+    print("Microsoft SSO disabled because not installed")
+    log.info("Microsoft SSO disabled because not installed")
 
 api = Blueprint('api', __name__)
 
@@ -203,18 +132,25 @@ def token_required(f):
         if not token:
             return myjsonify({'message': 'Token is missing'}), 401
 
-        try:
+        if config.PLAINBI_SSO_APPLICATION_ID is not None:
+            # use sso microsoft validation
+            ssoapp = ConfidentialClientApplication(client_id=config.PLAINBI_SSO_APPLICATION_ID, authority=config.PLAINBI_SSO_AUTHORITY,client_credential=config.PLAINBI_SSO_CLIENT_SECRET)
+            result = ssoapp.acquire_token_silent_with_error(scopes=["User.Read"], account=None, token=token)
+            if "error" in result:
+                return myjsonify({'message': 'Invalid SSO token x'}), 401
             tokdata = jwt.decode(token, config.SECRET_KEY, algorithms=['HS256'])
-            dbg("data2=%s",str(tokdata))
-            #config.current_user=tokdata['username']
-            #dbg("cur user=%s",str(config.current_user))
-        except jwt.ExpiredSignatureError:
-            return myjsonify({'message': 'Token has expired'}), 401
-        except jwt.InvalidTokenError:
-            return myjsonify({'message': 'Invalid token x'}), 401
-
-        return f(tokdata, *args, **kwargs)
-
+            return f(tokdata, *args, **kwargs)
+        else:
+            try:
+                tokdata = jwt.decode(token, config.SECRET_KEY, algorithms=['HS256'])
+                dbg("data2=%s",str(tokdata))
+                #config.current_user=tokdata['username']
+                #dbg("cur user=%s",str(config.current_user))
+            except jwt.ExpiredSignatureError:
+                return myjsonify({'message': 'Token has expired'}), 401
+            except jwt.InvalidTokenError:
+                return myjsonify({'message': 'Invalid token x'}), 401
+            return f(tokdata, *args, **kwargs)
     return decorated
 
 

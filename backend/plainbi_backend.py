@@ -108,4 +108,4 @@ log.warning("Use WSGI for production!")
 
 if __name__ == '__main__':
     # run the flask app standalone
-    app.run(debug=config.dbg, host='0.0.0.0', port=config.port, use_reloader=False)
+    app.run(debug=config.dbg, host=config.host, port=config.port, use_reloader=False)
