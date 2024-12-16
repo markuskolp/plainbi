@@ -17,53 +17,52 @@ import pprint
 from sys import platform
 from dotenv import load_dotenv
 
-from plainbi_backend.config import config, get_config
-from plainbi_backend.db import db_connect, get_db_type
-
 #log = logging.getLogger(__name__)
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
-
-##"""
-fh = logging.FileHandler("test_version.log")
-fh_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(fh_formatter)
-fh.setLevel(logging.DEBUG)
-log.addHandler(fh)
-##"""
 
 home_directory = os.path.expanduser( '~' )
 sys.path.append(home_directory+'/plainbi/backend')
 
-get_config(logfile="pytest.log")
-config.dbg=True
-config.dbg_level=3
-
-if config.config_file is None:
-    print("WARNING - no config file")
-    sys.exit(1)
-
-# logging.basicConfig(filename='pytest.log', encoding='utf-8', level=logging.DEBUG)
+# load environment / configuration
+print("try to find a config file")
+config_file_list = [".env"]
+if os.name=="nt":
+    if "USERPROFILE" in os.environ.keys():
+        config_file_list.append(os.environ["USERPROFILE"]+"/.env")
+else:
+    config_file_list.append("~/.env")
+    config_file_list.append("/etc/plainbi.env")
+for cfile in config_file_list:
+    print("testing file ",cfile)
+    if os.path.isfile(cfile):
+        config_file=cfile
+        print("found config file ",cfile)
+        break
+# if we have a config file the we load it into the environment
+if config_file is not None:
+    print("load config from %s" % (config_file))
+    log.info("load config from %s",config_file)
+    load_dotenv(config_file)
+else:  
+    print(f"INFO: no config file used")
 
 # get the test repository
 if "PLAINBI_TEST_REPOSITORY" in os.environ.keys():
-    config.repository = os.environ["PLAINBI_TEST_REPOSITORY"]
+    log.info("PLAINBI_TEST_REPOSITORY = %s",os.environ["PLAINBI_TEST_REPOSITORY"])
+    os.environ["PLAINBI_REPOSITORY"] = os.environ["PLAINBI_TEST_REPOSITORY"]
 else:
     log.warning("No test repository connection description (PLAINBI_TEST_REPOSITORY) is specified in environment or config file")
     # pytest is not configured
     log.info("PLAINBI_TEST_REPOSITORY is not configured: use sqlite db in home directory")
-    home_directory = os.path.expanduser( '~' )
     x=f"{home_directory}".replace("\\","/")
     x=x.replace("C:/","")
-    config.repository=f"sqlite:////{x}/plainbi_repo_pytests.db"
-    log.info("pytest repo db default is: %s",config.repository)
-
-# connect to the test repository
-config.repoengine = db_connect(config.repository)
+    os.environ["PLAINBI_REPOSITORY"] = f"sqlite:////{x}/plainbi_repo_pytests.db"
+    log.info("pytest repo db default is: %s",os.environ["PLAINBI_REPOSITORY"])
 
 # get the test database
-if "PLAINBI_TEST_DATABASE" in os.environ.keys():
-    config.database = os.environ["PLAINBI_TEST_DATABASE"]
+if "PLAINBI_TEST_DATABASE" in os.environ:
+    log.info("PLAINBI_TEST_DATABASE = %s",os.environ["PLAINBI_TEST_DATABASE"])
+    os.environ["PLAINBI_DATABASE"] = os.environ["PLAINBI_TEST_DATABASE"]
 else:
     log.warning("No test database connection description (PLAINBI_TEST_DATABASE) is specified in environment or config file")
     # pytest is not configured
@@ -71,8 +70,34 @@ else:
     home_directory = os.path.expanduser( '~' )
     x=f"{home_directory}".replace("\\","/")
     x=x.replace("C:/","")
-    config.database=f"sqlite:////{x}/plainbi_db_pytests.db"
-    log.info("pytest repo db default is: %s",config.database)
+    os.environ["PLAINBI_DATABASE"] = f"sqlite:////{x}/plainbi_db_pytests.db"
+    log.info("pytest db is: %s",os.environ["PLAINBI_DATABASE"])
+
+os.environ["PLAINBI_VERBOSE"] = str(3)
+os.environ["PLAINBI_BACKEND_LOGFILE"] = "pytest.log"
+
+from plainbi_backend.config import config
+config.dbg=True
+config.dbg_level=3
+
+from plainbi_backend.db import db_connect, get_db_type
+
+log.setLevel(logging.DEBUG)
+
+##"""
+#fh = logging.FileHandler("test_version.log")
+#fh_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#fh.setFormatter(fh_formatter)
+#fh.setLevel(logging.DEBUG)
+#log.addHandler(fh)
+##"""
+
+# logging.basicConfig(filename='pytest.log', encoding='utf-8', level=logging.DEBUG)
+
+log.info("pytest repo db default is: %s",config.repository)
+# connect to the test repository
+config.repoengine = db_connect(config.repository)
+
 
 # connect to the test databse
 config.dbengine = db_connect(config.database)
@@ -602,7 +627,8 @@ def test_2000_tab_ins2(test_client):
     log.info('TEST: %s',func_name())
     #curl --header "Content-Type: application/json" --request POST --data '{\"name\":\"item\"}' "localhost:3002/api/crud/dwh.analysis.pytest_api_testtable?seq=DWH.analysis.pytest_seq" -w "%{http_code}\n"
     nam="item6"
-    test_url='/api/crud/db/'+t+"?seq="+s
+    test_url='/api/crud/db/'+t+"?seq="+s  
+    #test_url='/api/crud/db/'+t
     test_data={ "name" : nam,}
     format_url("post", test_url, data=test_data, testname=func_name())
     response = test_client.post(test_url, json=test_data, headers=headers)

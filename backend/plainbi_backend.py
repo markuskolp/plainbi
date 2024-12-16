@@ -15,14 +15,9 @@ import os
 import sys
 import argparse
 import logging
-log = logging.getLogger()
+from dotenv import load_dotenv
 
-from plainbi_backend.config import config, get_config
-from plainbi_backend.utils import dbg
-from plainbi_backend.db import db_passwd, db_connect, db_connect_test, db_exec, db_add_base64
-from plainbi_backend.api import create_app
-from plainbi_backend.repo import create_repo_db
-#from dotenv import load_dotenv
+log = logging.getLogger()
 
 # Create a new ArgumentParser object
 parser = argparse.ArgumentParser(description='PlainBI Application Backend')
@@ -46,6 +41,54 @@ parser.add_argument('-b', '--base64', type=str, nargs=2, help='insert a file bas
 # Parse the arguments
 args = parser.parse_args()
 
+if args.verbose:
+    os.environ["PLAINBI_VERBOSE"] = str(args.verbose)
+else:
+    os.environ["PLAINBI_VERBOSE"] = str(0)
+
+# load environment / configuration
+print("get environment")
+if args.config:
+    print(f"load config from --config file in command line specification ({args.config})")
+    if not os.path.isfile(args.config):
+        print(f"ERROR: {args.config} does not exist")
+        sys.exit(1)
+    load_dotenv(args.config)
+else:
+    if "PLAINBI_BACKEND_CONFIG" in os.environ:
+        print(f"load config given in environment ({os.environ['PLAINBI_BACKEND_CONFIG']})")
+        if not os.path.isfile(os.environ["PLAINBI_BACKEND_CONFIG"]):
+            print(f"ERROR: {os.environ['PLAINBI_BACKEND_CONFIG']} does not exist")
+            sys.exit(1)
+        load_dotenv(os.environ["PLAINBI_BACKEND_CONFIG"])
+    else:
+        print("try to find a config file")
+        config_file_list = [".env"]
+        if os.name=="nt":
+            if "USERPROFILE" in os.environ.keys():
+                config_file_list.append(os.environ["USERPROFILE"]+"/.env")
+        else:
+            config_file_list.append("~/.env")
+            config_file_list.append("/etc/plainbi.env")
+        for cfile in config_file_list:
+            print("testing file ",cfile)
+            if os.path.isfile(cfile):
+                config_file=cfile
+                print("found config file ",cfile)
+                break
+        # if we have a config file the we load it into the environment
+        if config_file is not None:
+            print("load config from %s" % (config_file))
+            log.info("load config from %s",config_file)
+            load_dotenv(config_file)
+        else:  
+            print(f"INFO: no config file used")
+
+from plainbi_backend.utils import dbg
+from plainbi_backend.db import db_passwd, db_connect, db_connect_test, db_exec, db_add_base64
+from plainbi_backend.api import create_app
+from plainbi_backend.repo import create_repo_db
+
 # for convenience a sqlalchemy connect string can be tested here
 if args.testdb:
     d=db_connect(args.testdb)
@@ -55,16 +98,28 @@ if args.testdb:
        print("ERROR: cannot connect to %s" % (args.testdb))
     sys.exit(0)
 
-# get all configuration with priority of command line arguments
-get_config(verbose=args.verbose,logfile=args.logfile,configfile=args.config,repository=args.repository,database=args.database,port=args.port)
+########################## before #############################
+########################## before end #############################
+
+app = create_app(p_verbose=args.verbose, p_logfile=args.logfile, p_repository=args.repository, p_database=args.database, p_port=args.port )
+
+from plainbi_backend.config import config
+
+########################## after #############################
 
 # show the version of the backend (defined in the config.py)
 if args.version:
-    print(config.version)
+    print(app.config["VERSION"])
     sys.exit(0)
 
 # for the next actions we need to connect to the repository
-config.repoengine = db_connect(config.repository)
+#config.repoengine = db_connect(config.repository)
+if "PLAINBI_REPOSITORY" not in app.config:
+    log.error("No repository database connection description is specified in environment or config file")
+    sys.exit(0)
+
+config.repoengine = db_connect(app.config["PLAINBI_REPOSITORY"])
+log.debug("repository is %s",(app.config["PLAINBI_REPOSITORY"])[:15]+"...")
 
 # initialize the repository
 if args.initrepo:
@@ -84,7 +139,7 @@ if args.base64:
     db_add_base64(config.repoengine,int(id),p)
     sys.exit(0)
 
-app=create_app()
+########################## after end #############################
 
 # here we can set a passwort for a user in the repository
 # this works only for plainbi internal users - it does not change AD/LDAP passwords

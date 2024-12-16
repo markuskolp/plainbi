@@ -11,9 +11,8 @@ import sys
 import logging
 import urllib
 #from plainbi_backend.utils import db_subs_env
-from dotenv import load_dotenv
 
-
+print("start import config")
 log = logging.getLogger()
 #log.setLevel(logging.DEBUG)
 log.debug("start configuration")
@@ -25,50 +24,52 @@ class MyConfig:
 # the config variable that acts more or less as a place for global values
 config = MyConfig()
 
-# the current version number of plainbi backend
-config.version="0.92 17.10.2024"
+# check if get_config was already loaded before and if yes skip the rest.
+# That means if we are in standalone mode than it is not executed again in uwsgi mode
+if not hasattr(config,"is_loaded"):
 
-# create a secret for the plainbi backend api jwt token
-config.SECRET_KEY=os.urandom(24)  # for JWT
-config.bcrypt_salt=b'$2b$12$26lKTogIpjOIbmp2hYP2au'
-log.debug("secret key generated")
-
-# global variables for caches, it holds metadata and profiles so that they are fetched only once from the database
-config.use_cache = False
-config.metadataraw_cache = {}
-config.profile_cache = {}#
-config.dbg = False
-config.dbg_level = 1
-
-def get_config(verbose=0,logfile=None,configfile=None,repository=None,database=None,port=None):
-    """
-    get_config initializes the configuration from different sources
-    values from the this function parameter list override the values found in environment or config file
-    
-    If a config file is given or found the values inside are loaded by dotenv into the environment.
-    The environment is the best place for configuration variables when plainbi runs in a container
-
-    get_config is called in two places
-      - for standalone backend in the main body
-      - for uwsgi (actually the normal place when used in production) in the create_app of the Flask part
-    """
-    # check if get_config was already loaded before and if yes skip the rest.
-    # That means if we are in standalone mode than it is not executed again in uwsgi mode
-    if hasattr(config,"is_loaded"):
-        print("CONFIG already load by plainbi_backend.py")
-        log.info("CONFIG already load by plainbi_backend.py")
-        return
     # just remember  the config is now loaded
     config.is_loaded = True
+
+    # the current version number of plainbi backend
+    VERSION="0.93 16.12.2024"
+    config.version=VERSION
+
+    if "PLAINBI_BACKEND_LOGFILE" in os.environ:
+        log.debug("overide logfile from command line parameter")
+        PLAINBI_BACKEND_LOGFILE = os.environ["PLAINBI_BACKEND_LOGFILE"]
+        config.logfile = PLAINBI_BACKEND_LOGFILE
+
+    # create a secret for the plainbi backend api jwt token
+    SECRET_KEY = os.urandom(24)  # for JWT
+    config.SECRET_KEY= SECRET_KEY
+    config.bcrypt_salt=b'$2b$12$26lKTogIpjOIbmp2hYP2au'
+    log.debug("secret key generated")
+
+    # global variables for caches, it holds metadata and profiles so that they are fetched only once from the database
+    config.use_cache = False
+    config.metadataraw_cache = {}
+    config.profile_cache = {}#
+    config.dbg = False
+    config.dbg_level = 1
+
+    SESSION_TYPE = 'filesystem'
+
+    if "PLAINBI_REPOSITORY" in os.environ.keys():
+        PLAINBI_REPOSITORY = os.environ["PLAINBI_REPOSITORY"]
+        config.repository = PLAINBI_REPOSITORY
+        print("plainbi repository set")
+    else:
+        print("NO plainbi repository set")
 
     # logging
 
     # logging level
-    if verbose>0:
+    if "PLAINBI_VERBOSE" in os.environ and int(os.environ["PLAINBI_VERBOSE"]) > 0:
         # parameter verbose has priority
         config.loglevel = logging.DEBUG
         config.dbg = True
-        config.dbg_level = verbose
+        config.dbg_level = int(os.environ["PLAINBI_VERBOSE"])
     else:
         # otherwise  check environment setting
         if "PLAINBI_BACKEND_LOG_DEBUG" in os.environ.keys():
@@ -78,14 +79,11 @@ def get_config(verbose=0,logfile=None,configfile=None,repository=None,database=N
         else:
             config.loglevel = logging.INFO
 
-    # log file
-    if logfile:
-        config.logfile = logfile
+    if "PLAINBI_BACKEND_LOGFILE" in os.environ.keys():
+        config.logfile = os.environ["PLAINBI_BACKEND_LOGFILE"]
     else:
-        if "PLAINBI_BACKEND_LOGFILE" in os.environ.keys():
-            config.logfile = os.environ["PLAINBI_BACKEND_LOGFILE"]
-        else:
-            config.logfile = None
+        config.logfile = None
+
     log.setLevel(config.loglevel)
     formatter = logging.Formatter('%(message)s')  # formatter for screen log
     logfile_formatter = logging.Formatter('%(asctime)s  %(process)-7s %(module)-20s %(levelname)s %(message)s') # formatter for logfile log
@@ -104,90 +102,47 @@ def get_config(verbose=0,logfile=None,configfile=None,repository=None,database=N
     if config.loglevel == logging.DEBUG: 
         log.info("Logging in Debug mode")
 
-    # get configuration file
-    config.config_file = None
-    if configfile:
-        if os.path.isfile(configfile):
-            config.config_file=configfile
-        else:
-            # exit if the config file is not found or readable
-            print("Config File %s does not exist" % (configfile))
-            log.error("Config File from command line option %s does not exist",configfile)
-            sys.exit(0)
-    else:
-        if "PLAINBI_BACKEND_CONFIG" in os.environ.keys():
-            if os.path.isfile(os.environ["PLAINBI_BACKEND_CONFIG"]):
-                config.config_file = os.environ["PLAINBI_BACKEND_CONFIG"]
-            else:
-                print("Config File %s does not exist" % (os.environ["PLAINBI_BACKEND_CONFIG"]))
-                log.error("Config File from environment %s does not exist",os.environ["PLAINBI_BACKEND_CONFIG"])
-                sys.exit(0)
-        else:
-            log.info("try to find a config file")
-            config_file_list = [".env"]
-            if os.name=="nt":
-                    if "USERPROFILE" in os.environ.keys():
-                        config_file_list.append(os.environ["USERPROFILE"]+"/.env")
-            else:
-                config_file_list.append("~/.env")
-                config_file_list.append("/etc/plainbi.env")
-            for cfile in config_file_list:
-                log.info("testing file %s",cfile)
-                if os.path.isfile(cfile):
-                    config.config_file=cfile
-                    log.info("found config file %s",cfile)
-                    break
-    # if we have a config file the we load it into the environment
-    if config.config_file is not None:
-        print("load config from %s" % (config.config_file))
-        log.info("load config from %s",config.config_file)
-        load_dotenv(config.config_file)
 
     # repository connect
-    if repository:
-        config.repository = repository
+    if "PLAINBI_REPOSITORY" in os.environ.keys():
+        config.repository = os.environ["PLAINBI_REPOSITORY"]
     else:
-        if "PLAINBI_REPOSITORY" in os.environ.keys():
-            config.repository = os.environ["PLAINBI_REPOSITORY"]
-        else:
-            # there must be a repository, otherwise quit
-            log.error("No repository database connection description is specified in environment or config file")
-            sys.exit(0)
+        # there must be a repository, otherwise quit
+        log.error("No repository database connection description is specified in environment or config file")
+        sys.exit(0)
     log.debug("repository is %s",config.repository[:15]+"...")
 
     # a default database.
     config.database = None
-    if database:
-        config.database = database
-    else:
-        if "PLAINBI_DATABASE" in os.environ.keys():
-            config.database = os.environ["PLAINBI_DATABASE"]
-    #else:
-    #    log.info("No database connection description was provided")
+    if "PLAINBI_DATABASE" in os.environ.keys():
+        config.database = os.environ["PLAINBI_DATABASE"]
 
     # port of api rest server
-    if port:
-        config.port=port
-    else:
-        if "PLAINBI_BACKEND_PORT" in os.environ.keys():
-            config.port = os.environ["PLAINBI_BACKEND_PORT"]
-        else:
-            config.port=3001 # default port
-
     if "PLAINBI_BACKEND_PORT" in os.environ.keys():
-        config.host = os.environ["PLAINBI_BACKEND_HOST"]
+        PLAINBI_BACKEND_PORT = os.environ["PLAINBI_BACKEND_PORT"]
+        config.port = int(PLAINBI_BACKEND_PORT)
+    else:
+        config.port=3001 # default port
+        os.environ["PLAINBI_BACKEND_PORT"] = str(config.port)
+
+    if "PLAINBI_BACKEND_HOST" in os.environ.keys():
+        PLAINBI_BACKEND_HOST = os.environ["PLAINBI_BACKEND_HOST"]
+        config.host = PLAINBI_BACKEND_HOST
     else:
         config.host = "0.0.0.0"
+        os.environ["PLAINBI_BACKEND_HOST"] = config.host
 
     # backend Date format and Datetime format
     if "PLAINBI_BACKEND_DATE_FORMAT" in os.environ.keys():
-        config.backend_date_format = os.environ["PLAINBI_BACKEND_DATE_FORMAT"]
+        PLAINBI_BACKEND_DATE_FORMAT = os.environ["PLAINBI_BACKEND_DATE_FORMAT"]
+        config.backend_date_format = PLAINBI_BACKEND_DATE_FORMAT
         log.info("config date format is %s",config.backend_date_format)
     else: 
         config.backend_date_format = None
 
     if "PLAINBI_BACKEND_DATETIME_FORMAT" in os.environ.keys():
-        config.backend_datetime_format = os.environ["PLAINBI_BACKEND_DATETIME_FORMAT"]
+        PLAINBI_BACKEND_DATETIME_FORMAT = os.environ["PLAINBI_BACKEND_DATETIME_FORMAT"]
+        config.backend_datetime_format = PLAINBI_BACKEND_DATETIME_FORMAT
         log.info("config datetime format is %s",config.backend_datetime_format)
     else: 
         config.backend_datetime_format = None
@@ -195,26 +150,37 @@ def get_config(verbose=0,logfile=None,configfile=None,repository=None,database=N
     log.info(f"plainbi backend running on port {config.port}")
 
     if "PLAINBI_SSO_APPLIKATION" in os.environ.keys():
-        config.PLAINBI_SSO_APPLIKATION = os.environ["PLAINBI_SSO_APPLIKATION"]
+        PLAINBI_SSO_APPLIKATION = os.environ["PLAINBI_SSO_APPLIKATION"]
+        config.PLAINBI_SSO_APPLIKATION = PLAINBI_SSO_APPLIKATION
     else: 
         config.PLAINBI_SSO_APPLIKATION = None
     if "PLAINBI_SSO_APPLICATION_ID" in os.environ.keys():
+        PLAINBI_SSO_APPLICATION_ID = os.environ["PLAINBI_SSO_APPLICATION_ID"]
         config.PLAINBI_SSO_APPLICATION_ID = os.environ["PLAINBI_SSO_APPLICATION_ID"]
     else: 
         config.PLAINBI_SSO_APPLICATION_ID = None
     if "PLAINBI_SSO_TENANTID" in os.environ.keys():
-        config.PLAINBI_SSO_TENANTID = os.environ["PLAINBI_SSO_TENANTID"]
+        PLAINBI_SSO_TENANTID = os.environ["PLAINBI_SSO_TENANTID"]
+        config.PLAINBI_SSO_TENANTID = PLAINBI_SSO_TENANTID
     else: 
         config.PLAINBI_SSO_TENANTID = None
     if "PLAINBI_SSO_CLIENT_SECRET" in os.environ.keys():
-        config.PLAINBI_SSO_CLIENT_SECRET = os.environ["PLAINBI_SSO_CLIENT_SECRET"]
+        PLAINBI_SSO_CLIENT_SECRET = os.environ["PLAINBI_SSO_CLIENT_SECRET"]
+        config.PLAINBI_SSO_CLIENT_SECRET = PLAINBI_SSO_CLIENT_SECRET
     else: 
         config.PLAINBI_SSO_CLIENT_SECRET = None
     if "PLAINBI_SSO_REDIRECT_PATH" in os.environ.keys():
-        config.PLAINBI_SSO_REDIRECT_PATH = os.environ["PLAINBI_SSO_REDIRECT_PATH"]
+        PLAINBI_SSO_REDIRECT_PATH = os.environ["PLAINBI_SSO_REDIRECT_PATH"]
+        config.PLAINBI_SSO_REDIRECT_PATH = PLAINBI_SSO_REDIRECT_PATH
     else: 
         config.PLAINBI_SSO_REDIRECT_PATH = None
     if "PLAINBI_SSO_AUTHORITY" in os.environ.keys():
-        config.PLAINBI_SSO_AUTHORITY = os.environ["PLAINBI_SSO_AUTHORITY"]
+        PLAINBI_SSO_AUTHORITY = os.environ["PLAINBI_SSO_AUTHORITY"]
+        config.PLAINBI_SSO_AUTHORITY = PLAINBI_SSO_AUTHORITY
     else: 
         config.PLAINBI_SSO_AUTHORITY = None
+else:
+    print("CONFIG already load by plainbi_backend.py")
+    log.info("CONFIG already load by plainbi_backend.py")
+
+print("end import config")
