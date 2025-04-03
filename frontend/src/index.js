@@ -14,6 +14,7 @@ import useToken from "./components/useToken";
 import "antd/dist/reset.css";
 import "./css/index.css";
 import Login from "./pages/Login";
+import LoginSSO from "./pages/LoginSSO";
 import { ConfigProvider } from 'antd';
 import deDE from 'antd/locale/de_DE';
 import ERD from "./pages/ERD";
@@ -21,11 +22,19 @@ import ERD from "./pages/ERD";
 const App = () => {
   const { token, removeToken, setToken } = useToken();
   const userRole = localStorage.getItem('role');
+  const pathname = window.location.pathname;
+  console.log("pathname",pathname);
 
   return (
     <ConfigProvider locale={deDE}>
       <BrowserRouter>
-      {!token && token!=="" &&token!== undefined ?  
+      { console.log("brouwserrouter loc="+pathname) }
+      { 
+        (pathname.startsWith("/getAToken")) ? ( <LoginSSO setToken={setToken} /> ) 
+      : 
+      (
+
+      !token && token!=="" &&token!== undefined ?  
         (
           
           <Login setToken={setToken} />
@@ -46,6 +55,7 @@ const App = () => {
             </Route>
           </Routes>
         )
+      )
       }
       </BrowserRouter>
     </ConfigProvider>

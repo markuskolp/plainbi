@@ -3,13 +3,14 @@ import { Form, Input, Button, Checkbox,Image, Space, message, Typography  } from
 import Icon from '@ant-design/icons';
 import Axios from "axios";
 import EnvironmentBanner from "../components/EnvironmentBanner";
-const { Title } = Typography;
+const { Link, Text, Title } = Typography;
 
 const Login = (props) => {
 
   const header_title = window.HEADER_TITLE;
   const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
   const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
+  const sso_signin_link = window.SSO_SIGNIN_LINK;
   
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +21,7 @@ const Login = (props) => {
 
   function logMeIn(event) {
     setLoading(true);
+    console.log("logmein referrer "+document.referrer);
     Axios({
       method: "POST",
       url:"/api/login",
@@ -116,6 +118,7 @@ const Login = (props) => {
               onChange={handleChange} 
             />
           </Form.Item>
+          {sso_signin_link ? <Link href={sso_signin_link}>  SSO Login   </Link>  : null }
           <Form.Item>
             <Button
               type="primary"
