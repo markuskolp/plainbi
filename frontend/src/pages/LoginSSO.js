@@ -3,16 +3,17 @@ import { message, Typography  } from 'antd';
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import LoadingMessage from "../components/LoadingMessage";
 import Axios from "axios";
-//import useToken from "../components/useToken";
 
+//import useToken from "../components/useToken";
 //const { token, removeToken, setToken } = useToken();
 
 const { Link, Text, Title } = Typography;
 
-//const navigate = useNavigate();
-
 const LoginSSO = (props) => {
   
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   //let { code } = useParams(); // get URL parameters - get the relevant values 
   let [searchParams, setSearchParams] = useSearchParams();
@@ -37,53 +38,61 @@ const LoginSSO = (props) => {
   // wenn ich Token zurückbekomme, dann setToken (sollte dann auf richtige Seite springen z.B. Startseite - analog zu Login.js)
   
   useEffect(() => {
-    logMeIn();
+    const performLogin = async () => {
+      try {
+        console.log("performLogincall post with await");
+        const response = await Axios.post('/api/login_sso', paramsObject);
+        console.log("performLogin after await");
+        props.setToken(response.data.access_token);
+        console.log("performLogin after setToken");
+        localStorage.setItem('role', response.data.role ? response.data.role.toUpperCase() : 'USER');
+        setSuccess(true);
+        setLoading(false);
+      } catch (err) {
+        setError(err.response?.data?.message || err.message || 'Login failed');
+        console.log(err);
+        setLoading(false);
+      }
+    }
+    performLogin();
   }, []);
   
-  function logMeIn(event) {
-    console.log("logMeIn");
-    setLoading(true);
-    Axios({
-      method: "POST",
-      url:"/api/login_sso",
-      data : paramsObject
-      //data:{
-      //  code: code,
-      //  client_info: client_info,
-      //  state: state,
-      //  session_state: session_state
-      // }
-    })
-    .then((response) => {
-      console.log("logMeIn SUCCESS");
-      console.log("logMeInResponse token: "+response.data.access_token);
-      props.setToken(response.data.access_token);
-      console.log("logMeIn after setToken");
-      //props.setRole(response.data.role ? response.data.role.toUpperCase() : 'ADMIN');
-      localStorage.setItem('role', response.data.role ? response.data.role.toUpperCase() : 'USER');
-      //localStorage.setItem('role', 'ADMIN');
-      //props.setRole('ADMIN');
-  
-    }).catch((error) => {
-      console.log("logMeIn ERROR");
-      console.log(error);
-      if (error.response) {
-        console.log(error.response);
-        console.log(error.response.status);
-        console.log(error.response.headers);
-        }
-        setLoading(false);
-//message.error('Fehler: ' + error.response.data.message);
-    
-      })
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        console.log("navigate in timer to index.js");
+        navigate('/', { state: { refresh: true}});
+        window.location.reload();
+      },1000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, navigate]);
 
-    //event.preventDefault()
+  if (error) {
+    return (
+      <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <h2 style={{color:'red' }}>Error: {error}</h2>
+      </div>
+    )
   }
 
-  //return <LoadingMessage />;
-  console.log("logMeInResponse token:  ");
-  return <Link href="/"> weiter </Link>
+  if (success) {
+    return (
+      <div style={{ 
+        display:"flex",
+        justifyContent:'center',
+        alignItems: 'center',
+        height:'100vh',
+         backgroundColor: '#f5f5f5'
+        }}><h1><a href="/">Anmeldung erfolgreich - Redirecting...</a></h1>
+      </div>
+    );
+  }
 
-}
+  return null;
+
+        
+    
+};
 
 export default LoginSSO;

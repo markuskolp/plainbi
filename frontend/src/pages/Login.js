@@ -19,9 +19,12 @@ const Login = (props) => {
     password: ""
   })
 
+
   function logMeIn(event) {
     setLoading(true);
     console.log("logmein referrer "+document.referrer);
+
+
     Axios({
       method: "POST",
       url:"/api/login",
@@ -118,7 +121,7 @@ const Login = (props) => {
               onChange={handleChange} 
             />
           </Form.Item>
-          {sso_signin_link ? <Link href={sso_signin_link}>  SSO Login   </Link>  : null }
+          {sso_signin_link ? <Link id="ssolink" style={{ background: "rgba(9, 30, 66, 0.04)"  }} href={sso_signin_link}>Login (Single-Sign-On)</Link>  : null }
           <Form.Item>
             <Button
               type="primary"

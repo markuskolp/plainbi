@@ -17,6 +17,7 @@ import argparse
 import logging
 from dotenv import load_dotenv
 
+print("plainbi_backend.py starting")
 log = logging.getLogger()
 
 # Create a new ArgumentParser object
@@ -39,6 +40,7 @@ parser.add_argument('-t', '--testdb', type=str, help='test the sqlalchemy connec
 parser.add_argument('-b', '--base64', type=str, nargs=2, help='insert a file base64 encoded into repository static_file expects <id> and <path>')
 
 # Parse the arguments
+print("plainbi_backend.py get args")
 args = parser.parse_args()
 
 if args.verbose:
@@ -46,6 +48,15 @@ if args.verbose:
 else:
     os.environ["PLAINBI_VERBOSE"] = str(0)
 
+if args.config is not None:
+    """
+    when using wsgi directly plainbi_backend is not used, to pass a config file we use the environment here
+    it is read out later when config is imported
+    """
+    print("apply config command parameter to environ")
+    os.environ["PLAINBI_BACKEND_CONFIG"]=args.config
+
+"""
 # load environment / configuration
 print("get environment")
 if args.config:
@@ -83,12 +94,18 @@ else:
             load_dotenv(config_file)
         else:  
             print(f"INFO: no config file used")
+"""
 
+print("plainbi_backend.py imports dbg")
 from plainbi_backend.utils import dbg
+print("plainbi_backend.py imports db")
 from plainbi_backend.db import db_passwd, db_connect, db_connect_test, db_exec, db_add_base64
+print("plainbi_backend.py imports create_app")
 from plainbi_backend.api import create_app
+print("plainbi_backend.py imports create_repo_db")
 from plainbi_backend.repo import create_repo_db
 
+print("plainbi_backend.py testdb")
 # for convenience a sqlalchemy connect string can be tested here
 if args.testdb:
     d=db_connect(args.testdb)
@@ -101,8 +118,10 @@ if args.testdb:
 ########################## before #############################
 ########################## before end #############################
 
+print("plainbi_backend.py create app")
 app = create_app(p_verbose=args.verbose, p_logfile=args.logfile, p_repository=args.repository, p_database=args.database, p_port=args.port )
 
+print("plainbi_backend.py import config")
 from plainbi_backend.config import config
 
 ########################## after #############################

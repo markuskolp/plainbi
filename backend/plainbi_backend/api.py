@@ -47,6 +47,8 @@ import smtplib
 import pandas.io.formats.excel as fmt_xl
 import ast
 
+from dotenv import load_dotenv
+
 from functools import wraps
 from flask import Flask, jsonify, request, Response, Blueprint, make_response, session, url_for
 from flask_session import Session
@@ -2752,49 +2754,46 @@ def login_sso():
     dbg("login_sso state: %s",item.get("state"))
     dbg("now validate data we've got from Microsoft")
     
-    if True:
-      dbg("calling auth2 token")
-      token_url = f"https://login.microsoftonline.com/{config.PLAINBI_SSO_TENANTID}/oauth2/v2.0/token" 
-      dbg("token url is: %s",token_url)
-      payload = { 'grant_type': 'authorization_code', 'code' : item["code"], 'redirect_uri' : 'http://localhost:5000/getAToken',
-                  'client_id' : config.PLAINBI_SSO_APPLICATION_ID,  'scope' : "User.Read",    'client_secret' :  config.PLAINBI_SSO_CLIENT_SECRET
-      }
-      response = requests.post(token_url, data=payload)
-      dbg("response= "+str(response.text))
-      tokens = response.json()
-      dbg("tokens= "+str(tokens))
-      ms_id_token = tokens['id_token']
-      #dbg("ms_id_token= "+ms_id_token)
-
-      i_ms_key=0
-      for ms_key in config.ms_keys:
-          try:
-              i_ms_key+=1
-              #log.info("validate id token try %d ",i_ms_key)
-              decoded_id_token = jwt.decode(ms_id_token, key=jwt.algorithms.RSAAlgorithm.from_jwk(ms_key), algorithms=['RS256'], audience = config.PLAINBI_SSO_APPLICATION_ID, issuer=f"https://login.microsoftonline.com/{config.PLAINBI_SSO_TENANTID}/v2.0")
-              #dbg("decoded_id_token is %s",str(decoded_id_token))
-              useremail = decoded_id_token["preferred_username"]
-              username = get_user_by_email(useremail)
-              if username is None:
-                  dbg('refresh users array')
-                  load_repo_users()
-                  username = get_user_by_email(useremail)
-                  if username is None:
-                      log.info("user %s is not in know users",str(username))
-              if username is not None: 
-                  dbg("usernam is %s",str(username))
-                  log.info("Valid Id Token: User unique name: %s",username)
-                  authenticated = True
-              else:
-                  authenticated = False
-                  log.info("No Valid Id Token : %s",username)
-              break
-          #except (jwt.InvalidTokenError,jwt.DecodeError):
-          except Exception as e_validate:
-              log.warning("validing id token failed with %s",str(e_validate))
-              continue
-      else:
-        log.error("calling auth2 token: ID Token validation failed")
+    dbg("calling auth2 token")
+    token_url = f"https://login.microsoftonline.com/{config.PLAINBI_SSO_TENANTID}/oauth2/v2.0/token" 
+    dbg("token url is: %s",token_url)
+    payload = { 'grant_type': 'authorization_code', 'code' : item["code"], 'redirect_uri' : 'http://localhost:5000/getAToken',
+                'client_id' : config.PLAINBI_SSO_APPLICATION_ID,  'scope' : "User.Read",    'client_secret' :  config.PLAINBI_SSO_CLIENT_SECRET
+    }
+    response = requests.post(token_url, data=payload)
+    dbg("response= "+str(response.text))
+    tokens = response.json()
+    dbg("tokens= "+str(tokens))
+    ms_id_token = tokens['id_token']
+    i_ms_key=0
+    for ms_key in config.ms_keys:
+        try:
+            i_ms_key+=1
+            #log.info("validate id token try %d ",i_ms_key)
+            decoded_id_token = jwt.decode(ms_id_token, key=jwt.algorithms.RSAAlgorithm.from_jwk(ms_key), algorithms=['RS256'], audience = config.PLAINBI_SSO_APPLICATION_ID, issuer=f"https://login.microsoftonline.com/{config.PLAINBI_SSO_TENANTID}/v2.0")
+            #dbg("decoded_id_token is %s",str(decoded_id_token))
+            useremail = decoded_id_token["preferred_username"]
+            username = get_user_by_email(useremail)
+            if username is None:
+                dbg('refresh users array')
+                load_repo_users()
+                username = get_user_by_email(useremail)
+                if username is None:
+                    log.info("user %s is not in know users",str(username))
+            if username is not None: 
+                dbg("usernam is %s",str(username))
+                log.info("Valid Id Token: User unique name: %s",username)
+                authenticated = True
+            else:
+                authenticated = False
+                log.info("No Valid Id Token : %s",username)
+            break
+        #except (jwt.InvalidTokenError,jwt.DecodeError):
+        except Exception as e_validate:
+            log.warning("validing id token failed with %s",str(e_validate))
+            continue
+    else:
+      log.error("calling auth2 token: ID Token validation failed")
 
     if authenticated:
         dbg("login authenticated by SSO for %s",username)
@@ -3185,11 +3184,11 @@ def getsettingsjs():
         config.PLAINBI_SSO_SCOPE = ["User.Read"]
         log.info(f"config.PLAINBI_SSO_SCOPE = {config.PLAINBI_SSO_SCOPE}")
         log.info(f"config.PLAINBI_SSO_REDIRECT_PATH = {config.PLAINBI_SSO_REDIRECT_PATH}")
-        ssoapp = msal.ConfidentialClientApplication(client_id=config.PLAINBI_SSO_APPLICATION_ID, authority=config.PLAINBI_SSO_AUTHORITY, client_credential=config.PLAINBI_SSO_CLIENT_SECRET)
-        log.info("ssoapp initialized")
-        ssourl = ssoapp.get_authorization_request_url(config.PLAINBI_SSO_SCOPE, redirect_uri = config.PLAINBI_SSO_REDIRECT_PATH, state="hugo" )
-        dbg(f"sso auth url is: %s",ssourl)
-        if True:
+        try:
+            ssoapp = msal.ConfidentialClientApplication(client_id=config.PLAINBI_SSO_APPLICATION_ID, authority=config.PLAINBI_SSO_AUTHORITY, client_credential=config.PLAINBI_SSO_CLIENT_SECRET)
+            log.info("ssoapp initialized")
+            ssourl = ssoapp.get_authorization_request_url(config.PLAINBI_SSO_SCOPE, redirect_uri = config.PLAINBI_SSO_REDIRECT_PATH, state="hugo" )
+            dbg(f"sso auth url is: %s",ssourl)
             uri = ssourl
             log.info("auth uri is %s",uri)
             parsed_uri = urlparse(uri)
@@ -3200,8 +3199,12 @@ def getsettingsjs():
             #new_uri = uri.replace("&state="+vstate+"&","&state="+orig_session_state+"&")
             #log.info("auth new uri is %s",new_uri)
             s=s+f"var SSO_SIGNIN_LINK = '"+uri+"';\n"
-        else:
-            login.error("No SignIn Link for SSO")
+        except Exception as e_ssoapp:
+            log.error("SSO msal app error: "+str(e_ssoapp))
+            config.PLAINBI_SSO_APPLICATION_ID = None
+            config.with_sso = False
+            log.warning("SSO disabled due to error in msal create app")
+
     response = make_response(s)
     response.headers.set('Content-Type', "text/javascript; charset=utf-8")
     return response
@@ -3286,7 +3289,7 @@ def getsetting(name):
         return "no data found", 404
 
 #p_verbose=args.verbose, p_logfile=args.logfile, p_configfile=args.config, p_repository=args.repository, p_database=args.database, p_port=args.port 
-def create_app(p_verbose=None, p_logfile=None, p_configfile=None, p_repository=None, p_database=None, p_port=None):
+def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=None, p_port=None):
     """
     create app is the standard Flask application definition
 
@@ -3298,6 +3301,8 @@ def create_app(p_verbose=None, p_logfile=None, p_configfile=None, p_repository=N
     """
     dbg("++++++++++ entering create_app")
     global app
+
+
     log.info("creating flask app")
     app = Flask(__name__)
     app.config["SESSION_PERMANENT"] = True
@@ -3369,7 +3374,7 @@ def create_app(p_verbose=None, p_logfile=None, p_configfile=None, p_repository=N
     app.secret_key = config.SECRET_KEY
     config.bcrypt = Bcrypt(app)
 
-    if config.PLAINBI_SSO_AUTHORITY is not None:
+    if config.PLAINBI_SSO_APPLICATION_ID is not None:
         log.info("prepare SSO Login")
         #config.PLAINBI_SSO_REDIRECT_PATH
         dbg(f"config.PLAINBI_SSO_AUTHORITY = {config.PLAINBI_SSO_AUTHORITY}")

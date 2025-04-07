@@ -10,9 +10,11 @@ import os
 import sys
 import logging
 import urllib
+from dotenv import load_dotenv
+
 #from plainbi_backend.utils import db_subs_env
 
-print("start import config")
+print("import config")
 log = logging.getLogger()
 #log.setLevel(logging.DEBUG)
 log.debug("start configuration")
@@ -27,6 +29,37 @@ config = MyConfig()
 # check if get_config was already loaded before and if yes skip the rest.
 # That means if we are in standalone mode than it is not executed again in uwsgi mode
 if not hasattr(config,"is_loaded"):
+
+    print("import config the first time")
+    print("get environment (in config)")
+    if "PLAINBI_BACKEND_CONFIG" in os.environ:
+        print(f"load config given in environment ({os.environ['PLAINBI_BACKEND_CONFIG']})")
+        if not os.path.isfile(os.environ["PLAINBI_BACKEND_CONFIG"]):
+            print(f"ERROR: {os.environ['PLAINBI_BACKEND_CONFIG']} does not exist")
+            sys.exit(1)
+        load_dotenv(os.environ["PLAINBI_BACKEND_CONFIG"])
+    else:
+        print("try to find a config file")
+        config_file_list = [".env"]
+        if os.name=="nt":
+            if "USERPROFILE" in os.environ.keys():
+                config_file_list.append(os.environ["USERPROFILE"]+"/.env")
+        else:
+            config_file_list.append("~/.env")
+            config_file_list.append("/etc/plainbi.env")
+        for cfile in config_file_list:
+            print("testing file ",cfile)
+            if os.path.isfile(cfile):
+                config_file=cfile
+                print("found config file ",cfile)
+                break
+        # if we have a config file the we load it into the environment
+        if config_file is not None:
+            print("load config from %s" % (config_file))
+            log.info("load config from %s",config_file)
+            load_dotenv(config_file)
+        else:  
+            print(f"INFO: no config file used")
 
     # just remember  the config is now loaded
     config.is_loaded = True
