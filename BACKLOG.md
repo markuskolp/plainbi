@@ -26,8 +26,11 @@ Weiterentwicklung:
 
 Weiterentwicklung:
 
-
+- Fehler beim Löschen z.B. von Adhoc besser anzeigen (wenn z.B. noch Berechtigung existiert und fk-constraint zuschlägt)
+- Sicht speichern übergreifend (nur Admin) oder je User (dabei Sortierung sowie Filter merken)
+- **dsdb Export**
 - Zurückbutton: durch den neuen Home-Button lass ich den Zurückbutton evtl. komplett verschwinden.
+- Platz besser nutzen (weniger Ränder usw.)
 - Navigation links automatisch einklappen lassen wenn die Breite zu gering wird (also etwas responsive)
 - Anzahl Datensätze pro Tabelle nicht überall einstellbar, warum ?
 
@@ -41,13 +44,15 @@ Weiterentwicklung:
 - **Filter in Spaltentitel**
   - Backend ist bereits erweitert dafür
   - Endpunkt: /api/distinctvalues/{db}/{tab}/{col}
-- 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der Filter beim Einstieg auch sofort ziehen soll
+  - 1 bis n Filter ermöglichen
+- 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der **Filter beim Einstieg (je Seite)** auch sofort ziehen soll
 - Edit-Page
 	- **defaultValue** ermöglichen (z.B. bei Berichtsversand OnBe)
 	- **Validierung** einbauen zumindest von "required" Feldern
 	- Zahleneingabe mit NK-Stellen - aktuell . statt , (englisch)
 - **Subpage (Master-Detail)**
 - **für UIs mit Typ JSON, SQL, ... den MonacoEditor verwenden**
+- **App Spezifikation validieren**
 - plainbi_static_files: base64 UI Element besser machen (siehe todos in CRUDFormItem.js)
 - datasource bei Pages rausnehmen in Init-Skripten + MM DEV/TEST/PROD (Applikations-Spezifikationen durchsuchen)
 - bei Settings eine Übersicht machen von User<>Gruppe<>Ressource -> damit man das mal in 1 Überblick hat -> später mit Subpage auch immer von Entität ausgehend die Zuordnung/Übersicht erlauben (z.B. User -> zugeordnete Gruppen -> zugeordnete Ressourcen | Gruppe -> zugeordnete User -> zugeordnete Ressourcen) -> damit man das von jeder Richtung pflegen könnte
@@ -72,8 +77,6 @@ Weiterentwicklung:
 
 - Cascading prompts: also having a label dependent on a selected/entered value (e.g. ID of a address -> show the full address for this)
 - Input search box (Lookup) with onSearch loading from server: https://ant.design/components/input#input-demo-search-input-loading
-- Validation rules  (e.g. entered value really exists)
-  - in SQL ? Javascript ? ...
 
 
 Bugs:
