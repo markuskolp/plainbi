@@ -5,6 +5,7 @@
 
 Weiterentwicklung:
 
+- **Audit erweitern mit Status, d.h. ob Aufruf erfolgreich war oder nicht - gerade bei Adhocs**
 - Tausendertrennzeichen in Adhoc Excelexport (5.321 anstatt 5321) - NK-Stellen so belassen (aber evtl. geht vorformatieren auf 2 NK-Stellen, aber nur wenn es ein Float/Decimal ist ?)
 - Adhoc Export Excel/CSV -> bessere Fehlermeldung zurückliefern (d.h. Responsebody anstatt BLOB)
 - Backend Logging prüfen (Passwörter, etc.) und reduzieren (Daten von Resultset, etc.) bzw. aussagekräftiger
