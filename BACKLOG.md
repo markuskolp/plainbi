@@ -36,6 +36,7 @@ Weiterentwicklung:
 - Platz besser nutzen (weniger Ränder usw.)
 - Navigation links automatisch einklappen lassen wenn die Breite zu gering wird (also etwas responsive)
 - Anzahl Datensätze pro Tabelle nicht überall einstellbar, warum ?
+- wenn man User ändert z.b. auf Rolle "Admin" dann kommt ein Fehler, weil das Passwort erwartet wird -> bessere Fehlermeldung und PW optional machen
 
 - Ressource "page" und "page_attachment" hinzufügen, damit man per Markdown eine Doku pflegen kann (Seiten oder News/Blogeintrag)
 - User auch vorab anlegen -> am besten über ein Button wo man aus dem AD auch die auslesen kann (falls AD in .env hinterlegt ist)
