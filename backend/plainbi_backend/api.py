@@ -70,7 +70,7 @@ else:
     except Exception as e_swagger:
         with_swagger = False
 
-from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter, dbg, err, warn
+from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter, dbg, err, warn, dbg_api_call
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
@@ -257,6 +257,7 @@ def get_backend_version():
             Plainbi Backend: 0.7 29.07.2024 
             Repository: PostgreSQL 15.7 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-22), 64-bit'
     """
+    dbg_api_call(request)
     dbversion=get_dbversion(config.repoengine)
     return "Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion)
 
@@ -502,6 +503,7 @@ def dbexec(tokdata,db,procname):
     """
     global nodb_msg
     dbg("++++++++++ entering dbexec")
+    dbg_api_call(request)
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -630,6 +632,7 @@ def get_all_items(tokdata,db,tab):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_all_items")
+    dbg_api_call(request)
     dbg("get_all_items: param tab is <%s>",str(tab))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
@@ -718,6 +721,7 @@ def get_item(tokdata,db,tab,pk):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_item")
+    dbg_api_call(request)
     dbg("get_items: param tab is <%s>",str(tab))
     dbg("get_items: param pk/id is <%s>",str(pk))
     dbengine=get_db_by_id_or_alias(db)
@@ -839,6 +843,7 @@ def get_item_post(tokdata,db,tab,pk):
             total_count: 1
     """
     dbg("++++++++++ entering get_item_post")
+    dbg_api_call(request)
     dbg("get_items: param tab is <%s>",str(tab))
     dbg("get_items: param pk/id is <%s>",str(pk))
     dbengine=get_db_by_id_or_alias(db)
@@ -950,6 +955,7 @@ def create_item(tokdata,db,tab):
             message: Data processed successfully
     """
     dbg("++++++++++ entering create_item")
+    dbg_api_call(request)
     dbg("create_item: param tab is <%s>",str(tab))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
@@ -1055,6 +1061,7 @@ def update_item(tokdata,db,tab,pk):
             message: Data processed successfully
     """
     dbg("++++++++++ entering update_item")
+    dbg_api_call(request)
     dbg("update_item: param tab is <%s>",str(tab))
     dbg("update_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
@@ -1165,6 +1172,7 @@ def delete_item(tokdata,db,tab,pk):
             message: Data processed successfully
     """
     dbg("++++++++++ entering delete_item")
+    dbg_api_call(request)
     dbg("delete_item: param tab is <%s>",str(tab))
     dbg("delete_item: param pk is <%s>",str(pk))
     audit(tokdata,request)
@@ -1239,6 +1247,7 @@ def get_metadata_tables(tokdata,db):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_metadata_tables")
+    dbg_api_call(request)
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
@@ -1288,6 +1297,7 @@ def get_metadata_tab_columns(tokdata,db,tab):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_metadata_tab_columns")
+    dbg_api_call(request)
     dbg("get_metadata_tab_columns: param tab is <%s>",str(tab))
     audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
@@ -1344,6 +1354,7 @@ def get_resource(tokdata):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_resource")
+    dbg_api_call(request)
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
@@ -1436,6 +1447,7 @@ def get_my_groups(tokdata):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_my_groups")
+    dbg_api_call(request)
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
@@ -1479,6 +1491,7 @@ def get_group_resources(tokdata,gid):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_my_groups")
+    dbg_api_call(request)
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
@@ -1667,6 +1680,7 @@ def get_all_repos(tokdata,tab):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_all_repos")
+    dbg_api_call(request)
     dbg("get_all_repos: param tab is <%s>",str(tab))
     audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
@@ -1885,6 +1899,7 @@ def update_repo(tokdata,tab,pk):
             message: Data processed successfully
     """
     dbg("++++++++++ entering update_repo")
+    dbg_api_call(request)
     dbg("update_repo: param tab is <%s>",str(tab))
     dbg("update_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
@@ -1969,6 +1984,7 @@ def delete_repo(tokdata,tab,pk):
             message: Data processed successfully
     """
     dbg("++++++++++ entering delete_repo")
+    dbg_api_call(request)
     dbg("delete_repo: param tab is <%s>",str(tab))
     dbg("delete_repo: param pk is <%s>",str(pk))
     audit(tokdata,request)
@@ -2066,6 +2082,7 @@ def get_lookup(tokdata,id):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_lookup")
+    dbg_api_call(request)
     dbg("get_lookup: param id is <%s>",str(id))
     audit(tokdata,request)
     out={}
@@ -2142,6 +2159,7 @@ def get_adhoc_data(tokdata,id):
             message: Data processed successfully
     """
     dbg("++++++++++ entering get_adhoc_data")
+    dbg_api_call(request)
     dbg("get_adhoc_data: param id is <%s>",str(id))
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
@@ -2499,6 +2517,7 @@ def authenticate_local(username,password):
     authenticate a local (repository) user
     """
     dbg("++++++++++ entering authenticate_local")
+    dbg_api_call(request)
     global users
     load_repo_users()
     if not username or not password:
@@ -2525,6 +2544,7 @@ def authenticate_ldap(login_username,password=None):
     if no password is then just find the user in the LDAP 
     """
     dbg("++++++++++ entering authenticate_ldap")
+    dbg_api_call(request)
     global users
     mail=None
     full_name=None
@@ -2637,6 +2657,7 @@ def login():
     """
     out={}
     dbg("++++++++++ entering login")
+    dbg_api_call(request)
     dbg("login")
     data_bytes = request.get_data()
     referer = request.headers.get('Referer')
@@ -2739,6 +2760,7 @@ def login_sso():
     """
     out={}
     dbg("++++++++++ entering login_sso")
+    dbg_api_call(request)
     dbg("login_sso")
     data_bytes = request.get_data()
     referer = request.headers.get('Referer')
@@ -2757,7 +2779,9 @@ def login_sso():
     dbg("calling auth2 token")
     token_url = f"https://login.microsoftonline.com/{config.PLAINBI_SSO_TENANTID}/oauth2/v2.0/token" 
     dbg("token url is: %s",token_url)
-    payload = { 'grant_type': 'authorization_code', 'code' : item["code"], 'redirect_uri' : 'http://localhost:5000/getAToken',
+    dbg("config.PLAINBI_SSO_REDIRECT_PATH is: %s",config.PLAINBI_SSO_REDIRECT_PATH)
+    #payload = { 'grant_type': 'authorization_code', 'code' : item["code"], 'redirect_uri' : 'http://localhost:5000/getSSOToken',
+    payload = { 'grant_type': 'authorization_code', 'code' : item["code"], 'redirect_uri' : config.PLAINBI_SSO_REDIRECT_PATH, 
                 'client_id' : config.PLAINBI_SSO_APPLICATION_ID,  'scope' : "User.Read",    'client_secret' :  config.PLAINBI_SSO_CLIENT_SECRET
     }
     response = requests.post(token_url, data=payload)
@@ -2846,6 +2870,7 @@ def passwd(tokdata):
     """
     out={}
     dbg("passwd")
+    dbg_api_call(request)
     data_bytes = request.get_data()
     dbg("databytes: %s",data_bytes)
     data_string = data_bytes.decode('utf-8')
@@ -2937,6 +2962,7 @@ def cache(tokdata):
         examples:
           text/plain: "cache is enabled/disabled"
     """
+    dbg_api_call(request)
     config.metadataraw_cache={}
     config.profile_cache={}
     dbg("clear_cache: get_metadata_raw: cache created")
@@ -2989,6 +3015,7 @@ def clear_cache(tokdata):
         examples:
           text/plain: 'caches cleared' 
     """
+    dbg_api_call(request)
     config.metadataraw_cache={}
     config.profile_cache={}
     dbg("clear_cache: get_metadata_raw: cache cleared")
@@ -3100,6 +3127,7 @@ def getstatic(id):
         examples:
           text/plain: 'no data found' 
     """
+    dbg_api_call(request)
     if is_id(id):
         sql_params={ "id" : id}
         sql="select * from plainbi_static_file where id=:id"
@@ -3137,6 +3165,7 @@ def getsettingsjs():
     """
     global app
     dbg("++++++++++ entering getsettingsjs")
+    dbg_api_call(request)
     
     out={}
     dbg("getsettings from db")
@@ -3230,6 +3259,7 @@ def getsettings():
     """
     out={}
     dbg("++++++++++ entering getsettings")
+    dbg_api_call(request)
     items,columns,total_count,e=sql_select(config.repoengine,"plainbi_settings",with_total_count=True)
     if isinstance(e,str) and e=="ok":
         dbg("getsettings sql_select ok")
@@ -3275,6 +3305,7 @@ def getsetting(name):
     """
     dbg("++++++++++ entering getsetting")
     sql_params={ "name" : name}
+    dbg_api_call(request)
     sql="select * from plainbi_settings where setting_name=:name"
     dbg("getsetting: sql is <%s>",sql)
     s,s_columns = db_exec(config.repoengine, sql , sql_params)

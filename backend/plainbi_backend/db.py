@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
-from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn
+from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn,show_call_stack
 #import bcrypt
 from threading import Lock
 
@@ -117,6 +117,7 @@ config.conn={}
    
 def db_exec(engine, sql, params=None, metadata=None):
     dbg(f"+++ entering {inspect.currentframe().f_code.co_name} "+str(sql)[:50]+" ...")
+    
     dbg("sql is <%s>",str(sql),dbglevel=2)
     dbg("sql params are <%s>",str(params),dbglevel=3)
     #

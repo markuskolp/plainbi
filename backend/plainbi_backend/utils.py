@@ -10,6 +10,7 @@ from datetime import date, datetime
 from plainbi_backend.config import config
 import base64
 import inspect
+from pprint import pformat
 
 import logging
 log = logging.getLogger(__name__)
@@ -25,7 +26,15 @@ def dbg(msg, *args, dbglevel=1, **kwargs):
     if dbglevel <= config.dbg_level:
         caller_frame=inspect.currentframe().f_back
         if config.dbg_level >= 3:
-            func_name=str(get_call_stack_function_names(inspect.stack()))
+            #func_name=str(get_call_stack_function_names(inspect.stack()))
+            try:
+                func_name=[]
+                for f in inspect.stack()[1:]:
+                    if f[3] in ('dispatch_request','decorated'): break
+                    func_name.insert(0,f[3])
+                #func_name = ",".join(func_name)  
+            except Exception as e:
+                func_name = ["show_call_stack-err:"+str(e)[:15]]
         else:
             func_name=[caller_frame.f_code.co_name]
         fullmsg=f"{func_name}: {msg}"
@@ -409,4 +418,33 @@ def get_call_stack_function_names(s):
             fl.append(func)
     fl.reverse()
     return fl
+
+def show_call_stack():
+    try:
+        s=[]
+        for f in inspect.stack():
+            s.append(f[3])
+        return ",".join(s)  
+    except Exception as e:
+        return "show_call_stack-err:"+str(e)[:15]
+
+def dbg_api_call(r):
+    """
+    pretty print api call
+    """
+    return None
+    log.debug('----------------------------------------------------------------------------')
+    log.debug('---API CALL: %s',r.url)
+    log.debug('----------------------------------------------------------------------------')
+    if config.dbg_level > 3:
+        qp = r.args.to_dict()
+        jd = r.get_json()
+        p = {
+            "URL" : r.url
+           ,"Method": r.method
+           ,"Query Params": qp
+           ,"JSON Data":jd
+        }
+        log.debug(pformat(p))
+    log.debug('----------------------------------------------------------------------------')
 

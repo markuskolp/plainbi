@@ -30,7 +30,7 @@ const App = () => {
       <BrowserRouter>
       { console.log("brouwserrouter loc="+pathname) }
       { 
-        (pathname.startsWith("/getAToken")) ? ( <LoginSSO setToken={setToken} /> ) 
+        (pathname.startsWith("/getSSOToken")) ? ( <LoginSSO setToken={setToken} /> ) 
       : 
       (
 
