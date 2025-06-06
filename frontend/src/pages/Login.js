@@ -14,7 +14,7 @@ const Login = (props) => {
   const sso_signin_link = window.SSO_SIGNIN_LINK;
   console.log("SSO Signin Link: " + sso_signin_link);
 
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
 
