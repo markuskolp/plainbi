@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { message, Typography  } from 'antd';
+import { message, Typography, Space } from 'antd';
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import LoadingMessage from "../components/LoadingMessage";
 import Axios from "axios";
@@ -70,22 +70,17 @@ const LoginSSO = (props) => {
 
   if (error) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <h2 style={{color:'red' }}>Error: {error}</h2>
+      <div className="center">
+       <Title level={5} style={{color:'red' }}>Fehler bei Anmeldung</Title>
       </div>
-    )
+   )
   }
 
   if (success) {
     return (
-      <div style={{ 
-        display:"flex",
-        justifyContent:'center',
-        alignItems: 'center',
-        height:'100vh',
-         backgroundColor: '#f5f5f5'
-        }}><h1><a href="/">Anmeldung erfolgreich - Redirecting...</a></h1>
-      </div>
+       <div className="center">
+        <Title level={5}>Anmeldung erfolgreich - es wird weitergeleitet...</Title>
+       </div>
     );
   }
 

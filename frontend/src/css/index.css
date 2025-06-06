@@ -109,6 +109,16 @@ table .anticon {
 .sqlcode {
   font-family: monospace !important;
 }
+.filled {
+  background-color:rgb(230, 244, 255) ;
+  border-color:rgb(230, 244, 255) ;
+}
+.center {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:'100vh';
+}
 .login {
   margin-top:50px;
   margin-left:30%;
@@ -199,30 +209,4 @@ div.monaco-editor {
 /* for big tooltips overwrite the default width of 250px */
 .ant-tooltip {
   max-width: 80vw !important;
-}
-
-/* SSO Microsoft Login Link copied from JIRA */
-.ssolink {
-  align-items: baseline;
-  border-width: 0px;
-  box-sizing: border-box;
-  display: inline-flex;
-  font-size: inherit;
-  font-style: normal;
-  font-weight: 500;
-  max-width: 100%;
-  text-align: center;
-  text-decoration: none;
-  white-space: nowrap;
-  background: rgba(9, 30, 66, 0.04);
-  border-radius: 3px;
-  cursor: default;
-  height: 2.28571em;
-  line-height: 2.28571em;
-  padding: 0px 8px;
-  transition: background 0.1s ease-out, box-shadow 0.15s cubic-bezier(0.47, 0.03, 0.49, 1.38);
-  vertical-align: middle;
-  width: 100%;
-  outline: none !important;
-  color: rgb(66, 82, 110) !important;
 }

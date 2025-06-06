@@ -3,6 +3,7 @@ import { Form, Input, Button, Checkbox,Image, Space, message, Typography  } from
 import Icon from '@ant-design/icons';
 import Axios from "axios";
 import EnvironmentBanner from "../components/EnvironmentBanner";
+//import { useParams, useLocation, useNavigate } from "react-router-dom";
 const { Link, Text, Title } = Typography;
 
 const Login = (props) => {
@@ -11,6 +12,9 @@ const Login = (props) => {
   const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
   const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
   const sso_signin_link = window.SSO_SIGNIN_LINK;
+  console.log("SSO Signin Link: " + sso_signin_link);
+
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
 
@@ -63,6 +67,13 @@ const Login = (props) => {
         ...prevNote, [name]: value})
     )}
 
+  /*
+  const navigateSSO = () => {
+    //navigate(sso_signin_link, { replace: true });
+    window.location.href(sso_signin_link);
+  }
+  */
+  
 
 /*  const userInput = useRef(null);
 
@@ -121,7 +132,6 @@ const Login = (props) => {
               onChange={handleChange} 
             />
           </Form.Item>
-          {sso_signin_link ? <Link id="ssolink" style={{ background: "rgba(9, 30, 66, 0.04)"  }} href={sso_signin_link}>Login (Single-Sign-On)</Link>  : null }
           <Form.Item>
             <Button
               type="primary"
@@ -133,6 +143,23 @@ const Login = (props) => {
               Anmelden
             </Button>
           </Form.Item>
+          {sso_signin_link ? (
+              <Form.Item>
+                <Link href={sso_signin_link} target='_top'>
+                  <Button
+                    color="default"
+                    htmlType="button"
+                    //type="link"
+                    className="login-form-button filled"
+                    //onClick={navigateSSO}
+                    //target={sso_signin_link}
+                  >
+                    Anmelden mit Single Sign-On (SSO)
+                  </Button>
+                </Link>
+              </Form.Item>
+            ) : null
+          }
         </Form>
       </div>
       </React.Fragment>
