@@ -28,7 +28,7 @@ const App = () => {
   return (
     <ConfigProvider locale={deDE}>
       <BrowserRouter>
-      { console.log("brouwserrouter loc="+pathname) }
+      { console.log("browserrouter loc="+pathname) }
       { 
         (pathname.startsWith("/getSSOToken")) ? ( <LoginSSO setToken={setToken} /> ) 
       : 

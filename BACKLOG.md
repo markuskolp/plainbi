@@ -38,6 +38,11 @@ Weiterentwicklung:
 - Anzahl Datensätze pro Tabelle nicht überall einstellbar, warum ?
 - wenn man User ändert z.b. auf Rolle "Admin" dann kommt ein Fehler, weil das Passwort erwartet wird -> bessere Fehlermeldung und PW optional machen
 
+- Rechtekonzept:
+  - z.B. auf TEST/PROD nicht erlauben, dass man Applikationen und Lookups anlegen kann
+  - unterscheiden in Lese/Schreibrechte bei Applikationen
+  - auch auf "Page" Ebene Lese/Schreibrechte vergeben
+
 - Ressource "page" und "page_attachment" hinzufügen, damit man per Markdown eine Doku pflegen kann (Seiten oder News/Blogeintrag)
 - User auch vorab anlegen -> am besten über ein Button wo man aus dem AD auch die auslesen kann (falls AD in .env hinterlegt ist)
 -  **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
@@ -85,6 +90,7 @@ Weiterentwicklung:
 
 Bugs:
 
+- Sortierung aus Tabelle/View wird nicht übernommen ? (gerade bei View mit "order by offset 0 rows")
 - Seitenfilter und dann im Suchfeld suchen -> Seitenfilter wird aufgehoben z.B. https://dwh.mmgmuc.de/apps/dwh_testsuite/testlauf?test_lauf_id=202
 - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - wenn man User löscht und dieser zu einer Gruppe gehört, dann wird "erfolgreich" gezeigt (obwohl dieser nicht gelöscht wurde) - es sollte der Fehler gezeigt werden

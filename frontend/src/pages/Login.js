@@ -134,7 +134,7 @@ const Login = (props) => {
           </Form.Item>
           <Form.Item>
             <Button
-              type="primary"
+              type="default"
               htmlType="submit"
               className="login-form-button"
               onClick={logMeIn}
@@ -147,10 +147,10 @@ const Login = (props) => {
               <Form.Item>
                 <Link href={sso_signin_link} target='_top'>
                   <Button
-                    color="default"
+                    type="primary"
                     htmlType="button"
                     //type="link"
-                    className="login-form-button filled"
+                    //className="login-form-button filled"
                     //onClick={navigateSSO}
                     //target={sso_signin_link}
                   >
