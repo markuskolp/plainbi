@@ -12,8 +12,8 @@
  * @param {number|string} b
  */
 const defaultSort = (a, b) => {
-  if (a < b) return -1;
-  if (b < a) return 1;
+  if (a.toLowerCase() < b.toLowerCase()) return -1;
+  if (b.toLowerCase() < a.toLowerCase()) return 1;
   return 0;
 };
 

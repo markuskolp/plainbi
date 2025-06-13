@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Form, Input, Button, Checkbox,Image, Space, message, Typography  } from 'antd';
+import { Form, Input, Button, Checkbox,Image, Space, message, Typography, Divider  } from 'antd';
 import Icon from '@ant-design/icons';
 import Axios from "axios";
 import EnvironmentBanner from "../components/EnvironmentBanner";
@@ -144,20 +144,25 @@ const Login = (props) => {
             </Button>
           </Form.Item>
           {sso_signin_link ? (
-              <Form.Item>
-                <Link href={sso_signin_link} target='_top'>
-                  <Button
-                    type="primary"
-                    htmlType="button"
-                    //type="link"
-                    //className="login-form-button filled"
-                    //onClick={navigateSSO}
-                    //target={sso_signin_link}
-                  >
-                    Anmelden mit Single Sign-On (SSO)
-                  </Button>
-                </Link>
-              </Form.Item>
+              <React.Fragment>
+                <Divider style={{ borderColor: '#1677ff', fontSize: '14px' }}> oder </Divider>
+                <div align="center">
+                  <Form.Item>
+                    <Link href={sso_signin_link} target='_top'>
+                      <Button
+                        type="primary"
+                        htmlType="button"
+                        //type="link"
+                        //className="login-form-button filled"
+                        //onClick={navigateSSO}
+                        //target={sso_signin_link}
+                      >
+                        Anmelden mit Single Sign-On (SSO)
+                      </Button>
+                    </Link>
+                  </Form.Item>
+                </div>
+              </React.Fragment>
             ) : null
           }
         </Form>

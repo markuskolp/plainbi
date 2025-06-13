@@ -210,3 +210,7 @@ div.monaco-editor {
 .ant-tooltip {
   max-width: 80vw !important;
 }
+
+.ant-layout-sider-zero-width-trigger {
+  top: 25px !important;
+}
