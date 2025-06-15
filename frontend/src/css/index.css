@@ -17,7 +17,7 @@
 }
 .site-layout-content {
   min-height: 280px;
-  padding: 24px;
+  /*padding: 24px;*/
   /*background-color:#fff;*/
 }
 .layout {
@@ -79,15 +79,22 @@ a .anticon {
 a:hover .anticon {
   color: rgb(106, 145, 206); /* rgba(24, 144, 255, 0.88); */
 }
+.ant-page-header {
+  padding-block: 12px !important;
+}
 .pageheader {
-  padding-inline: 0px;
+  /*padding-inline: 0px;*/
+  padding: 20px 0;
   color: rgba(0, 0, 0, 0.88);
   font-weight: 600;
   font-size: 20px;
-  line-height: 32px;
+  line-height: 25px;
   overflow: hidden;
   white-space: nowrap;
   border: none !important;
+}
+li.ant-menu-item {
+  padding-left: 10px !important;
 }
 table * a {
   color: rgba(0, 0, 0, 0.88) !important
@@ -212,5 +219,5 @@ div.monaco-editor {
 }
 
 .ant-layout-sider-zero-width-trigger {
-  top: 25px !important;
+  top: 0px !important;
 }
