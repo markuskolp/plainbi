@@ -838,7 +838,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         Axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
         Axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
         //header.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-        Axios.post(url, body, {headers: {Authorization: token}}).then(   // await
+        Axios.post(url, body).then(   // await // , {headers: {Authorization: token}}
             (res) => {
               console.log(JSON.stringify(res));
               const resData = (res.data.error === undefined ? res : res.data); 
