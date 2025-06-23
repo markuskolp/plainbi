@@ -97,6 +97,7 @@ try:
     #from msal import ConfidentialClientApplication, ClientCredential
     import msal
     config.with_sso=True
+    print("Microsoft SSO enabled")
     log.info("Microsoft SSO enabled")
 except:
     config.with_sso=False
@@ -115,8 +116,10 @@ def myjsonify(d: dict):
         dbg("set status_code to 500 due to jsonify error")
         #jd.status_code=500
     if config.dbg_level >= 3:
+        dbg("--- myjsonify json output")
         pprint.pprint(jd)
         pprint.pprint(d)
+        dbg("--- end myjsonify json output")
     return jd
 
 class CustomJSONEncoder(JSONEncoder):
@@ -266,25 +269,63 @@ def set_log_level(loglevel):
     """
     set log level log.setLevel(
     """
-    if loglevel=="INFO":
-      log.setLevel(logging.INFO)
-      log.info("LogLevel INFO enabled")
-    if loglevel=="DEBUG":
-      log.setLevel(logging.DEBUG)
-      log.info("LogLevel DEBUG enabled")
-    if loglevel=="DEBUG1":
-      log.setLevel(logging.DEBUG)
-      log.info("LogLevel DEBUG enabled")
-      config.dbg_level = 1
-    if loglevel=="DEBUG2":
-      log.setLevel(logging.DEBUG)
-      log.info("LogLevel DEBUG enabled")
-      config.dbg_level = 2
-    if loglevel=="DEBUG3":
-      log.setLevel(logging.DEBUG)
-      log.info("LogLevel DEBUG enabled")
-      config.dbg_level = 3
-    return 'set log level', 200
+    if len(request.args) > 0:
+        for key, value in request.args.items():
+            log.info("loglevel arg: %s val: %s",key,value)
+            if key=="loggers":
+                lognames=value.split(",")
+                dbg("loggers are: "+str(lognames))
+                loggers = [logging.getLogger(name) for name in lognames]
+    else:
+        loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict if "plainbi" in name]
+        dbg("all plainbi loggers")
+
+    for l in loggers:
+      if loglevel=="INFO":
+        l.setLevel(logging.INFO)
+        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+      if loglevel=="DEBUG":
+        l.setLevel(logging.DEBUG)
+        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+      if loglevel=="DEBUG1":
+        l.setLevel(logging.DEBUG)
+        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        config.dbg_level = 1
+      if loglevel=="DEBUG2":
+        l.setLevel(logging.DEBUG)
+        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        config.dbg_level = 2
+      if loglevel=="DEBUG3":
+        l.setLevel(logging.DEBUG)
+        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        config.dbg_level = 3
+    return 'set log level '+loglevel, 200
+
+@api.route('/status', methods=['GET'])
+@api.route(api_root+'/status', methods=['GET'])
+def get_api_status():
+    """
+    return status of the backend
+    ---
+    tags:
+      - Misc
+    produces:
+      - text/plain
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          text/plain: '0.7 vom 5.8.2024'
+    """
+    s=""
+    s+=config.version+"\n"
+    dbversion=get_dbversion(config.repoengine)+"\n"
+    s+="Repository: "+str(dbversion)+"\n"
+    s+="\nLog Level: "+str(config.dbg_level)+"\n"
+
+    s+="\nloggers: "+", ".join(logging.root.manager.loggerDict)
+
+    return s
 
 
 @api.route(api_root+'/email', methods=['POST'])
@@ -353,7 +394,7 @@ def sndemail(tokdata):
           if len(smtp_password)==0:
               smtp_password=None
     except Exception as e:
-        log.error("sendmail error: %s", str(e))
+        err("sendmail error: %s", str(e))
         out["error"]="sendemail"
         out["message"]="Email Konfiguration invalid"
         return myjsonify(out), 500
@@ -361,7 +402,7 @@ def sndemail(tokdata):
 
     dbg("sndemail: check email params")
     if "to" not in item.keys() or "subject" not in item.keys() or "body" not in item.keys():
-        log.error("sendmail error: to, subject or body in request post arguments missing")
+        err("sendmail error: to, subject or body in request post arguments missing")
         out["error"]="sendemail"
         out["message"]="Email invalid"
         return myjsonify(out), 500
@@ -383,7 +424,7 @@ def sndemail(tokdata):
         dbg("sndemail: quit from server")
         server.quit()
     except Exception as e:
-        log.error("sendmail error: %s", str(e))
+        err("sendmail error: %s", str(e))
         out["error"]="sendemail"
         out["message"]="Email konnte nicht versendet werden"
         return myjsonify(out), 500
@@ -542,13 +583,13 @@ def dbexec(tokdata,db,procname):
         else:
             out["message"]="sql executed"
     except SQLAlchemyError as e_sqlalchemy:
-        log.error("dbexec_sql_errors: %s", str(e_sqlalchemy))
+        err("dbexec_sql_errors: %s", str(e_sqlalchemy))
         if last_stmt_has_errors(e_sqlalchemy, out):
             out["error"]+="-dbexec"
             out["message"]+=" bei dbexec"
         return myjsonify(out), 500
     except Exception as e:
-        log.error("dbexec exception: %s ",str(e))
+        err("dbexec exception: %s ",str(e))
         if last_stmt_has_errors(e, out):
             out["error"]+="-dbexec"
             out["message"]+=" beim dbexec"
@@ -735,7 +776,7 @@ def get_item(tokdata,db,tab,pk):
     cols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -762,7 +803,6 @@ def get_item(tokdata,db,tab,pk):
     out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, column_list=cols, versioned=is_versioned, customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
-            #print("out:"+str(out))
             # jk20240910 for date formatting on output
             pre_jsonify_items_transformer(out["data"])
             dbg("out:%s",str(out))
@@ -770,7 +810,7 @@ def get_item(tokdata,db,tab,pk):
             try:
                 json_out = jsonify(out)
             except Exception as ej:
-                log.error("get_item: jsonify Error: %s",str(ej))
+                err("get_item: jsonify Error: %s",str(ej))
                 log.exception(ej)
                 return "get_item: jsonify Error",500
             return myjsonify(out)
@@ -857,7 +897,7 @@ def get_item_post(tokdata,db,tab,pk):
     cols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -884,14 +924,14 @@ def get_item_post(tokdata,db,tab,pk):
     out=get_item_raw(dbengine, tab, pk, pk_column_list=pkcols, column_list=cols, versioned=is_versioned, customsql=mycustomsql)
     if "data" in out.keys():
         if len(out["data"])>0:
-            print("out:"+str(out))
+            dbg("get_item_raw call output in get_item_post:"+str(out))
             pre_jsonify_items_transformer(out["data"])
             dbg("out:%s",str(out))
             dbg("leaving get_item with success and json result")
             try:
                 json_out = jsonify(out)
             except Exception as ej:
-                log.error("get_item: jsonify Error: %s",str(ej))
+                err("get_item: jsonify Error: %s",str(ej))
                 log.exception(ej)
                 return "get_item: jsonify Error",500
             return myjsonify(out)
@@ -969,7 +1009,7 @@ def create_item(tokdata,db,tab):
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -1075,7 +1115,7 @@ def update_item(tokdata,db,tab,pk):
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -1113,6 +1153,7 @@ def update_item(tokdata,db,tab,pk):
     out = db_upd(dbengine, tab, pk, item, pkcols, is_versioned, changed_by=tokdata['username'], customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
+            err("=update_item out error (see stdout for more) ======================")
             print("==============================================")
             print("=update_item out error================================")
             pprint.pprint(out)
@@ -1186,7 +1227,7 @@ def delete_item(tokdata,db,tab,pk):
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -1307,7 +1348,7 @@ def get_metadata_tab_columns(tokdata,db,tab):
     pkcols=None
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -1746,7 +1787,7 @@ def get_repo(tokdata,tab,pk):
     pkcols=[]
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -1763,7 +1804,7 @@ def get_repo(tokdata,tab,pk):
             #print("out:"+str(out))
             pre_jsonify_items_transformer(out["data"])
             #dbg("out:%s",str(out))
-            dbg("return get_repo out:%s",str(out)[:255])
+            dbg("return get_repo out:%s",str(out)[:255],dbglevel=3)
             return myjsonify(out)
             #return Response(jsonify(out),status=204)
         else:
@@ -1823,7 +1864,7 @@ def create_repo(tokdata,tab):
     dbg("create_repo: check url params")
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -1845,7 +1886,7 @@ def create_repo(tokdata,tab):
         elif db_typ in ("mssql","postgres","oracle"):
            seq="plainbi_"+tab+"_seq"
         else:
-           log.error("create_repo: unknown repo database type")
+           err("create_repo: unknown repo database type")
            seq=None
     else:
         seq=None
@@ -1910,7 +1951,7 @@ def update_repo(tokdata,tab,pk):
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -1937,6 +1978,7 @@ def update_repo(tokdata,tab,pk):
     out = db_upd(config.repoengine,repo_table_prefix+tab,pk,item,pkcols,is_versioned,is_repo=True,customsql=mycustomsql)
     if isinstance(out,dict):
         if "error" in out.keys():
+            err("=update_repo out error (see stdout for more) ======================")
             print("==============================================")
             print("=update_repo out error================================")
             pprint.pprint(out)
@@ -1995,7 +2037,7 @@ def delete_repo(tokdata,tab,pk):
     # check options
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="pk":
                 pkcols=value.split(",")
                 dbg("pk option %s",pkcols)
@@ -2096,7 +2138,7 @@ def get_lookup(tokdata,id):
         try:
             json_out = jsonify(out)
         except:
-            log.error("cannot jsonify "+str(out))
+            err("cannot jsonify "+str(out))
             json_out = ("cannot jsonify "+str(out))[:50]
         return json_out,500
     out["data"]=pre_jsonify_items_transformer(items)
@@ -2169,7 +2211,7 @@ def get_adhoc_data(tokdata,id):
     dbg("get_adhoc_data: check request arguments")
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="format":
                 fmt=value
                 dbg("adhoc format %s",fmt)
@@ -2232,7 +2274,7 @@ def get_adhoc_data(tokdata,id):
     dbg("get_adhoc_data: adhoc sql after data subsitution: %s",adhoc_sql)
     if adhoc_sql is None:
         msg="adhoc id/name invalid oder kein sql beim adhoc hinterlegt"
-        log.error(msg)
+        err(msg)
         return msg, 500
     dbg("get_adhoc_data: get db type")
     adhoc_dbengine = get_db_by_id_or_alias(adhoc_datasrc_id)
@@ -2258,13 +2300,13 @@ def get_adhoc_data(tokdata,id):
         try:
             items, columns = db_exec(adhoc_dbengine,adhoc_sql)
         except SQLAlchemyError as e_sqlalchemy:
-            log.error("adhoc_sql_errors: %s", str(e_sqlalchemy))
+            err("adhoc_sql_errors: %s", str(e_sqlalchemy))
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-get_adhoc_data"
                 out["message"]+=" beim Lesen der Adhoc Daten"
             return myjsonify(out), 500
         except Exception as e:
-            log.error("get_adhoc_data exception: %s ",str(e))
+            err("get_adhoc_data exception: %s ",str(e))
             if last_stmt_has_errors(e, out):
                 out["error"]+="-get_adhoc_data"
                 out["message"]+=" beim Lesen der Adhoc Daten"
@@ -2287,13 +2329,13 @@ def get_adhoc_data(tokdata,id):
                 df = pd.read_sql_query(adhoc_sql,conn)
                 dbg("adhoc_dbengine query done")
         except SQLAlchemyError as e_sqlalchemy:
-            log.error("adhoc_sql_errors(pd): %s", str(e_sqlalchemy))
+            err("adhoc_sql_errors(pd): %s", str(e_sqlalchemy))
             if last_stmt_has_errors(e_sqlalchemy, out):
                 out["error"]+="-get_adhoc_data(pd)"
                 out["message"]+=" beim Lesen der Adhoc Daten"
             return myjsonify(out), 500
         except Exception as e:
-            log.error("get_adhoc_data exception(pd): %s ",str(e))
+            err("get_adhoc_data exception(pd): %s ",str(e))
             if last_stmt_has_errors(e, out):
                 out["error"]+="-get_adhoc_data(pd)"
                 out["message"]+=" beim Lesen der Adhoc Daten"
@@ -2325,11 +2367,11 @@ def get_adhoc_data(tokdata,id):
                         df.to_excel(output, index=False, sheet_name=datasheet_name)
                         output.close()
                     except Exception as e0:
-                        log.error("get_adhoc_data to_excel exception: %s ",str(e0))
+                        err("get_adhoc_data to_excel exception: %s ",str(e0))
                         out["error"]="get-adhoc-data-toxls"
                         out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (XLSX)"
                         out["detail"]=str(e0)
-                        log.error(traceback.format_exc())
+                        err(traceback.format_exc())
                         log.exception(e0)
                         return myjsonify(out), 500
                     # add sheet with sql
@@ -2418,11 +2460,11 @@ def get_adhoc_data(tokdata,id):
                     try:
                         df.to_csv(tmpfile, index=False)
                     except Exception as e0:
-                        log.error("get_adhoc_data to_csv exception: %s ",str(e0))
+                        err("get_adhoc_data to_csv exception: %s ",str(e0))
                         out["error"]="get-adhoc-data-tocsv"
                         out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download (CSV)"
                         out["detail"]=str(e0)
-                        log.error(traceback.format_exc())
+                        err(traceback.format_exc())
                         log.exception(e0)
                         return myjsonify(out), 500
                     # Return the Excel file as a download
@@ -2454,7 +2496,7 @@ def get_adhoc_data(tokdata,id):
                     out["detail"]=None
                     return myjsonify(out), 500
             except Exception as e:
-                log.error("get_adhoc_data exception: %s ",str(e))
+                err("get_adhoc_data exception: %s ",str(e))
                 out["error"]="get-adhoc-data-fai"
                 out["message"]="Fehler beim Prozessieren der Adhoc-Daten für den Download"
                 out["detail"]=str(e)
@@ -2475,7 +2517,7 @@ def load_repo_users():
     out={}
     plainbi_users,columns,cnt,e=sql_select(config.repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
-        log.error('error in select users %s', str(e))
+        err('error in select users %s', str(e))
         return False
     users = {u["username"]: { "password_hash": u["password_hash"], "email" : u["email"], "rolename" : "Admin" if u["role_id"]==1 else "User" } for u in plainbi_users}
 
@@ -2507,7 +2549,7 @@ def load_repo_users():
     out={}
     plainbi_users,columns,cnt,e=sql_select(config.repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
-        log.error('error in select users %s', str(e))
+        err('error in select users %s', str(e))
         return False
     users = {u["username"]: { "password_hash": u["password_hash"], "email" : u["email"], "rolename" : "Admin" if u["role_id"]==1 else "User" } for u in plainbi_users}
 
@@ -2521,7 +2563,7 @@ def authenticate_local(username,password):
     global users
     load_repo_users()
     if not username or not password:
-        log.error('error invalid cred')
+        err('error invalid cred')
         return False
 
     p=config.bcrypt.generate_password_hash(password)
@@ -2557,14 +2599,14 @@ def authenticate_ldap(login_username,password=None):
     s = ldap3.Server(host=os.environ.get("LDAP_HOST"), port=int(os.environ.get("LDAP_PORT")), use_ssl=False, get_info=ldap3.ALL)
     conn_bind = ldap3.Connection(s, user=os.environ.get("LDAP_BIND_USER_DN"), password=bindpwd, auto_bind='NONE', version=3, authentication='SIMPLE')
     if not conn_bind.bind():
-        log.error('error in bind %s', str(conn_bind.result))
-        log.error('check environent variables LDAP_HOST=%s LDAP_PORT=%s LDAP_BIND_USER_DN=%s', os.environ.get("LDAP_HOST"),os.environ.get("LDAP_PORT"),os.environ.get("LDAP_BIND_USER_DN"))
+        err('error in bind %s', str(conn_bind.result))
+        err('check environent variables LDAP_HOST=%s LDAP_PORT=%s LDAP_BIND_USER_DN=%s', os.environ.get("LDAP_HOST"),os.environ.get("LDAP_PORT"),os.environ.get("LDAP_BIND_USER_DN"))
         if "LDAP_BIND_USER_PASSWORD" not in list(dict(os.environ).keys()):
-            log.error("environment variable LDAP_BIND_USER_PASSWORD is missing")
+            err("environment variable LDAP_BIND_USER_PASSWORD is missing")
         dbg("++++++++++ entering authenticate_ldap with status %s",authenticated)
         return authenticated,username
     if "LDAP_BASE_DN" not in list(dict(os.environ).keys()):
-        log.error("environment variable LDAP_BASE_DN is missing")
+        err("environment variable LDAP_BASE_DN is missing")
         return authenticated,username
     if os.environ.get("LDAP_SEARCH_EXPR") is not None:
         search_expr=os.environ.get("LDAP_SEARCH_EXPR")
@@ -2713,7 +2755,7 @@ def login():
             load_repo_users()
         if len(request.args) > 0:
             for key, value in request.args.items():
-                log.info("arg: %s val: %s",key,value)
+                dbg("arg: %s val: %s",key,value)
                 if key=="tokenonly":  # this helps for testing
                     return token
         else:
@@ -2803,21 +2845,21 @@ def login_sso():
                 load_repo_users()
                 username = get_user_by_email(useremail)
                 if username is None:
-                    log.info("user %s is not in know users",str(username))
+                    warn("user %s is not in know users",str(username))
             if username is not None: 
-                dbg("usernam is %s",str(username))
+                dbg("username is %s",str(username))
                 log.info("Valid Id Token: User unique name: %s",username)
                 authenticated = True
             else:
                 authenticated = False
-                log.info("No Valid Id Token : %s",username)
+                warn("No Valid Id Token : %s",username)
             break
         #except (jwt.InvalidTokenError,jwt.DecodeError):
         except Exception as e_validate:
-            log.warning("validing id token failed with %s",str(e_validate))
+            warn("validing id token failed with %s",str(e_validate))
             continue
     else:
-      log.error("calling auth2 token: ID Token validation failed")
+      err("calling auth2 token: ID Token validation failed")
 
     if authenticated:
         dbg("login authenticated by SSO for %s",username)
@@ -2828,7 +2870,7 @@ def login_sso():
             load_repo_users()
         if len(request.args) > 0:
             for key, value in request.args.items():
-                log.info("arg: %s val: %s",key,value)
+                dbg("arg: %s val: %s",key,value)
                 if key=="tokenonly":  # this helps for testing
                     return token
         else:
@@ -2876,20 +2918,20 @@ def passwd(tokdata):
     data_string = data_bytes.decode('utf-8')
     dbg("datastring: %s",data_string)
     item = json.loads(data_string.strip("'"))
-    print("passwd items ",str(item))
+    dbg("passwd items ",str(item),dbglevel=3)
     prof=get_profile(config.repoengine,tokdata['username'])
     
     plainbi_users,columns,cnt,e=sql_select(config.repoengine,'plainbi_user')
     if last_stmt_has_errors(e,out):
         return myjsonify({'error': 'Invalid User collecting'}), 500
     users = {u["username"]: u["password_hash"] for u in plainbi_users}
-    print(str(users))
+    dbg(str(users),dbglevel=3)
 
     password = item['password']
     dbg("login: password=%s",password)
     p=config.bcrypt.generate_password_hash(password)
     pwd_hashed=p.decode()
-    print(pwd_hashed)
+    dbg(pwd_hashed,dbglevel=3)
     
     if prof["role"] == "Admin":
         username = item['username']
@@ -2932,7 +2974,7 @@ def hash_passwd(pwd):
     p=config.bcrypt.generate_password_hash(pwd)
     pwd_hashed=p.decode()
     out["hashed"]=pwd_hashed
-    print(pwd_hashed)
+    dbg("hashed pwd: "+pwd_hashed,dbglevel=3)
     return myjsonify(out)
 
 @api.route('/cache', methods=['GET'])
@@ -2969,7 +3011,7 @@ def cache(tokdata):
     dbg("clear_cache: get_profile: cache created")
     if len(request.args) > 0:
         for key, value in request.args.items():
-            log.info("arg: %s val: %s",key,value)
+            dbg("arg: %s val: %s",key,value)
             if key=="on":
                 config.use_cache=True
                 dbg("caching enabled")
@@ -3178,7 +3220,7 @@ def getsettingsjs():
         try:
             json_out2 = jsonify(out)
         except Exception as ej2:
-            log.error("getsettings.js: jsonify Error 2: %s",str(ej2))
+            err("getsettings.js: jsonify Error 2: %s",str(ej2))
         return json_out2,500
 
     def get_setting_from_list(items,nam):
@@ -3208,28 +3250,26 @@ def getsettingsjs():
     s=s+f"var THEME_FONT_SIZE = "+get_setting_from_list(items,'font_size')+";\n"
     s=s+f"var CONTACT_EMAIL = '"+get_setting_from_list(items,'contact_email')+"';\n"
     if config.PLAINBI_SSO_APPLICATION_ID is not None:
-        log.info("get SSO signin Link")
+        dbg("get SSO signin Link")
         #config.PLAINBI_SSO_REDIRECT_PATH
         config.PLAINBI_SSO_SCOPE = ["User.Read"]
-        log.info(f"config.PLAINBI_SSO_SCOPE = {config.PLAINBI_SSO_SCOPE}")
-        log.info(f"config.PLAINBI_SSO_REDIRECT_PATH = {config.PLAINBI_SSO_REDIRECT_PATH}")
+        dbg(f"config.PLAINBI_SSO_SCOPE = {config.PLAINBI_SSO_SCOPE}")
+        dbg(f"config.PLAINBI_SSO_REDIRECT_PATH = {config.PLAINBI_SSO_REDIRECT_PATH}")
         try:
             ssoapp = msal.ConfidentialClientApplication(client_id=config.PLAINBI_SSO_APPLICATION_ID, authority=config.PLAINBI_SSO_AUTHORITY, client_credential=config.PLAINBI_SSO_CLIENT_SECRET)
-            log.info("ssoapp initialized")
+            dbg("ssoapp initialized")
             ssourl = ssoapp.get_authorization_request_url(config.PLAINBI_SSO_SCOPE, redirect_uri = config.PLAINBI_SSO_REDIRECT_PATH, state="hugo" )
             dbg(f"sso auth url is: %s",ssourl)
             uri = ssourl
-            log.info("auth uri is %s",uri)
+            dbg("auth uri is %s",uri)
             parsed_uri = urlparse(uri)
             query_params = parse_qs(parsed_uri.query)
             vstate=query_params.get('state', [None])[0]
             config.SSO_CODE_CHALLENGE = query_params.get('code_challenge', [None])[0]
             dbg("SSO_CODE_CHALLENGE %s",config.SSO_CODE_CHALLENGE)
-            #new_uri = uri.replace("&state="+vstate+"&","&state="+orig_session_state+"&")
-            #log.info("auth new uri is %s",new_uri)
             s=s+f"var SSO_SIGNIN_LINK = '"+uri+"';\n"
         except Exception as e_ssoapp:
-            log.error("SSO msal app error: "+str(e_ssoapp))
+            err("SSO msal app error: "+str(e_ssoapp))
             config.PLAINBI_SSO_APPLICATION_ID = None
             config.with_sso = False
             log.warning("SSO disabled due to error in msal create app")
@@ -3269,7 +3309,7 @@ def getsettings():
         try:
             json_out2 = jsonify(out)
         except Exception as ej2:
-            log.error("getsettings: jsonify Error 2: %s",str(ej2))
+            err("getsettings: jsonify Error 2: %s",str(ej2))
             log.exception(ej2)
         return json_out2,500
     out["data"]=pre_jsonify_items_transformer(items)
@@ -3363,7 +3403,7 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
     if p_repository:
         app.config["PLAINBI_REPOSITORY"] = p_repository
 
-    log.info(f"app.config.SESSION_TYPE = {app.config['SESSION_TYPE']}")
+    dbg(f"app.config.SESSION_TYPE = {app.config['SESSION_TYPE']}")
     Session(app)
    
     # get the configuration
@@ -3373,7 +3413,7 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
     #config.repoengine = db_connect(config.repository)
     config.repoengine = db_connect(app.config["PLAINBI_REPOSITORY"])
     if not db_connect_test(config.repoengine):
-        log.error("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
+        err("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
         sys.exit(0)
 
     # get datasources from repository
@@ -3391,7 +3431,7 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
     if config.database:
         config.dbengine = db_connect(config.database)
         if not db_connect_test(config.dbengine):
-            log.error("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
+            err("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
             sys.exit(0)
         log.info(f"The default database connection description is {config.database}")
     
@@ -3420,8 +3460,8 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
             config.ms_keys = requests.get(ms_keys_url).json()["keys"]
             #dbg("ms_keys is: %s",str(config.ms_keys))
         except Exception as e_get_ms_keys:
-            log.error("get microsoft keys for SSO: %s",str(e_get_ms_keys))
-            log.error("SSO disabled coz cannot get microsoft keys for tenant %s",config.PLAINBI_SSO_TENANTID)
+            err("get microsoft keys for SSO: %s",str(e_get_ms_keys))
+            err("SSO disabled coz cannot get microsoft keys for tenant %s",config.PLAINBI_SSO_TENANTID)
             config.with_sso=False
             config.ms_keys=[]
 
