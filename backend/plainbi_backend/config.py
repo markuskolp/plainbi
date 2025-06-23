@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 
 print("import config")
 log = logging.getLogger()
-#log.setLevel(logging.DEBUG)
 log.debug("start configuration")
 
 # a class object that will be a container for the config variable that is imported in other scripts and module

@@ -115,7 +115,7 @@ def myjsonify(d: dict):
         log.exception(e)
         dbg("set status_code to 500 due to jsonify error")
         #jd.status_code=500
-    if config.dbg_level >= 3:
+    if config.dbg_level >= 3 and log.getEffectiveLevel() == logging.DEBUG:
         dbg("--- myjsonify json output")
         pprint.pprint(jd)
         pprint.pprint(d)
@@ -283,21 +283,23 @@ def set_log_level(loglevel):
     for l in loggers:
       if loglevel=="INFO":
         l.setLevel(logging.INFO)
-        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        log.info(f"LogLevel {loglevel} for {l.name} enabled")
+        config.dbg_level = 1
       if loglevel=="DEBUG":
         l.setLevel(logging.DEBUG)
-        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        log.info(f"LogLevel {loglevel} for {l.name} enabled")
+        config.dbg_level = 1
       if loglevel=="DEBUG1":
         l.setLevel(logging.DEBUG)
-        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        log.info(f"LogLevel {loglevel} for {l.name} enabled")
         config.dbg_level = 1
       if loglevel=="DEBUG2":
         l.setLevel(logging.DEBUG)
-        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        log.info(f"LogLevel {loglevel} for {l.name} enabled")
         config.dbg_level = 2
       if loglevel=="DEBUG3":
         l.setLevel(logging.DEBUG)
-        dbg(f"LogLevel {loglevel} for {l.name} enabled")
+        log.info(f"LogLevel {loglevel} for {l.name} enabled")
         config.dbg_level = 3
     return 'set log level '+loglevel, 200
 
@@ -318,12 +320,18 @@ def get_api_status():
           text/plain: '0.7 vom 5.8.2024'
     """
     s=""
-    s+=config.version+"\n"
+    s+="API Version: "+config.version+"\n"
     dbversion=get_dbversion(config.repoengine)+"\n"
     s+="Repository: "+str(dbversion)+"\n"
+
+    for l in logging.root.manager.loggerDict:
+        if "plainbi" in l:
+            lg=logging.getLogger(l)
+            s+=l+": "+logging.getLevelName(lg.getEffectiveLevel())
+    
     s+="\nLog Level: "+str(config.dbg_level)+"\n"
 
-    s+="\nloggers: "+", ".join(logging.root.manager.loggerDict)
+    s+="\nall loggers: "+", ".join(logging.root.manager.loggerDict)
 
     return s
 
@@ -665,6 +673,14 @@ def get_all_items(tokdata,db,tab):
         in: query
         type: string
         description: id or alias of sql in repository table plainbi_customersql. This replaces the tablename, bei "!" not equal
+      - name: format
+        in: query
+        type: string
+        description: output format XLSX/CSV
+      - name: filename
+        in: query
+        type: string
+        description: filename for format output
     responses:
       200:
         description: Successful operation
@@ -697,6 +713,24 @@ def get_all_items(tokdata,db,tab):
         dbg("get_all_items sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         return myjsonify(out),500
+    has_format_param = True if request.args.get('format') is not None else False
+    if has_format_param:
+        format=request.args.get('format')
+        filnam=request.args.get('filename')
+        if filnam is None: filnam="mydata.csv"
+        f = open(filnam,'wb')
+        w = csv.DictWriter(f,items.keys())
+        w.writerows(items)
+        f.close()
+        f = open(filnam,'rb')
+        response = Response(
+            f.read(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename='+filnam}
+        )
+        f.close()
+        dbg(response)
+        return response
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
@@ -3131,6 +3165,133 @@ def logout(tokdata):
     dbg("logout")
     audit(tokdata,request)
     return myjsonify({'message': 'logged out'})
+
+# dsdb export
+@api.route(repo_api_prefix+'/application/<appid>/dsdb', methods=['GET'])
+#@token_required
+#def download_app_dsdb(tokdata,appid):
+def download_app_dsdb(appid):
+    """
+    download a dsdb file for the application object in the repository
+    can/should be used for deployments
+
+    ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: appid
+        in: path
+        type: string
+        required: true
+        description: id or alias of the application defined in the repository
+      - name: filenam
+        in: query
+        type: string
+        description: output filename
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          text/plain: 
+            message: Data processed successfully
+    """
+    dbg("++++++++++ entering download_app_dsdb")
+    dbg_api_call(request)
+    dbg("download_app_dsdb: app_id is <%s>",str(appid))
+    out=get_item_raw(config.repoengine, "plainbi_application", str(appid))
+    if "data" in out.keys():
+        print("app=",str(out))
+        rec=out["data"][0]
+        s='{\n  objectList:\n  [\n    {\n      dsdbFormat: 1\n      deploymentType: always\n      current:\n      {\n        version: 1.0\n'
+        s+='        statements: [\n          DELETE FROM plainbi_application WHERE id IN ('+str(rec["id"])+');\n        ]\n        data:\n        [\n'
+        s+='          {\n            target: plainbi_application\n            columns: [ "id", "name", "alias", "datasource_id", "spec_json"]\n            rows: [\n'
+        s+='              [\n                '+str(rec["id"])+', "'+rec["name"]+'", "'+rec["alias"]+'", '+str(rec["datasource_id"])+'\n'
+        s+="                '''\n"
+        s+= rec["spec_json"]
+        s+="\n                '''\n"
+        s+="              ]\n            ]\n          }\n        ]\n      }\n    }\n  ]\n}\n"
+        # Return the data as a download
+        response = Response(
+            s,
+            mimetype='text/plain',
+            headers={'Content-Disposition': 'attachment; filename=mydata.dsdb'}
+        )
+        dbg(response)
+        return response
+    else:
+        return "error getting application or application does not exist", 500
+
+
+@api.route(repo_api_prefix+'/lookup/<lkpid>/dsdb', methods=['GET'])
+#@token_required
+#def download_lkp_dsdb(tokdata,lkpid):
+def download_lkp_dsdb(lkpid):
+    """
+    download a dsdb file for the lookup object in the repository
+    can/should be used for deployments
+
+    ---
+    tags:
+      - Misc
+    security:
+    - APIKeyHeader: ['Authorization']
+    parameters:
+      - name: lkpid
+        in: path
+        type: string
+        required: true
+        description: id or alias of the application defined in the repository
+      - name: filenam
+        in: query
+        type: string
+        description: output filename
+    responses:
+      200:
+        description: Successful operation
+        examples:
+          text/plain: 
+            message: Data processed successfully
+    """
+    dbg("++++++++++ entering download_lkp_dsdb")
+    dbg_api_call(request)
+    dbg("download_lkp_dsdb: app_id is <%s>",str(lkpid))
+    out=get_item_raw(config.repoengine, "plainbi_lookup", lkpid)
+    if "data" in out.keys():
+        rec=out["data"][0]
+        print("lkp=",str(out))
+        s='{\n  objectList:\n  [\n    {\n      dsdbFormat: 1\n      deploymentType: always\n      current:\n      {\n        version: 1.0\n'
+        s+='        statements: [\n          DELETE FROM plainbi_lookup WHERE id IN ('+str(rec["id"])+');\n        ]\n        data:\n        [\n'
+        s+='          {\n            target: plainbi_lookup\n            columns: [ "id", "name", "alias", "datasource_id", "sql_query"]\n            rows: [\n'
+        s+='              [\n                '+str(rec["id"])+', "'+rec["name"]+'", "'+rec["alias"]+'", '+str(rec["datasource_id"])+'\n'
+        s+="                '''\n"
+        s+=rec["sql_query"]
+        s+="\n                '''\n"
+        s+="              ]\n            ]\n          }\n        ]\n      }\n    }\n  ]\n}\n"
+        # Return the data as a download
+        response = Response(
+            s,
+            mimetype='text/plain',
+            headers={'Content-Disposition': 'attachment; filename=mydata.dsdb'}
+        )
+        dbg(response)
+        return response
+        dbg("++++++++++ entering download_lkp_dsdb")
+        dbg_api_call(request)
+        dbg("download_lkp_dsdb: lookup_id is <%s>",str(appid))
+        s = "Hallo\nhugo"
+        # Return the data as a download
+        response = Response(
+            s,
+            mimetype='text/plain',
+            headers={'Content-Disposition': 'attachment; filename=mydatalkp.dsdb'}
+        )
+        dbg(response)
+        return response
+    else:
+        return "error getting lookup or lookup does not exist", 500
+
 
 
 ###########################
