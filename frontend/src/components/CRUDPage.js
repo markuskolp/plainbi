@@ -58,7 +58,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions }) => {
     
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -82,6 +82,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [filter, setFilter]=useState();
   const [tableParamChanged, setTableParamChanged]=useState(false);
   const [typingTimeout, setTypingTimeout]=useState(null);
+  const [externalActionTimeout, setExternalActionTimeout]=useState(null);
   const [activateLookups, setActivateLookups]=useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   console.log("searchParams: " + searchParams);
@@ -91,6 +92,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   let record_pk = (pk ? pk.toString() : null);
   let recordForPKLoaded = false;
   //console.log("CRUDPage - tableColumns: " + JSON.stringify(tableColumns));
+  console.log("allowedActions: " + JSON.stringify(allowedActions));
+  console.log("externalActions: " + JSON.stringify(externalActions));
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -820,6 +823,42 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       );
     }
 
+    const callExternalAction = (id, wait_repeat_in_ms = 1000, url, body) => {
+      console.log("callExternalAction with id: " + id);
+      if(externalActionTimeout) {
+        message.info("Sie müssen " + wait_repeat_in_ms / 1000 + " Sekunden warten, bevor die Aktion wiederholt werden darf.")
+        console.log("external action already called ... waiting for timeout to allow repeat"); // do nothing // clearTimeout(externalActionTimeout);
+      } else {
+        console.log("calling external action");
+        message.info("Aktion wird ausgelöst")
+
+        // todo: check method and switch between them. only allowed: get, post ?
+        // todo: check for contenttype
+
+        Axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
+        Axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
+        //header.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        Axios.post(url, body, {headers: {Authorization: token}}).then(   // await
+            (res) => {
+              message.success('Erfolgreich ausgelöst.');
+            }
+          ).catch(function (error) {
+            message.error('Es gab einen Fehler beim Auslösen der Aktion');
+            console.log(error);
+          }
+          )
+
+        setExternalActionTimeout( 
+          setTimeout(() => {
+            console.log("timeout over")
+            setExternalActionTimeout(null)
+            clearTimeout(externalActionTimeout)
+          }, wait_repeat_in_ms)
+        );
+        console.log("timeout for repeat set to " + wait_repeat_in_ms + " ms");
+      }
+    }
+
     return (
       <React.Fragment>
       <PageHeader
@@ -827,16 +866,26 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
               title=""
               subTitle=""
               extra={[
-                allowedActions.includes("create") && 
-                <Button
-                  //href="/apps/edit"
-                  onClick={showCreateModal}
-                  key="1"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                >
-                  Neu
-                </Button>
+                  
+                  allowedActions.includes("create") && 
+                  <Button
+                    //href="/apps/edit"
+                    onClick={showCreateModal}
+                    key="1"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                  >
+                    Neu
+                  </Button>
+                  ,
+                  externalActions && externalActions.map((externalAction) => {
+                    return (
+                      <Button onClick={(e) => {callExternalAction(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
+                        {externalAction.label}
+                      </Button>
+                    ) 
+                  })
+
                 
               ]}
             />
@@ -870,7 +919,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                             .map((column) => {
                               return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype, column.ui));
                             })
-                            .concat((allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate")) : [])} // .. also add action buttons (delete, edit), if allowed
+                            .concat((allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate")) : [])
+                          } // .. also add action buttons (delete, edit), if allowed
 
                           dataSource={filteredTableData == null ? tableData : filteredTableData}
                           //rowKey="key"

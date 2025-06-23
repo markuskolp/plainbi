@@ -90,6 +90,8 @@ Weiterentwicklung:
 
 Bugs:
 
+- wenn AdHocs (erwarteterweise) keine Daten liefern, gibt es bei Ausgabe als Excel oder CSV einen Fehler , aber HTML funktioniert
+- wenn der Name des AdHocs zu lange ist, wirft das Portal keinen Fehler, sondern sagt, es wurde erfolgreich gespeichert - es gibt aber keinen neuen Adhoc in der Liste
 - Sortierung aus Tabelle/View wird nicht übernommen ? (gerade bei View mit "order by offset 0 rows")
 - Seitenfilter und dann im Suchfeld suchen -> Seitenfilter wird aufgehoben z.B. https://dwh.mmgmuc.de/apps/dwh_testsuite/testlauf?test_lauf_id=202
 - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
