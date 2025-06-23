@@ -15,4 +15,11 @@ module.exports = function(app) {
       changeOrigin: true,
     })
   );
+  app.use(
+    '/datasqill-server',
+    createProxyMiddleware({
+      target: 'http://vx1-mmbids-01:17491',
+      changeOrigin: true,
+    })
+  );
 };
