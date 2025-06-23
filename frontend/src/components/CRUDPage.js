@@ -840,7 +840,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         //header.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
         Axios.post(url, body, {headers: {Authorization: token}}).then(   // await
             (res) => {
-              message.success('Erfolgreich ausgelöst.');
+              console.log(JSON.stringify(res));
+              const resData = (res.data.error === undefined ? res : res.data); 
+              console.log(JSON.stringify(resData));
+              if (resData.error) { // response might be "200 OK", but still check for error in response body
+                message.error(JSON.stringify(resData.error));
+              } else {
+                message.success('Erfolgreich ausgelöst.');
+              }
             }
           ).catch(function (error) {
             message.error('Es gab einen Fehler beim Auslösen der Aktion');
