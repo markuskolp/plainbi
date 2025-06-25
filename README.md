@@ -9,7 +9,7 @@ includes:
 - ... and more to come
 
 
-### CRUD applications
+# CRUD applications
 
 A CRUD application is defined as code. Following syntax is possible: 
 
@@ -79,23 +79,23 @@ A CRUD application is defined as code. Following syntax is possible:
 }
 ```
 
-#### Page options
+## Page options
 
-#### id
+## id
 
 Just any numerical value: 1,2,3,...
 
 Has to be unique for all pages.
 
-##### name
+### name
 
 A nice label for the page :)
 
-##### alias
+### alias
 
 A alias (without spaces and special characters) that is mainly used to identify the page and also used in the URL, so the page can also be adressed directly
 
-###### versioned
+## versioned
 
 Treats a table as a versioned table (SCD2) and is able to generate appropriate records.
 
@@ -113,7 +113,7 @@ is_current_and_active char(1) -- Y/N
 
 The `last_changed_by` field is filled with the username. So you can track who creates, edits or deletes a record.
 
-##### allowed_actions
+### allowed_actions
 
 leave **empty array** if no actions allowed or select between these options (in any combination)
 - `update`
@@ -122,39 +122,39 @@ leave **empty array** if no actions allowed or select between these options (in 
 - `duplicate` (same as `create`, but prefills the form with the data of the selected row)
 - `export_dsdb` (custom functionality to export a plainbi application or lookup as .dsdb file for [datasqill](https://www.datasqill.de/) used in DevOps scenario (git versioning)
 
-##### pk_columns
+### pk_columns
 
 Used for editing and deleting a record - composite key possible: `["primary_key_column1", "primary_key_column2", ...]`
          
-##### table
+### table
 
 The most important option. Defines the table to be used for all CRUD operations (create, read, update, delete).
 
 Has to be the fully qualified name: `<database>.schema.tablename>`
 
-##### table_for_list
+### table_for_list
 
 **optional**: used as an alternative **only** for the tabular view of a page - can be a different table or a view e.g. with labels for ID columns etc.
 
-##### sequence
+### sequence
 
 **optional**: sequence to use for the primary key column when adding a new record
 
-##### hide_in_navigation
+### hide_in_navigation
 
 **optional**: hides the page in the side navigation
 
-##### show_breadcrumb + parent_page
+### show_breadcrumb + parent_page
 
 **optional**: 
 - show_breadcrumb: shows a breadcrumb above the page 
 - parent_page: refers to the parent page (used for the breadcrumb to show a navigation e.g. "parent page" > "current page") - array of "alias" and "name" of the parent page
 
-##### user_column
+### user_column
 
 **optional**: defines which column contains the username and tells plainbi to write the username of the logged in user into this column, when creating or editing a record (insert / update)
 
-##### table_columns
+### table_columns
 
 Array of one or more table columns.
 
@@ -187,7 +187,7 @@ Here following options are possible:
 - showdetailsonly: allowed value `true`: **optional**: show this field only in detail view (modal dialog)
 - showsummaryonly: allowed value `true`: **optional**: show this field only in tabular view
 
-##### external_actions
+### external_actions
 
 Allows the execution of external actions. This can defined per page and each action is offered as a button (next to the "New" button).
 Currently only the **call of a REST API** is working.
@@ -205,7 +205,7 @@ Here following options are available (and all are mandatory):
 - body: any payload e.g plain, JSON, etc. - when using double-quote's then please escape them e.g. \\"
 - wait_repeat_in_ms: time to wait in milliseconds, before a repeat of the action is allowed. this prevents an action to be called to often from the user
 
-#### Human friendly URLs and parameters
+## Human friendly URLs and parameters
 
 Every application and page can be adressed by a well formed and human friendly URL. This is defined by the aliases.
 
