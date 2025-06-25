@@ -21,7 +21,7 @@ A CRUD application is defined as code. Following syntax is possible:
          "name":"<Page name>",
          "alias":"<page_alias>", 
          "allowed_actions":[ 
-            "update", "create", "delete", "duplicate"
+            "update", "create", "delete", "duplicate", "export_dsdb"
          ],
          "pk_columns":["<primary_key_column>, ..."], 
          "table":"<table>", 
@@ -32,6 +32,18 @@ A CRUD application is defined as code. Following syntax is possible:
          "show_breadcrumb":"true", 
          "parent_page": {"alias":"<alias_of_parent_page>","name":"<Label of parent page>"}, 
          "user_column":"<column>",
+         "external_actions": [
+            {
+               "type": "call_rest_api",
+               "id": "1",
+               "label": "<Label to show on button>",
+               "method": "POST|GET",
+               "contenttype": "application/json",
+               "url": "<any endpoint url>",
+               "body": "<any payload e.g plain, JSON, etc.",
+               "wait_repeat_in_ms": "<ms>"
+            }
+         ],
          "table_columns":[ 
             {
                "column_name":"<technical_column_name>",
@@ -108,6 +120,7 @@ leave **empty array** if no actions allowed or select between these options (in 
 - `create`
 - `delete`
 - `duplicate` (same as `create`, but prefills the form with the data of the selected row)
+- `export_dsdb` (custom functionality to export a plainbi application or lookup as .dsdb file for [datasqill](https://www.datasqill.de/) used in DevOps scenario (git versioning)
 
 ##### pk_columns
 
@@ -174,6 +187,23 @@ Here following options are possible:
 - showdetailsonly: allowed value `true`: **optional**: show this field only in detail view (modal dialog)
 - showsummaryonly: allowed value `true`: **optional**: show this field only in tabular view
 
+##### external_actions
+
+Allows the execution of external actions. This can defined per page and each action is offered as a button (next to the "New" button).
+Currently only the **call of a REST API** is working.
+In development is also the **call of a stored procedure** in the source database (backend is already prep'ed for this - frontend not).
+The call only reacts on a positive or negative response and tries to get the error message in case of an error.
+But for a REST API call it is not possible to do a further call e.g. if you trigger an async process and want to wait/loop for a final status.
+
+Here following options are available (and all are mandatory):
+- type: allowed value `call_rest_api`
+- id: a random unique number
+- label: label to show on button
+- method: only POST oder GET are supported
+- contenttype: any contenttype e.g. "application/json"
+- url: any endpoint url - be aware of CORS, because the frontend sends the request - if necessary add a routing (proxy path) to the webserver (e.g. Nginx)
+- body: any payload e.g plain, JSON, etc. - when using double-quote's then please escape them e.g. \\"
+- wait_repeat_in_ms: time to wait in milliseconds, before a repeat of the action is allowed. this prevents an action to be called to often from the user
 
 #### Human friendly URLs and parameters
 
