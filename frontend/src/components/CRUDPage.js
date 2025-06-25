@@ -21,7 +21,7 @@ import {
   CaretDownFilled
 } from '@ant-design/icons';
 import { PageHeader } from "@ant-design/pro-layout";
-import { EditOutlined, PlusOutlined, DeleteOutlined, CopyOutlined } from "@ant-design/icons";
+import { EditOutlined, PlusOutlined, DeleteOutlined, CopyOutlined, DownloadOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import CRUDModal from "./CRUDModal";
 import TableModal from "./TableModal";
@@ -257,6 +257,59 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         }
         )
     };
+
+    const getDsdbExport = async (_type, _id, _filename) => {
+      //setLoading(true);
+      //setError(false);
+      //const dt = new Date().toISOString().substring(0,19);
+
+      if (_type != 'application' && _type != 'lookup') {
+        message.error("kein valider Typ für DSDB-Export: " + _type)
+        return
+      }
+  
+      const blobUri = "/api/repo/"+_type+"/"+_id+"/dsdb"; //?filenam="+_filename;
+      console.log("getDsdbExport uri: " + blobUri);
+  
+      await Axios.get(blobUri, {responseType: 'blob', headers: {Authorization: token}}).then(
+        (res) => {
+          console.log(res.data);
+          // create file link in browser's memory
+          const href = URL.createObjectURL(res.data);
+      
+          // create "a" HTML element with href to file & click
+          const link = document.createElement('a');
+          link.href = href;
+          link.setAttribute('download', _filename); 
+          document.body.appendChild(link);
+          link.click();
+      
+          // clean up "a" element & remove ObjectURL
+          document.body.removeChild(link);
+          URL.revokeObjectURL(href);
+          
+          message.success(".dsdb erfolgreich heruntergeladen - siehe Downloads > " + _filename)
+  
+        }
+        ).catch(
+          function (error) {
+            //setLoading(false);
+            console.log("getDsdbExport - error: " + error);
+            message.error('Es gab einen Fehler beim Laden der Daten');
+            //setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+            //setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+            //setError(true);
+            //console.log(error);
+            //console.log(error.response.data.message);
+          }
+        );  
+    };
+  
+    const downloadDsdb = (record, e) => {
+      console.log("downloadDsdb - getDsdbExport for " + tableName + " " + record.id + " " + record.alias+'.dsdb');
+      getDsdbExport(tableName, record.id, record.alias.toLowerCase()+'.dsdb');
+    }
+    
 
   const handleChange = (pagination, filters, sorter) => {
     const offset = pagination.current * pagination.pageSize - pagination.pageSize;
@@ -574,7 +627,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   */
 
     // add action buttons to a table record
-   function getColumnAction( deleteAllowed, updateAllowed, duplicateAllowed) {
+   function getColumnAction( deleteAllowed, updateAllowed, duplicateAllowed, exportdsdbAllowed) {
     return {
       title: " ",
       key: "action",
@@ -596,13 +649,18 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
             </Popconfirm>
           }
           {updateAllowed && pkColumns &&
-          <Link onClick={(e) => { showEditModal(record, e); }}>
+          <Link title="Editieren" onClick={(e) => { showEditModal(record, e); }}>
             <EditOutlined style={{ fontSize: "18px" }} />
           </Link>
           }
           {duplicateAllowed && pkColumns &&
-          <Link onClick={(e) => { showDuplicateModal(record, e); }}>
+          <Link title="Duplizieren" onClick={(e) => { showDuplicateModal(record, e); }}>
             <CopyOutlined style={{ fontSize: "18px" }} />
+          </Link>
+          }
+          {exportdsdbAllowed && pkColumns &&
+          <Link title="als .dsdb exportieren" onClick={(e) => { downloadDsdb(record, e); }}>
+            <DownloadOutlined style={{ fontSize: "18px" }} />
           </Link>
           }
         </Space>
@@ -926,7 +984,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                             .map((column) => {
                               return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype, column.ui));
                             })
-                            .concat((allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate")) : [])
+                            .concat((allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate")  || allowedActions.includes("export_dsdb")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate"), allowedActions.includes("export_dsdb")) : [])
                           } // .. also add action buttons (delete, edit), if allowed
 
                           dataSource={filteredTableData == null ? tableData : filteredTableData}

@@ -92,7 +92,7 @@ const Settings = (props) => {
     }, 
     {
       id:"4", name:"Lookups für Applikationen", alias:"lookups",
-      allowed_actions:["create", "update", "delete"],
+      allowed_actions:["create", "update", "delete", "export_dsdb"],
       datasource:"repo",
       table:"lookup",
       pk_columns:["id"],
@@ -106,7 +106,7 @@ const Settings = (props) => {
     }, 
     {
       id:"5", name:"Applikationen", alias:"apps",
-      allowed_actions:["create", "update", "delete"],
+      allowed_actions:["create", "update", "delete", "export_dsdb"],
       datasource:"repo",
       table:"application",
       pk_columns:["id"],
