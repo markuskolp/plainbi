@@ -88,6 +88,29 @@ Weiterentwicklung:
 Bugs:
 
 - Timeout bei external action je ID unterscheiden !
+
+
+  const [externalActionTimeout, setExternalActionTimeout]=useState([]);
+  
+      let existingTimeoutObject = externalActionTimeout.find((ext) => ext.id === id);
+      let existingTimeoutObjectHasTimeout = false;
+      try { existingTimeoutObjectHasTimeout = existingTimeoutObject.timeout ? true : false; } catch(err) {}
+      console.log("exists ? " + existingTimeoutObjectHasTimeout)
+      if(existingTimeoutObjectHasTimeout) {
+
+ setExternalActionTimeout( 
+          externalActionTimeout.map(ext =>
+            ext.id === id ? { ...ext, 
+              id: id,
+              timeout: setTimeout(() => {
+                console.log("timeout over")
+                setExternalActionTimeout(null)
+                clearTimeout(this)
+              }, wait_repeat_in_ms)
+            } : ext
+          )
+        );
+
 - wenn AdHocs (erwarteterweise) keine Daten liefern, gibt es bei Ausgabe als Excel oder CSV einen Fehler , aber HTML funktioniert
 - wenn der Name des AdHocs zu lange ist, wirft das Portal keinen Fehler, sondern sagt, es wurde erfolgreich gespeichert - es gibt aber keinen neuen Adhoc in der Liste
 - Sortierung aus Tabelle/View wird nicht übernommen ? (gerade bei View mit "order by offset 0 rows")
