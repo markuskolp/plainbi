@@ -2875,6 +2875,9 @@ def login_sso():
             useremail = decoded_id_token["preferred_username"]
             username = get_user_by_email(useremail)
             if username is None:
+                # try to add user from ldap to plainbi
+                warn(f"User {useremail} is not yet in the user table. Try to find it in LDAP and create the user")
+                authenticate_ldap(useremail,password=None)
                 dbg('refresh users array')
                 load_repo_users()
                 username = get_user_by_email(useremail)
