@@ -31,10 +31,7 @@ Weiterentwicklung:
 - **Gruppe auf Startseite nur zeigen, wenn es Inhalte gibt**
 - Fehler beim Löschen z.B. von Adhoc besser anzeigen (wenn z.B. noch Berechtigung existiert und fk-constraint zuschlägt)
 - Sicht speichern übergreifend (nur Admin) oder je User (dabei Sortierung sowie Filter merken)
-- **dsdb Export**
 - Zurückbutton: durch den neuen Home-Button lass ich den Zurückbutton evtl. komplett verschwinden.
-- Platz besser nutzen (weniger Ränder usw.)
-- Navigation links automatisch einklappen lassen wenn die Breite zu gering wird (also etwas responsive)
 - Anzahl Datensätze pro Tabelle nicht überall einstellbar, warum ?
 - wenn man User ändert z.b. auf Rolle "Admin" dann kommt ein Fehler, weil das Passwort erwartet wird -> bessere Fehlermeldung und PW optional machen
 
@@ -103,6 +100,9 @@ Bugs:
 
 erledigt:
 
+- ~~dsdb Export~~
+- ~~Platz besser nutzen (weniger Ränder usw.)~~
+- ~~Navigation links automatisch einklappen lassen wenn die Breite zu gering wird (also etwas responsive)~~
 - ~~Datensatz duplizieren~~
 - ~~"usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)~~
 - ~~insert/update plainbi - nur felder liefern die in der gui angezeigt werden~~

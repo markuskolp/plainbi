@@ -1,5 +1,8 @@
 import React from 'react';
 import { Table as AntTable } from 'antd';
+import { Resizable } from "react-resizable";
+import ReactDragListView from "react-drag-listview";
+// https://codesandbox.io/p/sandbox/table-column-sortable-resizable-st9bt?file=%2Findex.js%3A9%2C7-9%2C21
 
 const Table = props => {
   const {

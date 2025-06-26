@@ -72,6 +72,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [tableModalData, setTableModalData] = useState([]);
   const [tableModalColumns, setTableModalColumns] = useState([]);
 
+  const [username, setUsername] = useState("plainbi"); 
+
   //const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new"); // new/edit
@@ -118,6 +120,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
   useEffect(() => {
     getTableData(tableName);
+    getUsername();
     // if pk was provided in URL, then retrieve record from enpoint and open edit dialog (modal) for this record
     if (record_pk && allowedActions.includes("update") && !recordForPKLoaded) {
       console.log("CRUDPage - pk provided and update allowed");
@@ -126,6 +129,23 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       lookups ? getLookupDataAll() : ""; // if lookups where delivered, then get all lookup values
     //setPkColumn(pkColumns); 
   }, [tableName, tableParamChanged]);
+
+  const getUsername = async () => {
+    await Axios.get("/api/profile", {headers: {Authorization: token}}).then(
+      (res) => {
+        //console.log(JSON.stringify(res));
+        const resData = res.data;
+        console.log("/profile response: " + JSON.stringify(resData));
+        setUsername(resData.username);
+        console.log("setUsername: " + resData.username)
+      }
+    ).catch(
+      function (error) {
+        console.log(error);
+        console.log(error.response.data.message);
+      }
+    );
+  }
 
   // getTableData
   /*
@@ -892,6 +912,10 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
         // todo: check method and switch between them. only allowed: get, post ?
         // todo: check for contenttype
+
+        // replace placeholders in body - ${username}
+        body = body.replaceAll('${username}', username);
+        console.log("replaced body ${username} with " + username);
 
         Axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
         Axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
