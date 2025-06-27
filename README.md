@@ -56,7 +56,8 @@ A CRUD application is defined as code. Following syntax is possible:
                "editable":"false|true", 
                "required":"false|true", 
                "showdetailsonly":"true", 
-               "showsummaryonly":"true"
+               "showsummaryonly":"true",
+               "default_value": "<value>"
             },
             {
                ...
@@ -186,6 +187,7 @@ Here following options are possible:
 - tooltip: **optional**: shows a question icon next to the field name and shows a tooltip when hovering - good to use for explanations
 - showdetailsonly: allowed value `true`: **optional**: show this field only in detail view (modal dialog)
 - showsummaryonly: allowed value `true`: **optional**: show this field only in tabular view
+- default_value: set a default value when creating a new data entry
 
 ### external_actions
 

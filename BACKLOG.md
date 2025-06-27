@@ -53,7 +53,6 @@ Weiterentwicklung:
   - 1 bis n Filter ermöglichen
 - 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der **Filter beim Einstieg (je Seite)** auch sofort ziehen soll
 - Edit-Page
-	- **defaultValue** ermöglichen (z.B. bei Berichtsversand OnBe)
 	- **Validierung** einbauen zumindest von "required" Feldern
 	- Zahleneingabe mit NK-Stellen - aktuell . statt , (englisch)
 - **Subpage (Master-Detail)**
@@ -124,6 +123,7 @@ Bugs:
 
 erledigt:
 
+- ~~Edit page: defaultValue ermöglichen (z.B. bei Berichtsversand OnBe)~~
 - ~~dsdb Export~~
 - ~~Platz besser nutzen (weniger Ränder usw.)~~
 - ~~Navigation links automatisch einklappen lassen wenn die Breite zu gering wird (also etwas responsive)~~
