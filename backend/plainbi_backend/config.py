@@ -64,7 +64,7 @@ if not hasattr(config,"is_loaded"):
     config.is_loaded = True
 
     # the current version number of plainbi backend
-    VERSION="0.93 16.12.2024"
+    VERSION="0.94 30.06.2025"
     config.version=VERSION
 
     if "PLAINBI_BACKEND_LOGFILE" in os.environ:

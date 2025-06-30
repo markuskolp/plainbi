@@ -676,11 +676,7 @@ def get_all_items(tokdata,db,tab):
       - name: format
         in: query
         type: string
-        description: output format XLSX/CSV
-      - name: filename
-        in: query
-        type: string
-        description: filename for format output
+        description: output format XLSX/CSV/TXT
     responses:
       200:
         description: Successful operation
@@ -714,23 +710,77 @@ def get_all_items(tokdata,db,tab):
     if last_stmt_has_errors(e,out):
         return myjsonify(out),500
     has_format_param = True if request.args.get('format') is not None else False
-    if has_format_param:
-        format=request.args.get('format')
-        filnam=request.args.get('filename')
-        if filnam is None: filnam="mydata.csv"
-        f = open(filnam,'wb')
-        w = csv.DictWriter(f,items.keys())
-        w.writerows(items)
-        f.close()
-        f = open(filnam,'rb')
-        response = Response(
-            f.read(),
-            mimetype='text/csv',
-            headers={'Content-Disposition': 'attachment; filename='+filnam}
-        )
-        f.close()
-        dbg(response)
-        return response
+    if has_format_param: # we want to download the data in CSV or Excel Format
+        dbg("get_all_items: download data")
+        fmt=request.args.get('format')
+        df = pd.DataFrame(items)
+        if fmt=="XLSX":
+            dbg("get_all_items: XLSX format")
+            tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.xlsx')
+            try:
+                output = pd.ExcelWriter(tmpfile,engine="xlsxwriter")
+                output.book.set_properties({"encoding":"utf-8"})
+                fmt_xl.header_style = None
+                df.to_excel(output, index=False, sheet_name="daten")
+                output.close()
+            except Exception as e0:
+                err("get_all_items to_excel exception: %s ",str(e0))
+                out["error"]="get_all_items-toxls"
+                out["message"]="Fehler beim Prozessieren der Daten für den Download (XLSX)"
+                out["detail"]=str(e0)
+                err(traceback.format_exc())
+                log.exception(e0)
+                return myjsonify(out), 500
+            with open(tmpfile, 'rb') as file:
+                response = Response(
+                    file.read(),
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    headers={'Content-Disposition': 'attachment;filename=mydata.xlsx'}
+                )
+                dbg("get_all_items: return response")
+                dbg(response)
+                return response
+        elif fmt=="CSV":
+            dbg("get_all_items: CSV format")
+            tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.csv')
+            # Prepare the CSV file
+            try:
+                df.to_csv(tmpfile, index=False)
+            except Exception as e0:
+                err("get_all_items to_csv exception: %s ",str(e0))
+                out["error"]="get_all_items-tocsv"
+                out["message"]="Fehler beim Prozessieren der Daten für den Download (CSV)"
+                out["detail"]=str(e0)
+                err(traceback.format_exc())
+                log.exception(e0)
+                return myjsonify(out), 500
+            # Return the Excel file as a download
+            with open(tmpfile, 'rb') as file:
+                response = Response(
+                    file.read(),
+                    mimetype='text/csv',
+                    headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                )
+                dbg(response)
+                return response
+        elif fmt=="TXT":
+            dbg("get_all_items txt separated with tabs")
+            tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.txt')
+            df.to_csv(tmpfile, index=False, sep='\t', quoting=csv.QUOTE_NONE)
+            # Return the Excel file as a download
+            with open(tmpfile, 'rb') as file:
+                response = Response(
+                    file.read(),
+                    mimetype='text/csv',
+                    headers={'Content-Disposition': 'attachment;filename=mydata.csv'}
+                )
+                dbg(response)
+                return response
+        else: 
+            out["error"]="get_all_items-invalid-format"
+            out["message"]="Das Format muss XLSX/CSV/TXT sein"
+            out["detail"]=None
+            return myjsonify(out), 500
     out["data"]=pre_jsonify_items_transformer(items)
     out["columns"]=columns
     out["total_count"]=total_count
