@@ -117,11 +117,16 @@ The `last_changed_by` field is filled with the username. So you can track who cr
 ### allowed_actions
 
 leave **empty array** if no actions allowed or select between these options (in any combination)
+
+**actions on row level**
 - `update`
 - `create`
 - `delete`
 - `duplicate` (same as `create`, but prefills the form with the data of the selected row)
 - `export_dsdb` (custom functionality to export a plainbi application or lookup as .dsdb file for [datasqill](https://www.datasqill.de/) used in DevOps scenario (git versioning)
+
+**actions on page level**
+- `export_excel` (enable download of the displayed table as Excel file (.xlsx)) 
 
 ### pk_columns
 

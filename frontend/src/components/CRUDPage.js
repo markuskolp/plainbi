@@ -278,6 +278,91 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         )
     };
 
+    
+  const getBlobData = async (tableName, _format) => {
+    //setLoading(true);
+    //setError(false);
+    const dt = new Date().toISOString().substring(0,19);
+    
+    const queryParams = new URLSearchParams();
+    if(versioned) {
+      queryParams.append("v", 1);
+    }
+    //queryParams.append("offset", offset); // no offset - download all records
+    //queryParams.append("limit", limit); // no limit - download all records
+    if(order && order.length > 0) {
+      queryParams.append("order_by", order);
+    }
+    if(filter && filter.length > 0) {
+      queryParams.append("q", filter);
+    }
+    let _searchParams = searchParams.toString().replaceAll("&", ",").replaceAll("=", ":"); // <key>=<value>&<key>:<value>&... --> <key>:<value>,<key>:<value>,...
+    if(_searchParams && _searchParams.length > 0) {
+      queryParams.append("filter", _searchParams); 
+    }
+
+    let _cols = getColsParamForURL(tableColumns);
+    queryParams.append("cols", _cols); 
+
+    queryParams.append("format", _format); 
+
+    console.log("queryParams: " + queryParams.toString());
+    var endpoint = api+tableName+'?'+queryParams;
+
+    if(tableForList && tableForList.length > 0) {
+      //queryParams.append("customsql", "select * from " + tableForList);
+      //queryParams.append("customsql", tableForList);
+      setActivateLookups(false);
+      queryParams.delete("v"); // remove versioning
+      endpoint = api+tableForList+'?'+queryParams; // change tableName to tableForList
+    }
+
+    console.log("getBlobData - endpoint: " + endpoint);
+
+    await Axios.get(endpoint, {responseType: 'blob', headers: {Authorization: token}}).then(
+    //await Axios.get("/api/repo/adhoc/"+id+"/data?format="+_format, {responseType: 'blob', headers: {Authorization: token}}).then(
+      (res) => {
+        console.log(res.data);
+
+        const _filename = 'export_'+tableName+"_"+dt+"."+_format.toLowerCase();
+        // create file link in browser's memory
+        const href = URL.createObjectURL(res.data);
+    
+        // create "a" HTML element with href to file & click
+        const link = document.createElement('a');
+        link.href = href;
+        link.setAttribute('download', _filename); //or any other extension
+        document.body.appendChild(link);
+        link.click();
+    
+        // clean up "a" element & remove ObjectURL
+        document.body.removeChild(link);
+        URL.revokeObjectURL(href);
+
+        message.success("Excel erfolgreich heruntergeladen - siehe Downloads > " + _filename)
+
+      }
+      ).catch(
+        function (error) {
+          //setLoading(false);
+          //setError(true);
+          console.log("getBlobData - error: " + error);
+          console.log(error);
+          console.log(error.response.data.message);
+          if (error.response.status === 401) {
+            try{removeToken();}catch(err){}
+            message.error('Session ist abgelaufen');
+            setErrorMessage('Es gab einen Fehler beim Laden der Daten');
+            setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+          } else {
+            setErrorMessage('Es gab einen Fehler beim Laden der Daten als ' + _format);
+            setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+           }
+        }
+      );  
+  };
+
+
     const getDsdbExport = async (_type, _id, _filename) => {
       //setLoading(true);
       //setError(false);
@@ -948,6 +1033,12 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       }
     }
 
+      
+    const downloadData = (format) => {
+      getBlobData(tableName, format);
+    }
+    ;
+
     return (
       <React.Fragment>
       <PageHeader
@@ -956,7 +1047,20 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
               subTitle=""
               extra={[
                   
-                  allowedActions.includes("create") && 
+                allowedActions.includes("export_excel") && 
+                <Button icon={<DownloadOutlined />} onClick={() => downloadData("XLSX")}> 
+                  Excel
+                </Button>
+                ,
+                externalActions && externalActions.map((externalAction) => {
+                  return (
+                    <Button onClick={(e) => {callExternalAction(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
+                      {externalAction.label}
+                    </Button>
+                  ) 
+                })
+                ,
+                allowedActions.includes("create") && 
                   <Button
                     //href="/apps/edit"
                     onClick={showCreateModal}
@@ -965,17 +1069,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                     icon={<PlusOutlined />}
                   >
                     Neu
-                  </Button>
-                  ,
-                  externalActions && externalActions.map((externalAction) => {
-                    return (
-                      <Button onClick={(e) => {callExternalAction(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
-                        {externalAction.label}
-                      </Button>
-                    ) 
-                  })
-
-                
+                  </Button>                
               ]}
             />
                 {lookupData && (
