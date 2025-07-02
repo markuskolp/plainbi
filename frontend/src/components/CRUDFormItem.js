@@ -26,6 +26,8 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   const datetimeFormat = 'YYYY-MM-DD HH:mm';
   const [currentvalue, setCurrentvalue] = useState(defaultValue);
 
+  console.log("crudformitem name: " + name + " defaultValue: " + defaultValue);
+
   const handleChange = (e) => {
     //const emuEvent = { "target": { "key": e.target.name, "value": e.target.value}} // emulate event.target.name/.value object
     //console.log(emuEvent);

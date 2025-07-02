@@ -13,13 +13,30 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorDetail, setErrorDetail] = useState('');
+  const [defaultValueCleansed, setDefaultValueCleansed] = useState('');
+
+  console.log("SelectLookup - name: " + name + " - defaultValue: " + defaultValue);
 
   useEffect(() => {
+    console.log("SelectLookup - useEffect(lookupid)");
+    setDefaultValueCleansed(multiple ? (defaultValue || "").split(",") : (defaultValue === 0 ? defaultValue.toString(): defaultValue)); // if multiple, then split default value // Ant Select Element cannot handle the value 0 - it turns it to NULL - therefore it is casted to a string here
     getLookupData(lookupid);
   }, [lookupid]);
 
+  // after getting the lookup data, call the handleChange to really set the default value in the form item (necessary for the action "new", somehow it does not work here and the "defaultValue" option in the bottom (rendering section) only "visually" sets the value)
+  useEffect(() => {
+    console.log("SelectLookup - useEffect(lookupData)");
+    console.log("SelectLookup - lookupData.length: " + lookupData.length);
+    if(defaultValueCleansed.length > 0 && defaultValueCleansed != '') {
+      //const d = multiple ? (defaultValue || "").split(",") : (defaultValue === 0 ? defaultValue.toString(): defaultValue);
+      console.log("SelectLookup - name: " + name + " - defaultValueCleansed: " + defaultValueCleansed + " - defaultValueCleansed.length: " + defaultValueCleansed.length);
+      handleChange(defaultValueCleansed);
+    }
+  }, [lookupData]);
+
   // getLookupData
   const getLookupData = async (lookupid) => {
+    console.log("SelectLookup - getLookupData()");
 
     console.log("getLookupData for id: " + lookupid);
     
@@ -90,8 +107,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
                 showSearch
                 disabled={disabled}
                 options={lookupData}
-                defaultValue={multiple ? (defaultValue || "").split(",") : (defaultValue === 0 ? defaultValue.toString(): defaultValue)} // if multiple, then split default value // Ant Select Element cannot handle the value 0 - it turns it to NULL - therefore it is casted to a string here
-                //defaultValue={defaultValue} // if multiple, then split default value
+                defaultValue={defaultValueCleansed} 
                 onChange={handleChange}
                 onSearch={onSearch}
                 name={name}

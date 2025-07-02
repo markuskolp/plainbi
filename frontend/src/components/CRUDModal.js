@@ -23,7 +23,10 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   let api = "/api/crud/";
   api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource+'/' : '');  // switch between repository tables and other datasources /api/crud/<db>/<table>
 
+  console.log("CRUDModal.js");
+
   useEffect(() => {
+    console.log("CRUDModal.js - useEffect()");
     (type == 'edit' || type == 'duplicate') ? getRecordData(tableName, pk) : setRecordData([]);
   }, [type, tableName, pk]);
 
@@ -285,8 +288,8 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
                   //console.log("column.default_value: " + column.default_value + " - using: " + defaultValue);
                   let dataValue = (recordData ? recordData[column.column_name] : defaultValue); // get record data of the current column or set to default value
                   if(dataValue === undefined ) dataValue = defaultValue; // somehow dtaavalue stays undefined when trying to set defaultvalue above. check here and do it again
-                  //console.log("dataValue: " + dataValue);
-                  if (typeof dataValue === 'function') { dataValue = ""; } // if column names are keywords like "sort" then it returns a function - here we get rid of it, otherwise it causes an error later on
+                  console.log("dataValue: " + dataValue);
+                  if (typeof dataValue === 'function') { dataValue = ""; console.log('typeof dataValue === function'); } // if column names are keywords like "sort" then it returns a function - here we get rid of it, otherwise it causes an error later on
                   //console.log("column: " + column.column_name + " | value: " + dataValue);
                   //const dataValue = recordData[column.column_name]; // get record data of the current column or set to nothing
 
