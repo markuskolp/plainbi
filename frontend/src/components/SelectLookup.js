@@ -25,9 +25,9 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
 
   // after getting the lookup data, call the handleChange to really set the default value in the form item (necessary for the action "new", somehow it does not work here and the "defaultValue" option in the bottom (rendering section) only "visually" sets the value)
   useEffect(() => {
-    console.log("SelectLookup - useEffect(lookupData)");
-    console.log("SelectLookup - lookupData.length: " + lookupData.length);
-    if(defaultValueCleansed.length > 0 && defaultValueCleansed != '') {
+    console.log("SelectLookup - name: " + name + " - useEffect(lookupData)");
+    console.log("SelectLookup - name: " + name + " - lookupData.length: " + lookupData.length);
+    if(defaultValue && defaultValueCleansed && defaultValueCleansed.length > 0 && defaultValueCleansed != '') {
       //const d = multiple ? (defaultValue || "").split(",") : (defaultValue === 0 ? defaultValue.toString(): defaultValue);
       console.log("SelectLookup - name: " + name + " - defaultValueCleansed: " + defaultValueCleansed + " - defaultValueCleansed.length: " + defaultValueCleansed.length);
       handleChange(defaultValueCleansed);
