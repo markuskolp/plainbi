@@ -58,7 +58,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions }) => {
     
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -80,6 +80,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [offset, setOffset]=useState(0);
   const [limit, setLimit]=useState(20);
   const [order, setOrder]=useState("");
+  const [defaultOrderInactive, setDefaultOrderInactive]=useState(false);
   const [totalCount, setTotalCount]=useState();
   const [filter, setFilter]=useState();
   const [tableParamChanged, setTableParamChanged]=useState(false);
@@ -94,6 +95,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   let record_pk = (pk ? pk.toString() : null);
   let recordForPKLoaded = false;
   //console.log("CRUDPage - tableColumns: " + JSON.stringify(tableColumns));
+  console.log("defaultOrderBy: " + JSON.stringify(defaultOrderBy));
   console.log("allowedActions: " + JSON.stringify(allowedActions));
   console.log("externalActions: " + JSON.stringify(externalActions));
 
@@ -178,9 +180,30 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       }
       queryParams.append("offset", offset);
       queryParams.append("limit", limit);
+
+
+      // set ordering
+      // from the user selection (when clicking on column header) ...
       if(order && order.length > 0) {
+        console.log("queryParams - userOrderBy: " + order);
         queryParams.append("order_by", order);
+        // or take the default sort from the page definition
+      } else if (defaultOrderBy && defaultOrderBy.length > 0 && !defaultOrderInactive) { // defaultOrderInactive is set when user selected the column header to sort -- even if every sort is disabled by the user, the default order should not be used
+          let _order = "";
+          for (var i = 0; i < defaultOrderBy.length; i++) {
+            _order += defaultOrderBy[i].column_name;
+            try {
+              if (defaultOrderBy[i].direction == "descend" || defaultOrderBy[i].direction == "desc") { // only append descend if defined - ascend is default and does not need to be set explicitly
+                _order += " desc";
+              }
+            } catch(err) {}
+            _order += ",";
+          }
+          _order = _order.slice(0,-1); // eliminate the last comma
+          console.log("queryParams - defaultOrderBy: " + _order);
+          queryParams.append("order_by", _order);
       }
+
       if(filter && filter.length > 0) {
         queryParams.append("q", filter);
       }
@@ -847,16 +870,35 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   function getColumn(column_label, column_name, datatype, ui) {
     return {
       //title: column_label
-      title: ({ sortColumns }) => {
+      title: ({ sortColumns, sortColumn, sortOrder }) => {
+        console.log("getColumn - sortColumns: " + JSON.stringify(sortColumns));
+        console.log("getColumn - defaultOrderBy: " + JSON.stringify(defaultOrderBy));
+        //console.log("getColumn(column_label, column_name, datatype, ui): " + column_label + " / " + column_name + " / " + datatype + " / " + ui);
+        //console.log("getColumn - sortColumn: " + JSON.stringify(sortColumn) + " - sortOrder: " + sortOrder);
         const sortedColumn = sortColumns?.find(({ column }) => column.key === column_name);
+        const defaultSortedColumn = defaultOrderBy?.find(( column ) => column.column_name === column_name);
+
+        let _isSorted = false;
+        let _sortDirection = "";
+
+        if(sortedColumn) { 
+          setDefaultOrderInactive(true); 
+          _isSorted = true;
+          _sortDirection = sortedColumn.order;
+        } else if (defaultSortedColumn && !defaultOrderInactive){
+          _isSorted = true;
+          _sortDirection = defaultSortedColumn.direction ? defaultSortedColumn.direction : "ascend";          
+        }
+        console.log("getColumn - _isSorted: " + _isSorted + " - _sortDirection: " + _sortDirection);
+
         return (
           <div class="th-div-custom">
             <span class="th-div-custom-title">{column_label}</span>
-            <span>{sortedColumn ? (
-              sortedColumn.order === "ascend" ? (
+            <span>{_isSorted ? (
+              (_sortDirection === "ascend" || _sortDirection === "asc") ? (
                 <CaretUpFilled style={{fontSize: '14px'}}/>
               ) : (
-                sortedColumn.order === "descend" ? (
+                (_sortDirection === "descend" || _sortDirection === "desc") ? (
                   <CaretDownFilled style={{fontSize: '14px'}}/>
                 ) :  <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />
               )
@@ -864,8 +906,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
             </span>
           </div>
         )
-      }
-      ,
+      },
+      //defaultSortOrder: null, // not setting default sort direction here, because it triggers a refresh and does not allow to reckon the sequence of the columns to be sorted // "ascend" or "descend"
       dataIndex: column_name,
       sorter: {
         compare: Sorter.DEFAULT,
@@ -913,6 +955,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         //title: column_label
       title: ({ sortColumns }) => {
         const sortedColumn = sortColumns?.find(({ column }) => column.key === column_name);
+        if(sortedColumn) { setDefaultOrderInactive(true); }
         return (
           <div class="th-div-custom">
             <span class="th-div-custom-title">{column_label}</span>

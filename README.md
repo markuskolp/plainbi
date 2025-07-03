@@ -21,7 +21,7 @@ A CRUD application is defined as code. Following syntax is possible:
          "name":"<Page name>",
          "alias":"<page_alias>", 
          "allowed_actions":[ 
-            "update", "create", "delete", "duplicate", "export_dsdb"
+            "update", "create", "delete", "duplicate", "export_dsdb", "export_excel"
          ],
          "pk_columns":["<primary_key_column>, ..."], 
          "table":"<table>", 
@@ -32,6 +32,16 @@ A CRUD application is defined as code. Following syntax is possible:
          "show_breadcrumb":"true", 
          "parent_page": {"alias":"<alias_of_parent_page>","name":"<Label of parent page>"}, 
          "user_column":"<column>",
+         "order": [
+                  {
+                     "column_name": "<technical_column_name>",
+                     "direction": "asc|desc"
+                  },
+                  {
+                     "column_name": "<technical_column_name>"
+                  },
+                  ...
+         ],
          "external_actions": [
             {
                "type": "call_rest_api",
@@ -159,6 +169,10 @@ Has to be the fully qualified name: `<database>.schema.tablename>`
 ### user_column
 
 **optional**: defines which column contains the username and tells plainbi to write the username of the logged in user into this column, when creating or editing a record (insert / update)
+
+### order
+
+**optional**: defines a predefined / default sort order of the data. An array is given with one or more table columns and a sort direction (ascending or descending). The sort direction is optional and defaults to "ascending"
 
 ### table_columns
 
