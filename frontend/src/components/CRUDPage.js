@@ -954,16 +954,34 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       return {
         //title: column_label
       title: ({ sortColumns }) => {
+        console.log("getLookupColumn - sortColumns: " + JSON.stringify(sortColumns));
+        console.log("getLookupColumn - defaultOrderBy: " + JSON.stringify(defaultOrderBy));
+        //console.log("getColumn(column_label, column_name, datatype, ui): " + column_label + " / " + column_name + " / " + datatype + " / " + ui);
+        //console.log("getColumn - sortColumn: " + JSON.stringify(sortColumn) + " - sortOrder: " + sortOrder);
         const sortedColumn = sortColumns?.find(({ column }) => column.key === column_name);
-        if(sortedColumn) { setDefaultOrderInactive(true); }
+        const defaultSortedColumn = defaultOrderBy?.find(( column ) => column.column_name === column_name);
+
+        let _isSorted = false;
+        let _sortDirection = "";
+
+        if(sortedColumn) { 
+          setDefaultOrderInactive(true); 
+          _isSorted = true;
+          _sortDirection = sortedColumn.order;
+        } else if (defaultSortedColumn && !defaultOrderInactive){
+          _isSorted = true;
+          _sortDirection = defaultSortedColumn.direction ? defaultSortedColumn.direction : "ascend";          
+        }
+        console.log("getLookupColumn - _isSorted: " + _isSorted + " - _sortDirection: " + _sortDirection);
+
         return (
           <div class="th-div-custom">
             <span class="th-div-custom-title">{column_label}</span>
-            <span>{sortedColumn ? (
-              sortedColumn.order === "ascend" ? (
+            <span>{_isSorted ? (
+              _sortDirection === "ascend" ? (
                 <CaretUpFilled style={{fontSize: '14px'}}/>
               ) : (
-                sortedColumn.order === "descend" ? (
+                _sortDirection === "descend" ? (
                   <CaretDownFilled style={{fontSize: '14px'}}/>
                 ) :  <CaretUpFilled className="inactive" style={{fontSize: '14px'}} />
               )
