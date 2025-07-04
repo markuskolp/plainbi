@@ -1115,9 +1115,11 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                 ,
                 externalActions && externalActions.map((externalAction) => {
                   return (
-                    <Button onClick={(e) => {callExternalAction(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
-                      {externalAction.label}
-                    </Button>
+                    <Tooltip title={externalAction.tooltip ? externalAction.tooltip : ''}>
+                      <Button onClick={(e) => {callExternalAction(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
+                        {externalAction.label}
+                      </Button>
+                    </Tooltip>
                   ) 
                 })
                 ,

@@ -47,6 +47,7 @@ A CRUD application is defined as code. Following syntax is possible:
                "type": "call_rest_api",
                "id": "1",
                "label": "<Label to show on button>",
+               "tooltip": "<just a tooltip to show on button>",
                "method": "POST|GET",
                "contenttype": "application/json",
                "url": "<any endpoint url>",
@@ -216,7 +217,7 @@ In development is also the **call of a stored procedure** in the source database
 The call only reacts on a positive or negative response and tries to get the error message in case of an error.
 But for a REST API call it is not possible to do a further call e.g. if you trigger an async process and want to wait/loop for a final status.
 
-Here following options are available (and all are mandatory):
+Here following options are available (and all are mandatory if not otherwise mentioned):
 - type: allowed value `call_rest_api`
 - id: a random unique number
 - label: label to show on button
@@ -225,6 +226,7 @@ Here following options are available (and all are mandatory):
 - url: any endpoint url - be aware of CORS, because the frontend sends the request - if necessary add a routing (proxy path) to the webserver (e.g. Nginx)
 - body: any payload e.g plain, JSON, etc. - when using double-quote's then please escape them e.g. \\"
 - wait_repeat_in_ms: time to wait in milliseconds, before a repeat of the action is allowed. this prevents an action to be called to often from the user
+- **optional** tooltip: a tooltip to show on the button
 
 ## Human friendly URLs and parameters
 
