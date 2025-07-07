@@ -1047,8 +1047,55 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       );
     }
 
-    const callExternalAction = (id, wait_repeat_in_ms = 1000, url, body) => {
-      console.log("callExternalAction with id: " + id);
+    const callStoredProcedure = (id, wait_repeat_in_ms = 1000, name, body) => {
+      console.log("callStoredProcedure with id: " + id);
+      if(externalActionTimeout) {
+        message.info("Sie müssen " + wait_repeat_in_ms / 1000 + " Sekunden warten, bevor die Aktion wiederholt werden darf.")
+        console.log("external action already called ... waiting for timeout to allow repeat"); // do nothing // clearTimeout(externalActionTimeout);
+      } else {
+        console.log("calling external action");
+        message.info("Aktion wird ausgelöst")
+
+        // replace placeholders in body - ${username}
+        body = body.replaceAll('${username}', username);
+        console.log("replaced body ${username} with " + username);
+
+        const url = '/api/exec/' + (datasource ? datasource+'/' : '') + name;
+        console.log("callStoredProcedure with url: " + url);
+
+        Axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
+        Axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
+        //header.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        Axios.post(url, body, {headers: {Authorization: token}}).then(   // await // 
+            (res) => {
+              console.log(JSON.stringify(res));
+              const resData = (res.data.error === undefined ? res : res.data); 
+              console.log(JSON.stringify(resData));
+              if (resData.error) { // response might be "200 OK", but still check for error in response body
+                message.error(JSON.stringify(resData.error));
+              } else {
+                message.success('Erfolgreich ausgelöst.');
+              }
+            }
+          ).catch(function (error) {
+            message.error('Es gab einen Fehler beim Auslösen der Aktion');
+            console.log(error);
+          }
+          )
+
+        setExternalActionTimeout( 
+          setTimeout(() => {
+            console.log("timeout over")
+            setExternalActionTimeout(null)
+            clearTimeout(externalActionTimeout)
+          }, wait_repeat_in_ms)
+        );
+        console.log("timeout for repeat set to " + wait_repeat_in_ms + " ms");
+      }
+    }
+
+    const callRestAPI = (id, wait_repeat_in_ms = 1000, url, body) => {
+      console.log("callRestAPI with id: " + id);
       if(externalActionTimeout) {
         message.info("Sie müssen " + wait_repeat_in_ms / 1000 + " Sekunden warten, bevor die Aktion wiederholt werden darf.")
         console.log("external action already called ... waiting for timeout to allow repeat"); // do nothing // clearTimeout(externalActionTimeout);
@@ -1112,14 +1159,26 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                 <Button icon={<DownloadOutlined />} onClick={() => downloadData("XLSX")}> 
                   Excel
                 </Button>
-                ,
+                , 
                 externalActions && externalActions.map((externalAction) => {
-                  return (
+                  return ( externalAction.type === 'call_rest_api' && (externalAction.position === 'summary' || !externalAction.position) ?
                     <Tooltip title={externalAction.tooltip ? externalAction.tooltip : ''}>
-                      <Button onClick={(e) => {callExternalAction(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
+                      <Button onClick={(e) => {callRestAPI(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
                         {externalAction.label}
                       </Button>
                     </Tooltip>
+                    : null
+                  ) 
+                })
+                , 
+                externalActions && externalActions.map((externalAction) => {
+                  return ( externalAction.type === 'call_stored_procedure' && (externalAction.position === 'detail' || !externalAction.position) ?
+                    <Tooltip title={externalAction.tooltip ? externalAction.tooltip : ''}>
+                      <Button onClick={(e) => {callStoredProcedure(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.name, externalAction.body)}}>
+                        {externalAction.label}
+                      </Button>
+                    </Tooltip>
+                    : null
                   ) 
                 })
                 ,
