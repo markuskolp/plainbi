@@ -242,7 +242,6 @@ Here following options are available (and all are mandatory if not otherwise men
 - body: 
   - any payload e.g plain, JSON, etc. 
   - when using double-quote's then please escape them e.g. \\"
-  - ${env} is substituted with the environment e.g. DEV, TEST, ...
   - ${username} is substituted with the logged-in user
   - ${<column_name>} is substituted with the value of the column of a dataset (only works when "position" is set to "detail")
 - wait_repeat_in_ms: time to wait in milliseconds, before a repeat of the action is allowed. this prevents an action to be called to often from the user

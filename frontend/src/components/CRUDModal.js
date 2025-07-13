@@ -103,8 +103,21 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     );
   }
 
+  const replaceColumnVariables = (input) => {
+     let _input = input;
+     tableColumns && tableColumns.map((column) => {
+      let dataValue = (recordData ? recordData[column.column_name] : null); // get record data of the current column or set to null
+      console.log("replaceColumnVariables - column: " + column.column_name + " | value: " + dataValue);
+      _input = _input.replaceAll("${"+column.column_name+"}", dataValue);
+    })
+    console.log("replaceColumnVariables - before: " + input);
+    console.log("replaceColumnVariables - after: " + _input);
+    return _input;
+  }
   
   const callStoredProcedure = (id, wait_repeat_in_ms = 1000, name, body) => {
+
+    body = replaceColumnVariables(body);
 
     console.log("callStoredProcedure with id: " + id);
     if(externalActionTimeout) {
@@ -154,6 +167,8 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   }
 
   const callRestAPI = (id, wait_repeat_in_ms = 1000, url, body) => {
+
+    body = replaceColumnVariables(body);
 
     console.log("callRestAPI with id: " + id);
     if(externalActionTimeout) {
@@ -403,7 +418,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
             />
           )}
 
-          {externalActions && externalActions.map((externalAction) => {
+          {type == 'edit' && externalActions && externalActions.map((externalAction) => {
             return ( externalAction.type === 'call_rest_api' && (externalAction.position === 'detail' || !externalAction.position) ?
               <Tooltip title={externalAction.tooltip ? externalAction.tooltip : ''}>
                 <Button onClick={(e) => {callRestAPI(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
@@ -414,7 +429,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
             ) 
           })}
           
-          {externalActions && externalActions.map((externalAction) => {
+          {type == 'edit' && externalActions && externalActions.map((externalAction) => {
             return ( externalAction.type === 'call_stored_procedure' && (externalAction.position === 'detail' || !externalAction.position) ?
               <Tooltip title={externalAction.tooltip ? externalAction.tooltip : ''}>
                 <Button onClick={(e) => {callStoredProcedure(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.name, externalAction.body)}}>
