@@ -52,7 +52,18 @@ A CRUD application is defined as code. Following syntax is possible:
                "contenttype": "application/json",
                "url": "<any endpoint url>",
                "body": "<any payload e.g plain, JSON, etc.",
-               "wait_repeat_in_ms": "<ms>"
+               "wait_repeat_in_ms": "<ms>",
+               "position": "detail|summary"
+            },
+            {
+               "type": "call_stored_procedure", 
+               "id": "2",
+               "label": "<Label to show on button>",
+               "tooltip": "<just a tooltip to show on button>",
+               "name": "<name of stored procedure in database including schema e.g. <schema>.<stored_procedure>" ,
+               "body": "{\"@param1\":\"value1\", ...}",
+               "wait_repeat_in_ms": "<ms>",
+               "position": "detail|summary"
             }
          ],
          "table_columns":[ 
@@ -212,8 +223,12 @@ Here following options are possible:
 ### external_actions
 
 Allows the execution of external actions. This can defined per page and each action is offered as a button (next to the "New" button).
-Currently only the **call of a REST API** is working.
-In development is also the **call of a stored procedure** in the source database (backend is already prep'ed for this - frontend not).
+Following actions are possible:
+- **call of a REST API** (executed by the frontend) 
+- **call of a stored procedure** in the source database (executed by the backend) - **only works for MS SQL Server at the moment**
+
+**call of a REST API**
+
 The call only reacts on a positive or negative response and tries to get the error message in case of an error.
 But for a REST API call it is not possible to do a further call e.g. if you trigger an async process and want to wait/loop for a final status.
 
@@ -232,6 +247,22 @@ Here following options are available (and all are mandatory if not otherwise men
   - ${<column_name>} is substituted with the value of the column of a dataset (only works when "position" is set to "detail")
 - wait_repeat_in_ms: time to wait in milliseconds, before a repeat of the action is allowed. this prevents an action to be called to often from the user
 - **optional** tooltip: a tooltip to show on the button
+- **optional** position: detail (show in Modal) or summary (show on Page - is default)
+
+**call of a stored procedure**
+
+Calls the procedure and waits for it to finish with a success or error message.
+
+- type: allowed value `call_stored_procedure`
+- id: a random unique number
+- label: label to show on button
+- name: name of the stored procedure that is being called. fully qualified name with schema.
+- body: 
+  - used to hand over parameter values
+- wait_repeat_in_ms: time to wait in milliseconds, before a repeat of the action is allowed. this prevents an action to be called to often from the user
+- **optional** tooltip: a tooltip to show on the button
+- **optional** position: detail (show in Modal) or summary (show on Page - is default)
+
 
 ## Human friendly URLs and parameters
 

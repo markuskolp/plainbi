@@ -7,16 +7,21 @@ import {
   Modal,
   Form,
   message,
-  Alert
+  Alert,
+  Tooltip
 } from "antd";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence, externalActions }) => {
     
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorDetail, setErrorDetail] = useState('');
   const [recordData, setRecordData] = useState([]);
+  
+  const [externalActionTimeout, setExternalActionTimeout]=useState(null);
+  const [username, setUsername] = useState("plainbi"); 
+
   console.log("Rendering with: ", recordData);
   console.log("pkColumns: ", pkColumns);
   console.log("pk: ", pk);
@@ -79,6 +84,123 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       }
       )
   };
+
+  
+  const getUsername = async () => {
+    await Axios.get("/api/profile", {headers: {Authorization: token}}).then(
+      (res) => {
+        //console.log(JSON.stringify(res));
+        const resData = res.data;
+        console.log("/profile response: " + JSON.stringify(resData));
+        setUsername(resData.username);
+        console.log("setUsername: " + resData.username)
+      }
+    ).catch(
+      function (error) {
+        console.log(error);
+        console.log(error.response.data.message);
+      }
+    );
+  }
+
+  
+  const callStoredProcedure = (id, wait_repeat_in_ms = 1000, name, body) => {
+
+    console.log("callStoredProcedure with id: " + id);
+    if(externalActionTimeout) {
+      message.info("Sie müssen " + wait_repeat_in_ms / 1000 + " Sekunden warten, bevor die Aktion wiederholt werden darf.")
+      console.log("external action already called ... waiting for timeout to allow repeat"); // do nothing // clearTimeout(externalActionTimeout);
+    } else {
+      console.log("calling external action");
+      message.info("Aktion wird ausgelöst")
+
+      // replace placeholders in body - ${username}
+      body = body.replaceAll('${username}', username);
+      console.log("replaced body ${username} with " + username);
+
+      const url = '/api/exec/' + (datasource ? datasource+'/' : '') + name;
+      console.log("callStoredProcedure with url: " + url);
+
+      Axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
+      Axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
+      //header.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+      Axios.post(url, body, {headers: {Authorization: token}}).then(   // await // 
+          (res) => {
+            console.log(JSON.stringify(res));
+            const resData = (res.data.error === undefined ? res : res.data); 
+            console.log(JSON.stringify(resData));
+            if (resData.error) { // response might be "200 OK", but still check for error in response body
+              message.error(JSON.stringify(resData.error));
+            } else {
+              message.success('Erfolgreich ausgelöst.');
+            }
+          }
+        ).catch(function (error) {
+          message.error('Es gab einen Fehler beim Auslösen der Aktion');
+          console.log(error);
+        }
+        )
+
+      setExternalActionTimeout( 
+        setTimeout(() => {
+          console.log("timeout over")
+          setExternalActionTimeout(null)
+          clearTimeout(externalActionTimeout)
+        }, wait_repeat_in_ms)
+      );
+      console.log("timeout for repeat set to " + wait_repeat_in_ms + " ms");
+    }
+
+  }
+
+  const callRestAPI = (id, wait_repeat_in_ms = 1000, url, body) => {
+
+    console.log("callRestAPI with id: " + id);
+    if(externalActionTimeout) {
+      message.info("Sie müssen " + wait_repeat_in_ms / 1000 + " Sekunden warten, bevor die Aktion wiederholt werden darf.")
+      console.log("external action already called ... waiting for timeout to allow repeat"); // do nothing // clearTimeout(externalActionTimeout);
+    } else {
+      console.log("calling external action");
+      message.info("Aktion wird ausgelöst")
+
+      // todo: check method and switch between them. only allowed: get, post ?
+      // todo: check for contenttype
+
+      // replace placeholders in body - ${username}
+      body = body.replaceAll('${username}', username);
+      console.log("replaced body ${username} with " + username);
+
+      Axios.defaults.headers.post['Content-Type'] ='application/json;charset=utf-8';
+      Axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
+      //header.Add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+      Axios.post(url, body).then(   // await // , {headers: {Authorization: token}}
+          (res) => {
+            console.log(JSON.stringify(res));
+            const resData = (res.data.error === undefined ? res : res.data); 
+            console.log(JSON.stringify(resData));
+            if (resData.error) { // response might be "200 OK", but still check for error in response body
+              message.error(JSON.stringify(resData.error));
+            } else {
+              message.success('Erfolgreich ausgelöst.');
+            }
+          }
+        ).catch(function (error) {
+          message.error('Es gab einen Fehler beim Auslösen der Aktion');
+          console.log(error);
+        }
+        )
+
+      setExternalActionTimeout( 
+        setTimeout(() => {
+          console.log("timeout over")
+          setExternalActionTimeout(null)
+          clearTimeout(externalActionTimeout)
+        }, wait_repeat_in_ms)
+      );
+      console.log("timeout for repeat set to " + wait_repeat_in_ms + " ms");
+    }
+    
+  }
 
   
   const getPKParamForURL = (_pkColumn) => {
@@ -280,6 +402,28 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
               showIcon
             />
           )}
+
+          {externalActions && externalActions.map((externalAction) => {
+            return ( externalAction.type === 'call_rest_api' && (externalAction.position === 'detail' || !externalAction.position) ?
+              <Tooltip title={externalAction.tooltip ? externalAction.tooltip : ''}>
+                <Button onClick={(e) => {callRestAPI(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}}>
+                  {externalAction.label}
+                </Button>
+              </Tooltip>
+              : null
+            ) 
+          })}
+          
+          {externalActions && externalActions.map((externalAction) => {
+            return ( externalAction.type === 'call_stored_procedure' && (externalAction.position === 'detail' || !externalAction.position) ?
+              <Tooltip title={externalAction.tooltip ? externalAction.tooltip : ''}>
+                <Button onClick={(e) => {callStoredProcedure(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.name, externalAction.body)}}>
+                  {externalAction.label}
+                </Button>
+              </Tooltip>
+              : null
+            ) 
+          })}
 
           <Form {...layoutpage} layout="horizontal">
                 { tableColumns && tableColumns.map((column) => {
