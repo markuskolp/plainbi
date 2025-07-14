@@ -58,7 +58,7 @@ Enum ui {
 }
 */
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions, conditionalRowFormats }) => {
     
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -98,6 +98,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   console.log("defaultOrderBy: " + JSON.stringify(defaultOrderBy));
   console.log("allowedActions: " + JSON.stringify(allowedActions));
   console.log("externalActions: " + JSON.stringify(externalActions));
+  console.log("conditionalRowFormats: " + JSON.stringify(conditionalRowFormats));
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -1147,12 +1148,62 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     }
 
 
-
+    var checkFunctions = {
+      "eq":  function(inputValue, compareValue) { return inputValue === compareValue  }, // parseFloat(num)
+      "neq": function(inputValue, compareValue) { return inputValue !== compareValue },
+      "gt": function(inputValue, compareValue) { return parseFloat(inputValue) > parseFloat(compareValue) },
+      "ge": function(inputValue, compareValue) { return parseFloat(inputValue) >= parseFloat(compareValue) },
+      "lt": function(inputValue, compareValue) { return parseFloat(inputValue) < parseFloat(compareValue) },
+      "le": function(inputValue, compareValue) { return parseFloat(inputValue) <= parseFloat(compareValue) }
+    };
       
     const downloadData = (format) => {
       getBlobData(tableName, format);
     }
     ;
+
+    /*
+    const rowClassName = (record) => {
+      return record.anzahl_nicht_erfolgreich === "0"
+        ? `selected-row ${externalClass ? "custom-pointer" : ""}` //concatenating selected-row with custom-pointer
+        : `${externalClass ? "custom-pointer" : ""}`;
+    }
+    */
+
+    // conditional row formats
+    const onRow = (record, index) => {
+      let style;
+      if (conditionalRowFormats && conditionalRowFormats.length) {
+        console.log("record: " + JSON.stringify(record));
+        for (var i = 0; i < conditionalRowFormats.length; i++) {
+          let _column_name = conditionalRowFormats[i].column_name;
+          let _operator = conditionalRowFormats[i].operator;
+          let _compareValue = conditionalRowFormats[i].value;
+          let _style = conditionalRowFormats[i].style;
+          console.log("onRow: _column_name: " + _column_name + " _operator: " + _operator + " _compareValue: " + _compareValue + " _style: " + JSON.stringify(_style));
+
+          // get value of the column in the record
+          let _inputValue = Object.entries(record).find((element) => element[0] === _column_name )[1] // element[0] = key (column_name), ...[1] = value
+          console.log("onRow: _inputValue: " + _inputValue);
+
+          // compare - if true, set style
+          if (checkFunctions[_operator](_inputValue, _compareValue) ) {
+            console.log("onRow: checkFunctions: true");
+            //style = "style: \"" + _style + "\"";
+            style = _style;
+            console.log("onRow: style: " + style);
+            return { style: _style }
+            //return style;
+          }
+
+        }
+      } 
+      return style;
+    }
+
+    /*style: {
+      background: record.anzahl_nicht_erfolgreich > 0 ? 'antiquewhite' : 'default',
+    }*/
 
     return (
       <React.Fragment>
@@ -1253,6 +1304,16 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                             cancelSort: 'Klicken um Sortierung aufzuheben'
                           }}*/
                           onChange={handleChange}
+                          //rowClassName={rowClassName}
+                          onRow={onRow}
+                          /*onRow={(record, index) => (
+                              console.log("record.anzahl_nicht_erfolgreich: " + record.anzahl_nicht_erfolgreich) &&
+                              {
+                              style: {
+                                  background: record.anzahl_nicht_erfolgreich === 0 ? 'antiquewhite' : 'default',
+                              }
+                            })}
+                            */
                           //pagination={{
                           //  total: totalCount // total count returned from backend
                           //}}
