@@ -33,14 +33,26 @@ A CRUD application is defined as code. Following syntax is possible:
          "parent_page": {"alias":"<alias_of_parent_page>","name":"<Label of parent page>"}, 
          "user_column":"<column>",
          "order": [
-                  {
-                     "column_name": "<technical_column_name>",
-                     "direction": "asc|desc"
-                  },
-                  {
-                     "column_name": "<technical_column_name>"
-                  },
-                  ...
+            {
+               "column_name": "<technical_column_name>",
+               "direction": "asc|desc"
+            },
+            {
+               "column_name": "<technical_column_name>"
+            },
+            ...
+         ],
+         "conditional_row_formats": [
+            {
+               "column_name":"<technical_column_name>", 
+               "operator":"eq|neq|gt|ge|lt|le",
+               "value":"<value>",
+               "style":{
+                  "background-color":"rgb(..., ..., ...)",
+                  "...":"..."
+               }
+            },
+            ...
          ],
          "external_actions": [
             {
@@ -185,6 +197,10 @@ Has to be the fully qualified name: `<database>.schema.tablename>`
 ### order
 
 **optional**: defines a predefined / default sort order of the data. An array is given with one or more table columns and a sort direction (ascending or descending). The sort direction is optional and defaults to "ascending"
+
+### conditional_row_formats
+
+**optional**: allow to format a row conditionally depending on the value of a column
 
 ### table_columns
 
