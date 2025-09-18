@@ -334,7 +334,7 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
     dbg("add_filter_to_where_clause: param columns is <%s>",str(columns))
     if dbtyp=="mssql":
         concat_operator="+"
-        cast_coltyp="varchar"
+        cast_coltyp="varchar(max)"
     elif dbtyp=="oracle":
         concat_operator="||"
         cast_coltyp="varchar2(4000)"
