@@ -1,5 +1,5 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React from 'react'
+import { useState, useEffect, useMemo  } from "react";
 import Axios from "axios";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -21,12 +21,150 @@ import {
   CaretDownFilled
 } from '@ant-design/icons';
 import { PageHeader } from "@ant-design/pro-layout";
-import { EditOutlined, PlusOutlined, DeleteOutlined, CopyOutlined, DownloadOutlined } from "@ant-design/icons";
+import { EditOutlined, PlusOutlined, DeleteOutlined, CopyOutlined, DownloadOutlined, UnorderedListOutlined, CalendarOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import CRUDModal from "./CRUDModal";
 import TableModal from "./TableModal";
 import { useSearchParams } from 'react-router-dom';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import moment from 'moment';
+import 'moment/locale/de';
+import {
+  Calendar,
+  momentLocalizer,
+} from 'react-big-calendar'
 const { Link, Text } = Typography;
+
+moment.locale('de');
+
+
+const messages = {
+  today: 'Heute',
+  previous: 'Zurück',
+  next: 'Weiter',
+  month: 'Monat',
+  week: 'Woche',
+  day: 'Tag',
+  agenda: 'Agenda',
+  date: 'Datum',
+  time: 'Uhrzeit',
+  event: 'Termin',
+  noEventsInRange: 'Keine Termine in diesem Zeitraum.',
+};
+
+
+const events = [
+  /* {
+    id: 0,
+    title: 'All Day Event very long title',
+    allDay: true,
+    start: new Date(2015, 3, 0),
+    end: new Date(2015, 3, 1),
+  }, */
+  {
+    id: 1,
+    title: 'Long Event',
+    subtitle: 'Zoom-Link: xyz',
+    start: new Date(2015, 3, 7),
+    end: new Date(2015, 3, 10),
+    url: 'https://example.com/meeting',
+    color: 'rgb(106, 145, 206)'
+  },
+  {
+    id: 1,
+    title: 'Long Event 2',
+    subtitle: 'Zoom-Link: abc',
+    start: new Date(2015, 3, 14),
+    end: new Date(2015, 3, 16),
+    url: 'https://example.com/meeting',
+    color: 'rgb(64, 87, 124)'
+  }
+];
+
+
+const EventWithLink = ({ event }) => (
+  <a href={event.url} target="_blank" rel="noopener noreferrer">
+    {event.title}
+  </a>
+);
+
+const EventWithFullLink = ({ event }) => (
+  <a
+    href={event.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      textDecoration: 'none',
+      color: 'inherit',
+    }}
+  >
+    <div>{event.title}</div>
+  </a>
+);
+
+const EventWithTwoLines = ({ event }) => (
+  <a
+    href={event.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      textDecoration: 'none',
+      color: 'inherit',
+      padding: '2px',
+    }}
+  >
+    <div >{event.title}</div> 
+    <div style={{ fontSize: '0.85em', lineHeight: '1.2', wordWrap: 'break-word' }}>
+      {event.subtitle}
+    </div>
+  </a>
+);
+const EventWithTwoColumns = ({ event }) => (
+  <a
+    href={event.url}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{
+      display: 'flex',
+      flexWrap: 'wrap', // ✅ erlaubt Umbruch bei Platzmangel
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      height: '100%',
+      textDecoration: 'none',
+      color: 'inherit',
+      padding: '2px'
+    }}
+  >
+    <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+      {event.title}
+    </span>
+    <span style={{ fontSize: '0.85em', flex: '1 1 auto', minWidth: 0 }}>
+      {event.subtitle}
+    </span>
+  </a>
+);
+const eventStyleGetter = (event) => {
+  return {
+    style: {
+      backgroundColor: event.color || '#007bff',
+      color: 'white',
+      borderRadius: '4px',
+      padding: '2px 4px',
+      cursor: 'pointer',
+    },
+    onClick: () => {
+      window.open(event.url, '_blank', 'noopener,noreferrer');
+    },
+  };
+};
+
 
 /*
 Enum datatype {
@@ -73,6 +211,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [tableModalColumns, setTableModalColumns] = useState([]);
 
   const [username, setUsername] = useState("plainbi"); 
+
+  const [view, setView] = useState('calendar');
 
   //const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
@@ -1201,6 +1341,28 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       return style;
     }
 
+        /*
+    const ColoredDateCellWrapper = ({ children }) =>
+    React.cloneElement(React.Children.only(children), {
+      style: {
+        backgroundColor: 'lightblue',
+      },
+    })
+
+    const { components, defaultDate, max, views } = useMemo(
+      () => ({
+        components: {
+          timeSlotWrapper: ColoredDateCellWrapper,
+        },
+        defaultDate: new Date(2015, 3, 1),
+        //max: dates.add(dates.endOf(new Date(2015, 17, 1), 'day'), -1, 'hours'),
+        views: Object.keys(Views).map((k) => Views[k]),
+      }),
+      []
+    )
+    */
+    
+
     /*style: {
       background: record.anzahl_nicht_erfolgreich > 0 ? 'antiquewhite' : 'default',
     }*/
@@ -1254,16 +1416,30 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
             />
                 {lookupData && (
                   <React.Fragment>
-                    <Space direction="vertical">
-                      {breadcrumbItems ? <Breadcrumb items={breadcrumbItems} /> : ''}
-                      <Input.Search
-                        placeholder="Suche ..."
-                        //enterButton
-                        onSearch={(value) => {searchData(value)}}
-                        onChange={(e) => {searchDataWithTimeout(e.target.value)}}
-                        style={{marginBottom:20,width:500}}
-                        allowClear 
-                      />
+                    <Space style={{ marginBottom: 20, marginRight: 16, display: 'flex', justifyContent: 'space-between'}}>
+                      <Space direction="vertical">
+                        {breadcrumbItems ? <Breadcrumb items={breadcrumbItems} /> : ''}
+                        <Input.Search
+                          placeholder="Suche ..."
+                          //enterButton
+                          onSearch={(value) => {searchData(value)}}
+                          onChange={(e) => {searchDataWithTimeout(e.target.value)}}
+                          style={{width:500}}
+                          allowClear 
+                        />
+                      </Space>       
+                      <Space>
+                        <Button
+                          type={view === 'list' ? 'primary' : 'default'}
+                          icon={<UnorderedListOutlined />}
+                          onClick={() => setView('list')}
+                        />
+                        <Button
+                          type={view === 'calendar' ? 'primary' : 'default'}
+                          icon={<CalendarOutlined />}
+                          onClick={() => setView('calendar')}
+                        />
+                      </Space>               
                     </Space>
                     
                     {error && 
@@ -1276,50 +1452,79 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                       />
                     )}
                     {!error && (
-                    <Table
-                          size="small"
-                          columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
-                            .map((column) => {
-                              return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype, column.ui));
-                            })
-                            .concat((allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate")  || allowedActions.includes("export_dsdb")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate"), allowedActions.includes("export_dsdb")) : [])
-                          } // .. also add action buttons (delete, edit), if allowed
 
-                          dataSource={filteredTableData == null ? tableData : filteredTableData}
-                          //rowKey="key"
-                          //dataSource={pageMetadataRelevant.name.table_columns}
-                          //pagination={<Pagination  total={25} showTotal={(total) => `Gesamt ${total} Einträge`} defaultPageSize={25}/>}
-                          //pagination={{position: 'topRight'}}
-                          pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
-                          scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }} // change later from 400px dynamically to the height of the header, page header and footer
-                          tableLayout="auto"
-                          //pagination={false}
-                          //scroll={{ y: 500 }}
-                          //scroll={{ x: 300 }}
-                          loading={loading}
-                          /*locale={{
-                            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={'keine Daten'}/>,
-                            triggerDesc: 'Klicken um absteigend zu sortieren',
-                            triggerAsc: 'Klicken um aufsteigend zu sortieren', 
-                            cancelSort: 'Klicken um Sortierung aufzuheben'
-                          }}*/
-                          onChange={handleChange}
-                          //rowClassName={rowClassName}
-                          onRow={onRow}
-                          /*onRow={(record, index) => (
-                              console.log("record.anzahl_nicht_erfolgreich: " + record.anzahl_nicht_erfolgreich) &&
-                              {
-                              style: {
-                                  background: record.anzahl_nicht_erfolgreich === 0 ? 'antiquewhite' : 'default',
-                              }
-                            })}
-                            */
-                          //pagination={{
-                          //  total: totalCount // total count returned from backend
-                          //}}
-                        />
+                     <React.Fragment>  
+                        {view === 'calendar' ? (
+
+                                <div className="height600">
+                                  <Calendar
+                                        //components={components}
+                                        defaultDate={new Date(2015, 3, 1)}
+                                        events={events}
+                                        localizer={momentLocalizer(moment)}
+                                        //max={max}
+                                        showMultiDayTimes
+                                        step={60}
+                                        //views={views}
+                                        views={{ month: true }} 
+                                        //style={{ height: 500 }}
+                                        messages={messages}      
+                                        components={{
+                                          event: EventWithTwoColumns, 
+                                        }}
+                                        eventPropGetter={eventStyleGetter}
+                                      />
+                                </div>
+                            ) : (
+                              
+                                <Table
+                                  size="small"
+                                  columns={tableColumns && tableColumns.filter((column) => !column.showdetailsonly) // show all columns, that are not limited to the detail view (modal) ...
+                                    .map((column) => {
+                                      return ((column.ui === "lookup" && activateLookups) ? getLookupColumn(column.column_label, column.column_name, column.lookup) : getColumn(column.column_label, column.column_name, column.datatype, column.ui));
+                                    })
+                                    .concat((allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate")  || allowedActions.includes("export_dsdb")) ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate"), allowedActions.includes("export_dsdb")) : [])
+                                  } // .. also add action buttons (delete, edit), if allowed
+
+                                  dataSource={filteredTableData == null ? tableData : filteredTableData}
+                                  //rowKey="key"
+                                  //dataSource={pageMetadataRelevant.name.table_columns}
+                                  //pagination={<Pagination  total={25} showTotal={(total) => `Gesamt ${total} Einträge`} defaultPageSize={25}/>}
+                                  //pagination={{position: 'topRight'}}
+                                  pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
+                                  scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }} // change later from 400px dynamically to the height of the header, page header and footer
+                                  tableLayout="auto"
+                                  //pagination={false}
+                                  //scroll={{ y: 500 }}
+                                  //scroll={{ x: 300 }}
+                                  loading={loading}
+                                  /*locale={{
+                                    emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={'keine Daten'}/>,
+                                    triggerDesc: 'Klicken um absteigend zu sortieren',
+                                    triggerAsc: 'Klicken um aufsteigend zu sortieren', 
+                                    cancelSort: 'Klicken um Sortierung aufzuheben'
+                                  }}*/
+                                  onChange={handleChange}
+                                  //rowClassName={rowClassName}
+                                  onRow={onRow}
+                                  /*onRow={(record, index) => (
+                                      console.log("record.anzahl_nicht_erfolgreich: " + record.anzahl_nicht_erfolgreich) &&
+                                      {
+                                      style: {
+                                          background: record.anzahl_nicht_erfolgreich === 0 ? 'antiquewhite' : 'default',
+                                      }
+                                    })}
+                                    */
+                                  //pagination={{
+                                  //  total: totalCount // total count returned from backend
+                                  //}}
+                                />
+                            )} 
+                            </React.Fragment>
+
                      )}
                     </React.Fragment>
+                      
                   ) 
                 }
             
@@ -1329,6 +1534,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
             {showTableModal &&
             <TableModal modalName="" tableColumns={tableModalColumns} tableData={tableModalData} handleClose={closeTableModal}/>
             }
+            
+
 
             </React.Fragment>
     );

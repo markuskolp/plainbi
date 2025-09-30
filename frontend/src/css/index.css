@@ -221,3 +221,46 @@ div.monaco-editor {
 .ant-layout-sider-zero-width-trigger {
   top: 0px !important;
 }
+
+
+/* react-big-calendar */
+
+
+.height600 {
+  position: relative;
+  height: 600px;
+}
+
+/* Tage außerhalb des Monats */
+.rbc-off-range {
+  color: #CED0D2 !important; /* graue Schrift */
+}
+.rbc-off-range-bg {
+  background-color: white !important;
+}
+/* Vertikale Linien in der Monatsansicht entfernen */
+.rbc-day-bg + .rbc-day-bg {
+  border-left: none !important;
+}
+.rbc-header + .rbc-header {
+  border-left: none !important;
+}
+/* und für komplette Monatsansicht aussenrum */
+.rbc-month-view {
+  border: none !important;
+}
+.rbc-header {
+  font-size:100% !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+.rbc-event-content {
+  padding: 3px !important;
+}
+.rbc-row {
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+}
+.rbc-toolbar {
+  font-size: 13px !important;
+}

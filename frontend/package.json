@@ -15,6 +15,7 @@
     "prop-types": "^15.8.1",
     "react": "18.x",
     "react-antd-column-resize": "^1.0.3",
+    "react-big-calendar": "^1.19.4",
     "react-dom": "18.x",
     "react-drag-listview": "^2.0.0",
     "react-grid-layout": "^1.4.4",
