@@ -21,7 +21,7 @@ A CRUD application is defined as code. Following syntax is possible:
          "name":"<Page name>",
          "alias":"<page_alias>", 
          "allowed_actions":[ 
-            "update", "create", "delete", "duplicate", "export_dsdb", "export_excel"
+            "update", "create", "delete", "duplicate", "export_dsdb", "export_excel", "view_calendar"
          ],
          "pk_columns":["<primary_key_column>, ..."], 
          "table":"<table>", 
@@ -91,7 +91,8 @@ A CRUD application is defined as code. Following syntax is possible:
                "required":"false|true", 
                "showdetailsonly":"true", 
                "showsummaryonly":"true",
-               "default_value": "<value>"
+               "default_value": "<value>",
+               "calendar_field": "<column_name>"
             },
             {
                ...
@@ -161,6 +162,7 @@ leave **empty array** if no actions allowed or select between these options (in 
 
 **actions on page level**
 - `export_excel` (enable download of the displayed table as Excel file (.xlsx)) 
+- `view_calendar` (enable switching between table view and a calendar view - if used, then you have to match the fields of the table to the calendar specific fields: id, title, subtitle, start, end, color, url - see "table_columns" for more information)
 
 ### pk_columns
 
@@ -235,6 +237,7 @@ Here following options are possible:
 - showdetailsonly: allowed value `true`: **optional**: show this field only in detail view (modal dialog)
 - showsummaryonly: allowed value `true`: **optional**: show this field only in tabular view
 - default_value: set a default value when creating a new data entry
+- calendar_field: **optional**: matches the column to a calendar specific field- allowed values: `id`, `title`, `subtitle`, `start`, `end`, `color`, `url` - only used for action "view_calendar"
 
 ### external_actions
 

@@ -35,136 +35,6 @@ import {
 } from 'react-big-calendar'
 const { Link, Text } = Typography;
 
-moment.locale('de');
-
-
-const messages = {
-  today: 'Heute',
-  previous: 'Zurück',
-  next: 'Weiter',
-  month: 'Monat',
-  week: 'Woche',
-  day: 'Tag',
-  agenda: 'Agenda',
-  date: 'Datum',
-  time: 'Uhrzeit',
-  event: 'Termin',
-  noEventsInRange: 'Keine Termine in diesem Zeitraum.',
-};
-
-
-const events = [
-  /* {
-    id: 0,
-    title: 'All Day Event very long title',
-    allDay: true,
-    start: new Date(2015, 3, 0),
-    end: new Date(2015, 3, 1),
-  }, */
-  {
-    id: 1,
-    title: 'Long Event',
-    subtitle: 'Zoom-Link: xyz',
-    start: new Date(2015, 3, 7),
-    end: new Date(2015, 3, 10),
-    url: 'https://example.com/meeting',
-    color: 'rgb(106, 145, 206)'
-  },
-  {
-    id: 1,
-    title: 'Long Event 2',
-    subtitle: 'Zoom-Link: abc',
-    start: new Date(2015, 3, 14),
-    end: new Date(2015, 3, 16),
-    url: 'https://example.com/meeting',
-    color: 'rgb(64, 87, 124)'
-  }
-];
-
-
-const EventWithLink = ({ event }) => (
-  <a href={event.url} target="_blank" rel="noopener noreferrer">
-    {event.title}
-  </a>
-);
-
-const EventWithFullLink = ({ event }) => (
-  <a
-    href={event.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{
-      display: 'block',
-      width: '100%',
-      height: '100%',
-      textDecoration: 'none',
-      color: 'inherit',
-    }}
-  >
-    <div>{event.title}</div>
-  </a>
-);
-
-const EventWithTwoLines = ({ event }) => (
-  <a
-    href={event.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{
-      display: 'block',
-      width: '100%',
-      height: '100%',
-      textDecoration: 'none',
-      color: 'inherit',
-      padding: '2px',
-    }}
-  >
-    <div >{event.title}</div> 
-    <div style={{ fontSize: '0.85em', lineHeight: '1.2', wordWrap: 'break-word' }}>
-      {event.subtitle}
-    </div>
-  </a>
-);
-const EventWithTwoColumns = ({ event }) => (
-  <a
-    href={event.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{
-      display: 'flex',
-      flexWrap: 'wrap', // ✅ erlaubt Umbruch bei Platzmangel
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      height: '100%',
-      textDecoration: 'none',
-      color: 'inherit',
-      padding: '2px'
-    }}
-  >
-    <span style={{ flex: '1 1 auto', minWidth: 0 }}>
-      {event.title}
-    </span>
-    <span style={{ fontSize: '0.85em', flex: '1 1 auto', minWidth: 0 }}>
-      {event.subtitle}
-    </span>
-  </a>
-);
-const eventStyleGetter = (event) => {
-  return {
-    style: {
-      backgroundColor: event.color || '#007bff',
-      color: 'white',
-      borderRadius: '4px',
-      padding: '2px 4px',
-      cursor: 'pointer',
-    },
-    onClick: () => {
-      window.open(event.url, '_blank', 'noopener,noreferrer');
-    },
-  };
-};
-
 
 /*
 Enum datatype {
@@ -204,6 +74,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [errorDetail, setErrorDetail] = useState('');
 
   const [tableData, setTableData] = useState([]);
+  const [calendarData, setCalendarData] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
   const [showTableModal, setShowTableModal] = useState(false);
@@ -212,7 +83,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
   const [username, setUsername] = useState("plainbi"); 
 
-  const [view, setView] = useState('calendar');
+  const [view, setView] = useState('table');
 
   //const [pkColumn, setPkColumn] = useState();
   const [currentPK, setCurrentPK] = useState();
@@ -235,6 +106,15 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   let record_pk = (pk ? pk.toString() : null);
   let recordForPKLoaded = false;
   //console.log("CRUDPage - tableColumns: " + JSON.stringify(tableColumns));
+    
+  const calendarFields = tableColumns
+    .filter(col => col.hasOwnProperty("calendar_field"))
+    .map(col => ({
+      column_name: col.column_name,
+      calendar_field: col.calendar_field
+    }));
+    console.log("CRUDPage - calendarFields: " + JSON.stringify(calendarFields, null, 2));
+
   console.log("defaultOrderBy: " + JSON.stringify(defaultOrderBy));
   console.log("allowedActions: " + JSON.stringify(allowedActions));
   console.log("externalActions: " + JSON.stringify(externalActions));
@@ -483,6 +363,28 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
           const resData = (res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data); // take data directly if exists, otherwise take "data" part in JSON response
           //console.log(JSON.stringify(resData));
           setTableData(resData);
+
+          try {
+            const extractedCalendarData = resData.map(row => {
+              const result = {};
+              calendarFields.forEach(field => {
+                //result[field.calendar_field] = row[field.column_name];       
+                if (["start"].includes(field.calendar_field)) {
+                  result[field.calendar_field] = parseDateString(row[field.column_name], 0);
+                } else if (["end"].includes(field.calendar_field)) {
+                  result[field.calendar_field] = parseDateString(row[field.column_name], 1); // 1 Tag hinzufügen, da das Ende exkludiert ist
+                } else {
+                  result[field.calendar_field] = row[field.column_name];
+                }
+              });
+              return result;
+            });
+            setCalendarData(extractedCalendarData);
+            console.log("getTableData() - calendar data: " + JSON.stringify(extractedCalendarData, null, 2));
+          } catch(er) {
+            console.log("getTableData() - error extracting calendar data: " + er);
+          }
+
           //console.log(JSON.stringify(tableData));
           setLoading(false);
                 
@@ -1367,6 +1269,128 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       background: record.anzahl_nicht_erfolgreich > 0 ? 'antiquewhite' : 'default',
     }*/
 
+        
+    /*
+    * Calender specific 
+    */
+    
+    moment.locale('de');
+
+    
+    function parseDateString(str, dayAdd=0) {
+      try {
+        const [year, month, day] = str.split("-").map(Number);
+        const date = new Date(year, month - 1, day + dayAdd); // Monat ist 0-basiert 
+        return isNaN(date.getTime()) ? null : date;
+      } catch (er) {
+        return null;
+      }
+    }
+
+    const CalendarMessages = {
+      today: 'Heute',
+      previous: 'Zurück',
+      next: 'Weiter',
+      month: 'Monat',
+      week: 'Woche',
+      day: 'Tag',
+      agenda: 'Agenda',
+      date: 'Datum',
+      time: 'Uhrzeit',
+      event: 'Termin',
+      noEventsInRange: 'Keine Termine in diesem Zeitraum.',
+    };
+
+
+    /*
+    const EventWithLink = ({ event }) => (
+      <a href={event.url} target="_blank" rel="noopener noreferrer">
+        {event.title}
+      </a>
+    );
+
+    const EventWithFullLink = ({ event }) => (
+      <a
+        href={event.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          textDecoration: 'none',
+          color: 'inherit',
+        }}
+      >
+        <div>{event.title}</div>
+      </a>
+    );
+
+    const EventWithTwoLines = ({ event }) => (
+      <a
+        href={event.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          textDecoration: 'none',
+          color: 'inherit',
+          padding: '2px',
+        }}
+      >
+        <div >{event.title}</div> 
+        <div style={{ fontSize: '0.85em', lineHeight: '1.2', wordWrap: 'break-word' }}>
+          {event.subtitle}
+        </div>
+      </a>
+    );
+    */
+    const EventWithTwoColumns = ({ event }) => (
+      <a
+        href={event.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap', // ✅ erlaubt Umbruch bei Platzmangel
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+          height: '100%',
+          textDecoration: 'none',
+          color: 'inherit',
+          padding: '2px'
+        }}
+      >
+        <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+          {event.title}
+        </span>
+        <span style={{ fontSize: '0.85em', flex: '1 1 auto', minWidth: 0 }}>
+          {event.subtitle}
+        </span>
+      </a>
+    );
+    const eventStyleGetter = (event) => {
+      return {
+        style: {
+          backgroundColor: event.color || '#007bff',
+          color: 'white',
+          borderRadius: '4px',
+          padding: '2px 4px',
+          cursor: 'pointer',
+        },
+        onClick: () => {
+          window.open(event.url, '_blank', 'noopener,noreferrer');
+        },
+      };
+    };
+
+    /*
+    * Calender specific - END
+    */
+
     return (
       <React.Fragment>
       <PageHeader
@@ -1427,19 +1451,21 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                           style={{width:500}}
                           allowClear 
                         />
-                      </Space>       
+                      </Space>    
+                      {allowedActions.includes("view_calendar") &&   
                       <Space>
                         <Button
-                          type={view === 'list' ? 'primary' : 'default'}
+                          type={view === 'table' ? 'primary' : 'default'}
                           icon={<UnorderedListOutlined />}
-                          onClick={() => setView('list')}
+                          onClick={() => setView('table')}
                         />
                         <Button
                           type={view === 'calendar' ? 'primary' : 'default'}
                           icon={<CalendarOutlined />}
                           onClick={() => setView('calendar')}
                         />
-                      </Space>               
+                      </Space>    
+                      }           
                     </Space>
                     
                     {error && 
@@ -1454,13 +1480,13 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                     {!error && (
 
                      <React.Fragment>  
-                        {view === 'calendar' ? (
+                        {view === 'calendar' && allowedActions.includes("view_calendar") ? (
 
                                 <div className="height600">
                                   <Calendar
                                         //components={components}
-                                        defaultDate={new Date(2015, 3, 1)}
-                                        events={events}
+                                        defaultDate={new Date()}
+                                        events={calendarData}
                                         localizer={momentLocalizer(moment)}
                                         //max={max}
                                         showMultiDayTimes
@@ -1468,11 +1494,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                                         //views={views}
                                         views={{ month: true }} 
                                         //style={{ height: 500 }}
-                                        messages={messages}      
+                                        messages={CalendarMessages}      
                                         components={{
                                           event: EventWithTwoColumns, 
                                         }}
                                         eventPropGetter={eventStyleGetter}
+                                        popup
+                                        //startAccessor="start"
+                                        //endAccessor="end"                                      
                                       />
                                 </div>
                             ) : (
