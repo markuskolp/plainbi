@@ -228,7 +228,8 @@ div.monaco-editor {
 
 .height600 {
   position: relative;
-  height: 600px;
+  height: 60vh;
+  overflow-y: auto;
 }
 
 /* Tage außerhalb des Monats */
@@ -267,4 +268,23 @@ div.monaco-editor {
 .rbc-toolbar .rbc-toolbar-label {
   font-weight: 800 !important;
   font-size: 16px !important;
+}
+/* Make month rows auto-height so they expand to fit all events */
+.rbc-month-row {
+  height: auto !important;
+}
+
+.rbc-date-cell {
+  height: auto !important;
+}
+
+.rbc-day-slot {
+  height: auto !important;
+}
+
+/* Event styling for compact display */
+.rbc-event {
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  margin: 1px 0;
 }

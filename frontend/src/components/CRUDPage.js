@@ -1,6 +1,7 @@
 import React from 'react'
 import { useState, useEffect, useMemo  } from "react";
 import Axios from "axios";
+import LoadingMessage from "./LoadingMessage";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Button,
@@ -153,6 +154,12 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     //setPkColumn(pkColumns); 
   }, [tableName, tableParamChanged]);
 
+  // update data when view changes (table or calendar)
+  useEffect(() => {
+    getTableData(tableName);
+  }, [view]);
+
+
   const getUsername = async () => {
     await Axios.get("/api/profile", {headers: {Authorization: token}}).then(
       (res) => {
@@ -299,8 +306,13 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         queryParams.append("v", 1);
       }
       queryParams.append("offset", offset);
-      queryParams.append("limit", limit);
-
+      if(view == 'calendar') {
+        // set limit higher for calendar view
+        queryParams.append("limit", 10000);
+      } else {
+        // default limit for table
+        queryParams.append("limit", limit);
+      }
 
       // set ordering
       // from the user selection (when clicking on column header) ...
@@ -1483,7 +1495,10 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                         {view === 'calendar' && allowedActions.includes("view_calendar") ? (
 
                                 <div className="height600">
-                                  <Calendar
+                                  {loading ? (
+                                    <LoadingMessage />
+                                  ) : (
+                                    <Calendar
                                         //components={components}
                                         defaultDate={new Date()}
                                         events={calendarData}
@@ -1501,8 +1516,9 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                                         eventPropGetter={eventStyleGetter}
                                         popup
                                         //startAccessor="start"
-                                        //endAccessor="end"                                      
+                                        //endAccessor="end"
                                       />
+                                  )}
                                 </div>
                             ) : (
                               
