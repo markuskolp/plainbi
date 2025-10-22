@@ -307,6 +307,6 @@ Filter the tabular view:
 
 ```
 https://<server>/apps/<app_alias>/<page_alias>?<field>=<value> # field = technical column name
-https://<server>/apps/<app_alias>/<page_alias>?<field>=<value>&<field>:<value>&... # also more than 1 field is possible
+https://<server>/apps/<app_alias>/<page_alias>?<field>=<value>&<field>=<value>&... # also more than 1 field is possible
 ```
 
