@@ -113,6 +113,9 @@ table .anticon {
   font-size: 14px !important;
   /*text-align: center;*/
 }
+.anticon-filter {
+  font-size: 12px !important;
+}
 .sqlcode {
   font-family: monospace !important;
 }
@@ -221,7 +224,19 @@ div.monaco-editor {
 .ant-layout-sider-zero-width-trigger {
   top: 0px !important;
 }
-
+/*.ant-layout-sider-zero-width*/
+.ant-layout-sider {
+	flex: none !important; 
+	max-width: 500px !important; 
+	min-width: 200px !important;
+	width: auto !important;
+	}
+.ant-layout-sider-collapsed  {
+    flex: 0 0 0px !important;
+    max-width: 0px !important;
+    min-width: 0px !important;
+    width: 0px !important;
+}
 
 /* react-big-calendar */
 

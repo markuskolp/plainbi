@@ -120,9 +120,9 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
               <Header className="pageheader">{name}</Header>
               <Layout>
                 {pages.length > 1 && // show only the sider menu (page list) when more than 1 page is listed
-                <Sider max-width={250} theme={theme} collapsible  breakpoint="lg" collapsedWidth="0" onBreakpoint={broken => {console.log(broken);}} onCollapse={(collapsed, type) => {console.log(collapsed, type);}} >
+                <Sider theme={theme} collapsible  breakpoint="lg" collapsedWidth="0" onBreakpoint={broken => {console.log(broken);}} onCollapse={(collapsed, type) => {console.log(collapsed, type);}} >
                   <Menu
-                    style={{ maxWidth: 250 }} //, marginTop: "25px"
+                    //style={{ width: 500 }} //, marginTop: "25px"
                     defaultSelectedKeys={selectedPage}
                     defaultOpenKeys={selectedPage}
                     mode={mode}

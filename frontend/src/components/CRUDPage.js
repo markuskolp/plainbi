@@ -1067,6 +1067,12 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         compare: Sorter.DEFAULT,
         multiple: 3,
       },
+      /*filters: [
+        //{text: 'test', value: 'test'}
+      ],
+      filterSearch: true,
+      onFilter: (value, record) => record.name.toLowerCase().includes(value.toLowerCase()), 
+      */
       ellipsis: {
         showTitle: false,
       },
