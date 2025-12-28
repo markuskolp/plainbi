@@ -43,6 +43,7 @@ from openpyxl import load_workbook
 #from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font
 from openpyxl.worksheet.table import Table #, TableStyleInfo
+from openpyxl.utils import get_column_letter
 import smtplib
 import pandas.io.formats.excel as fmt_xl
 import ast
@@ -2449,6 +2450,18 @@ def get_adhoc_data(tokdata,id):
                         #pd.formats.format.header_style = None
                         dbg("get_adhoc_data: df to excel")
                         df.to_excel(output, index=False, sheet_name=datasheet_name)
+                        # 20251228 number format
+                        workbook = output.book
+                        worksheet = output.sheets[datasheet_name]
+                        # Apply number format to float columns
+                        float_format = workbook.add_format({'num_format': '#,##0.00'})
+                        for col_idx, col in enumerate(df.columns, start=1):
+                            if df[col].dtype in ['float64', 'float32']:
+                                col_letter = get_column_letter(col_idx)
+                                float_col_range_str = col_letter+":"+col_letter
+                                for row in range(2, len(df) + 2):
+                                    worksheet.set_column(float_col_range_str, row, float_format)  
+                        # 20251228 end number format
                         output.close()
                     except Exception as e0:
                         err("get_adhoc_data to_excel exception: %s ",str(e0))
