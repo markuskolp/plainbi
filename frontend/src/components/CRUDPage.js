@@ -675,7 +675,10 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       ).catch(function (error) {
         setLoading(false);
         setErrorMessage('Es gab einen Fehler beim Löschen');
-        try{setErrorDetail(error.toString());}catch(err){}
+        try{
+          setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
+        }
+        catch(err){}
         setError(true);
         console.log(error);
       }
