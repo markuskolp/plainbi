@@ -30,7 +30,7 @@ Weiterentwicklung:
 - defaultOrderBy verbessern - evtl. doch bei getColumn() nur über "defaultSortOrder" und weiter unten über "multiple" gehen um die Reihenfolge anzugeben bei mehreren Spalten
 - **Adhoc Tool ausbauen z.B. mit Cube JS zu einem SFO ähnlichen Berichtserstellungstool (Listenansicht)**
 - **Gruppe auf Startseite nur zeigen, wenn es Inhalte gibt**
-- Fehler beim Löschen z.B. von Adhoc besser anzeigen (wenn z.B. noch Berechtigung existiert und fk-constraint zuschlägt)
+~~- Fehler beim Löschen z.B. von Adhoc besser anzeigen (wenn z.B. noch Berechtigung existiert und fk-constraint zuschlägt)~~
 - Sicht speichern übergreifend (nur Admin) oder je User (dabei Sortierung sowie Filter merken)
 - Zurückbutton: durch den neuen Home-Button lass ich den Zurückbutton evtl. komplett verschwinden.
 - Anzahl Datensätze pro Tabelle nicht überall einstellbar, warum ?
