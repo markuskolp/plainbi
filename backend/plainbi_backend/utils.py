@@ -309,8 +309,32 @@ def parse_filter(p_q :str, p_filter, out) -> str:
             for s in slist:
                 if ":" in s:
                     p=s.split(":")
+                    if len(p)==3:
+                        v=urlsafe_decode_params(p[2])
+                        if urlsafe_decode_params(p[1])=="gt":
+                            myfilter[p[0]]=(">",v)
+                        elif urlsafe_decode_params(p[1])=="ge":
+                            myfilter[p[0]]=(">=",v)
+                        elif urlsafe_decode_params(p[1])=="le":
+                            myfilter[p[0]]=("<=",v)
+                        elif urlsafe_decode_params(p[1])=="lt":
+                            myfilter[p[0]]=("<",v)
+                        elif urlsafe_decode_params(p[1])=="ne":
+                            myfilter[p[0]]=("!=",v)
+                        else:
+                            out["error"]="invalid-filter-format"
+                            out["message"]=" Ungültige Filterbedingung2"
+                    else:
+                        v=urlsafe_decode_params(p[1])
+                        myfilter[p[0]]=(":",v)
+                elif ">" in s:
+                    p=s.split(">")
                     v=urlsafe_decode_params(p[1])
-                    myfilter[p[0]]=(":",v)
+                    myfilter[p[0]]=(">",v)
+                elif "<" in s:
+                    p=s.split("<")
+                    v=urlsafe_decode_params(p[1])
+                    myfilter[p[0]]=("<",v)
                 elif "~" in s:
                     p=s.split("~")
                     v=urlsafe_decode_params(p[1])
@@ -355,6 +379,12 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 dbg("add filter op=%s opval=%s",op,opval)
                 if op == ":":
                     l_cexp.append(f"cast({k} as {cast_coltyp}) = :{k}")
+                    wparam[k] = opval
+                elif op == "<":
+                    l_cexp.append(f"cast({k} as {cast_coltyp}) < :{k}")
+                    wparam[k] = opval
+                elif op == ">":
+                    l_cexp.append(f"cast({k} as {cast_coltyp}) > :{k}")
                     wparam[k] = opval
                 elif op == "~":
                     l_cexp.append(f"cast({k} as {cast_coltyp}) like :{k}")
