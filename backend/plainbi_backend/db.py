@@ -83,6 +83,23 @@ AND c.column_name = pk.column_name
 where 1=1
 and current_database()||'-'||c.table_schema||'.'||c.table_name = '<fulltablename>'
 """
+# is_primary_key kommt später
+metadata_col_query_snowflake="""SELECT
+    current_database() AS database_name,
+    c.table_schema AS schema_name,
+    c.table_name,
+    current_database()||'-'||c.table_schema||'.'||c.table_name AS full_table_name,
+    c.column_name,
+    c.ordinal_position as column_id,
+    c.data_type,
+    c.character_maximum_length  as max_length,
+    c.numeric_precision  as precision,
+    c.numeric_scale as scale,
+    'N' as is_primary_key
+from information_schema.columns c
+where 1=1
+and current_database()||'-'||c.table_schema||'.'||c.table_name = '<fulltablename>'
+"""
 
 metadata_col_query_oracle="""SELECT
     to_char(null) AS database_name,
@@ -230,6 +247,8 @@ def get_db_type(dbengine):
     """
     if "sqlite" in str(dbengine.url).lower():
         return "sqlite"
+    elif "snowflake" in str(dbengine.url).lower():
+        return "snowflake"
     elif "oracle" in str(dbengine.url).lower():
         return "oracle"
     elif "post" in str(dbengine.url).lower():
@@ -244,7 +263,11 @@ def db_connect_test(db):
     dbg("  ++++++++++ entering db_connect_test")
     if isinstance(db, str):
         # parameter is a string so we need to connect first
-        d=db_connect(db)
+        try:
+            d=db_connect(db)
+        except Exception as e:
+            log.error("db_connect_test failed %s",str(e))
+            return False
     else:
         # assuming that parameter db is already a sqlalchemy engine object
         d=db
@@ -300,6 +323,13 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
         if offset is not None:
             sql+=" OFFSET "+offset
     elif dbtyp=="oracle":
+        if order_by is not None:
+            sql+=" ORDER BY "+order_by.replace(":"," ")
+        if offset is not None:
+            sql+=" OFFSET "+offset+" ROWS"
+        if limit is not None:
+            sql+=" FETCH NEXT "+limit+" ROWS ONLY"
+    elif dbtyp=="snowflake":
         if order_by is not None:
             sql+=" ORDER BY "+order_by.replace(":"," ")
         if offset is not None:
@@ -533,7 +563,32 @@ def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
         #dbg("get_metadata_raw: 1 items=%s",str(items))
         if items is not None and len(items)>0:
             # got some metadata
-            dbg("get_metadata_raw: got some metadata from mssql")
+            dbg("get_metadata_raw: got some metadata from postgres")
+            # es gibt etwas in den sqlserver metadaten
+            if versioned:
+                pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
+            else:
+                pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1]
+            #dbg("get_metadata_raw from mssql: pkcols %s",str(pkcols))
+            #dbg("get_metadata_raw from mssql: columns %s",str(columns))
+            collist=[i["column_name"] for i in items]
+            out["columns"]=collist
+            out["column_data"]=items
+    elif dbtype == "snowflake":
+        # for snowflake try metadata search
+        dbg("get_metadata_raw: snowflake")
+        collist=[]
+        items,columns,total_count,e=sql_select(dbengine,metadata_col_query_snowflake.replace('<fulltablename>',tab))
+        #dbg("get_metadata_raw: returned error %s",str(e))
+        if last_stmt_has_errors(e, out):
+            out["error"]+="-get_metadata_raw"
+            out["message"]+=" beim Lesen der Tabellen Metadaten aus Snowflake"
+            dbg("++++++++++ leaving get_metadata_raw snowflake returning for %s data %s",tab,out)
+            return out
+        #dbg("get_metadata_raw: 1 items=%s",str(items))
+        if items is not None and len(items)>0:
+            # got some metadata
+            dbg("get_metadata_raw: got some metadata from snowflake")
             # es gibt etwas in den sqlserver metadaten
             if versioned:
                 pkcols=[i["column_name"] for i in items if i["is_primary_key"]==1 and i["column_name"] != "invalid_from_dt"]
@@ -740,7 +795,7 @@ def get_next_seq(dbengine,seq):
             sql=f'SELECT NEXT VALUE FOR {seq} AS nextval'
         elif dbtyp == "postgres":
             sql=f"SELECT nextval('{seq}') AS nextval"
-        elif dbtyp == "oracle":
+        elif dbtyp in ("oracle","snowflake"):
             sql=f"SELECT {seq}.nextval AS nextval from dual"
         dbg("sql=%s",sql)
         try:
@@ -776,6 +831,8 @@ def get_dbversion(dbengine):
         sql="select version from v$instance"
     elif db_typ=="postgres":
         sql="select version() as version"
+    elif db_typ=="snowflake":
+        sql="SELECT CURRENT_VERSION() AS version"
     else:
         return None
     try:
@@ -1776,7 +1833,11 @@ def db_connect(p_enginestr, params=None):
                     elif dbtyp == "mssql":
                         sql="use "+kl[1]
                         db_exec(dbengine,sql)
-                        dbg("++++++++++ use schema %",kl[1])
+                        dbg("++++++++++ use mssql schema %",kl[1])
+                    elif dbtyp == "snowflake":
+                        sql="use schema "+kl[1]
+                        db_exec(dbengine,sql)
+                        dbg("++++++++++ use snowflake schema %",kl[1])
 
     return dbengine
 

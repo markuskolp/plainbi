@@ -89,7 +89,7 @@ create table plainbi_datasource (
   id int primary key not null
  ,name varchar(100)
  ,alias varchar(100) --UNIQUE
- ,db_type varchar(100)  -- db_types enum mssql,postgres,mysql,oracle,sqllite
+ ,db_type varchar(2000)  -- db_types enum mssql,postgres,mysql,oracle,sqllite
  ,db_host varchar(100) 
  ,db_port varchar(100) 
  ,db_name varchar(100)

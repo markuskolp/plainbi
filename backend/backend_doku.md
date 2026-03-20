@@ -53,3 +53,31 @@ Use repo docker.io/library/postgres:latest
 @api.route('/profile', methods=['GET'])
 @api.route('/logout', methods=['GET'])
 @api.route(api_prefix+'/crud/exec/<db>/<procedure>', methods=['POST'])
+
+## Datasource Konfiguration
+
+We configure the datasource for application and adhoc reports in the repository table "plainbi_datasource"
+
+Column db_type can be
+
+- mssql
+- sqlite: then put the file nam ein "db_host"
+- oracle: then use {db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+- postgres: then postgresql+psycopg2://{db_user}{db_user}:{db_pass}@{host}/{db_name}
+- or any valid sqlalchemy connect string
+
+For snowflake the sqlalchemy connect string for example is
+snowflake://plainbi_dev@mmg-dwh/?warehouse=devtest_xs&database=dwh_dev&schema=PUBLIC&role=PUBLIC&authenticator=SNOWFLAKE_JWT&private_key=<a very long key>
+<a very long key> is the output of 
+```
+def get_snowflake_private_key(pem_file_path):
+    with open(pem_file_path, 'rb') as key_file:
+        private_key = key_file.read()
+    p_key = serialization.load_pem_private_key(private_key,password=None)
+    der_key = p_key.private_bytes(encoding=serialization.Encoding.DER,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
+    base64_key = base64.b64encode(der_key).decode('ascii')
+    base64_key = base64_key.replace('\n', '')
+    while len(base64_key) % 4 != 0:
+        base64_key += '='
+    return  urllib.parse.quote_plus(base64_key)
+```
