@@ -94,7 +94,7 @@ create table plainbi_datasource (
  ,db_port varchar2(100) 
  ,db_name varchar2(100)
  ,db_user varchar2(100)
- ,db_pass_hash varchar2(100)
+ ,db_pass_hash varchar2(2000)
 )
 ''',
 '''

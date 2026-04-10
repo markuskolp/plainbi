@@ -4,12 +4,15 @@ Created on Thu May  4 08:11:27 2023
 
 @author: kribbel
 """
-import base64
 import os
-from plainbi_backend.config import config
+import base64
 import logging
 import inspect
 from datetime import datetime
+from cryptography.hazmat.primitives import serialization
+import urllib.parse  # This is key for proper URL encoding
+from plainbi_backend.config import config
+
 
 #log = logging.getLogger(config.logger_name)
 log = logging.getLogger(__name__)
@@ -1872,6 +1875,26 @@ def audit(tokdata,req,id=None,msg=None):
         dbg("continuing")
     dbg("++++++++++ leaving audit")
 
+def get_snowflake_private_key(private_key):
+    """Load and properly format a PEM private key for Snowflake"""
+    p_key = serialization.load_pem_private_key(private_key.encode(),password=None)
+    # Convert to DER format (PKCS#8)
+    der_key = p_key.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    # Convert to base64 and ensure proper padding
+    base64_key = base64.b64encode(der_key).decode('ascii')
+    base64_key = base64_key.replace('\n', '')
+
+    # Add padding if needed (Snowflake is very strict about this)
+    # Ensure length is multiple of 4
+    while len(base64_key) % 4 != 0:
+        base64_key += '='
+    encoded_private_key = urllib.parse.quote_plus(base64_key)
+    return encoded_private_key
+
 def load_datasources_from_repo():
     """
     loads all datasources into a config global dictionary config.datasources and connects to config.datasources_engine
@@ -1888,7 +1911,7 @@ def load_datasources_from_repo():
     datasrc_sql = "select * from plainbi_datasource where id <> 0"
     datasrc_items, datasrc_columns = db_exec(config.repoengine,datasrc_sql)
     for i in datasrc_items:
-        #dbg("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
+        dbg("load_datasources_from_repo: id=%d type=%s",i["id"],i["db_type"])
         db_type = i["db_type"]
         id = i["id"]
         alias = i["alias"]
@@ -1905,9 +1928,15 @@ def load_datasources_from_repo():
         elif db_type == "sqlite":
             sql_dbengine_str=f"sqlite://{host}"
         elif db_type == "postgres":
-            sql_dbengine_str=f"postgresql+psycopg2://{db_user}{db_user}:{db_pass}@{host}/{db_name}"
+            sql_dbengine_str=f"postgresql+psycopg2://{db_user}:{db_pass}@{host}/{db_name}"
         elif db_type == "oracle":
             sql_dbengine_str=f"oracle+cx_oracle://{db_user}:{db_pass}@{host}:{port}/{db_name}"
+        elif db_type == "snowflake":
+            #snowflake://plainbi_dev@mmg-dwh/?warehouse=devtest_xs&database=dwh_dev&schema=PUBLIC&role=PUBLIC&authenticator=SNOWFLAKE_JWT&private_key=MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC0l2bi7ldjR6vPyxaF%2FGbgjTjVVZ6yr3cdqoUymRc5RXfP%2F6lo2Gt%2BAumlaX2dqpTLum3WaWoNA%2B4STdBEU6u3rJI7rkDdDLksE%2Fs2Tn2bL1n6gqDdjeySU2G5NhDer9MdeAskfhdkCp2qpHj6n4dS%2FbPpxUQeNb8HMBN7V4K1hlRCKqIt66CEk7R8dIxHYXYwgZUpfq9VeSiOSIJRXp9NH%2BAZ9%2B1pUBI54My5YcrjKkpMxwXgGQFIhAL5NMnWMWHOnRxq956n0wYULhRMcQDErBsBa4vWX4HFiUhW%2BKUcw%2Fr%2FCDext6%2ByzTQ3P%2BTSt%2BITSEDE1xHBKMh5KBnOfapbAgMBAAECggEAWnIlhmxmegOwSh7lxe82uyofl8EM%2FWMh3krD8SZ5Wiavrg3Wk%2FsoQvFEgaLG1gtUAID7d9JN2fzo5GPydfYN36zfhGJufAdeSnQrcfR3thxODUgVN0FYhaSbIf6xDkazDmRL%2BFfqcSFb%2B9Xp%2FWOei%2FMig2dYCWVTqk7qwvB%2BN1kbOlmkp1l1Zve7TJeWt%2FTUvokQH4lT7b6POyC1YZc1SSSzW%2F32dBtAt5r1rZrBTLcsPRf65TZG9AK9vMhzLmfEwN2PwyhtRQluI4h8mcdqUARwtyFQnu4dUSA533HCowezQ4yDpyhZ1gbclesiq9Wn8Ob4JFM050S7hUBtOlNNYQKBgQDbDLaFvnQxSQTP2o3ZMIVHAnKUKFrNKkm8H8L4PSaRUDxcfijUTSlf0QCTqGFgrULejNgfgMAScranlnPKAuKDTUmgOh8ZwEkuJaW493JjbhipsVh2Fb85gCQCrb%2BZMRCSe3h7nsMsOXxNDIGEuHgxzadYvhll2cudKE5wbOblKwKBgQDTDe9ZeUEBHgVRNpkH11pfjonu3bwxytPZ1CP%2B%2BWRnLdx%2FniNz%2BPhmp7XesrQRNTTGmlybQT2GSCbVcUJkTGztRbZ4ZwjbR382Jh84PYqo%2BrVpQGXCuc%2B9YpekBVYzOzqP2ij30%2B%2BVmsUh%2F%2BdXUhULC4IPMVKta8MB%2BqTPId0XkQKBgQCckFec%2FGWcHG6eCb49MFrySCORFc7guYr%2BNU1rlHmOf2TFTz7rj0M1QvNAlqcTLIORAeYvjhy6ktdOrVCRYMJ5yrIHHcPA6hjkLPBoZiSSQMzL7QAnVp%2FY%2F2e9qmY5nkIUEMAqy20AnQ3lHD0umZL%2FNdiYqzcH%2F0VzTK3T2WKnBQKBgA6i%2B8NnvlNWgqXkNG6vx6uy1ewD4qZNW63SoYBwST9ClfUfwXOsg4WTAfDk0coTt4pCcEOwHZUvccoBpcoQ5sj5ubLV6m5SogbeU%2FHxiqk3YddfyO7dNgP7T2rnl9fLtr79MTQmtYnZhuxZs%2FCBV8ZBUQ6%2Bq%2B4s%2BAQuHrnirlORAoGBAJO8IsmCF3gAnwOverPtHVmBGKVKRb7Ag1GEWB9xx9Mx0JM848uEVtLkYcG7i3OLVrvyT6UFHjj1ErmYt4i4OicayuT%2B0B6ni%2FOUniBXM8yTPia3biY97nhdLhQQQ6Qfz9ZTA8IpWb2y9XgBiVPQbyGqVSaV9zPOnvTuE5WhtnJl'
+            pkey=get_snowflake_private_key(db_pass)
+            dbg(f"snowflake pkey={pkey}")
+            sql_dbengine_str=f"snowflake://{db_user}@{host}/?warehouse={port}&database={db_name}&schema=PUBLIC&role=PUBLIC&authenticator=SNOWFLAKE_JWT&private_key={pkey}"
+            dbg(f"snowflake sql_dbengine_str={sql_dbengine_str}")
         else:
             if db_type is None:
                 log.warning("datasource type is empty -> skip datasource")
@@ -1924,9 +1953,11 @@ def load_datasources_from_repo():
         #dbg(sql_dbengine_str)
         config.datasources[str(id)]=sql_dbengine_str
         config.datasources[alias]=sql_dbengine_str
+        dbg(f"DATASOURCE {i['id']} engine_str={sql_dbengine_str}")
         if db_connect_test(sql_dbengine_str):
             config.datasources_engine[str(id)] = db_connect(sql_dbengine_str)
             config.datasources_engine[alias] = db_connect(sql_dbengine_str)
         else:
             log.warning('cannot connect to datasource_id: %d engine_str: %s',id,sql_dbengine_str)
+    dbg("++++++++++ leaving load_datasources_from_repo")
 
