@@ -11,7 +11,7 @@ import { geojsonHalls } from './geojsonHalls.js';
 import mapboxgl from 'mapbox-gl';
 mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worker').default; // eslint-disable-line
 
-const mapboxtoken = 'pk.eyJ1IjoibWFya3Vza29scDMwNDMwIiwiYSI6ImNscWhxNWVqYTFjdDAya3RrZnUyc2trZ2IifQ.29kFpGDemWCOwA8DUMqJ5w';
+const mapboxtoken = 'empty';
 
 const Map = ( { resultSet }) => {
 
