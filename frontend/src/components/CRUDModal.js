@@ -8,12 +8,14 @@ import {
   Form,
   message,
   Alert,
-  Tooltip
+  Tooltip,
+  Spin
 } from "antd";
 
 const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence, externalActions }) => {
     
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorDetail, setErrorDetail] = useState('');
@@ -270,7 +272,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
   // updateTableRow
   const updateTableRow = async (tableName, record, pk) => {
-    setLoading(true);
+    setSaving(true);
     console.log("updateTableRow: " + JSON.stringify(record));
 
     const queryParams = new URLSearchParams();
@@ -296,7 +298,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         handleSave();
       }
       ).catch(function (error) {
-        setLoading(false);
+        setSaving(false);
         setErrorMessage('Es gab einen Fehler beim Speichern');
         try{setErrorDetail(error.response.data.detail);}catch(err){}
         setError(true);
@@ -307,7 +309,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
     // addTableRow
     const addTableRow = async (tableName, record) => {
-      setLoading(true);
+      setSaving(true);
       console.log("addTableRow: " + JSON.stringify(record));
       
       const queryParams = new URLSearchParams();
@@ -345,7 +347,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
           console.log("error.response.headers: " + error.response.headers)
           console.error('Request Failed:', error.config);
           */
-          setLoading(false);
+          setSaving(false);
           setErrorMessage('Es gab einen Fehler beim Speichern');
           try{setErrorDetail(error.response.data.detail);}catch(err){}
           setError(true);
@@ -391,6 +393,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
             centered
             width="80vw"
             maskClosable={false}
+            //confirmLoading={loading}
             style={{
               maxWidth:"1500px"
             }}
@@ -404,10 +407,16 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
               >Löschen</Button>,
               */
               <Button key="2" htmlType="button" onClick={handleCancel} >Abbrechen</Button>,
-              <Button key="3" type="primary" htmlType="submit" onClick={handleOk} >Speichern</Button>
+              <Button key="3" type="primary" htmlType="submit" onClick={handleOk} loading={saving} >Speichern</Button>
             ]}
             
           >
+
+          {loading && (
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <Spin size="large" />
+            </div>
+          )}
 
           {error && (
             <Alert
