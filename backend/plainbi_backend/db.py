@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.pool import NullPool, QueuePool
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn,show_call_stack
 #import bcrypt
 from threading import Lock
@@ -470,7 +471,6 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
         total_count=(item_total_count[0])['total_count']
     return items,columns,total_count,"ok"
 
-
 def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
     """
     holt die struktur einer Tabelle entweder aus sys.columns oder aus der query selbst
@@ -481,15 +481,15 @@ def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
     dbg("get_metadata_raw: param tab is <%s>",str(tab))
     dbg("get_metadata_raw: param pk_column_list (override) is <%s>",str(pk_column_list))
     dbg("get_metadata_raw: param versioned is <%s>",str(versioned))
-    cache_key=str(dbengine.url)+"||||"+str(tab)+'||||'
-    if versioned: cache_key+= "v|||"
-    dbg("get_metadata_raw: cache key prefix is %s",cache_key)
-    if isinstance(pk_column_list,list):
-         cache_key+= ";".join(pk_column_list) if pk_column_list is not None else "-"
-    else:
-        cache_key+=pk_column_list if pk_column_list is not None else ""
-    dbg("get_metadata_raw: cache key is %s",cache_key)
     if config.use_cache:
+        cache_key=str(dbengine.url)+"||||"+str(tab)+'||||'
+        if versioned: cache_key+= "v|||"
+        dbg("get_metadata_raw: cache key prefix is %s",cache_key)
+        if isinstance(pk_column_list,list):
+            cache_key+= ";".join(pk_column_list) if pk_column_list is not None else "-"
+        else:
+            cache_key+=pk_column_list if pk_column_list is not None else ""
+        dbg("get_metadata_raw: cache key is %s",cache_key)
         if hasattr(config,"metadataraw_cache"):
             if cache_key in config.metadataraw_cache.keys():
                 dbg("get_metadata_raw: metadataraw_cache hit")
@@ -667,7 +667,9 @@ def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
     else:
         dbg("get_metadata_raw returns computed column_list")
     dbg("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
-    config.metadataraw_cache[cache_key] = out
+    if config.use_cache:
+        config.metadataraw_cache[cache_key] = out
+        dbg("get_metadata_raw cached")
     return out
 
 
@@ -1819,6 +1821,9 @@ def db_connect(p_enginestr, params=None):
             dbg("++++++++++ enable pool_pre_ping for postgres")
             dbg("++++++++++ enable echo_pool debug for postgres")
             dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True, echo_pool='debug', connect_args={'connect_timeout': 10}, pool_recycle=600)
+        elif "snowflake" in p_enginestr:
+            dbg("++++++++++ snowflake pool_pre_ping=True, pool_recycle=1800, pool_timeout=30, pool_size=5")
+            dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True, pool_recycle=1800, pool_timeout=30, pool_size=5)
         else:
             dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: engine url %s",dbengine.url)

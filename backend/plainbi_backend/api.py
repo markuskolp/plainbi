@@ -3117,7 +3117,7 @@ def cache(tokdata):
                 dbg("caching enabled")
                 config.metadataraw_cache = {}
                 config.profile_cache = {}
-                return 'cacheing endabled', 200
+                return 'cacheing enabled', 200
             if key=="off":
                 config.use_cache=False
                 dbg("caching disabled")
@@ -3692,6 +3692,10 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
             config.with_sso=False
             config.ms_keys=[]
 
+    if config.use_cache:
+        log.info("Metadata Caching is enabled")
+    else:    
+        log.info("Metadata Caching is NOT enabled")
 
     # begin: multi process uwsgi database connection pool handling
     # https://stackoverflow.com/questions/59248806/how-to-correctly-setup-flask-uwsgi-sqlalchemy-to-avoid-database-connection-i

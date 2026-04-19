@@ -80,11 +80,18 @@ if not hasattr(config,"is_loaded"):
     log.debug("secret key generated")
 
     # global variables for caches, it holds metadata and profiles so that they are fetched only once from the database
-    config.use_cache = False
+    config.use_cache = True
     config.metadataraw_cache = {}
     config.profile_cache = {}#
     config.dbg = False
     config.dbg_level = 1
+
+
+    if "PLAINBI_METADATA_CACHE" in os.environ.keys():
+        if os.environ["PLAINBI_METADATA_CACHE"].lower() in ("yes","y","true"):
+            config.use_cache = True
+        else:
+            config.use_cache = False
 
     SESSION_TYPE = 'filesystem'
 
