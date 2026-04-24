@@ -100,9 +100,13 @@ metadata_col_query_snowflake="""SELECT
     c.numeric_precision  as precision,
     c.numeric_scale as scale,
     'N' as is_primary_key
-from information_schema.columns c
-where 1=1
-and current_database()||'-'||c.table_schema||'.'||c.table_name = '<fulltablename>'
+FROM information_schema.columns c
+WHERE CASE WHEN LENGTH('<fulltablename>') - LENGTH(REPLACE('<fulltablename>', '.', '')) > 1
+    THEN 
+      CASE WHEN lower(current_database()||'.'||c.table_schema||'.'||c.table_name) = '<fulltablename>' THEN 1 ELSE 0 END
+    ELSE 
+      CASE WHEN lower(c.table_schema||'.'||c.table_name) = '<fulltablename>' AND c.table_catalog = current_database() THEN 1 ELSE 0 END
+    END = 1
 """
 
 metadata_col_query_oracle="""SELECT
