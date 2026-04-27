@@ -12,6 +12,7 @@ import {
 } from "antd";
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
+import { getPKParamForURL, getColsParamForModal } from "../utils/pkUtils";
 
 const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence, externalActions }) => {
 
@@ -40,7 +41,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     const queryParams = new URLSearchParams();
     if (versioned) queryParams.append("v", 1);
     queryParams.append("pk", getPKParamForURL(pkColumns));
-    queryParams.append("cols", getColsParamForURL(tableColumns));
+    queryParams.append("cols", getColsParamForModal(tableColumns));
 
     const endpoint = api + tableName + '/' + pk + '?' + queryParams;
     apiClient.get(endpoint)
@@ -96,17 +97,6 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     }
   };
 
-  const getPKParamForURL = (_pkColumn) => {
-    if (_pkColumn.length <= 1) return _pkColumn[0];
-    return _pkColumn.join(",");
-  };
-
-  const getColsParamForURL = (_cols) => {
-    return _cols
-      .filter((col) => col.showsummaryonly !== 'true')
-      .map((col) => col.column_name)
-      .join(",");
-  };
 
   const updateTableRow = async (tableName, record, pk) => {
     setSaving(true);
