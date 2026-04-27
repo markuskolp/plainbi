@@ -14,7 +14,7 @@ import {
 
 const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence, externalActions }) => {
     
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -39,6 +39,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
   // getRecordData
   const getRecordData = async (tableName) => {
+    setLoading(true);
     setRecordData(null);
 
     const queryParams = new URLSearchParams();
