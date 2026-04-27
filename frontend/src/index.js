@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ThemeLayout from "./pages/ThemeLayout";
@@ -21,6 +21,12 @@ import ERD from "./pages/ERD";
 
 const App = () => {
   const { token, removeToken, setToken } = useToken();
+
+  useEffect(() => {
+    const handleUnauthorized = () => removeToken();
+    window.addEventListener('plainbi:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('plainbi:unauthorized', handleUnauthorized);
+  }, []);
   const userRole = localStorage.getItem('role');
   const pathname = window.location.pathname;
   console.log("pathname",pathname);
