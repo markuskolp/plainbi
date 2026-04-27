@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Form, Input, Button, Checkbox,Image, Space, message, Typography, Divider  } from 'antd';
 import Icon from '@ant-design/icons';
-import Axios from "axios";
+import apiClient from "../utils/apiClient";
 import EnvironmentBanner from "../components/EnvironmentBanner";
 //import { useParams, useLocation, useNavigate } from "react-router-dom";
 const { Link, Text, Title } = Typography;
@@ -29,13 +29,9 @@ const Login = (props) => {
     console.log("logmein referrer "+document.referrer);
 
 
-    Axios({
-      method: "POST",
-      url:"/api/login",
-      data:{
-        username: loginForm.username,
-        password: loginForm.password
-       }
+    apiClient.post("/api/login", {
+      username: loginForm.username,
+      password: loginForm.password
     })
     .then((response) => {
       props.setToken(response.data.access_token)

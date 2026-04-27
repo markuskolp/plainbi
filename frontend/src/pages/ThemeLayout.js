@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Layout, theme, Button } from "antd";
 import { message, Typography } from "antd";
 import LoadingMessage from "../components/LoadingMessage";
-import Axios from "axios";
+import apiClient from "../utils/apiClient";
 import {
   HomeOutlined,
   AppstoreOutlined,
@@ -51,19 +51,7 @@ const ThemeLayout = (props) => {
   const userRole = localStorage.getItem('role');
    
   const logMeOut = () => {
-    Axios({
-      method: "POST",
-      url:"/api/logout",
-    })
-    .then((response) => {
-       props.token()
-    }).catch((error) => {
-      if (error.response) {
-        console.log(error.response)
-        console.log(error.response.status)
-        console.log(error.response.headers)
-        }
-    })
+    apiClient.post("/api/logout").then(() => props.token()).catch(() => {});
   };
 
   const logout = () => {

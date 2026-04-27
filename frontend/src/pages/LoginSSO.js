@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { message, Typography, Space } from 'antd';
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import LoadingMessage from "../components/LoadingMessage";
-import Axios from "axios";
+import apiClient from "../utils/apiClient";
 
 //import useToken from "../components/useToken";
 //const { token, removeToken, setToken } = useToken();
@@ -41,7 +41,7 @@ const LoginSSO = (props) => {
     const performLogin = async () => {
       try {
         console.log("performLogincall post with await");
-        const response = await Axios.post('/api/login_sso', paramsObject);
+        const response = await apiClient.post('/api/login_sso', paramsObject);
         console.log("performLogin after await");
         props.setToken(response.data.access_token);
         console.log("performLogin after setToken");

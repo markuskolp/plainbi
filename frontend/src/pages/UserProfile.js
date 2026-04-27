@@ -1,89 +1,44 @@
 import React from "react";
-import { useState, useEffect } from "react";
-import Axios from "axios";
-import { message, Typography, Tag, Space } from "antd";
+import { useEffect } from "react";
+import { Alert, Typography, Tag, Space } from "antd";
 import LoadingMessage from "../components/LoadingMessage";
-import UnderConstruction from "../components/UnderConstruction";
-const { Text, Link, Title  } = Typography;
+import apiClient from "../utils/apiClient";
+import useApiState from "../hooks/useApiState";
 
-const UserProfile = (props) => {
+const { Text, Link, Title } = Typography;
 
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState([]); // profile data
-  const [errorMessage, setErrorMessage] = useState('');
-  const [errorDetail, setErrorDetail] = useState('');
+const UserProfile = () => {
+
+  const { loading, setLoading, error, errorMessage, errorDetail, setApiError, data, setData } = useApiState(true);
+  const [profileData, setProfileData] = React.useState({});
 
   useEffect(() => {
-    initializeApp();
+    apiClient.get("/api/profile")
+      .then((res) => {
+        setProfileData(res.data);
+        setLoading(false);
+      })
+      .catch((err) => setApiError('Es gab einen Fehler beim Laden der Profildaten.', err));
   }, []);
-
-  const initializeApp = async () => {
-    await Axios.get("/api/profile", {headers: {Authorization: props.token}}).then(
-      (res) => {
-        //console.log(JSON.stringify(res));
-        const resData = res.data;
-        console.log("/profile response: " + JSON.stringify(resData));
-        setData(resData);
-        setLoading(false);
-      }
-    ).catch(
-      function (error) {
-        setLoading(false);
-        setError(true);
-        if (error.response.status === 401) {
-          props.removeToken()
-          message.error('Session ist abgelaufen');
-        } else {
-          setErrorMessage('Es gab einen Fehler beim Laden der Profildaten.');
-          setErrorDetail((typeof error.response.data.message !== 'undefined' && error.response.data.message ? error.response.data.message : "") + (typeof error.response.data.detail !== 'undefined' && error.response.data.detail ? ": " + error.response.data.detail : ""));
-         }
-        console.log(error);
-        console.log(error.response.data.message);
-      }
-    );
-  };
-
 
   return (
     <React.Fragment>
       {loading ? (
-          <LoadingMessage />
-        ) : 
-        (
-          error ? 
-          (
-            <Alert
-              message={errorMessage}
-              description={errorDetail}
-              type="error"
-              showIcon
-            />
-          ) : ( 
-            <React.Fragment>
-              <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
-                <Title level={3}>{data.fullname ? data.fullname + " (" + data.username + ")" : data.username}</Title> 
-                <Link href={"mailto:"+data.email} >{data.email}</Link> 
-                <Title level={5}>Rolle:</Title> 
-                <Text>{data.role}</Text> 
-                <Title level={5}>Gruppen:</Title> 
-                {data.groups && data.groups.map((group) => {console.log(group);return <Text>{group.name}</Text>})}
-              </Space>
-            </React.Fragment>
-          )
-        )
-      }
+        <LoadingMessage />
+      ) : error ? (
+        <Alert message={errorMessage} description={errorDetail} type="error" showIcon />
+      ) : (
+        <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+          <Title level={3}>{profileData.fullname ? profileData.fullname + " (" + profileData.username + ")" : profileData.username}</Title>
+          <Link href={"mailto:" + profileData.email}>{profileData.email}</Link>
+          <Title level={5}>Rolle:</Title>
+          <Text>{profileData.role}</Text>
+          <Title level={5}>Gruppen:</Title>
+          {profileData.groups && profileData.groups.map((group) => <Text key={group.id}>{group.name}</Text>)}
+        </Space>
+      )}
     </React.Fragment>
   );
-
 };
 
 export default UserProfile;
-
-/*email
-      username
-      fullname
-      groups
-      role
-      <Text>{group.name}</Text>
-*/
