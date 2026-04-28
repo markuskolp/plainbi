@@ -1,5 +1,4 @@
-import React from "react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Typography,
   Switch,
@@ -36,6 +35,16 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   const datetimeFormat = 'YYYY-MM-DD HH:mm';
   const [currentvalue, setCurrentvalue] = useState(defaultValue);
   const isMultiple = multiple === "true";
+  const editorRef = useRef(null);
+
+  // Sync Monaco editor when real record data arrives (loading starts with defaultValue="")
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const incoming = defaultValue ?? '';
+    if (editorRef.current.getValue() !== incoming) {
+      editorRef.current.setValue(incoming);
+    }
+  }, [defaultValue]);
 
   const handleChange = (e) => {
     setCurrentvalue(e.target.value);
@@ -92,13 +101,15 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       case "textarea_sql":
         return (
           <div className="monaco-editor-wrapper">
-            <MonacoEditor height="300" language="sql" theme="vs-light" value={defaultValue} options={monacoOptions} onChange={handleMonacoEditorChange} name={name} />
+            <MonacoEditor height="300" language="sql" theme="vs-light" options={monacoOptions} onChange={handleMonacoEditorChange}
+              editorDidMount={(editor) => { editorRef.current = editor; editor.setValue(defaultValue ?? ''); }} />
           </div>
         );
       case "textarea_json":
         return (
           <div className="monaco-editor-wrapper">
-            <MonacoEditor height="300" language="json" theme="vs-light" value={defaultValue} options={monacoOptions} onChange={handleMonacoEditorChange} name={name} />
+            <MonacoEditor height="300" language="json" theme="vs-light" options={monacoOptions} onChange={handleMonacoEditorChange}
+              editorDidMount={(editor) => { editorRef.current = editor; editor.setValue(defaultValue ?? ''); }} />
           </div>
         );
       case "password_nomem":
