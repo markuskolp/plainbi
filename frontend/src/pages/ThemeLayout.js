@@ -81,7 +81,6 @@ const ThemeLayout = (props) => {
   ];
 
   const handleMenuClick = (e) => {
-    console.log('click', e);
     if (e.key === '1') {
       navigate("/myprofile");
     }

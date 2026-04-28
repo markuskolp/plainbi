@@ -6,8 +6,6 @@ const { RangePicker } = DatePicker;
 
 const DateRange = ({columnId, onChange}) => {
 
-    console.log("DateRange");
-    console.log("DateRange - columnId: " + columnId);
 
     const rangePresets = [
       { label: 'Letzte 7 Tage', value: [dayjs().add(-7, 'd'), dayjs()] },
@@ -18,10 +16,7 @@ const DateRange = ({columnId, onChange}) => {
     
     const onRangeChange = (dates, dateStrings) => {
       if (dates) {
-        console.log('From: ', dates[0], ', to: ', dates[1]);
-        console.log('From: ', dateStrings[0], ', to: ', dateStrings[1]);
       } else {
-        console.log('Clear');
       }
       onChange(columnId, dateStrings); // filterName, filterValue [0] = from, [1] = to
     };

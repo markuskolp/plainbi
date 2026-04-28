@@ -10,7 +10,6 @@ class ImageUpload extends React.Component {
 
   onChange = e => {
     debugger;
-    console.log("file uploaded: ", e.target.files[0]);
     let file = e.target.files[0];
 
     if (file) {
@@ -21,7 +20,6 @@ class ImageUpload extends React.Component {
   };
 
   _handleReaderLoaded = e => {
-    console.log("file uploaded 2: ", e);
     let binaryString = e.target.result;
     this.setState({
       base64Data: btoa(binaryString)
@@ -30,7 +28,6 @@ class ImageUpload extends React.Component {
 
   render() {
     const { base64Data } = this.state;
-    console.log("base64", this.state);
     return (
       <div>
         <input

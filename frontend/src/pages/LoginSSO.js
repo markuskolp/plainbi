@@ -23,9 +23,6 @@ const LoginSSO = (props) => {
   const session_state = searchParams.get("session_state");
   const tok = searchParams.get("access_token");
   //console.log("code",code);
-  console.log("client_info",client_info);
-  console.log("state",state);
-  console.log("session_state",session_state);
   //console.log("LoginSSO param - code: " + code);
   //console.log("LoginSSO token:" + tok);
 
@@ -40,17 +37,13 @@ const LoginSSO = (props) => {
   useEffect(() => {
     const performLogin = async () => {
       try {
-        console.log("performLogincall post with await");
         const response = await apiClient.post('/api/login_sso', paramsObject);
-        console.log("performLogin after await");
         props.setToken(response.data.access_token);
-        console.log("performLogin after setToken");
         localStorage.setItem('role', response.data.role ? response.data.role.toUpperCase() : 'USER');
         setSuccess(true);
         setLoading(false);
       } catch (err) {
         setError(err.response?.data?.message || err.message || 'Login failed');
-        console.log(err);
         setLoading(false);
       }
     }
@@ -60,7 +53,6 @@ const LoginSSO = (props) => {
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
-        console.log("navigate in timer to index.js");
         navigate('/', { state: { refresh: true}});
         window.location.reload();
       },1000);

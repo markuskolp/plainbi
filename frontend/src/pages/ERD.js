@@ -95,11 +95,9 @@ function ERD() {
     ismdwn = 1
     document.body.addEventListener('mousemove', mV)
     document.body.addEventListener('mouseup', end)
-    console.log("mD")
   }
 
   function mV(event) {
-    console.log("mV")
     if (ismdwn === 1) {
       pan1.style.flex = event.clientX + "px"
     } else {
@@ -127,7 +125,6 @@ function ERD() {
       let dsltext = text;
       dsltext = dsltext.replace(/\/\*[\s\S]*?\*\/|(?<=[^:])\/\/.*|^\/\/.*/g, '').trim(); // removeComments
       dsltext = dsltext.split(/\r?\n/).filter(line => line.trim() !== '').join('\n'); // trimEmptyLines
-      console.log(dsltext);
 
       let flow = {
           nodes: dsltext.split("\n").filter(line => line.split(":").length > 1 ).map((line, i) => {  // nur nodes nehmen (durch : getrennt)
@@ -148,9 +145,8 @@ function ERD() {
           })
 
       };
-      console.log(flow);
 
-      return flow; 
+      return flow;
     } catch (error) {
       console.error(error);
       return null;
@@ -162,16 +158,12 @@ function ERD() {
     try {
       //const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
       //console.log(emuEvent);
-      console.log("value: " + value);
-      console.log("e: " + e);
 
       const flow = parseDSLtoFlow(value);
     
       const newNodes = flow.nodes.map((node) => {
         
         let existingNode = nodes.find((existingnode) => existingnode.id == node.id);
-        console.log("node - id: " + node.id);
-        console.log(existingNode);
 
         return {
           id: node.id.toString(),

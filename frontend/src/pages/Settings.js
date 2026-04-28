@@ -193,7 +193,6 @@ const Settings = (props) => {
         column.lookup
       )
     );
-    console.log("getLookups: " + lookups);
     return lookups;
   };
 

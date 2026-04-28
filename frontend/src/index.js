@@ -29,13 +29,11 @@ const App = () => {
   }, []);
   const userRole = localStorage.getItem('role');
   const pathname = window.location.pathname;
-  console.log("pathname",pathname);
 
   return (
     <ConfigProvider locale={deDE}>
       <BrowserRouter>
-      { console.log("browserrouter loc="+pathname) }
-      { 
+      {
         (pathname.startsWith("/getSSOToken")) ? ( <LoginSSO setToken={setToken} /> ) 
       : 
       (

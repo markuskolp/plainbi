@@ -46,49 +46,31 @@ const xAxisFormatter = (item) => {
 
 
 const handleLineClick = (event, resultSet, xValue, yValues, handleDrill) => {
-  console.log("handleLineClick()");
-  console.log("xValue");
-  console.log(xValue);
   if (yValues != null) {
-      console.log("yValues != null");
-      console.log("yValues");
-      console.log(yValues);
-      console.log("event.xValues");
-      console.log(event.xValues);
       const drillQuery = resultSet.drillDown(
         {
           xValues: event.xValues,
           yValues: yValues
         }
       );
-      console.log("drillQuery");
-      console.log(drillQuery);
       handleDrill(drillQuery);
       //setOpen(true);
   }
 };
-  
+
 const handleBarClick = (event, resultSet, yValues, handleDrill) => {
-  console.log("handleBarClick()");
   if (event.xValues != null) {
-      console.log("event.xValues != null");
-      console.log("event.xValues");
-      console.log(event.xValues);
-      console.log("yValues");
-      console.log(yValues);
       const drillQuery = resultSet.drillDown(
         {
           xValues: event.xValues,
           yValues
         }
       );
-      console.log("drillQuery");
-      console.log(drillQuery);
       handleDrill(drillQuery);
       //setOpen(true);
   }
 };
-  
+
 
   //  interval=0 = draw all labels
 // todo: margin bei verticalbar nur, damit die labels bei der y-achse links genug platz haben ?!

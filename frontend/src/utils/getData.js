@@ -13,7 +13,6 @@ const getData = (url) => {
       dataFetch();
     }, [url]);
 
-    console.log("getData: " + JSON.stringify(data));
     return { data: state };
   };
 

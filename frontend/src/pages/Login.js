@@ -12,7 +12,6 @@ const Login = (props) => {
   const environment_banner_text = window.ENVIRONMENT_BANNER_TEXT;
   const environment_banner_color = window.ENVIRONMENT_BANNER_COLOR;
   const sso_signin_link = window.SSO_SIGNIN_LINK;
-  console.log("SSO Signin Link: " + sso_signin_link);
 
   //const navigate = useNavigate();
   
@@ -26,7 +25,6 @@ const Login = (props) => {
 
   function logMeIn(event) {
     setLoading(true);
-    console.log("logmein referrer "+document.referrer);
 
 
     apiClient.post("/api/login", {
@@ -42,9 +40,6 @@ const Login = (props) => {
   
     }).catch((error) => {
       if (error.response) {
-        console.log(error.response)
-        console.log(error.response.status)
-        console.log(error.response.headers)
         }
         setLoading(false);
         message.error('Fehler: ' + error.response.data.message);

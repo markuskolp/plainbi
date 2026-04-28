@@ -86,9 +86,8 @@ const Map = ( { resultSet }) => {
     try {
       return geojsonCountries['features'].filter((item)=>item['properties']['ISO_A2'] === key)[0]['geometry'];
     } catch (err) {
-      console.log("getGeometry(): error for: " + key);
       return {"type":"Point","coordinates":[]};
-    }    
+    }
   }
 
   const getGeometryCentroid = (type, key) => {
@@ -103,7 +102,6 @@ const Map = ( { resultSet }) => {
       //console.log(countryGeoJSON);
       return {"type":"Point","coordinates":[countryGeoJSON['longitude'], countryGeoJSON['latitude']]}; 
     } catch (err) {
-      console.log("getGeometryCentroid(): error for: " + key);
       return {"type":"Point","coordinates":[]};
     }    
   }

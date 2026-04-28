@@ -14,8 +14,7 @@ const MarkdownEditor = ({ name, defaultValue, callback, onChange }) => {
   const handleChange = (e) => {
     setMarkdown(e.target.value);
     const emuEvent = { "target": { "name": name, "value": e.target.value}} // emulate event.target.name/.value object
-    console.log("MarkdownEditor - Textarea change: " + JSON.stringify(emuEvent));
-    onChange(emuEvent); 
+    onChange(emuEvent);
   };
   
 

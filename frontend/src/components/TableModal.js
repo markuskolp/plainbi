@@ -11,9 +11,6 @@ const TableModal = ({ modalName, tableColumns, tableData, handleClose }) => {
     
   const [totalCount, setTotalCount]=useState(tableData.length);
 
-  console.log("modalName: ", modalName);
-  console.log("tableColumns: ", tableColumns);
-  console.log("tableData: ", tableData);
 
   /*
   const [isModalOpen, setIsModalOpen] = useState(false);

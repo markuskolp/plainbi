@@ -18,7 +18,6 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
   const [selectedPage, setSelectedPage] = useState(null); // nr of selected page
     const [page, setPage] = useState(); // page metadata
     const [pageList, setPageList] = useState(); // page metadata
-    console.log("selectedPage: " + selectedPage);
     //console.log("start_page_id: " + start_page_id);
 
     //console.log("datasource:" + datasource);
@@ -31,7 +30,6 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
           if (page.hide_in_navigation && page.hide_in_navigation == 'true') {
             pageHide = true;
           }
-          console.log("CRUD / pages: " + page.name + ' - ' + page.id + ' - hide: ' + pageHide);
           return pageHide ? '' : getItem(<Link href={'/apps/'+alias+'/'+page.alias}>{page.name}</Link>, page.id); // return pages without the ones that should be hidden
         })
       );  
@@ -41,33 +39,20 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
     // getPageID: either the ID is a number and stays as it is - or - it is a ALIAS and the page id is retrieved
     function getPageId(page_id) {
       let page_id_type = Number.isNaN(page_id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" or its "alias"
-      console.log("CRUDApp - getPageId - page_id_type: " + page_id_type);
       let found_page_id = 1;
       if(page_id_type == 'alias') {
-        console.log("CRUDApp - getPageId - search for ID with alias");
         found_page_id = pages.filter((page) => page.alias == page_id).map((page) => {
           return page.id // return real page id when the alias was found in all pages
         })
-        console.log(found_page_id.length);
-        if (found_page_id.length < 1) { 
-          console.log("CRUDApp - getPageId - not found"); 
+        if (found_page_id.length < 1) {
           setPageNotFound(true);
-          console.log(error);
-        } else {
-          console.log("CRUDApp - getPageId - found_page_id: " + found_page_id);
         }
       } else {
-        console.log("CRUDApp - getPageId - ID is number, search for it");
         found_page_id = pages.filter((page) => page.id == page_id).map((page) => {
           return page.id // return real page id when the alias was found in all pages
         })
-        console.log(found_page_id.length);
-        if (found_page_id.length < 1) { 
-          console.log("CRUDApp - getPageId - not found"); 
+        if (found_page_id.length < 1) {
           setPageNotFound(true);
-          console.log(error);
-        } else {
-          console.log("CRUDApp - getPageId - found_page_id: " + found_page_id);
         }
       }
       found_page_id = (found_page_id ? found_page_id : 1);
@@ -105,7 +90,6 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
           column.lookup
         )
       );
-      console.log("getLookups: " + lookups);
       return lookups;
     };
 
@@ -120,7 +104,7 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
               <Header className="pageheader">{name}</Header>
               <Layout>
                 {pages.length > 1 && // show only the sider menu (page list) when more than 1 page is listed
-                <Sider theme={theme} collapsible  breakpoint="lg" collapsedWidth="0" onBreakpoint={broken => {console.log(broken);}} onCollapse={(collapsed, type) => {console.log(collapsed, type);}} >
+                <Sider theme={theme} collapsible  breakpoint="lg" collapsedWidth="0" onBreakpoint={broken => {}} onCollapse={(collapsed, type) => {}} >
                   <Menu
                     //style={{ width: 500 }} //, marginTop: "25px"
                     defaultSelectedKeys={selectedPage}

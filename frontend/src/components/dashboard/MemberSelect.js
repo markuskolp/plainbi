@@ -8,15 +8,9 @@ const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange, dis
 
     const [resultSet, setResultSet] = useState([]); // metadata of all apps
   
-    console.log("MemberSelect");
-    console.log("MemberSelect - columnId: " + columnId);
-    console.log("MemberSelect - columnLabel: " + columnLabel);
-    console.log("MemberSelect - query: " + query.toString());
-    console.log("MemberSelect - defaultValue: " + defaultValue);
     //console.log("MemberSelect - name: " + name);
 
     useEffect(() => {
-        console.log("MemberSelect - useEffect");
     }, [resultSet]);
   
     const init = async () => {
@@ -25,8 +19,6 @@ const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange, dis
     //setResultSet(useCubeQuery(query));
     const renderProps = useCubeQuery(query); // const { resultSet, isLoading, error, progress }
 
-    console.log("MemberSelect - renderProps");
-    console.log(renderProps);
     /*
     console.log("resultSet.tablePivot()");    
     console.log(renderProps.resultSet.tableColumns({
@@ -39,12 +31,6 @@ const MemberSelect = ({query, columnId, columnLabel, defaultValue, onChange, dis
     const handleChange = (name, option) => {
         //const emuEvent = { "target": { "name": name, "value": value}} // emulate event.target.name/.value object
         //console.log("MemberSelect change: " + JSON.stringify(emuEvent));
-        console.log("option: ");
-        console.log(option); 
-        console.log("option.key: ");
-        console.log(option.key);
-        console.log("option.value: ");
-        console.log(option.value);
         onChange(columnId, option.key); // filterName, filterValue
       };
 

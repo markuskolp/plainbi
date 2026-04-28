@@ -36,11 +36,8 @@ const DashboardPage = (props) => {
   let { id } = useParams(); // get URL parameters - here the "id" of a app
   let id_type = Number.isNaN(id * 1) ? "alias" : "id"; // check whether the "id" refers to the real "id" of the app or its "alias"
 
-  console.log("DashboardPage - id: " + id);
-  console.log("DashboardPage - id_type: " + id_type);
   //const data = dashboards[0]; //JSON.parse(defaultDashboardItems);
   const data = (id_type === 'id' ? dashboards.filter((dashboard)=> dashboard.id === Number(id)) : dashboards.filter((dashboard)=> dashboard.alias === id))[0];
-  console.log(data);
 
   //const { loading, error, data } = useQuery(GET_DASHBOARD_ITEMS);
   const loading = false;
@@ -128,9 +125,6 @@ const DashboardPage = (props) => {
   };
 
   const handleDrill = (drillQuery) => {
-    console.log("handleDrill");
-    console.log("drillQuery");
-    console.log(drillQuery);
     setDrillDownQuery(drillQuery);
     setOpen(true);
   };
@@ -158,10 +152,7 @@ const DashboardPage = (props) => {
     
   
     const handleSwitchChange = (value, vizId, switchType) => {
-      console.log('handleSwitchChange - value: ' + value);
-      console.log('handleSwitchChange - vizId: ' + vizId);
-      console.log('handleSwitchChange - switchType: ' + switchType);
-      if(switchType === 'measure') { 
+      if(switchType === 'measure') {
         const newVizState = replaceVizStateMeasures(currentVizState, value) 
         setCurrentVizState(newVizState); // value is the new "measure" here
       }
@@ -169,8 +160,6 @@ const DashboardPage = (props) => {
         const newVizState = replaceVizStateTimeDimensions(currentVizState, value) 
         setCurrentVizState(newVizState); // value is the new "measure" here
       }
-      console.log('handleSwitchChange - currentVizState: ');
-      console.log(currentVizState);
       setRefresh(Date.now()); // force refresh - element ist supplied as dummy to <DashboardItem ... > (see below)
     };
     
@@ -216,49 +205,29 @@ const DashboardPage = (props) => {
     const vizStateOriginal = vizState;
 
     try {
-      console.log("replaceVizStateTimeDimensions: vizState");
-      console.log(vizState);
-      console.log("replaceVizStateTimeDimensions: timeDimension");
-      console.log(timeDimension);
-      console.log("replaceVizStateTimeDimensions: replaceAll" + replaceAll);
-
       var dimension = timeDimension.substring(0,timeDimension.indexOf('///'));
       var granularity	= timeDimension.substring(timeDimension.indexOf('///')+3)
 
       //  replace all timeDimensions with this 1 new timeDimension
       vizState.query.timeDimensions = [{"dimension": dimension, "granularity": granularity}];
-      console.log("replaceVizStateTimeDimensions: timeDimensionsReplaced");
-      console.log(vizState);
       vizStateNew = vizState;
       return vizStateNew;
     } catch (err) {
-      console.log("replaceVizStateTimeDimensions: error");
-      console.log(err.message);
       return vizStateOriginal;
     }
 
   }
-  
+
   const replaceVizStateMeasures = (vizState, measure, replaceAll=true) => {
     let vizStateNew;
     const vizStateOriginal = vizState;
 
     try {
-      console.log("replaceVizStateMeasures: vizState");
-      console.log(vizState);
-      console.log("replaceVizStateMeasures: measure");
-      console.log(measure);
-      console.log("replaceVizStateMeasures: replaceAll" + replaceAll);
-
       //  replace all measures with this 1 new measure
       vizState.query.measures = [measure];
-      console.log("replaceVizStateMeasures: measuresReplaced");
-      console.log(vizState);
       vizStateNew = vizState;
       return vizStateNew;
     } catch (err) {
-      console.log("replaceVizStateMeasures: error");
-      console.log(err.message);
       return vizStateOriginal;
     }
 
@@ -270,18 +239,9 @@ const DashboardPage = (props) => {
     const vizStateOriginal = vizState;
     var onlyDelete = false;
     try {
-      console.log("replaceVizStateFilters: vizState");
-      console.log(vizState);
-      console.log("replaceVizStateFilters: filterName");
-      console.log(filterName);
-      console.log("replaceVizStateFilters: filterValue");
-      console.log(filterValue);
-
       // check if filter exists
       // if filter exists, delete it
       let filtersReplaced = vizState.query.filters.filter((el) => el.member != filterName);
-      console.log("replaceVizStateFilters: filtersReplaced - delete existing");
-      console.log(filtersReplaced);
 
       // check if filter has values. If not, then it is blank and no filter should be added
       if(Array.isArray(filterValue) ) {
@@ -305,21 +265,15 @@ const DashboardPage = (props) => {
                           "operator": operator,
                           "values": [filterValue]
                         });
-        console.log("replaceVizStateFilters: filtersReplaced - push new one");
-        console.log(filtersReplaced);
-      }                  
+      }
 
       // take vizState from beginning and delete all filters and add newly created filter array
       //delete vizState.query.filters;
       vizState.query.filters = filtersReplaced;
-      console.log("replaceVizStateFilters: vizState - new");
-      console.log(vizState);
       vizStateNew.query = vizState.query;
       //return vizState;
       return vizStateNew;
     } catch (err) {
-      console.log("replaceVizStateFilters: error");
-      console.log(err.message);
       return vizStateOriginal;
     }
 
@@ -327,17 +281,12 @@ const DashboardPage = (props) => {
 
  
   const handleChangeSelect = (filterName, filterValue) =>{
-    console.log("handleChangeSelect - filterName: " + filterName);
-    console.log("handleChangeSelect - filterValue: " + filterValue);
-    setDashboardFilter({"name":filterName, "value":filterValue, "operator": "equals"}); 
+    setDashboardFilter({"name":filterName, "value":filterValue, "operator": "equals"});
   }
 
   const handleChangeDateRange = (filterName, filterValue, filterOperator) =>{
     // todo: handle "clear" of date range
-    console.log("handleChangeDateRange - filterName: " + filterName);
-    console.log("handleChangeDateRange - filterValue[0] - from: " + filterValue[0]);
-    console.log("handleChangeDateRange - filterValue[1] - to: " + filterValue[1]);
-    setDashboardFilter({"name":filterName, "value":filterValue, "operator": "inDateRange"}); 
+    setDashboardFilter({"name":filterName, "value":filterValue, "operator": "inDateRange"});
   }
 
   return !data || data.dashboardItems.length  ? (
