@@ -52,6 +52,13 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   const [editorExpanded, setEditorExpanded] = useState(false);
   const editorHeight = editorExpanded ? 600 : 300;
 
+  // Force Monaco to recalculate positions after the Modal open animation completes
+  useEffect(() => {
+    const handler = () => editorRef.current?.layout();
+    window.addEventListener('plainbi:modal-ready', handler);
+    return () => window.removeEventListener('plainbi:modal-ready', handler);
+  }, []);
+
   // Sync Monaco editor when real record data arrives (loading starts with defaultValue="")
   useEffect(() => {
     if (!editorRef.current) return;

@@ -155,6 +155,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         width="80vw"
         maskClosable={false}
         style={{ maxWidth: "1500px" }}
+        afterOpenChange={(open) => { if (open) window.dispatchEvent(new CustomEvent('plainbi:modal-ready')); }}
         footer={[
           <Button key="2" htmlType="button" onClick={handleCancel}>Abbrechen</Button>,
           <Button key="3" type="primary" htmlType="submit" onClick={handleOk} loading={saving}>Speichern</Button>
