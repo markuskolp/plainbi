@@ -214,21 +214,25 @@ Here following options are possible:
 - column_label: a nice label to show
 - datatype: allowed values: `text`, `number`, `date`, `datetime`, `boolean`
 - ui: allowed values
-  - `textinput`
+  - `textinput` (standard single-line text input)
+  - `email` (single-line text input, semantically typed as email)
   - `numberinput` (only allows numerical values)
-  - `textarea`
-  - `datepicker`
-  - `datetimepicker`
-  - `switch` (good for boolean values of 1/0)
-  - `label` (only shows the value - not editable)
-  - `lookup` (refers to a lookup and shows a dropdown with autocompletion)
-  - `lookupn` (same, but also allows entering new values)
-  - `hidden`
-  - `password` (a text field but with asterisks)
-  - `password_nomem` (same, but does not allow the browser to memorize/cache the entered value)
-  - `html` (only used in tabular view e.g. to represent anly html code)
-  - `modal_json_to_table` (only used in tabular view)
-  - `textarea_base64` (textarea that displays a base64 encoded string underneath. can be used for images.)
+  - `textarea` (multi-line plain text input)
+  - `textarea_markdown` (multi-line text input with live Markdown preview)
+  - `textarea_sql` (Monaco code editor for SQL — with syntax highlighting and expand/collapse; read-only when `editable` is `false`)
+  - `textarea_json` (Monaco code editor for JSON — editable, with syntax highlighting, format and validate buttons, expand/collapse)
+  - `textarea_base64` (textarea that displays a base64 encoded image preview underneath)
+  - `datepicker` (date picker, stores value as YYYY-MM-DD)
+  - `datetimepicker` (date + time picker, stores value as YYYY-MM-DD HH:mm)
+  - `switch` (toggle switch, good for boolean values 1/0 or true/false)
+  - `label` (shows the value as plain text — not editable)
+  - `hidden` (field is not shown in the form at all)
+  - `lookup` (dropdown with search/autocompletion — refers to a lookup)
+  - `lookupn` (same as lookup, but also allows entering new values not in the list)
+  - `password` (text input with masked characters)
+  - `password_nomem` (same as password, but prevents browser from saving/autofilling the value)
+  - `html` (only used in tabular view — renders raw HTML)
+  - `modal_json_to_table` (only used in tabular view — renders a JSON array as a nested table)
 - lookup: refers to a lookup with its alias - only used for "ui":"lookup"
 - editable: allowed values `false`, `true`
 - required: allowed values `false`, `true`

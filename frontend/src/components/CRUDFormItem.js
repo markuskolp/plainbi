@@ -6,15 +6,27 @@ import {
   Input,
   InputNumber,
   DatePicker,
-  Space
+  Space,
+  Button,
+  message
 } from "antd";
-import MonacoEditor from 'react-monaco-editor';
+import Editor from '@monaco-editor/react';
+import { ExpandOutlined, CompressOutlined } from '@ant-design/icons';
 import SelectLookup from './SelectLookup';
 import MarkdownEditor from './MarkdownEditor';
 import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { Text } = Typography;
+
+const monacoOptionsReadOnly = {
+  hideCursorInOverviewRuler: true,
+  minimap: { enabled: false },
+  scrollbar: { horizontalSliderSize: 2, verticalSliderSize: 10 },
+  readOnly: true,
+  automaticLayout: true,
+  lineNumbers: 'on',
+};
 
 const monacoOptions = {
   autoIndent: 'full',
@@ -37,6 +49,8 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   const isMultiple = multiple === "true";
   const editorRef = useRef(null);
   const isExternalUpdate = useRef(false);
+  const [editorExpanded, setEditorExpanded] = useState(false);
+  const editorHeight = editorExpanded ? 600 : 300;
 
   // Sync Monaco editor when real record data arrives (loading starts with defaultValue="")
   useEffect(() => {
@@ -71,6 +85,30 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     onChange(name, checked);
   };
 
+  const formatJson = () => {
+    if (!editorRef.current) return;
+    try {
+      const formatted = JSON.stringify(JSON.parse(editorRef.current.getValue()), null, 2);
+      isExternalUpdate.current = true;
+      editorRef.current.setValue(formatted);
+      isExternalUpdate.current = false;
+      onChange(name, formatted);
+      message.success('JSON formatiert.');
+    } catch (e) {
+      message.error('Ungültiges JSON: ' + e.message);
+    }
+  };
+
+  const validateJson = () => {
+    if (!editorRef.current) return;
+    try {
+      JSON.parse(editorRef.current.getValue());
+      message.success('JSON ist gültig.');
+    } catch (e) {
+      message.error('Ungültiges JSON: ' + e.message);
+    }
+  };
+
   const isReadOnly = editable.toString() === "false" || ((isprimarykey.toString() === "true") && type !== "new" && type !== "duplicate");
 
   const renderField = () => {
@@ -79,6 +117,16 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
         return <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} allowNewValues="true" multiple={isMultiple} />;
       if (ui === "lookup")
         return <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} multiple={isMultiple} />;
+      if (ui === "textarea_sql")
+        return (
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Button size="small" icon={editorExpanded ? <CompressOutlined /> : <ExpandOutlined />} onClick={() => setEditorExpanded(e => !e)}>
+              {editorExpanded ? 'Verkleinern' : 'Vergrößern'}
+            </Button>
+            <Editor height={editorHeight} language="sql" theme="vs" options={monacoOptionsReadOnly}
+              onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+          </Space>
+        );
       return <Text>{defaultValue}</Text>;
     }
 
@@ -104,17 +152,27 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
         return <TextArea name={name} rows={6} defaultValue={defaultValue} onChange={handleChange} />;
       case "textarea_sql":
         return (
-          <div className="monaco-editor-wrapper">
-            <MonacoEditor height="300" language="sql" theme="vs-light" options={monacoOptions} onChange={handleMonacoEditorChange}
-              editorDidMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
-          </div>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Button size="small" icon={editorExpanded ? <CompressOutlined /> : <ExpandOutlined />} onClick={() => setEditorExpanded(e => !e)}>
+              {editorExpanded ? 'Verkleinern' : 'Vergrößern'}
+            </Button>
+            <Editor height={editorHeight} language="sql" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
+              onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+          </Space>
         );
       case "textarea_json":
         return (
-          <div className="monaco-editor-wrapper">
-            <MonacoEditor height="300" language="json" theme="vs-light" options={monacoOptions} onChange={handleMonacoEditorChange}
-              editorDidMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
-          </div>
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Space>
+              <Button size="small" onClick={formatJson}>Formatieren</Button>
+              <Button size="small" onClick={validateJson}>Validieren</Button>
+              <Button size="small" icon={editorExpanded ? <CompressOutlined /> : <ExpandOutlined />} onClick={() => setEditorExpanded(e => !e)}>
+                {editorExpanded ? 'Verkleinern' : 'Vergrößern'}
+              </Button>
+            </Space>
+            <Editor height={editorHeight} language="json" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
+              onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+          </Space>
         );
       case "password_nomem":
         return <Input.Password name={name} defaultValue={defaultValue} onChange={handleChange} autoComplete="off" />;
