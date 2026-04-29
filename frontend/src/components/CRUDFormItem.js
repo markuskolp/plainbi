@@ -36,13 +36,16 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   const [currentvalue, setCurrentvalue] = useState(defaultValue);
   const isMultiple = multiple === "true";
   const editorRef = useRef(null);
+  const isExternalUpdate = useRef(false);
 
   // Sync Monaco editor when real record data arrives (loading starts with defaultValue="")
   useEffect(() => {
     if (!editorRef.current) return;
     const incoming = defaultValue ?? '';
     if (editorRef.current.getValue() !== incoming) {
+      isExternalUpdate.current = true;
       editorRef.current.setValue(incoming);
+      isExternalUpdate.current = false;
     }
   }, [defaultValue]);
 
@@ -60,6 +63,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   };
 
   const handleMonacoEditorChange = (value) => {
+    if (isExternalUpdate.current) return;
     onChange(name, value);
   };
 
@@ -86,7 +90,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       case "hidden":
         return "";
       case "numberinput":
-        return <InputNumber name={name} defaultValue={defaultValue} onInput={handleNumberInputChange} onStep={handleNumberInputChange} />;
+        return <InputNumber name={name} defaultValue={defaultValue} onChange={handleNumberInputChange} />;
       case "textarea_markdown":
         return <MarkdownEditor name={name} defaultValue={defaultValue} onChange={handleChange} />;
       case "textarea_base64":
@@ -102,14 +106,14 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
         return (
           <div className="monaco-editor-wrapper">
             <MonacoEditor height="300" language="sql" theme="vs-light" options={monacoOptions} onChange={handleMonacoEditorChange}
-              editorDidMount={(editor) => { editorRef.current = editor; editor.setValue(defaultValue ?? ''); }} />
+              editorDidMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
           </div>
         );
       case "textarea_json":
         return (
           <div className="monaco-editor-wrapper">
             <MonacoEditor height="300" language="json" theme="vs-light" options={monacoOptions} onChange={handleMonacoEditorChange}
-              editorDidMount={(editor) => { editorRef.current = editor; editor.setValue(defaultValue ?? ''); }} />
+              editorDidMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
           </div>
         );
       case "password_nomem":
@@ -121,11 +125,11 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
         return <Input name={name} defaultValue={defaultValue} onChange={handleChange} />;
       case "datepicker":
         return defaultValue
-          ? <DatePicker defaultValue={dayjs(defaultValue, { dateFormat })} format={dateFormat} onChange={handleDatePickerChange} />
+          ? <DatePicker defaultValue={dayjs(defaultValue, dateFormat)} format={dateFormat} onChange={handleDatePickerChange} />
           : <DatePicker format={dateFormat} onChange={handleDatePickerChange} />;
       case "datetimepicker":
         return defaultValue
-          ? <DatePicker showTime={{ format: "HH:mm" }} defaultValue={dayjs(defaultValue, { datetimeFormat })} format={datetimeFormat} onChange={handleDatePickerChange} />
+          ? <DatePicker showTime={{ format: "HH:mm" }} defaultValue={dayjs(defaultValue, datetimeFormat)} format={datetimeFormat} onChange={handleDatePickerChange} />
           : <DatePicker showTime={{ format: "HH:mm" }} format={datetimeFormat} onChange={handleDatePickerChange} />;
       case "switch":
         return <Switch name={name} defaultChecked={defaultValue} onChange={handleSwitchChange} />;

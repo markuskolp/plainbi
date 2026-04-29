@@ -140,7 +140,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   };
 
   const handleChange = (key, value) => {
-    setRecordData({ ...recordData, [key]: (value === "" ? null : value) });
+    setRecordData(prev => ({ ...prev, [key]: (value === "" ? null : value) }));
   };
 
   const layoutpage = { labelCol: { span: 6 }, wrapperCol: { span: 14 } };

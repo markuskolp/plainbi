@@ -1,40 +1,26 @@
-import React from "react";
 import { useState } from "react";
 import ReactMarkdown from 'react-markdown';
 import { Input } from "antd";
 const { TextArea } = Input;
 
-//TODO: set initial value
-//TODO: handle callback (change of value in textarea)
-
-const MarkdownEditor = ({ name, defaultValue, callback, onChange }) => {
-
-  const [markdown, setMarkdown] = useState('');
+const MarkdownEditor = ({ name, defaultValue, onChange }) => {
+  const [markdown, setMarkdown] = useState(defaultValue || '');
 
   const handleChange = (e) => {
     setMarkdown(e.target.value);
-    const emuEvent = { "target": { "name": name, "value": e.target.value}} // emulate event.target.name/.value object
-    onChange(emuEvent);
+    onChange({ target: { name, value: e.target.value } });
   };
-  
 
   return (
-        <div class='markdowncontainer'>
-          <div class='markdowncontainer_editor'>
-            <TextArea rows={6} 
-              onChange={handleChange}
-              placeholder="Für die Vorschau, bitte einen Txt eingeben."
-              defaultValue={defaultValue}
-              name={name}
-            />
-          </div>
-          <div class='markdowncontainer_result'>
-            <ReactMarkdown children={markdown}
-            /> 
-          </div>
-        </div>
-    )
-
+    <div className='markdowncontainer'>
+      <div className='markdowncontainer_editor'>
+        <TextArea rows={6} onChange={handleChange} placeholder="Für die Vorschau, bitte einen Txt eingeben." defaultValue={defaultValue} name={name} />
+      </div>
+      <div className='markdowncontainer_result'>
+        <ReactMarkdown>{markdown}</ReactMarkdown>
+      </div>
+    </div>
+  );
 };
 
 export default MarkdownEditor;
