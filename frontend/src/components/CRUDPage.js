@@ -224,7 +224,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     } else {
       message.info("Aktion wird ausgelöst");
       body = body.replaceAll('${username}', username);
-      apiClient.post('/api/exec/' + (datasource ? datasource + '/' : '') + name, body)
+      apiClient.post('/api/exec/' + (datasource ? datasource + '/' : '') + name, body, { headers: { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' } })
         .then((res) => {
           const d = res.data.error === undefined ? res : res.data;
           d.error ? message.error(JSON.stringify(d.error)) : message.success('Erfolgreich ausgelöst.');
@@ -240,7 +240,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     } else {
       message.info("Aktion wird ausgelöst");
       body = body.replaceAll('${username}', username);
-      apiClient.post(url, body)
+      apiClient.post(url, body, { headers: { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' } })
         .then((res) => {
           const d = res.data.error === undefined ? res : res.data;
           d.error ? message.error(JSON.stringify(d.error)) : message.success('Erfolgreich ausgelöst.');

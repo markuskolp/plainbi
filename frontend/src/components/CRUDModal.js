@@ -70,7 +70,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
       message.info("Aktion wird ausgelöst");
       body = body.replaceAll('${username}', username);
       const url = '/api/exec/' + (datasource ? datasource + '/' : '') + name;
-      apiClient.post(url, body)
+      apiClient.post(url, body, { headers: { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' } })
         .then((res) => {
           const resData = res.data.error === undefined ? res : res.data;
           resData.error ? message.error(JSON.stringify(resData.error)) : message.success('Erfolgreich ausgelöst.');
@@ -87,7 +87,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     } else {
       message.info("Aktion wird ausgelöst");
       body = body.replaceAll('${username}', username);
-      apiClient.post(url, body)
+      apiClient.post(url, body, { headers: { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' } })
         .then((res) => {
           const resData = res.data.error === undefined ? res : res.data;
           resData.error ? message.error(JSON.stringify(resData.error)) : message.success('Erfolgreich ausgelöst.');
