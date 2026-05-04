@@ -872,7 +872,11 @@ def get_current_timestamp(dbengine):
     """
     out={}
     dbg("in get_current_timestamp")
-    sql='SELECT GETDATE() as ts'
+    db_typ = get_db_type(dbengine)
+    if db_typ in ("snowflake", "postgres", "sqlite", "oracle"):
+        sql = "SELECT CURRENT_TIMESTAMP AS ts"
+    else:
+        sql = 'SELECT GETDATE() as ts'
     dbg("sql=%s",sql)
     try:
         #cursor = cnxn.cursor()
@@ -1199,8 +1203,9 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         myitem["is_deleted"]="N"
         myitem["is_current_and_active"]="Y"
         dbg("db_ins: check last_changed_by user=%s", changed_by)
-        if "last_changed_by" in metadata["columns"] and changed_by is not None:
-            myitem["last_changed_by"]=changed_by
+        _lcb_col = next((c for c in metadata["columns"] if c.lower() == "last_changed_by"), None)
+        if _lcb_col and changed_by is not None:
+            myitem[_lcb_col]=changed_by
     else:
         dbg("db_ins: non versioned mode" )
     dbg("db_ins: prepare sql" )
@@ -1409,8 +1414,9 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         newrec["last_changed_dt"]=ts
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='Y'
-        if "last_changed_by" in metadata["columns"] and changed_by is not None:
-            newrec["last_changed_by"]=changed_by
+        _lcb_col = next((c for c in metadata["columns"] if c.lower() == "last_changed_by"), None)
+        if _lcb_col and changed_by is not None:
+            newrec[_lcb_col]=changed_by
         dbg("db_upd: construct sql" )
         param_list=[":"+k for k in newrec.keys()]
         col_list=[k for k in newrec.keys()]
@@ -1542,8 +1548,9 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='N'
         newrec["is_deleted"]='Y'
-        if "last_changed_by" in metadata["columns"] and changed_by is not None:
-            newrec["last_changed_by"]=changed_by
+        _lcb_col = next((c for c in metadata["columns"] if c.lower() == "last_changed_by"), None)
+        if _lcb_col and changed_by is not None:
+            newrec[_lcb_col]=changed_by
         dbg("db_upd: construct sql" )
         param_list=[":"+k for k in newrec.keys()]
         col_list=[k for k in newrec.keys()]

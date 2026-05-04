@@ -69,3 +69,4 @@ Alle möglichen Werte für das `ui`-Feld in der JSON-Konfiguration:
 - Body kann leer sein → wird als `{}` behandelt (keine Parameter)
 - Nur MS SQL Server unterstützt für dbexec
 - Parameterwerte werden als Strings in SQL eingebettet — bei String-Werten ggf. Quotes prüfen
+- Content-Type Fix + leerer Body Fix: getestet und funktioniert ✓
