@@ -51,7 +51,7 @@ For Snowflake, metadata is fetched via `SHOW COLUMNS` / `SHOW PRIMARY KEYS` (~75
 
 Snowflake uses JWT-based authentication (private key). JWT tokens expire after ~60 minutes. plainbi handles this transparently:
 
-- A small connection pool (`pool_size=2`, `pool_recycle=1800s`) is used for performance — connections are reused within the recycle window.
+- A connection pool (`pool_size=5`, `pool_recycle=1800s`) is used for performance — connections are reused within the recycle window.
 - If a query fails with a JWT expiry error (Snowflake error `390144` or similar), the connection is immediately invalidated, a fresh connection with a new JWT token is obtained, and the query is retried once — without surfacing an error to the user.
 - `CLIENT_SESSION_KEEP_ALIVE=TRUE` in the connection string keeps Snowflake sessions alive during inactivity but does **not** prevent JWT token expiry. The retry mechanism above handles that.
 
