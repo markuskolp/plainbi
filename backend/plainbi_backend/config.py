@@ -82,7 +82,8 @@ if not hasattr(config,"is_loaded"):
     # global variables for caches, it holds metadata and profiles so that they are fetched only once from the database
     config.use_cache = True
     config.metadataraw_cache = {}
-    config.profile_cache = {}#
+    config.profile_cache = {}
+    config.metadata_cache_ttl = int(os.environ.get("PLAINBI_METADATA_CACHE_TTL", "300"))  # seconds
     config.dbg = False
     config.dbg_level = 1
 

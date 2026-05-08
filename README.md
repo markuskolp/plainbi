@@ -9,6 +9,86 @@ includes:
 - ... and more to come
 
 
+# Backend configuration
+
+The backend is configured via environment variables, typically placed in a `.env` file. A custom config file path can be set via `PLAINBI_BACKEND_CONFIG`.
+
+## General
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLAINBI_BACKEND_CONFIG` | — | Path to a custom `.env` config file. If set, this file is loaded instead of the default search paths (`.env`, `~/.env`, `/etc/plainbi.env`). |
+| `PLAINBI_REPOSITORY` | *(required)* | SQLAlchemy connection string for the plainbi repository database (SQLite). The backend exits on startup if this is missing. |
+| `PLAINBI_DATABASE` | — | Default datasource connection string. Additional datasources are managed via the repository. |
+
+## Server
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLAINBI_BACKEND_HOST` | `0.0.0.0` | Host address the API server binds to. |
+| `PLAINBI_BACKEND_PORT` | `3001` | TCP port the API server listens on. |
+
+## Logging
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLAINBI_BACKEND_LOGFILE` | — | Path to a log file. If not set, logs go to stdout only. |
+| `PLAINBI_BACKEND_LOG_DEBUG` | `false` | Set to `true` to enable DEBUG-level logging. |
+| `PLAINBI_VERBOSE` | — | Integer ≥ 1 enables DEBUG logging and increases internal verbosity. Takes priority over `PLAINBI_BACKEND_LOG_DEBUG`. |
+
+## Metadata cache
+
+plainbi caches table metadata (column names, data types, primary keys) in memory to avoid repeated queries to the database's information schema on every operation.
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLAINBI_METADATA_CACHE` | `true` | Set to `false` to disable the metadata cache entirely. |
+| `PLAINBI_METADATA_CACHE_TTL` | `300` | Cache lifetime in seconds. After expiry the metadata is re-fetched from the database. |
+
+For Snowflake, metadata is fetched via `SHOW COLUMNS` / `SHOW PRIMARY KEYS` (~75ms) instead of `information_schema` (~880ms). If the `SHOW` commands fail for any reason, plainbi falls back to `information_schema` automatically.
+
+## Date and time formats
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLAINBI_BACKEND_DATE_FORMAT` | — | Python `strftime` format string for date values, e.g. `%d.%m.%Y`. If not set, the database default is used. |
+| `PLAINBI_BACKEND_DATETIME_FORMAT` | — | Python `strftime` format string for datetime values, e.g. `%d.%m.%Y %H:%M`. If not set, the database default is used. |
+
+## Authentication — LDAP
+
+If `LDAP_HOST` is set, plainbi uses LDAP for user authentication instead of local users.
+
+| Variable | Default | Description |
+|---|---|---|
+| `LDAP_HOST` | — | LDAP server hostname. Setting this activates LDAP authentication. |
+| `LDAP_PORT` | — | LDAP server port (e.g. `389`). |
+| `LDAP_BIND_USER_DN` | — | Distinguished name (DN) of the bind user used to search the directory. |
+| `LDAP_BIND_USER_PASSWORD` | — | Password of the bind user. |
+| `LDAP_BASE_DN` | — | Base DN for user search (e.g. `ou=users,dc=example,dc=com`). |
+| `LDAP_SEARCH_EXPR` | — | Custom LDAP search filter. `{username}` is substituted with the login username. Default: `(&(cn={username}))`. |
+
+## Authentication — SSO (Azure AD / Entra ID)
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLAINBI_SSO_APPLIKATION` | — | Display name of the SSO application. |
+| `PLAINBI_SSO_APPLICATION_ID` | — | Azure AD application (client) ID. |
+| `PLAINBI_SSO_TENANTID` | — | Azure AD tenant ID. |
+| `PLAINBI_SSO_CLIENT_SECRET` | — | Azure AD client secret. |
+| `PLAINBI_SSO_AUTHORITY` | — | Authority endpoint, e.g. `https://login.microsoftonline.com/<tenant-id>`. |
+| `PLAINBI_SSO_REDIRECT_PATH` | — | Redirect path after successful SSO login, e.g. `/auth/callback`. |
+
+## Email (SMTP)
+
+Used for password-reset and notification features.
+
+| Variable | Default | Description |
+|---|---|---|
+| `SMTP_SERVER` | — | SMTP server hostname, e.g. `smtp.gmail.com`. |
+| `SMTP_PORT` | — | SMTP server port, e.g. `587`. |
+| `SMTP_USER` | — | SMTP login username / sender address. |
+| `SMTP_PASSWORD` | — | SMTP password. If not set, unauthenticated relay is attempted. |
+
 # CRUD applications
 
 A CRUD application is defined as code. Following syntax is possible: 
