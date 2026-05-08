@@ -8,10 +8,11 @@ import {
   DatePicker,
   Space,
   Button,
+  Modal,
   message
 } from "antd";
 import Editor from '@monaco-editor/react';
-import { ExpandOutlined, CompressOutlined } from '@ant-design/icons';
+import { FullscreenOutlined } from '@ant-design/icons';
 import SelectLookup from './SelectLookup';
 import MarkdownEditor from './MarkdownEditor';
 import dayjs from 'dayjs';
@@ -26,6 +27,7 @@ const monacoOptionsReadOnly = {
   readOnly: true,
   automaticLayout: true,
   lineNumbers: 'on',
+  fixedOverflowWidgets: true,
 };
 
 const monacoOptions = {
@@ -40,6 +42,7 @@ const monacoOptions = {
   readOnly: false,
   cursorStyle: 'line',
   automaticLayout: true,
+  fixedOverflowWidgets: true,
 };
 
 const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token, multiple }) => {
@@ -49,8 +52,9 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   const isMultiple = multiple === "true";
   const editorRef = useRef(null);
   const isExternalUpdate = useRef(false);
-  const [editorExpanded, setEditorExpanded] = useState(false);
-  const editorHeight = editorExpanded ? 600 : 300;
+  const [sqlFullscreen, setSqlFullscreen] = useState(false);
+  const fullscreenEditorRef = useRef(null);
+  const sqlCurrentValue = useRef(defaultValue ?? '');
 
   // Force Monaco to recalculate positions after the Modal open animation completes
   useEffect(() => {
@@ -58,6 +62,13 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     window.addEventListener('plainbi:modal-ready', handler);
     return () => window.removeEventListener('plainbi:modal-ready', handler);
   }, []);
+
+  // Sync fullscreen editor value on every open (onMount only fires on first open)
+  useEffect(() => {
+    if (sqlFullscreen && fullscreenEditorRef.current) {
+      fullscreenEditorRef.current.setValue(sqlCurrentValue.current);
+    }
+  }, [sqlFullscreen]);
 
   // Sync Monaco editor when real record data arrives (loading starts with defaultValue="")
   useEffect(() => {
@@ -67,6 +78,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       isExternalUpdate.current = true;
       editorRef.current.setValue(incoming);
       isExternalUpdate.current = false;
+      sqlCurrentValue.current = incoming;
     }
   }, [defaultValue]);
 
@@ -85,6 +97,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
 
   const handleMonacoEditorChange = (value) => {
     if (isExternalUpdate.current) return;
+    sqlCurrentValue.current = value;
     onChange(name, value);
   };
 
@@ -104,6 +117,19 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     } catch (e) {
       message.error('Ungültiges JSON: ' + e.message);
     }
+  };
+
+  const openSqlFullscreen = () => setSqlFullscreen(true);
+
+  const applySqlFullscreen = () => {
+    if (fullscreenEditorRef.current && editorRef.current) {
+      const value = fullscreenEditorRef.current.getValue();
+      isExternalUpdate.current = true;
+      editorRef.current.setValue(value);
+      isExternalUpdate.current = false;
+      onChange(name, value);
+    }
+    setSqlFullscreen(false);
   };
 
   const validateJson = () => {
@@ -127,11 +153,11 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       if (ui === "textarea_sql")
         return (
           <Space direction="vertical" style={{ width: "100%" }}>
-            <Button size="small" icon={editorExpanded ? <CompressOutlined /> : <ExpandOutlined />} onClick={() => setEditorExpanded(e => !e)}>
-              {editorExpanded ? 'Verkleinern' : 'Vergrößern'}
-            </Button>
-            <Editor height={editorHeight} language="sql" theme="vs" options={monacoOptionsReadOnly}
-              onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+            <Button size="small" icon={<FullscreenOutlined />} onClick={openSqlFullscreen}>Vollbild</Button>
+            <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' }}>
+              <Editor height={300} language="sql" theme="vs" options={monacoOptionsReadOnly}
+                onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+            </div>
           </Space>
         );
       return <Text>{defaultValue}</Text>;
@@ -160,11 +186,11 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       case "textarea_sql":
         return (
           <Space direction="vertical" style={{ width: "100%" }}>
-            <Button size="small" icon={editorExpanded ? <CompressOutlined /> : <ExpandOutlined />} onClick={() => setEditorExpanded(e => !e)}>
-              {editorExpanded ? 'Verkleinern' : 'Vergrößern'}
-            </Button>
-            <Editor height={editorHeight} language="sql" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
-              onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+            <Button size="small" icon={<FullscreenOutlined />} onClick={openSqlFullscreen}>Vollbild</Button>
+            <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' }}>
+              <Editor height={300} language="sql" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
+                onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; sqlCurrentValue.current = defaultValue ?? ''; }} />
+            </div>
           </Space>
         );
       case "textarea_json":
@@ -173,12 +199,12 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
             <Space>
               <Button size="small" onClick={formatJson}>Formatieren</Button>
               <Button size="small" onClick={validateJson}>Validieren</Button>
-              <Button size="small" icon={editorExpanded ? <CompressOutlined /> : <ExpandOutlined />} onClick={() => setEditorExpanded(e => !e)}>
-                {editorExpanded ? 'Verkleinern' : 'Vergrößern'}
-              </Button>
+              <Button size="small" icon={<FullscreenOutlined />} onClick={openSqlFullscreen}>Vollbild</Button>
             </Space>
-            <Editor height={editorHeight} language="json" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
-              onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+            <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' }}>
+              <Editor height={300} language="json" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
+                onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; sqlCurrentValue.current = defaultValue ?? ''; }} />
+            </div>
           </Space>
         );
       case "password_nomem":
@@ -203,15 +229,47 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     }
   };
 
+  const isMonaco = ui === 'textarea_sql' || ui === 'textarea_json';
+
   return (
-    <Form.Item
-      name={name}
-      label={label}
-      rules={[{ required: required === "true" }]}
-      tooltip={tooltip}
-    >
-      {renderField()}
-    </Form.Item>
+    <>
+      <Form.Item
+        name={isMonaco ? undefined : name}
+        label={label}
+        rules={isMonaco ? [] : [{ required: required === "true" }]}
+        tooltip={tooltip}
+      >
+        {renderField()}
+      </Form.Item>
+      {(ui === "textarea_sql" || ui === "textarea_json") && (
+        <Modal
+          open={sqlFullscreen}
+          onCancel={() => setSqlFullscreen(false)}
+          width="95vw"
+          style={{ top: '2vh' }}
+          styles={{ body: { height: 'calc(92vh - 110px)', padding: 0 } }}
+          title={label}
+          maskClosable={false}
+          footer={isReadOnly ? [
+            <Button key="close" onClick={() => setSqlFullscreen(false)}>Schließen</Button>
+          ] : [
+            <Button key="cancel" onClick={() => setSqlFullscreen(false)}>Abbrechen</Button>,
+            <Button key="apply" type="primary" onClick={applySqlFullscreen}>Übernehmen</Button>
+          ]}
+        >
+          <Editor
+            height="100%"
+            language={ui === "textarea_json" ? "json" : "sql"}
+            theme="vs"
+            options={isReadOnly ? monacoOptionsReadOnly : monacoOptions}
+            onMount={(editor) => {
+              fullscreenEditorRef.current = editor;
+              editor.setValue(sqlCurrentValue.current);
+            }}
+          />
+        </Modal>
+      )}
+    </>
   );
 };
 
