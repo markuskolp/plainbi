@@ -8,7 +8,6 @@ import AppRuntime from "./pages/AppRuntime";
 import AdhocRuntime from "./pages/AdhocRuntime";
 import NoPage from "./pages/NoPage";
 import Settings from "./pages/Settings";
-import DashboardPage from "./pages/DashboardPage";
 import UserProfile from "./pages/UserProfile";
 import useToken from "./components/useToken";
 import "antd/dist/reset.css";
@@ -53,7 +52,6 @@ const App = () => {
               <Route path="apps" element={<Apps token={token} setToken={setToken} removeToken={removeToken}/>} />
               <Route path="apps/:id/:page_id?" element={<AppRuntime token={token} setToken={setToken} removeToken={removeToken} />} />
               <Route path="apps/:id/:page_id?/:pk?" element={<AppRuntime token={token} setToken={setToken} removeToken={removeToken} />} />
-              <Route path="dashboard/:id" element={<DashboardPage token={token} setToken={setToken} />} />
               <Route path="erd" element={<ERD token={token} setToken={setToken} />} />
               <Route path="*" element={<NoPage />} />
             </Route>
