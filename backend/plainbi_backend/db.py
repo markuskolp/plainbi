@@ -207,18 +207,18 @@ def db_exec(engine, sql, params=None, metadata=None):
                 err("ERROR: %s",str(e))
                 err("ERROR: SQL is %s",str(mysqltxt))
                 err("ERROR: params are %s",str(myparams))
-                if "Can't reconnect until invalid transaction is rolled back.  Please rollback()" in str(e):
-                    err("Try to rollback")
+                try:
                     config.conn[engine.url].rollback()
-                    err("Rollback done")
-                if "current transaction is aborted, commands ignored until end of transaction block" in str(e):
-                    err("Try to rollback (postgres transaction aborted)")
-                    config.conn[engine.url].rollback()
-                    err("Rollback done (postgres transaction aborted)")
-                if dbtyp == "postgres":
-                    err("Try to rollback (postgres transaction)")
-                    config.conn[engine.url].rollback()
-                    err("Rollback done (postgres transaction)")
+                    err("Rollback done after error")
+                except Exception as e_rb:
+                    err("Rollback failed: %s",str(e_rb))
+                try:
+                    if isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
+                        if not config.conn[engine.url].closed:
+                            config.conn[engine.url].close()
+                            err("Connection closed after error")
+                except Exception as e_cl:
+                    err("Connection close failed: %s",str(e_cl))
                 raise e
             #if not is_select:
             #    config.conn[engine.url].commit()
@@ -1414,7 +1414,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         newrec["last_changed_dt"]=ts
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='Y'
-        _lcb_col = next((c for c in metadata["columns"] if c.lower() == "last_changed_by"), None)
+        _lcb_col = next((k for k in newrec.keys() if k.lower() == "last_changed_by"), None)
         if _lcb_col and changed_by is not None:
             newrec[_lcb_col]=changed_by
         dbg("db_upd: construct sql" )
@@ -1548,7 +1548,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='N'
         newrec["is_deleted"]='Y'
-        _lcb_col = next((c for c in metadata["columns"] if c.lower() == "last_changed_by"), None)
+        _lcb_col = next((k for k in newrec.keys() if k.lower() == "last_changed_by"), None)
         if _lcb_col and changed_by is not None:
             newrec[_lcb_col]=changed_by
         dbg("db_upd: construct sql" )
