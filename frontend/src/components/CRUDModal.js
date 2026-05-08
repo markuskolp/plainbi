@@ -104,7 +104,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   };
 
 
-  const updateTableRow = async (tableName, record, pk) => {
+  const updateTableRow = async (tableName, record, pk, keepOpen = false) => {
     setSaving(true);
     const queryParams = new URLSearchParams();
     if (versioned) queryParams.append("v", 1);
@@ -114,7 +114,12 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     apiClient.put(endpoint, record)
       .then(() => {
         message.success('Erfolgreich gespeichert.');
-        handleSave();
+        if (keepOpen) {
+          setSaving(false);
+          getRecordData(tableName);
+        } else {
+          handleSave();
+        }
       })
       .catch((err) => {
         setSaving(false);
@@ -145,6 +150,10 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData);
   };
 
+  const handleApply = () => {
+    updateTableRow(tableName, recordData, pk, true);
+  };
+
   const handleChange = (key, value) => {
     setRecordData(prev => ({ ...prev, [key]: (value === "" ? null : value) }));
   };
@@ -163,7 +172,8 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         style={{ maxWidth: "1500px" }}
         afterOpenChange={(open) => { if (open) window.dispatchEvent(new CustomEvent('plainbi:modal-ready')); }}
         footer={[
-          <Button key="2" htmlType="button" onClick={handleCancel}>Abbrechen</Button>,
+          <Button key="1" htmlType="button" onClick={handleCancel}>Abbrechen</Button>,
+          ...(type === 'edit' ? [<Button key="2" htmlType="button" onClick={handleApply} loading={saving}>Übernehmen</Button>] : []),
           <Button key="3" type="primary" htmlType="submit" onClick={handleOk} loading={saving}>Speichern</Button>
         ]}
       >
