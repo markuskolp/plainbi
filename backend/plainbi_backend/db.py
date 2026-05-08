@@ -209,6 +209,28 @@ def db_exec(engine, sql, params=None, metadata=None):
                 err("ERROR: %s",str(e))
                 err("ERROR: SQL is %s",str(mysqltxt))
                 err("ERROR: params are %s",str(myparams))
+                # Snowflake JWT token expired: invalidate connection and retry once
+                if dbtyp == "snowflake" and any(s in str(e).lower() for s in ["jwt token", "390144", "authentication token", "token has expired", "invalid token"]):
+                    err("Snowflake JWT/auth error detected — invalidating connection and retrying once")
+                    try:
+                        config.conn[engine.url].invalidate()
+                        config.conn[engine.url].close()
+                    except Exception:
+                        pass
+                    config.conn[engine.url] = engine.connect()
+                    try:
+                        if myparams is not None:
+                            res = config.conn[engine.url].execute(mysql, myparams)
+                        else:
+                            res = config.conn[engine.url].execute(mysql)
+                        err("Retry after JWT error succeeded")
+                        if is_select:
+                            items = [row._asdict() for row in res]
+                            columns = list(res.keys())
+                        continue
+                    except Exception as e_retry:
+                        err("Retry after JWT error also failed: %s", str(e_retry))
+                        e = e_retry
                 try:
                     config.conn[engine.url].rollback()
                     err("Rollback done after error")
@@ -1866,8 +1888,8 @@ def db_connect(p_enginestr, params=None):
             dbg("++++++++++ enable echo_pool debug for postgres")
             dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True, echo_pool='debug', connect_args={'connect_timeout': 10}, pool_recycle=600)
         elif "snowflake" in p_enginestr:
-            dbg("++++++++++ snowflake pool_pre_ping=True, pool_recycle=1800, pool_timeout=30, pool_size=5")
-            dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True, pool_recycle=1800, pool_timeout=30, pool_size=5)
+            dbg("++++++++++ snowflake pool_size=2, pool_recycle=1800, pool_pre_ping=True")
+            dbengine = sqlalchemy.create_engine(enginestr, pool_size=2, max_overflow=0, pool_recycle=1800, pool_pre_ping=True, pool_timeout=30)
         else:
             dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: engine url %s",dbengine.url)
