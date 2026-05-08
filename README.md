@@ -268,6 +268,7 @@ Here following options are available (and all are mandatory if not otherwise men
   - ${username} is substituted with the logged-in user
   - ${<column_name>} is substituted with the value of the column of a dataset (only works when "position" is set to "detail")
 - wait_repeat_in_ms: time to wait in milliseconds, before a repeat of the action is allowed. this prevents an action to be called to often from the user
+- **optional** token: Bearer token for authorization. If set, the request includes `Authorization: Bearer <token>`. The `Bearer ` prefix is added automatically if not already present. Supports `${username}` and `${<column_name>}` substitution (column substitution only in detail/modal position). If omitted, no Authorization header is sent.
 - **optional** tooltip: a tooltip to show on the button
 - **optional** position: detail (show in Modal) or summary (show on Page - is default)
 

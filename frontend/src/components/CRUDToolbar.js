@@ -13,7 +13,7 @@ const CRUDToolbar = ({ allowedActions, externalActions, onNew, onDownload, callR
       externalActions && externalActions.map((ea) => (
         ea.type === 'call_rest_api' && (ea.position === 'summary' || !ea.position) ?
           <Tooltip key={ea.id} title={ea.tooltip || ''}>
-            <Button onClick={() => callRestAPI(ea.id, ea.wait_repeat_in_ms, ea.url, ea.body)}>{ea.label}</Button>
+            <Button onClick={() => callRestAPI(ea.id, ea.wait_repeat_in_ms, ea.url, ea.body, ea.token)}>{ea.label}</Button>
           </Tooltip> : null
       )),
       externalActions && externalActions.map((ea) => (

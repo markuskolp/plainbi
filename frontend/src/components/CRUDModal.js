@@ -10,6 +10,7 @@ import {
   Tooltip,
   Spin
 } from "antd";
+import Axios from 'axios';
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { getPKParamForURL, getColsParamForModal } from "../utils/pkUtils";
@@ -80,14 +81,19 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     }
   };
 
-  const callRestAPI = (_id, wait_repeat_in_ms = 1000, url, body) => {
+  const callRestAPI = (_id, wait_repeat_in_ms = 1000, url, body, token) => {
     body = replaceColumnVariables(body);
     if (externalActionTimeout) {
       message.info("Sie müssen " + wait_repeat_in_ms / 1000 + " Sekunden warten, bevor die Aktion wiederholt werden darf.");
     } else {
       message.info("Aktion wird ausgelöst");
       body = body.replaceAll('${username}', username);
-      apiClient.post(url, body, { headers: { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' } })
+      const headers = { 'Content-Type': 'application/json;charset=utf-8' };
+      if (token) {
+        const t = replaceColumnVariables(token).replaceAll('${username}', username);
+        headers['Authorization'] = t.startsWith('Bearer ') ? t : 'Bearer ' + t;
+      }
+      Axios.post(url, body, { headers })
         .then((res) => {
           const resData = res.data.error === undefined ? res : res.data;
           resData.error ? message.error(JSON.stringify(resData.error)) : message.success('Erfolgreich ausgelöst.');
@@ -174,7 +180,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         {type == 'edit' && externalActions && externalActions.map((externalAction) => (
           externalAction.type === 'call_rest_api' && (externalAction.position === 'detail' || !externalAction.position) ?
             <Tooltip key={externalAction.id} title={externalAction.tooltip ? externalAction.tooltip : ''}>
-              <Button onClick={() => callRestAPI(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body)}>
+              <Button onClick={() => callRestAPI(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body, externalAction.token)}>
                 {externalAction.label}
               </Button>
             </Tooltip> : null

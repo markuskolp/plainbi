@@ -16,6 +16,7 @@ import TableModal from "./TableModal";
 import CRUDToolbar from "./CRUDToolbar";
 import CRUDCalendar, { parseDateString } from "./CRUDCalendar";
 import { useSearchParams } from 'react-router-dom';
+import Axios from 'axios';
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { extractResponseData } from "../utils/dataUtils";
@@ -234,13 +235,18 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     }
   };
 
-  const callRestAPI = (_id, wait_repeat_in_ms = 1000, url, body) => {
+  const callRestAPI = (_id, wait_repeat_in_ms = 1000, url, body, token) => {
     if (externalActionTimeout) {
       message.info("Bitte " + wait_repeat_in_ms / 1000 + "s warten.");
     } else {
       message.info("Aktion wird ausgelöst");
       body = body.replaceAll('${username}', username);
-      apiClient.post(url, body, { headers: { 'Content-Type': 'application/json;charset=utf-8', 'Access-Control-Allow-Origin': '*' } })
+      const headers = { 'Content-Type': 'application/json;charset=utf-8' };
+      if (token) {
+        const t = token.replaceAll('${username}', username);
+        headers['Authorization'] = t.startsWith('Bearer ') ? t : 'Bearer ' + t;
+      }
+      Axios.post(url, body, { headers })
         .then((res) => {
           const d = res.data.error === undefined ? res : res.data;
           d.error ? message.error(JSON.stringify(d.error)) : message.success('Erfolgreich ausgelöst.');
