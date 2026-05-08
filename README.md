@@ -148,6 +148,14 @@ A CRUD application is defined as code. Following syntax is possible:
             },
             ...
          ],
+         "detail_pages": [
+            {
+               "alias":"<alias_of_detail_page>",
+               "fk_column":"<fk_column_in_detail_table>",
+               "label":"<Tab label>"
+            },
+            ...
+         ],
          "external_actions": [
             {
                "type": "call_rest_api",
