@@ -338,6 +338,57 @@ Here following options are possible:
 - default_value: set a default value when creating a new data entry
 - calendar_field: **optional**: matches the column to a calendar specific field- allowed values: `id`, `title`, `subtitle`, `start`, `end`, `color`, `url` - only used for action "view_calendar"
 
+### detail_pages
+
+**optional**: Enables Master/Detail editing. When a record is opened for editing, the modal shows tabs — "Stammdaten" for the master form plus one tab per detail page.
+
+Each detail page must be defined as a regular page in the same `pages` array (typically with `"hide_in_navigation": true`). The `detail_pages` array just references it by alias and defines the FK mapping:
+
+```json
+"detail_pages": [
+  {
+    "alias": "<alias of the detail page>",
+    "fk_column": "<FK column name in the detail table>",
+    "label": "<Tab label to display>"
+  }
+]
+```
+
+- `alias`: references an existing page in this application by its alias
+- `fk_column`: the column in the detail table that holds the FK value pointing to the master record
+- `label`: the tab label shown in the modal
+
+When creating a new detail record from within the master modal, the FK column is automatically pre-filled with the master's primary key value and set to read-only.
+
+**Example** — master page `adhoc` with a detail page `adhoc_berechtigungen`:
+
+```json
+{
+  "pages": [
+    {
+      "id": "1", "name": "Adhoc", "alias": "adhoc",
+      "table": "db.schema.adhoc", "pk_columns": ["adhoc_id"],
+      "allowed_actions": ["update", "create", "delete"],
+      "table_columns": [ ... ],
+      "detail_pages": [
+        { "alias": "adhoc_berechtigungen", "fk_column": "adhoc_id", "label": "Berechtigungen" }
+      ]
+    },
+    {
+      "id": "2", "name": "Adhoc Berechtigungen", "alias": "adhoc_berechtigungen",
+      "hide_in_navigation": true,
+      "table": "db.schema.adhoc_berechtigungen", "pk_columns": ["berechtigung_id"],
+      "allowed_actions": ["update", "create", "delete"],
+      "table_columns": [
+        { "column_name": "berechtigung_id", "column_label": "ID", "ui": "numberinput", "editable": false },
+        { "column_name": "adhoc_id", "column_label": "Adhoc ID", "ui": "numberinput", "editable": false },
+        { "column_name": "user_name", "column_label": "Benutzer", "ui": "textinput", "editable": true }
+      ]
+    }
+  ]
+}
+```
+
 ### external_actions
 
 Allows the execution of external actions. This can defined per page and each action is offered as a button (next to the "New" button).

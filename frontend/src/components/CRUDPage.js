@@ -24,7 +24,7 @@ import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUt
 
 const { Link, Text } = Typography;
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions, conditionalRowFormats }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions, conditionalRowFormats, detailPages }) => {
 
   const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(true);
 
@@ -475,7 +475,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
       )}
 
       {showModal &&
-        <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} userColumn={userColumn} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence} externalActions={externalActions} />
+        <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} userColumn={userColumn} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence} externalActions={externalActions} detailPages={detailPages} />
       }
       {showTableModal &&
         <TableModal modalName="" tableColumns={tableModalColumns} tableData={tableModalData} handleClose={closeTableModal} />

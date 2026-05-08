@@ -8,15 +8,17 @@ import {
   message,
   Alert,
   Tooltip,
-  Spin
+  Spin,
+  Tabs
 } from "antd";
+import CRUDDetailTab from "./CRUDDetailTab";
 import Axios from 'axios';
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { getPKParamForURL, getColsParamForModal } from "../utils/pkUtils";
 import { isTrue } from "../utils/dataUtils";
 
-const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence, externalActions }) => {
+const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence, externalActions, detailPages, prefillValues }) => {
 
   const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(false);
   const [saving, setSaving] = useState(false);
@@ -28,7 +30,11 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   let api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource + '/' : '');
 
   useEffect(() => {
-    (type == 'edit' || type == 'duplicate') ? getRecordData(tableName, pk) : setRecordData([]);
+    if (type === 'edit' || type === 'duplicate') {
+      getRecordData(tableName, pk);
+    } else {
+      setRecordData(prefillValues ? { ...prefillValues } : []);
+    }
   }, [type, tableName, pk]);
 
   useEffect(() => {
@@ -178,6 +184,83 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
   const layoutpage = { labelCol: { span: 6 }, wrapperCol: { span: 14 } };
 
+  const mainContent = (
+    <>
+      {loading && (
+        <div style={{ textAlign: "center", marginBottom: 16 }}>
+          <Spin size="large" />
+        </div>
+      )}
+      {error && (
+        <Alert message={errorMessage} description={errorDetail} type="error" showIcon />
+      )}
+      {type == 'edit' && externalActions && externalActions.map((externalAction) => (
+        externalAction.type === 'call_rest_api' && (externalAction.position === 'detail' || !externalAction.position) ?
+          <Tooltip key={externalAction.id} title={externalAction.tooltip ? externalAction.tooltip : ''}>
+            <Button onClick={() => callRestAPI(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body, externalAction.token)}>
+              {externalAction.label}
+            </Button>
+          </Tooltip> : null
+      ))}
+      {type == 'edit' && externalActions && externalActions.map((externalAction) => (
+        externalAction.type === 'call_stored_procedure' && (externalAction.position === 'detail' || !externalAction.position) ?
+          <Tooltip key={externalAction.id} title={externalAction.tooltip ? externalAction.tooltip : ''}>
+            <Button onClick={() => callStoredProcedure(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.name, externalAction.body)}>
+              {externalAction.label}
+            </Button>
+          </Tooltip> : null
+      ))}
+      <Form {...layoutpage} layout="horizontal">
+        {tableColumns && tableColumns.map((column) => {
+          let defaultValue = column.default_value ? column.default_value : "";
+          let dataValue = (recordData ? recordData[column.column_name] : defaultValue);
+          if (dataValue === undefined) dataValue = defaultValue;
+          if (typeof dataValue === 'function') dataValue = "";
+
+          return (
+            ((type == 'new' || recordData) && !column.showsummaryonly) ?
+              <CRUDFormItem
+                key={column.column_name}
+                type={type}
+                name={column.column_name}
+                label={column.column_label}
+                required={column.required}
+                isprimarykey={pkColumns.includes(column.column_name)}
+                editable={column.editable}
+                lookupid={column.lookup}
+                ui={column.ui}
+                defaultValue={dataValue}
+                onChange={handleChange}
+                tooltip={column.tooltip}
+                multiple={column.multiple}
+                token={token}
+                hasError={errorFields.has(column.column_name)}
+              /> : ""
+          );
+        })}
+      </Form>
+    </>
+  );
+
+  const fkValue = pkColumns?.[0] ? recordData?.[pkColumns[0]] : null;
+  const showTabs = detailPages?.length > 0 && type === 'edit';
+
+  const tabItems = showTabs ? [
+    { key: 'main', label: 'Stammdaten', children: mainContent },
+    ...detailPages.map(dp => ({
+      key: dp.alias,
+      label: dp.label,
+      children: <CRUDDetailTab
+        pageConfig={dp.pageConfig}
+        fkColumn={dp.fk_column}
+        fkValue={fkValue}
+        token={token}
+        datasource={datasource}
+        isRepo={isRepo}
+      />
+    }))
+  ] : null;
+
   return (
     <React.Fragment>
       <Modal
@@ -195,63 +278,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
           <Button key="3" type="primary" htmlType="submit" onClick={handleOk} loading={saving}>Speichern</Button>
         ]}
       >
-        {loading && (
-          <div style={{ textAlign: "center", marginBottom: 16 }}>
-            <Spin size="large" />
-          </div>
-        )}
-
-        {error && (
-          <Alert message={errorMessage} description={errorDetail} type="error" showIcon />
-        )}
-
-        {type == 'edit' && externalActions && externalActions.map((externalAction) => (
-          externalAction.type === 'call_rest_api' && (externalAction.position === 'detail' || !externalAction.position) ?
-            <Tooltip key={externalAction.id} title={externalAction.tooltip ? externalAction.tooltip : ''}>
-              <Button onClick={() => callRestAPI(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.url, externalAction.body, externalAction.token)}>
-                {externalAction.label}
-              </Button>
-            </Tooltip> : null
-        ))}
-
-        {type == 'edit' && externalActions && externalActions.map((externalAction) => (
-          externalAction.type === 'call_stored_procedure' && (externalAction.position === 'detail' || !externalAction.position) ?
-            <Tooltip key={externalAction.id} title={externalAction.tooltip ? externalAction.tooltip : ''}>
-              <Button onClick={() => callStoredProcedure(externalAction.id, externalAction.wait_repeat_in_ms, externalAction.name, externalAction.body)}>
-                {externalAction.label}
-              </Button>
-            </Tooltip> : null
-        ))}
-
-        <Form {...layoutpage} layout="horizontal">
-          {tableColumns && tableColumns.map((column) => {
-            let defaultValue = column.default_value ? column.default_value : "";
-            let dataValue = (recordData ? recordData[column.column_name] : defaultValue);
-            if (dataValue === undefined) dataValue = defaultValue;
-            if (typeof dataValue === 'function') dataValue = "";
-
-            return (
-              ((type == 'new' || recordData) && !column.showsummaryonly) ?
-                <CRUDFormItem
-                  key={column.column_name}
-                  type={type}
-                  name={column.column_name}
-                  label={column.column_label}
-                  required={column.required}
-                  isprimarykey={pkColumns.includes(column.column_name)}
-                  editable={column.editable}
-                  lookupid={column.lookup}
-                  ui={column.ui}
-                  defaultValue={dataValue}
-                  onChange={handleChange}
-                  tooltip={column.tooltip}
-                  multiple={column.multiple}
-                  token={token}
-                  hasError={errorFields.has(column.column_name)}
-                /> : ""
-            );
-          })}
-        </Form>
+        {showTabs ? <Tabs items={tabItems} /> : mainContent}
       </Modal>
     </React.Fragment>
   );
