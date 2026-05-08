@@ -15,6 +15,7 @@ import Editor from '@monaco-editor/react';
 import { FullscreenOutlined } from '@ant-design/icons';
 import SelectLookup from './SelectLookup';
 import MarkdownEditor from './MarkdownEditor';
+import { isTrue } from '../utils/dataUtils';
 import dayjs from 'dayjs';
 
 const { TextArea } = Input;
@@ -45,11 +46,11 @@ const monacoOptions = {
   fixedOverflowWidgets: true,
 };
 
-const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token, multiple }) => {
+const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token, multiple, hasError }) => {
   const dateFormat = 'YYYY-MM-DD';
   const datetimeFormat = 'YYYY-MM-DD HH:mm';
   const [currentvalue, setCurrentvalue] = useState(defaultValue);
-  const isMultiple = multiple === "true";
+  const isMultiple = isTrue(multiple);
   const editorRef = useRef(null);
   const isExternalUpdate = useRef(false);
   const [sqlFullscreen, setSqlFullscreen] = useState(false);
@@ -142,7 +143,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     }
   };
 
-  const isReadOnly = editable.toString() === "false" || ((isprimarykey.toString() === "true") && type !== "new" && type !== "duplicate");
+  const isReadOnly = !isTrue(editable) || (isTrue(isprimarykey) && type !== "new" && type !== "duplicate");
 
   const renderField = () => {
     if (isReadOnly) {
@@ -236,8 +237,10 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       <Form.Item
         name={isMonaco ? undefined : name}
         label={label}
-        rules={isMonaco ? [] : [{ required: required === "true" }]}
+        rules={isMonaco ? [] : [{ required: isTrue(required) }]}
         tooltip={tooltip}
+        validateStatus={hasError ? "error" : ""}
+        help={hasError ? "Pflichtfeld" : undefined}
       >
         {renderField()}
       </Form.Item>

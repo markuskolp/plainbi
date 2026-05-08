@@ -1,3 +1,5 @@
+import { isTrue } from './dataUtils';
+
 const ToBinary = (str) => {
   let result = "";
   str = encodeURIComponent(str);
@@ -8,7 +10,7 @@ const ToBinary = (str) => {
 };
 
 export const base64UrlSafeEncode = (input, isRepo) => {
-  if (isRepo === 'true') return input;
+  if (isTrue(isRepo)) return input;
   let base64 = btoa(ToBinary(input));
   return "[base64@" + base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') + "]";
 };
@@ -29,10 +31,10 @@ export const getPKParamForURL = (pkColumn) => {
 export const getColsParamForURL = (cols, pkColumns) => {
   const pkExists = (value) => pkColumns.some((col) => col.toLowerCase() === value.toLowerCase());
   return cols
-    .filter((col) => !(col.showdetailsonly == 'true' && !pkExists(col.column_name)))
+    .filter((col) => !(isTrue(col.showdetailsonly) && !pkExists(col.column_name)))
     .map((col) => col.column_name)
     .join(",");
 };
 
 export const getColsParamForModal = (cols) =>
-  cols.filter((col) => col.showsummaryonly !== 'true').map((col) => col.column_name).join(",");
+  cols.filter((col) => !isTrue(col.showsummaryonly)).map((col) => col.column_name).join(",");

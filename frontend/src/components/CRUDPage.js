@@ -19,7 +19,7 @@ import { useSearchParams } from 'react-router-dom';
 import Axios from 'axios';
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
-import { extractResponseData } from "../utils/dataUtils";
+import { extractResponseData, isTrue } from "../utils/dataUtils";
 import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUtils";
 
 const { Link, Text } = Typography;
@@ -65,7 +65,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const { pathname } = location;
   const parentpath = pathname.substring(0, pathname.lastIndexOf('/'));
 
-  const api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource + '/' : '');
+  const api = isTrue(isRepo) ? "/api/repo/" : "/api/crud/" + (datasource ? datasource + '/' : '');
 
   // ─── Initialisierung ─────────────────────────────────────────────────────────
 

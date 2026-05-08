@@ -14,12 +14,14 @@ import Axios from 'axios';
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { getPKParamForURL, getColsParamForModal } from "../utils/pkUtils";
+import { isTrue } from "../utils/dataUtils";
 
 const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk, pkColumns, userColumn, versioned, datasource, isRepo, token, sequence, externalActions }) => {
 
   const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(false);
   const [saving, setSaving] = useState(false);
   const [recordData, setRecordData] = useState([]);
+  const [errorFields, setErrorFields] = useState(new Set());
   const [externalActionTimeout, setExternalActionTimeout] = useState(null);
   const [username, setUsername] = useState("plainbi");
 
@@ -147,15 +149,31 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   };
 
   const handleOk = () => {
+    const missing = validate();
+    if (missing.length > 0) { setErrorFields(new Set(missing.map(c => c.column_name))); return; }
+    setErrorFields(new Set());
     type === 'edit' ? updateTableRow(tableName, recordData, pk) : addTableRow(tableName, recordData);
   };
 
   const handleApply = () => {
+    const missing = validate();
+    if (missing.length > 0) { setErrorFields(new Set(missing.map(c => c.column_name))); return; }
+    setErrorFields(new Set());
     updateTableRow(tableName, recordData, pk, true);
   };
 
+  const validate = () => (tableColumns || []).filter(col => {
+    if (!isTrue(col.required)) return false;
+    if (col.showsummaryonly || col.ui === "hidden") return false;
+    const val = recordData?.[col.column_name] !== undefined
+      ? recordData[col.column_name]
+      : (col.default_value || "");
+    return val === null || val === undefined || val === "";
+  });
+
   const handleChange = (key, value) => {
     setRecordData(prev => ({ ...prev, [key]: (value === "" ? null : value) }));
+    setErrorFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
   const layoutpage = { labelCol: { span: 6 }, wrapperCol: { span: 14 } };
@@ -229,6 +247,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
                   tooltip={column.tooltip}
                   multiple={column.multiple}
                   token={token}
+                  hasError={errorFields.has(column.column_name)}
                 /> : ""
             );
           })}
