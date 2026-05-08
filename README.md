@@ -64,6 +64,7 @@ A CRUD application is defined as code. Following syntax is possible:
                "contenttype": "application/json",
                "url": "<any endpoint url>",
                "body": "<any payload e.g plain, JSON, etc.",
+               "token": "<optional Bearer token, supports ${username} and ${column_name}>",
                "wait_repeat_in_ms": "<ms>",
                "position": "detail|summary"
             },
