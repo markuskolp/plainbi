@@ -14,10 +14,11 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
 
   const { loading, setLoading, error, errorMessage, setApiError } = useApiState(true);
   const [lookupData, setLookupData] = useState([]);
+  const [selectedValue, setSelectedValue] = useState(null);
+  const [searchText, setSearchText] = useState("");
   const [searching, setSearching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [defaultValueCleansed, setDefaultValueCleansed] = useState('');
   const searchTimeout = useRef(null);
   const isInitialLoad = useRef(true);
   const currentOffset = useRef(0);
@@ -27,26 +28,28 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   useEffect(() => { lookupDataRef.current = lookupData; }, [lookupData]);
 
   useEffect(() => {
-    const cleansed = multiple ? (defaultValue || "").split(",") : (defaultValue === 0 ? defaultValue.toString() : defaultValue);
-    setDefaultValueCleansed(cleansed);
     isInitialLoad.current = true;
     currentOffset.current = 0;
     currentSearch.current = "";
     setHasMore(true);
+    setSearchText("");
     fetchLookupData("", defaultValue, false);
   }, [lookupid]);
 
-  // When defaultValue changes after initial load, ensure it's resolved in the options
   useEffect(() => {
-    if (!defaultValue || isInitialLoad.current) return;
-    if (lookupDataRef.current.some(o => String(o.value) === String(defaultValue))) return;
-    fetchAndPrependSelected(defaultValue);
+    const cleansed = multiple
+      ? (defaultValue || "").split(",")
+      : (defaultValue === 0 ? defaultValue.toString() : defaultValue);
+    setSelectedValue(cleansed || null);
+    if (!isInitialLoad.current && defaultValue) {
+      const val = String(defaultValue);
+      if (!lookupDataRef.current.some(o => String(o.value) === val))
+        fetchAndPrependSelected(defaultValue);
+    }
   }, [defaultValue]);
 
   useEffect(() => {
-    if (defaultValue && defaultValueCleansed && defaultValueCleansed.length > 0 && defaultValueCleansed != '') {
-      handleChange(defaultValueCleansed);
-    }
+    if (defaultValue && selectedValue) handleChange(selectedValue);
   }, [lookupData]);
 
   const toOptions = (rows) => rows.map((row) => ({
@@ -61,20 +64,21 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
     return "/api/repo/lookup/" + lookupid + "/data?" + params;
   };
 
+  const getSelectedLabel = () => {
+    if (!selectedValue || Array.isArray(selectedValue)) return "";
+    const opt = lookupDataRef.current.find(o => String(o.value) === String(selectedValue));
+    return opt ? opt.label : "";
+  };
+
   const fetchAndPrependSelected = (value, baseOptions) => {
     apiClient.get("/api/repo/lookup/" + lookupid + "/data?selected=" + encodeURIComponent(value))
       .then((res) => {
         const selOpts = toOptions(extractResponseData(res));
-        if (selOpts.length > 0) {
-          if (baseOptions !== undefined) {
-            setLookupData([...selOpts, ...baseOptions]);
-            setLoading(false);
-          } else {
-            setLookupData(prev => [...selOpts, ...prev.filter(o => String(o.value) !== String(value))]);
-          }
-        } else if (baseOptions !== undefined) {
-          setLookupData(baseOptions);
+        if (baseOptions !== undefined) {
+          setLookupData(selOpts.length > 0 ? [...selOpts, ...baseOptions] : baseOptions);
           setLoading(false);
+        } else if (selOpts.length > 0) {
+          setLookupData(prev => [...selOpts, ...prev.filter(o => String(o.value) !== String(value))]);
         }
       })
       .catch(() => {
@@ -120,18 +124,33 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   };
 
   const handleChange = (value) => {
+    setSelectedValue(value);
+    setSearchText("");
+    currentSearch.current = "";
     const valueCleansed = Array.isArray(value) ? value.join(",") : value;
     const emuEvent = { "target": { "name": name, "value": valueCleansed ? valueCleansed : null } };
     onChange(emuEvent);
   };
 
   const onSearch = (value) => {
+    setSearchText(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
       currentOffset.current = 0;
       setHasMore(true);
       fetchLookupData(value, null, false);
     }, 300);
+  };
+
+  const onDropdownVisibleChange = (open) => {
+    if (open) {
+      const label = getSelectedLabel();
+      setSearchText(label);
+      currentSearch.current = "";
+      currentOffset.current = 0;
+      setHasMore(true);
+      fetchLookupData("", null, false);
+    }
   };
 
   const onPopupScroll = (e) => {
@@ -157,9 +176,11 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
       showSearch
       disabled={disabled}
       options={lookupData}
-      defaultValue={defaultValueCleansed}
+      value={selectedValue}
+      searchValue={searchText}
       onChange={handleChange}
       onSearch={onSearch}
+      onDropdownVisibleChange={onDropdownVisibleChange}
       onPopupScroll={onPopupScroll}
       name={name}
       filterOption={false}

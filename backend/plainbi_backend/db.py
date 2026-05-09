@@ -1035,11 +1035,13 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
         effective_order_by=order_by or extracted_order_by or "d"
         wrapped=f"SELECT r, d FROM ({sql}) lkp_sub"
         if selected is not None:
-            try:
-                sel_val=int(selected)
-            except (ValueError, TypeError):
-                sel_val=selected
-            items,columns=db_exec(dbengine,wrapped+" WHERE r = :sel",{"sel": sel_val})
+            if db_typ=="oracle":
+                cast="CAST(r AS VARCHAR2(4000))"
+            elif db_typ=="sqlite":
+                cast="CAST(r AS TEXT)"
+            else:
+                cast="CAST(r AS VARCHAR(4000))"
+            items,columns=db_exec(dbengine,wrapped+f" WHERE {cast} = :sel",{"sel": str(selected)})
             return items,columns,len(items),"ok"
         where=""
         params=None
