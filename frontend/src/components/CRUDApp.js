@@ -94,14 +94,6 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
       }).filter(Boolean);
     }
 
-    function getLookups(table_columns) {
-      const lookups = table_columns.filter((column) => column.ui === "lookup").map((column) => ( 
-          column.lookup
-        )
-      );
-      return lookups;
-    };
-
     return (
         loading ? (
           <LoadingMessage />
@@ -129,7 +121,7 @@ const CRUDApp = ({ name, alias, datasource, pages, token, start_page_id, record_
                   <Content style={{ background: "#FFF"}}>
 
                     {page && 
-                    <CRUDPage key={page.name} name={page.name} tableName={page.table} tableForList={page.table_for_list} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} userColumn={page.user_column ? page.user_column : null} defaultOrderBy={page.order ? page.order : null} allowedActions={page.allowed_actions} externalActions={page.external_actions} conditionalRowFormats={page.conditional_row_formats} versioned={page.versioned ? page.versioned : false} datasource={datasource} isRepo={(datasource == "repo" || datasource == "0") ? "true" : "false"} lookups={getLookups(page.table_columns)} token={token} sequence={page.sequence ? page.sequence : null} breadcrumbItems={isTrue(page.show_breadcrumb) ? [{title:page.parent_page.name, href:'/apps/'+alias+'/'+page.parent_page.alias}, {title:page.name}] : null} detailPages={resolveDetailPages(page.detail_pages, pages)} />
+                    <CRUDPage key={page.name} name={page.name} tableName={page.table} tableForList={page.table_for_list} tableColumns={page.table_columns} pkColumns={page.pk_columns ? page.pk_columns : null} userColumn={page.user_column ? page.user_column : null} defaultOrderBy={page.order ? page.order : null} allowedActions={page.allowed_actions} externalActions={page.external_actions} conditionalRowFormats={page.conditional_row_formats} versioned={page.versioned ? page.versioned : false} datasource={datasource} isRepo={(datasource == "repo" || datasource == "0") ? "true" : "false"} token={token} sequence={page.sequence ? page.sequence : null} breadcrumbItems={isTrue(page.show_breadcrumb) ? [{title:page.parent_page.name, href:'/apps/'+alias+'/'+page.parent_page.alias}, {title:page.name}] : null} detailPages={resolveDetailPages(page.detail_pages, pages)} />
                     // key property resets state when changed - this is important for page switch (to reset filter, order, offset and limit in page component)!
                     }
 

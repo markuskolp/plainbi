@@ -22,9 +22,9 @@ import useApiState from "../hooks/useApiState";
 import { extractResponseData, isTrue } from "../utils/dataUtils";
 import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUtils";
 
-const { Link, Text } = Typography;
+const { Link } = Typography;
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, lookups, token, sequence, breadcrumbItems, removeToken, externalActions, conditionalRowFormats, detailPages }) => {
+const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, token, sequence, breadcrumbItems, externalActions, conditionalRowFormats, detailPages }) => {
 
   const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(true);
 
@@ -47,8 +47,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [tableParamChanged, setTableParamChanged] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [externalActionTimeout, setExternalActionTimeout] = useState(null);
-  const [activateLookups, setActivateLookups] = useState(true);
-  const [lookupData, setLookupData] = useState([]);
   const [filteredTableData, setFilteredTableData] = useState(null);
   const [searchParams] = useSearchParams();
 
@@ -73,7 +71,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     getTableData(tableName);
     apiClient.get("/api/profile").then((res) => setUsername(res.data.username)).catch(() => {});
     if (record_pk && allowedActions.includes("update") && !recordForPKLoaded) getPKRecordOpenModal(tableName);
-    if (lookups) getLookupDataAll();
   }, [tableName, tableParamChanged]);
 
   useEffect(() => { getTableData(tableName); }, [view]);
@@ -106,7 +103,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
     let endpoint = api + tableName + '?' + queryParams;
     if (tableForList && tableForList.length > 0) {
-      setActivateLookups(false);
       queryParams.delete("v");
       endpoint = api + tableForList + '?' + queryParams;
     }
@@ -159,7 +155,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
     let endpoint = api + tableName + '?' + queryParams;
     if (tableForList && tableForList.length > 0) {
-      setActivateLookups(false);
       queryParams.delete("v");
       endpoint = api + tableForList + '?' + queryParams;
     }
@@ -206,15 +201,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     apiClient.delete(api + tableName + '/' + pk + '?' + queryParams, { data: { record } })
       .then(() => { getTableData(tableName); message.success('Erfolgreich gelöscht.'); })
       .catch((err) => setApiError('Es gab einen Fehler beim Löschen', err));
-  };
-
-  const getLookupData = (lookupid) => apiClient.get("/api/repo/lookup/" + lookupid + "/data")
-    .then((res) => ({ lookup: lookupid, lookupdata: extractResponseData(res) }))
-    .catch((err) => setApiError('Fehler beim Laden der Lookup-Werte', err));
-
-  const getLookupDataAll = () => {
-    try { Promise.all(lookups.map(getLookupData)).then((data) => setLookupData(data)); }
-    catch (error) { message.error('Fehler beim Laden der Lookup Werte.'); }
   };
 
   // ─── Externe Aktionen ────────────────────────────────────────────────────────
@@ -310,14 +296,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
   // ─── Spalten-Rendering ───────────────────────────────────────────────────────
 
-  const getLookupValue = (lookupreturnid, lookupid) => {
-    try {
-      const rel = lookupData.filter((row) => row.lookup == lookupid)[0];
-      const found = rel.lookupdata.find((r) => r.r == lookupreturnid);
-      return found ? found.d : lookupreturnid;
-    } catch (e) { return lookupreturnid; }
-  };
-
   const renderSortIcon = (sortColumns, column_name) => {
     const sorted = sortColumns?.find(({ column }) => column.key === column_name);
     const defaultSorted = defaultOrderBy?.find((col) => col.column_name === column_name);
@@ -355,20 +333,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     ),
     key: column_name,
     width: 100
-  });
-
-  const getLookupColumn = (column_label, column_name, lookupid) => ({
-    title: columnTitle(column_label, column_name),
-    dataIndex: column_name,
-    sorter: { compare: Sorter.DEFAULT, multiple: 3 },
-    key: column_name,
-    width: 100,
-    ellipsis: { showTitle: false },
-    render: (text) => (
-      <Tooltip placement="topLeft" title={getLookupValue(text, lookupid)}>
-        <Text>{getLookupValue(text, lookupid)}</Text>
-      </Tooltip>
-    )
   });
 
   const getColumnAction = (deleteAllowed, updateAllowed, duplicateAllowed, exportdsdbAllowed) => ({
@@ -410,10 +374,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
   const buildColumns = () => tableColumns
     .filter((col) => !col.showdetailsonly)
-    .map((col) => (col.ui === "lookup" && activateLookups)
-      ? getLookupColumn(col.column_label, col.column_name, col.lookup)
-      : getColumn(col.column_label, col.column_name, col.datatype, col.ui)
-    )
+    .map((col) => getColumn(col.column_label, col.column_name, col.datatype, col.ui))
     .concat(
       (allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate") || allowedActions.includes("export_dsdb"))
         ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate"), allowedActions.includes("export_dsdb"))
