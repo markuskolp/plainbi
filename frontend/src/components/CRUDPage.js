@@ -392,8 +392,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         callStoredProcedure={callStoredProcedure}
       />
 
-      {lookupData && (
-        <React.Fragment>
+      <React.Fragment>
           <Space style={{ marginBottom: 20, marginRight: 16, display: 'flex', justifyContent: 'space-between' }}>
             <Space direction="vertical">
               {breadcrumbItems ? <Breadcrumb items={breadcrumbItems} /> : ''}
@@ -433,7 +432,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
             )
           )}
         </React.Fragment>
-      )}
 
       {showModal &&
         <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} userColumn={userColumn} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence} externalActions={externalActions} detailPages={detailPages} />

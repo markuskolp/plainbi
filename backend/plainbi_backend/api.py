@@ -2216,8 +2216,10 @@ def get_lookup(tokdata,id):
     offset = request.args.get('offset')
     limit = request.args.get('limit')
     order_by = request.args.get('order_by')
-    dbg("get_lookup pagination offset=%s limit=%s",offset,limit)
-    items,columns,total_count,e=repo_lookup_select(config.repoengine,id,order_by,offset,limit,with_total_count=True,username=tokdata["username"])
+    q = request.args.get('q')
+    selected = request.args.get('selected')
+    dbg("get_lookup pagination offset=%s limit=%s q=%s selected=%s",offset,limit,q,selected)
+    items,columns,total_count,e=repo_lookup_select(config.repoengine,id,order_by,offset,limit,filter=q,with_total_count=True,username=tokdata["username"],selected=selected)
     dbg("get_lookup sql_select error %s",str(e))
     if last_stmt_has_errors(e,out):
         try:

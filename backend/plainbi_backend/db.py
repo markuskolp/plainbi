@@ -5,6 +5,7 @@ Created on Thu May  4 08:11:27 2023
 @author: kribbel
 """
 import os
+import re
 import base64
 import json
 import logging
@@ -334,8 +335,8 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
         else:
             if limit is not None or offset is not None:
                 sql+=" ORDER BY 1"
-        if offset is not None:
-            sql+=" OFFSET "+offset+ " ROWS"
+        if limit is not None or offset is not None:
+            sql+=" OFFSET "+(offset if offset is not None else "0")+" ROWS"
         if limit is not None:
             sql+=" FETCH NEXT "+limit+" ROWS ONLY"
     elif dbtyp=="sqlite":
@@ -976,7 +977,7 @@ def get_db_by_id_or_alias(d):
 
 
 ## repo lookup adhoc
-def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None):
+def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause=None,username=None,selected=None):
     """
     führt ein sql aus und gibt zurück
       items .. List von dicts pro zeile
@@ -1018,11 +1019,35 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
         sql=sql.replace("$(APP_USER)",username)
         dbg("lkp sql username replaced")
 
+    # Strip trailing semicolons and extract top-level ORDER BY (MSSQL forbids it inside subqueries)
+    sql=sql.rstrip().rstrip(';').rstrip()
+    extracted_order_by=None
+    for m in reversed(list(re.finditer(r'\bORDER\s+BY\b', sql, re.IGNORECASE))):
+        after=sql[m.start():]
+        if after.count('(')==after.count(')'):
+            extracted_order_by=re.sub(r'^ORDER\s+BY\s+','',after,flags=re.IGNORECASE).strip()
+            sql=sql[:m.start()].rstrip()
+            break
+
     dbengine=get_db_by_id_or_alias(datasrc_id)
+    db_typ=get_db_type(dbengine)
     try:
-        items, columns = db_exec(dbengine,sql)
-        #items = [row._asdict() for row in data]
-        #columns = list(data.keys())
+        effective_order_by=order_by or extracted_order_by or "d"
+        wrapped=f"SELECT r, d FROM ({sql}) lkp_sub"
+        if selected is not None:
+            try:
+                sel_val=int(selected)
+            except (ValueError, TypeError):
+                sel_val=selected
+            items,columns=db_exec(dbengine,wrapped+" WHERE r = :sel",{"sel": sel_val})
+            return items,columns,len(items),"ok"
+        where=""
+        params=None
+        if filter is not None:
+            where=" WHERE LOWER(d) LIKE :q"
+            params={"q": f"%{filter.lower()}%"}
+        final_sql=wrapped+where+add_offset_limit(db_typ,offset,limit,effective_order_by)
+        items,columns=db_exec(dbengine,final_sql,params)
         total_count=len(items)
         return items,columns,total_count,"ok"
     except SQLAlchemyError as e_sqlalchemy:
