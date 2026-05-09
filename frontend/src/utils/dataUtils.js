@@ -1,4 +1,4 @@
-export const isTrue = (val) => val === true || val === "true";
+export const isTrue = (val) => val === true || val === "true" || val === 1 || val === "1";
 
 export const extractResponseData = (res) =>
   res.data.length === 0 || res.data.length === undefined ? res.data.data : res.data;
