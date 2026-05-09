@@ -279,7 +279,7 @@ Has to be the fully qualified name: `<database>.schema.tablename>`
 
 ### table_for_list
 
-**optional**: used as an alternative **only** for the tabular view of a page - can be a different table or a view e.g. with labels for ID columns etc.
+**optional**: used as an alternative **only** for the tabular view of a page — can be a different table or a view, e.g. a view that already JOINs lookup tables so that labels are shown instead of raw IDs in the list. This is the recommended approach for displaying human-readable values in the tabular view when a column uses `ui: lookup`.
 
 ### sequence
 
@@ -330,13 +330,13 @@ Here following options are possible:
   - `switch` (toggle switch, good for boolean values 1/0 or true/false)
   - `label` (shows the value as plain text — not editable)
   - `hidden` (field is not shown in the form at all)
-  - `lookup` (dropdown with search/autocompletion — refers to a lookup)
+  - `lookup` (dropdown with server-side search and infinite scroll — refers to a lookup; shows 50 entries at a time, filtered live as you type)
   - `lookupn` (same as lookup, but also allows entering new values not in the list)
   - `password` (text input with masked characters)
   - `password_nomem` (same as password, but prevents browser from saving/autofilling the value)
   - `html` (only used in tabular view — renders raw HTML)
   - `modal_json_to_table` (only used in tabular view — renders a JSON array as a nested table)
-- lookup: refers to a lookup with its alias - only used for "ui":"lookup"
+- lookup: refers to a lookup with its alias - only used for "ui":"lookup" or "ui":"lookupn"
 - editable: allowed values `false`, `true`
 - required: allowed values `false`, `true`
 - multiple: **optional**: allows multiple values to be selected - only used for "ui":"lookup"
