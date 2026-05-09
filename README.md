@@ -441,6 +441,61 @@ Calls the procedure and waits for it to finish with a success or error message.
 - **optional** position: detail (show in Modal) or summary (show on Page - is default)
 
 
+# Adhoc queries
+
+Adhoc queries are predefined SQL statements that users can execute directly from the portal. They are managed in the **Adhoc Konfiguration** application and displayed on the home page for users with access.
+
+## SQL placeholder syntax
+
+Any value can be injected into the SQL at runtime using the `$(placeholder_name)` syntax:
+
+```sql
+SELECT *
+FROM orders
+WHERE customer_id = $(customer_id)
+  AND order_date >= $(date_from)
+  AND order_date <= $(date_to)
+```
+
+The following global placeholder is always available without defining a parameter:
+
+| Placeholder | Value |
+|---|---|
+| `$(APP_USER)` | Username of the currently logged-in user |
+
+## Parameters
+
+Parameters are defined per adhoc query in the **Adhoc Konfiguration** application under the **Parameter** tab. Each parameter corresponds to one `$(placeholder_name)` in the SQL.
+
+| Field | Description |
+|---|---|
+| `name` | Display label shown to the user in the input form |
+| `name_technical` | Must match the placeholder name in the SQL exactly (without `$()`) |
+| `datatype` | Data type: `text`, `number`, `date`, `datetime` |
+| `ui` | Input widget: `textinput`, `numberinput`, `datepicker`, `lookup` |
+| `lookup` | Lookup alias — only used when `ui` is `lookup` (dropdown with values from a lookup table) |
+| `default_value` | Pre-filled value when the form opens. The query runs immediately with this value. |
+| `required` | Whether the field must be filled before executing |
+
+When an adhoc has one or more parameters, the user sees an input form above the results. The query is executed automatically on page load using the default values, and can be re-run with different values by clicking **Ausführen**.
+
+**Example** — SQL with two parameters:
+
+```sql
+SELECT order_id, customer_name, amount
+FROM orders
+WHERE status = $(status)
+  AND created_by = $(APP_USER)
+  AND order_date >= $(date_from)
+```
+
+Corresponding parameter definitions:
+
+| name | name_technical | ui | default_value | required |
+|---|---|---|---|---|
+| Status | status | lookup | open | true |
+| Datum ab | date_from | datepicker | | false |
+
 ## Human friendly URLs and parameters
 
 Every application and page can be adressed by a well formed and human friendly URL. This is defined by the aliases.

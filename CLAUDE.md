@@ -1,7 +1,7 @@
 # PlainBI — Claude Code Instructions
 
 ## Git
-- Aktiver Arbeits-Branch: `refactor/frontend-api-layer`
+- Aktiver Arbeits-Branch: `main`
 - **Nie `git commit` ausführen** — der Nutzer committed immer selbst
 - Kein `git push` ohne explizite Aufforderung
 - Merge nach `main` erfolgt später, wenn das Refactoring abgeschlossen ist

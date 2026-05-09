@@ -2241,7 +2241,7 @@ GET /api/repo/adhoc/<id>/data	The data of a adhoc (result of its SQL)
 GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file
 """
 
-@api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET'])
+@api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET', 'POST'])
 @token_required
 def get_adhoc_data(tokdata,id):
     """
@@ -2507,17 +2507,34 @@ def get_adhoc_data(tokdata,id):
                     #    sheet.auto_filter.ref = column_range
                     # Create a new sheet "info"
                     dbg("get_adhoc_data: add info sheet")
+                    param_labels = {}
+                    try:
+                        param_rows, _ = db_exec(config.repoengine,
+                            "SELECT name, name_technical FROM plainbi_adhoc_parameter WHERE adhoc_id=:adhoc_id",
+                            {"adhoc_id": adhocid})
+                        if isinstance(param_rows, list):
+                            param_labels = {row["name_technical"]: row["name"] for row in param_rows}
+                    except Exception:
+                        pass
+                    active_params = dataitem if dataitem else (myparams if myparams else {})
+                    info_rows = [
+                        ("erstellt am:", str(datetime.now())),
+                        ("adhoc:", str(id)),
+                        ("description:", adhoc_desc or ""),
+                    ]
+                    if active_params:
+                        info_rows.append(("Filter:", ""))
+                        for k, v in active_params.items():
+                            info_rows.append((param_labels.get(k, k) + ":", str(v)))
                     book.create_sheet(title=infosheet_name)
                     new_sheet = book[infosheet_name]
-                    new_sheet['A1'] = "erstellt am:"
-                    new_sheet['A2'] = "adhoc:"
-                    new_sheet['A3'] = "description:"
-                    new_sheet['B1'] = str(datetime.now())
-                    new_sheet['B2'] = id
-                    new_sheet['B3'] = adhoc_desc
-                    # set info field fonts also to Airal 9
-                    for f in ['A1','A2','A3','B1','B2','B3']:
-                        new_sheet[f].font = deffont
+                    for row_idx, (a_val, b_val) in enumerate(info_rows, start=1):
+                        new_sheet[f'A{row_idx}'] = a_val
+                        new_sheet[f'B{row_idx}'] = b_val
+                        new_sheet[f'A{row_idx}'].font = deffont
+                        new_sheet[f'B{row_idx}'].font = deffont
+                    if active_params:
+                        new_sheet['A4'].font = font
                     #autofit columns
                     for column in new_sheet.columns:
                         max_length = 0
@@ -2529,7 +2546,7 @@ def get_adhoc_data(tokdata,id):
                             except:
                                 pass
                         adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
-                        new_sheet.column_dimensions[column_letter].width = adjusted_width                    
+                        new_sheet.column_dimensions[column_letter].width = adjusted_width
                     # new sql sheet
                     dbg("get_adhoc_data: add sql sheet")
                     book.create_sheet(title="sql")

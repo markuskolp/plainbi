@@ -172,7 +172,14 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       case "hidden":
         return "";
       case "numberinput":
-        return <InputNumber name={name} defaultValue={defaultValue} onChange={handleNumberInputChange} />;
+        return <InputNumber name={name} defaultValue={defaultValue} onChange={handleNumberInputChange}
+          onKeyDown={(e) => {
+            if (e.ctrlKey || e.metaKey) return;
+            if (['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+            if (/[\d\-.,]/.test(e.key)) return;
+            e.preventDefault();
+          }}
+        />;
       case "textarea_markdown":
         return <MarkdownEditor name={name} defaultValue={defaultValue} onChange={handleChange} />;
       case "textarea_base64":
