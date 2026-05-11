@@ -731,6 +731,13 @@ def get_all_items(tokdata,db,tab):
         dbg("get_all_items: download data")
         fmt=request.args.get('format')
         df = pd.DataFrame(items)
+        html_cols=request.args.get('html_cols')
+        if html_cols:
+            import re
+            _strip=lambda x: re.sub(r'<[^>]+>','',str(x)) if x is not None and str(x)!='None' else x
+            for _hc in html_cols.split(','):
+                _hc=_hc.strip()
+                if _hc in df.columns: df[_hc]=df[_hc].apply(_strip)
         if fmt=="XLSX":
             dbg("get_all_items: XLSX format")
             tmpfile=os.path.join(tempfile.gettempdir(),'mydata'+datetime.now().strftime("%Y%m%d_%H%M%S")+'.xlsx')

@@ -149,7 +149,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   };
 
   const getBlobData = async (tableName, _format) => {
-    const dt = new Date().toISOString().substring(0, 19);
+    const now = new Date();
+    const dt = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().substring(0, 19);
     const queryParams = new URLSearchParams();
     if (versioned) queryParams.append("v", 1);
     if (order && order.length > 0) queryParams.append("order_by", order);
@@ -162,6 +163,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     if (blobFilterParts.length > 0) queryParams.append("filter", blobFilterParts.join(","));
     queryParams.append("cols", getColsParamForURL(tableColumns, pkColumns));
     queryParams.append("format", _format);
+    const htmlCols = tableColumns.filter(c => c.ui === 'html').map(c => c.column_name);
+    if (htmlCols.length > 0) queryParams.append("html_cols", htmlCols.join(","));
 
     let endpoint = api + tableName + '?' + queryParams;
     if (tableForList && tableForList.length > 0) {
@@ -412,6 +415,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
             datasource={datasource}
             tableName={tableForList || tableName}
             columnName={col.column_name}
+            ui={col.ui}
             currentValue={columnFilters[col.column_name] || ""}
             onFilter={(val) => applyColumnFilter(col.column_name, val)}
             onReset={() => removeColumnFilter(col.column_name)}

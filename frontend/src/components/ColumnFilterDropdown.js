@@ -4,7 +4,16 @@ import apiClient from "../utils/apiClient";
 
 const DISTINCT_LIMIT = 50;
 
-const ColumnFilterDropdown = ({ confirm, clearFilters, datasource, tableName, columnName, currentValue, onFilter, onReset }) => {
+const stripHtml = (val) => {
+  if (!val || typeof val !== 'string') return val;
+  try {
+    return new DOMParser().parseFromString(val, 'text/html').body.textContent || '';
+  } catch {
+    return val.replace(/<[^>]*>/g, '');
+  }
+};
+
+const ColumnFilterDropdown = ({ confirm, clearFilters, datasource, tableName, columnName, ui, currentValue, onFilter, onReset }) => {
   const [inputValue, setInputValue] = useState(currentValue || "");
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,11 +39,14 @@ const ColumnFilterDropdown = ({ confirm, clearFilters, datasource, tableName, co
       .then(res => {
         const data = res.data?.data || [];
         setHasMore(data.length === DISTINCT_LIMIT);
+        const processed = ui === 'html'
+          ? [...new Set(data.map(v => stripHtml(v)).filter(v => v !== null && v !== ''))]
+          : data;
         if (append) {
-          setValues(prev => [...prev, ...data]);
+          setValues(prev => [...prev, ...processed]);
           currentOffset.current += DISTINCT_LIMIT;
         } else {
-          setValues(data);
+          setValues(processed);
           currentOffset.current = DISTINCT_LIMIT;
           currentSearch.current = q;
         }
