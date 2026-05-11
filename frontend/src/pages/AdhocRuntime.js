@@ -30,6 +30,9 @@ const AdhocRuntime = (props) => {
   const [hasParams, setHasParams] = useState(false);
   const [urlParamsActive, setUrlParamsActive] = useState(false);
   const [errorFields, setErrorFields] = useState(new Set());
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
     getAdhoc();
@@ -88,17 +91,21 @@ const AdhocRuntime = (props) => {
       : undefined;
   };
 
-  const getData = async (params) => {
+  const getData = async (params, page) => {
     const p = params !== undefined ? params : paramValues;
+    const pg = page !== undefined ? page : currentPage;
     setLoading(true);
     const body = buildBody(p);
+    const pageQuery = `offset=${(pg - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}`;
     const req = body
-      ? apiClient.post("/api/repo/adhoc/" + id + "/data", body)
-      : apiClient.get("/api/repo/adhoc/" + id + "/data");
+      ? apiClient.post("/api/repo/adhoc/" + id + "/data?" + pageQuery, body)
+      : apiClient.get("/api/repo/adhoc/" + id + "/data?" + pageQuery);
     req
       .then((res) => {
         setData(extractResponseData(res));
         setColumns(res.data.length === 0 || res.data.length === undefined ? res.data.columns : res.columns);
+        if (res.data.total_count !== undefined) setTotal(res.data.total_count);
+        setCurrentPage(pg);
         setLoading(false);
       })
       .catch((err) => setApiError('Es gab einen Fehler beim Laden der Daten', err));
@@ -107,7 +114,8 @@ const AdhocRuntime = (props) => {
   const getBlobData = async (_format, params) => {
     const p = params !== undefined ? params : paramValues;
     setLoading(true);
-    const dt = new Date().toISOString().substring(0, 19);
+    const now = new Date();
+    const dt = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().substring(0, 19);
     const body = buildBody(p);
     const req = body
       ? apiClient.post("/api/repo/adhoc/" + id + "/data?format=" + _format, body, { responseType: 'blob' })
@@ -125,7 +133,18 @@ const AdhocRuntime = (props) => {
         if (!hasParams || autorun) navigate("/");
         else setLoading(false);
       })
-      .catch((err) => setApiError('Es gab einen Fehler beim Laden der Daten als ' + _format, err));
+      .catch(async (err) => {
+        if (err.response?.data instanceof Blob) {
+          try {
+            const json = JSON.parse(await err.response.data.text());
+            setApiError('Es gab einen Fehler beim Laden der Daten als ' + _format, { response: { data: json } });
+          } catch {
+            setApiError('Es gab einen Fehler beim Laden der Daten als ' + _format, err);
+          }
+        } else {
+          setApiError('Es gab einen Fehler beim Laden der Daten als ' + _format, err);
+        }
+      });
   };
 
   const validate = () => {
@@ -147,7 +166,9 @@ const AdhocRuntime = (props) => {
 
   const isExportFormat = format === 'XLSX' || format === 'CSV';
 
-  const handleExecute = () => { if (validate()) { isExportFormat ? getBlobData(format) : getData(); } };
+  const handlePageChange = (page) => getData(undefined, page);
+
+  const handleExecute = () => { if (validate()) { isExportFormat ? getBlobData(format) : getData(undefined, 1); } };
 
   function getColumn(column_label, column_name) {
     return {
@@ -247,7 +268,7 @@ const AdhocRuntime = (props) => {
             size="small"
             columns={columns.map((column) => getColumn(column, column))}
             dataSource={data}
-            pagination={{ pageSize: 50 }}
+            pagination={{ current: currentPage, pageSize: PAGE_SIZE, total, onChange: handlePageChange, showSizeChanger: false }}
             scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
             loading={loading}
             rowKey="id"

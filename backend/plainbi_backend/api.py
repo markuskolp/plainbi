@@ -2369,6 +2369,13 @@ def get_adhoc_data(tokdata,id):
     dbg("get_adhoc_data: prepare json pagination")
     if fmt=="JSON":
         dbg("get_adhoc_data: fmt JSON")
+        real_total=None
+        if limit is not None:
+            try:
+                count_items,count_cols=db_exec(adhoc_dbengine,f"SELECT COUNT(*) FROM ({adhoc_sql}) cnt_sub")
+                real_total=int(count_items[0][count_cols[0]]) if count_items else 0
+            except Exception:
+                pass
         adhoc_sql= f"select x.* from ({adhoc_sql}) x"
         adhoc_sql += add_offset_limit(db_typ,offset,limit,order_by)
         dbg("get_adhoc_data JSON pagination: %s",adhoc_sql)
@@ -2401,10 +2408,9 @@ def get_adhoc_data(tokdata,id):
         dbg("get_adhoc_data: fmt JSON")
         if not isinstance(items,list):
             return "adhoc json result error",500
-        total_count=len(items)
         out["data"]=pre_jsonify_items_transformer(items)
         out["columns"]=columns
-        out["total_count"]=total_count
+        out["total_count"]=real_total if real_total is not None else len(items)
         return myjsonify(out)
     else:
         dbg("get_adhoc_data: other formats")
