@@ -524,3 +524,25 @@ https://<server>/apps/<app_alias>/<page_alias>?<field>=<value> # field = technic
 https://<server>/apps/<app_alias>/<page_alias>?<field>=<value>&<field>=<value>&... # also more than 1 field is possible
 ```
 
+## Adhoc URL parameters
+
+Adhoc queries can be pre-filled and triggered directly via URL. The `name_technical` of each parameter is used as the URL query parameter name.
+
+Pre-fill the filter form and execute automatically:
+```
+https://<server>/adhoc/<alias>?<name_technical>=<value>&<name_technical>=<value>
+```
+The filter panel opens pre-filled with the given values and the query runs immediately. The panel is shown collapsed so the result is visible right away.
+
+Download as Excel or CSV directly:
+```
+https://<server>/adhoc/<alias>?format=XLSX&<name_technical>=<value>
+https://<server>/adhoc/<alias>?format=CSV&<name_technical>=<value>
+```
+
+Auto-run without showing the filter form at all (drill-down link):
+```
+https://<server>/adhoc/<alias>?autorun=1&<name_technical>=<value>
+```
+With `autorun=1` the filter panel is hidden and the query executes immediately. For Excel/CSV downloads, the browser is redirected back to the home page after the download starts. Parameters not supplied via URL fall back to their configured `default_value`.
+

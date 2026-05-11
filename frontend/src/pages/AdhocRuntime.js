@@ -17,6 +17,7 @@ const AdhocRuntime = (props) => {
   let { id } = useParams();
   const [queryParameters] = useSearchParams();
   let format = queryParameters.get("format");
+  const autorun = queryParameters.get("autorun") === "1";
 
   const navigate = useNavigate();
 
@@ -27,6 +28,7 @@ const AdhocRuntime = (props) => {
   const [parameters, setParameters] = useState([]);
   const [paramValues, setParamValues] = useState({});
   const [hasParams, setHasParams] = useState(false);
+  const [urlParamsActive, setUrlParamsActive] = useState(false);
   const [errorFields, setErrorFields] = useState(new Set());
 
   useEffect(() => {
@@ -53,13 +55,18 @@ const AdhocRuntime = (props) => {
         setParameters(params);
         setHasParams(params.length > 0);
         const defaults = {};
+        let hasUrlParams = false;
         params.forEach(p => {
           if (p.default_value !== null && p.default_value !== undefined && p.default_value !== "")
             defaults[p.name_technical] = p.default_value;
+          const urlVal = queryParameters.get(p.name_technical);
+          if (urlVal !== null) { defaults[p.name_technical] = urlVal; hasUrlParams = true; }
         });
+        setUrlParamsActive(hasUrlParams);
         setParamValues(defaults);
         if (params.length > 0) {
           if (format !== 'XLSX' && format !== 'CSV') getData(defaults);
+          else if (hasUrlParams || autorun) getBlobData(format, defaults);
           else setLoading(false);
         } else if (format === 'XLSX' || format === 'CSV') {
           getBlobData(format, {});
@@ -115,7 +122,7 @@ const AdhocRuntime = (props) => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(href);
-        if (!hasParams) navigate("/");
+        if (!hasParams || autorun) navigate("/");
         else setLoading(false);
       })
       .catch((err) => setApiError('Es gab einen Fehler beim Laden der Daten als ' + _format, err));
@@ -163,7 +170,7 @@ const AdhocRuntime = (props) => {
         ] : []}
       />
       <br />
-      {hasParams && (
+      {hasParams && !autorun && (
         isExportFormat ? (
           <>
             <Form labelCol={{ span: 6 }} wrapperCol={{ span: 14 }} layout="horizontal" style={{ maxWidth: 900 }}>
@@ -193,7 +200,7 @@ const AdhocRuntime = (props) => {
           </>
         ) : (
           <Collapse
-            defaultActiveKey={['filter']}
+            defaultActiveKey={urlParamsActive ? [] : ['filter']}
             style={{ marginBottom: 16 }}
             items={[{
               key: 'filter',
