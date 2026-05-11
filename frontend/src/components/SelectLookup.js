@@ -24,6 +24,8 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   const currentOffset = useRef(0);
   const currentSearch = useRef("");
   const lookupDataRef = useRef([]);
+  const allDataLoaded = useRef(false); // true when server has < LOOKUP_LIMIT items total → client-side filter
+  const fullData = useRef([]);         // complete unfiltered list when allDataLoaded
 
   useEffect(() => { lookupDataRef.current = lookupData; }, [lookupData]);
 
@@ -31,6 +33,8 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
     isInitialLoad.current = true;
     currentOffset.current = 0;
     currentSearch.current = "";
+    allDataLoaded.current = false;
+    fullData.current = [];
     setHasMore(true);
     setSearchText("");
     fetchLookupData("", defaultValue, false);
@@ -75,10 +79,14 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
       .then((res) => {
         const selOpts = toOptions(extractResponseData(res));
         if (baseOptions !== undefined) {
-          setLookupData(selOpts.length > 0 ? [...selOpts, ...baseOptions] : baseOptions);
+          const combined = selOpts.length > 0 ? [...selOpts, ...baseOptions] : baseOptions;
+          if (allDataLoaded.current) fullData.current = combined;
+          setLookupData(combined);
           setLoading(false);
         } else if (selOpts.length > 0) {
-          setLookupData(prev => [...selOpts, ...prev.filter(o => String(o.value) !== String(value))]);
+          const updated = [...selOpts, ...lookupDataRef.current.filter(o => String(o.value) !== String(value))];
+          if (allDataLoaded.current) fullData.current = updated;
+          setLookupData(updated);
         }
       })
       .catch(() => {
@@ -107,9 +115,11 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
           currentSearch.current = q;
           isInitialLoad.current = false;
           setSearching(false);
+          if (!q) allDataLoaded.current = options.length < LOOKUP_LIMIT;
           if (isFirstLoad && currentDefaultValue && !options.some(o => String(o.value) === String(currentDefaultValue))) {
             fetchAndPrependSelected(currentDefaultValue, options);
           } else {
+            if (!q && allDataLoaded.current) fullData.current = options;
             setLookupData(options);
             setLoading(false);
           }
@@ -134,6 +144,13 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
 
   const onSearch = (value) => {
     setSearchText(value);
+    if (allDataLoaded.current) {
+      const filtered = value
+        ? fullData.current.filter(o => o.label.toLowerCase().includes(value.toLowerCase()))
+        : fullData.current;
+      setLookupData(filtered);
+      return;
+    }
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
       currentOffset.current = 0;
@@ -148,6 +165,10 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
       setSearchText(label);
       currentSearch.current = "";
       currentOffset.current = 0;
+      if (allDataLoaded.current) {
+        setLookupData(fullData.current);
+        return;
+      }
       setHasMore(true);
       fetchLookupData("", null, false);
     }
