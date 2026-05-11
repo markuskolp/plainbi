@@ -477,7 +477,7 @@ Parameters are defined per adhoc query in the **Adhoc Konfiguration** applicatio
 | `default_value` | Pre-filled value when the form opens. The query runs immediately with this value. |
 | `required` | Whether the field must be filled before executing |
 
-When an adhoc has one or more parameters, the user sees an input form above the results. The query is executed automatically on page load using the default values, and can be re-run with different values by clicking **Ausführen**.
+When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query is executed automatically on page load using the default values, and can be re-run with different values by clicking **Ausführen**. Results are paginated server-side (50 rows per page).
 
 **Example** — SQL with two parameters:
 
