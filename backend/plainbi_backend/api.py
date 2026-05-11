@@ -485,19 +485,35 @@ def distinctvalues(tokdata,db,tabnam,colnam):
     if dbengine is None:
         return myjsonify(nodb_msg),500
     out={}
-    sql=f"SELECT DISTINCT {colnam} FROM {tabnam} ORDER BY 1"
-    items,columns,total_count,e=sql_select(dbengine,sql,with_total_count=False)
-    if isinstance(e,str) and e=="ok":
-        dbg("distinctvalues sql_select ok")
+    q=request.args.get('q')
+    limit=request.args.get('limit')
+    offset=request.args.get('offset')
+    db_typ=get_db_type(dbengine)
+    if db_typ=="mssql": cast_typ="varchar(max)"
+    elif db_typ=="oracle": cast_typ="varchar2(4000)"
+    else: cast_typ="varchar"
+    inner=f"SELECT DISTINCT {colnam} AS dv FROM {tabnam} WHERE {colnam} IS NOT NULL"
+    params=None
+    if q:
+        wrapped=f"SELECT dv FROM ({inner}) dv_sub WHERE LOWER(CAST(dv AS {cast_typ})) LIKE :q"
+        params={"q": f"%{q.lower()}%"}
     else:
-        dbg("distinctvalues sql_select error %s",str(e))
-    if last_stmt_has_errors(e,out):
+        wrapped=f"SELECT dv FROM ({inner}) dv_sub"
+    try:
+        count_items,count_cols=db_exec(dbengine,f"SELECT COUNT(*) FROM ({wrapped}) cnt_sub",params)
+        real_total=int(count_items[0][count_cols[0]]) if count_items else 0
+    except Exception:
+        real_total=None
+    data_sql=wrapped+add_offset_limit(db_typ,offset,limit,"dv")
+    try:
+        items,columns=db_exec(dbengine,data_sql,params)
+    except Exception as e:
+        out["error"]="distinctvalues error"
+        out["detail"]=str(e)
         return myjsonify(out),500
-    out["data"]=[d[colnam] for d in pre_jsonify_items_transformer(items)]
-    out["columns"]=columns
-    out["total_count"]=len(items)
+    out["data"]=[row["dv"] for row in pre_jsonify_items_transformer(items)]
+    out["total_count"]=real_total if real_total is not None else len(items)
     dbg("leaving distinctvalues and return json result")
-    dbg("out=%s",str(out))
     return myjsonify(out)
 
 @api.route(api_root+'/exec/<db>/<procname>', methods=['POST'])

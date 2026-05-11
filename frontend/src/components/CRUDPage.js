@@ -4,7 +4,7 @@ import LoadingMessage from "./LoadingMessage";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Button, Typography, Input, Space, Popconfirm,
-  message, Tooltip, Breadcrumb, Alert
+  message, Tooltip, Breadcrumb, Alert, Tag
 } from "antd";
 import Table from "./Table";
 import { Sorter } from "../utils/sorter";
@@ -15,6 +15,7 @@ import CRUDModal from "./CRUDModal";
 import TableModal from "./TableModal";
 import CRUDToolbar from "./CRUDToolbar";
 import CRUDCalendar, { parseDateString } from "./CRUDCalendar";
+import ColumnFilterDropdown from "./ColumnFilterDropdown";
 import { useSearchParams } from 'react-router-dom';
 import Axios from 'axios';
 import apiClient from "../utils/apiClient";
@@ -44,6 +45,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [defaultOrderInactive, setDefaultOrderInactive] = useState(false);
   const [totalCount, setTotalCount] = useState();
   const [filter, setFilter] = useState();
+  const [columnFilters, setColumnFilters] = useState({});
   const [tableParamChanged, setTableParamChanged] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [externalActionTimeout, setExternalActionTimeout] = useState(null);
@@ -97,8 +99,12 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     }
 
     if (filter && filter.length > 0) queryParams.append("q", filter);
+    const filterParts = [];
     const _searchParams = searchParams.toString().replaceAll("&", ",").replaceAll("=", ":");
-    if (_searchParams && _searchParams.length > 0) queryParams.append("filter", _searchParams);
+    if (_searchParams) filterParts.push(_searchParams);
+    const _colFilters = Object.entries(columnFilters).map(([col, val]) => `${col}~${val}`).join(",");
+    if (_colFilters) filterParts.push(_colFilters);
+    if (filterParts.length > 0) queryParams.append("filter", filterParts.join(","));
     queryParams.append("cols", getColsParamForURL(tableColumns, pkColumns));
 
     let endpoint = api + tableName + '?' + queryParams;
@@ -148,8 +154,12 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     if (versioned) queryParams.append("v", 1);
     if (order && order.length > 0) queryParams.append("order_by", order);
     if (filter && filter.length > 0) queryParams.append("q", filter);
-    const _searchParams = searchParams.toString().replaceAll("&", ",").replaceAll("=", ":");
-    if (_searchParams && _searchParams.length > 0) queryParams.append("filter", _searchParams);
+    const blobFilterParts = [];
+    const _blobSearchParams = searchParams.toString().replaceAll("&", ",").replaceAll("=", ":");
+    if (_blobSearchParams) blobFilterParts.push(_blobSearchParams);
+    const _blobColFilters = Object.entries(columnFilters).map(([col, val]) => `${col}~${val}`).join(",");
+    if (_blobColFilters) blobFilterParts.push(_blobColFilters);
+    if (blobFilterParts.length > 0) queryParams.append("filter", blobFilterParts.join(","));
     queryParams.append("cols", getColsParamForURL(tableColumns, pkColumns));
     queryParams.append("format", _format);
 
@@ -260,6 +270,24 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   };
 
   const searchData = (value) => { setFilter(value); setTableParamChanged(!tableParamChanged); };
+
+  const applyColumnFilter = (col, val) => {
+    setColumnFilters(prev => ({ ...prev, [col]: val }));
+    setOffset(0);
+    setTableParamChanged(prev => !prev);
+  };
+
+  const removeColumnFilter = (col) => {
+    setColumnFilters(prev => { const n = { ...prev }; delete n[col]; return n; });
+    setOffset(0);
+    setTableParamChanged(prev => !prev);
+  };
+
+  const clearAllColumnFilters = () => {
+    setColumnFilters({});
+    setOffset(0);
+    setTableParamChanged(prev => !prev);
+  };
 
   const searchDataWithTimeout = (value) => {
     if (typingTimeout) clearTimeout(typingTimeout);
@@ -374,7 +402,28 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
   const buildColumns = () => tableColumns
     .filter((col) => !col.showdetailsonly)
-    .map((col) => getColumn(col.column_label, col.column_name, col.datatype, col.ui))
+    .map((col) => ({
+      ...getColumn(col.column_label, col.column_name, col.datatype, col.ui),
+      ...(!isTrue(isRepo) && {
+        filterDropdown: ({ confirm, clearFilters }) => (
+          <ColumnFilterDropdown
+            confirm={confirm}
+            clearFilters={clearFilters}
+            datasource={datasource}
+            tableName={tableForList || tableName}
+            columnName={col.column_name}
+            currentValue={columnFilters[col.column_name] || ""}
+            onFilter={(val) => applyColumnFilter(col.column_name, val)}
+            onReset={() => removeColumnFilter(col.column_name)}
+          />
+        ),
+        filteredValue: columnFilters[col.column_name]
+          ? [columnFilters[col.column_name]]
+          : searchParams.get(col.column_name)
+            ? [searchParams.get(col.column_name)]
+            : null,
+      })
+    }))
     .concat(
       (allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate") || allowedActions.includes("export_dsdb"))
         ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate"), allowedActions.includes("export_dsdb"))
@@ -411,6 +460,35 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
               </Space>
             }
           </Space>
+
+          {(Object.keys(columnFilters).length > 0 || [...searchParams.keys()].length > 0) && (
+            <Space wrap style={{ marginBottom: 8 }}>
+              {[...searchParams.entries()].map(([key, val]) => {
+                const label = tableColumns.find(c => c.column_name === key)?.column_label || key;
+                return (
+                  <Tag key={`url-${key}`} closable color="blue" onClose={() => {
+                    const next = new URLSearchParams(searchParams);
+                    next.delete(key);
+                    navigate(pathname + (next.toString() ? '?' + next.toString() : ''));
+                    setTableParamChanged(prev => !prev);
+                  }}>
+                    {label}: {val}
+                  </Tag>
+                );
+              })}
+              {Object.entries(columnFilters).map(([col, val]) => {
+                const label = tableColumns.find(c => c.column_name === col)?.column_label || col;
+                return (
+                  <Tag key={col} closable onClose={() => removeColumnFilter(col)}>
+                    {label}: {val}
+                  </Tag>
+                );
+              })}
+              {(Object.keys(columnFilters).length > 0) &&
+                <Button type="link" size="small" onClick={clearAllColumnFilters} style={{ padding: 0 }}>Alle löschen</Button>
+              }
+            </Space>
+          )}
 
           {error && <Alert message={errorMessage} description={errorDetail} type="error" showIcon />}
 

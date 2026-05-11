@@ -524,6 +524,20 @@ https://<server>/apps/<app_alias>/<page_alias>?<field>=<value> # field = technic
 https://<server>/apps/<app_alias>/<page_alias>?<field>=<value>&<field>=<value>&... # also more than 1 field is possible
 ```
 
+URL filters are applied as exact matches and shown as blue tags above the table. Clicking the × on a tag removes the filter from the URL. Multiple URL filters are combined with AND.
+
+## Column filters
+
+Each column in the tabular view has a filter icon (funnel) in the header. Clicking it opens a dropdown with:
+- A search input to type a filter value freely
+- A scrollable list of distinct values from the database (server-side, 50 at a time with infinite scroll)
+- Click a value from the list to apply it immediately, or type and click **Übernehmen**
+- **Zurücksetzen** clears the filter for that column
+
+Active column filters appear as tags above the table alongside any URL-based filters. Multiple column filters are combined with AND and also apply to Excel/CSV exports. **Alle löschen** removes all column filters at once.
+
+Column filters use a `LIKE '%value%'` match (case-insensitive). URL filters use an exact match.
+
 ## Adhoc URL parameters
 
 Adhoc queries can be pre-filled and triggered directly via URL. The `name_technical` of each parameter is used as the URL query parameter name.
