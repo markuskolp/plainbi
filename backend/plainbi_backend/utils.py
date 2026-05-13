@@ -300,54 +300,55 @@ def parse_filter(p_q :str, p_filter, out) -> str:
     p_filter if url has param "filter"
     out dict for common output
     """
-    if isinstance(p_q,str):
+    if isinstance(p_q,str) and not isinstance(p_filter,str):
         myfilter=p_q
-    else:
-        if isinstance(p_filter,str):
-            myfilter = {}
-            slist=p_filter.split(",")  # filter conditions in a commma separated list are connected by AND later
-            for s in slist:
-                if ":" in s:
-                    p=s.split(":")
-                    if len(p)==3:
-                        v=urlsafe_decode_params(p[2])
-                        if urlsafe_decode_params(p[1])=="gt":
-                            myfilter[p[0]]=(">",v)
-                        elif urlsafe_decode_params(p[1])=="ge":
-                            myfilter[p[0]]=(">=",v)
-                        elif urlsafe_decode_params(p[1])=="le":
-                            myfilter[p[0]]=("<=",v)
-                        elif urlsafe_decode_params(p[1])=="lt":
-                            myfilter[p[0]]=("<",v)
-                        elif urlsafe_decode_params(p[1])=="ne":
-                            myfilter[p[0]]=("!=",v)
-                        else:
-                            out["error"]="invalid-filter-format"
-                            out["message"]=" Ungültige Filterbedingung2"
+    elif isinstance(p_filter,str):
+        myfilter = {}
+        slist=p_filter.split(",")  # filter conditions in a commma separated list are connected by AND later
+        for s in slist:
+            if ":" in s:
+                p=s.split(":")
+                if len(p)==3:
+                    v=urlsafe_decode_params(p[2])
+                    if urlsafe_decode_params(p[1])=="gt":
+                        myfilter[p[0]]=(">",v)
+                    elif urlsafe_decode_params(p[1])=="ge":
+                        myfilter[p[0]]=(">=",v)
+                    elif urlsafe_decode_params(p[1])=="le":
+                        myfilter[p[0]]=("<=",v)
+                    elif urlsafe_decode_params(p[1])=="lt":
+                        myfilter[p[0]]=("<",v)
+                    elif urlsafe_decode_params(p[1])=="ne":
+                        myfilter[p[0]]=("!=",v)
                     else:
-                        v=urlsafe_decode_params(p[1])
-                        myfilter[p[0]]=(":",v)
-                elif ">" in s:
-                    p=s.split(">")
-                    v=urlsafe_decode_params(p[1])
-                    myfilter[p[0]]=(">",v)
-                elif "<" in s:
-                    p=s.split("<")
-                    v=urlsafe_decode_params(p[1])
-                    myfilter[p[0]]=("<",v)
-                elif "~" in s:
-                    p=s.split("~")
-                    v=urlsafe_decode_params(p[1])
-                    myfilter[p[0]]=("~",v)
-                elif "!" in s:
-                    p=s.split("!")
-                    v=urlsafe_decode_params(p[1])
-                    myfilter[p[0]]=("!",v)
+                        out["error"]="invalid-filter-format"
+                        out["message"]=" Ungültige Filterbedingung2"
                 else:
-                    out["error"]="invalid-filter-format"
-                    out["message"]=" Ungültige Filterbedingung"
-        else:
-            myfilter=None
+                    v=urlsafe_decode_params(p[1])
+                    myfilter[p[0]]=(":",v)
+            elif ">" in s:
+                p=s.split(">")
+                v=urlsafe_decode_params(p[1])
+                myfilter[p[0]]=(">",v)
+            elif "<" in s:
+                p=s.split("<")
+                v=urlsafe_decode_params(p[1])
+                myfilter[p[0]]=("<",v)
+            elif "~" in s:
+                p=s.split("~")
+                v=urlsafe_decode_params(p[1])
+                myfilter[p[0]]=("~",v)
+            elif "!" in s:
+                p=s.split("!")
+                v=urlsafe_decode_params(p[1])
+                myfilter[p[0]]=("!",v)
+            else:
+                out["error"]="invalid-filter-format"
+                out["message"]=" Ungültige Filterbedingung"
+        if isinstance(p_q,str):
+            myfilter["__q__"]=p_q
+    else:
+        myfilter=None
     return myfilter, out
 
 def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_versioned=False):
@@ -370,9 +371,11 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
     if w is None: w=""
     w+="("
     if isinstance(filter,dict):
-        #filter is per column
+        #filter is per column (optionally combined with global search via __q__ key)
+        q_global=filter.get("__q__")
         l_cexp=[]
         for k,v in filter.items():
+            if k=="__q__": continue
             dbg("add filter key=%s val=%s",k,v)
             if isinstance(v,tuple):
                 op, opval = v
@@ -397,7 +400,20 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                     log.warning("invalid tuple %s = opvar %s",k,str(v))
             else:
                 l_cexp.append(f"lower(cast(coalesce({k},'') as {cast_coltyp})) like lower('%{v}%')")
-        cexp="("+" AND ".join(l_cexp)+")"
+        if q_global:
+            csep="|#|#|-|"
+            cexp_cols=""
+            cnt=0
+            for c in columns:
+                lc=c.lower()
+                if is_versioned and lc in ("valid_from_dt","invalid_from_dt","last_changed_dt","is_deleted","is_latest_period","is_current_and_active"): continue
+                cnt+=1
+                if cnt>1: cexp_cols+=concat_operator+"'"+csep+"'"+concat_operator
+                cexp_cols+=f"lower(coalesce(cast({lc} as {cast_coltyp}),''))"
+            for ftok in q_global.split(" "):
+                lftok=ftok.lower()
+                l_cexp.append(cexp_cols+" like lower('%"+lftok+"%')")
+        cexp="("+" AND ".join(l_cexp)+")" if l_cexp else "1=1"
         w+=cexp
     else:
         #filter is global fulltext search over all columns
