@@ -254,6 +254,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         pageConfig={dp.pageConfig}
         fkColumn={dp.fk_column}
         fkValue={fkValue}
+        staticValues={dp.static_values || {}}
         token={token}
         datasource={datasource}
         isRepo={isRepo}

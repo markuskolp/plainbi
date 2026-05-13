@@ -357,7 +357,8 @@ Each detail page must be defined as a regular page in the same `pages` array (ty
   {
     "alias": "<alias of the detail page>",
     "fk_column": "<FK column name in the detail table>",
-    "label": "<Tab label to display>"
+    "label": "<Tab label to display>",
+    "static_values": { "<column>": "<fixed value>", "...": "..." }
   }
 ]
 ```
@@ -365,8 +366,24 @@ Each detail page must be defined as a regular page in the same `pages` array (ty
 - `alias`: references an existing page in this application by its alias
 - `fk_column`: the column in the detail table that holds the FK value pointing to the master record
 - `label`: the tab label shown in the modal
+- `static_values`: **optional** — additional fixed column values applied to both the list filter and new-record pre-fill. Useful for generic/shared detail tables (e.g. a comments table used by multiple entities).
 
-When creating a new detail record from within the master modal, the FK column is automatically pre-filled with the master's primary key value and set to read-only.
+When creating a new detail record from within the master modal, the FK column and any `static_values` columns are automatically pre-filled and set to read-only.
+
+**Using a generic table for multiple entities** — a single comments table (`entitaet`, `entitaet_nr`, `kommentar`) can be reused across different master pages by combining `fk_column` with `static_values`:
+
+```json
+"detail_pages": [
+  {
+    "alias": "kommentare",
+    "fk_column": "entitaet_nr",
+    "label": "Kommentare",
+    "static_values": { "entitaet": "Kunden" }
+  }
+]
+```
+
+This filters the detail list by `entitaet_nr = <master PK> AND entitaet = 'Kunden'` and pre-fills both columns when creating a new comment.
 
 **Example** — master page `adhoc` with a detail page `adhoc_berechtigungen`:
 

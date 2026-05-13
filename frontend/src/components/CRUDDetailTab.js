@@ -8,7 +8,7 @@ import useApiState from "../hooks/useApiState";
 import { extractResponseData, isTrue } from "../utils/dataUtils";
 import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUtils";
 
-const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, token, datasource, isRepo }) => {
+const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token, datasource, isRepo }) => {
   const { loading, setLoading, setApiError } = useApiState(false);
   const [tableData, setTableData] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -24,9 +24,11 @@ const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, token, datasource, isRep
   const allowedActions = allowed_actions || [];
   const api = isTrue(isRepo) ? "/api/repo/" : "/api/crud/" + (datasource ? datasource + '/' : '');
 
-  // Force FK column to non-editable in the detail form
+  // Force FK column and static_values columns to non-editable in the detail form
   const tableColumnsForForm = (table_columns || []).map(col =>
-    col.column_name === fkColumn ? { ...col, editable: false } : col
+    (col.column_name === fkColumn || col.column_name in staticValues)
+      ? { ...col, editable: false }
+      : col
   );
 
   useEffect(() => {
@@ -36,7 +38,9 @@ const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, token, datasource, isRep
   const loadData = () => {
     setLoading(true);
     const queryParams = new URLSearchParams();
-    queryParams.append("filter", fkColumn + ":" + fkValue);
+    const staticParts = Object.entries(staticValues).map(([k, v]) => `${k}:${v}`).join(",");
+    const filterVal = [fkColumn + ":" + fkValue, staticParts].filter(Boolean).join(",");
+    queryParams.append("filter", filterVal);
     queryParams.append("cols", getColsParamForURL(table_columns || [], pkColumns));
     if (versioned) queryParams.append("v", 1);
     const tbl = table_for_list || table;
@@ -107,7 +111,7 @@ const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, token, datasource, isRep
           isRepo={isRepo}
           token={token}
           sequence={sequence}
-          prefillValues={modalMode === 'new' ? { [fkColumn]: fkValue } : undefined}
+          prefillValues={modalMode === 'new' ? { [fkColumn]: fkValue, ...staticValues } : undefined}
         />}
     </div>
   );
