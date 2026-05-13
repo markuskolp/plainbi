@@ -33,7 +33,12 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
     if (type === 'edit' || type === 'duplicate') {
       getRecordData(tableName, pk);
     } else {
-      setRecordData(prefillValues ? { ...prefillValues } : []);
+      const defaults = {};
+      (tableColumns || []).forEach(col => {
+        if (col.default_value !== undefined && col.default_value !== null && col.default_value !== "")
+          defaults[col.column_name] = col.default_value;
+      });
+      setRecordData({ ...defaults, ...(prefillValues || {}) });
     }
   }, [type, tableName, pk]);
 
