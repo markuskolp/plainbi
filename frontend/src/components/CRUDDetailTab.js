@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { Button, Space, Popconfirm, message } from "antd";
-import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, DeleteOutlined, PlusOutlined, CaretUpFilled, CaretDownFilled } from "@ant-design/icons";
 import Table from "./Table";
 import CRUDModal from "./CRUDModal";
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { extractResponseData, isTrue } from "../utils/dataUtils";
 import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUtils";
+import { Sorter } from "../utils/sorter";
 
 const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token, datasource, isRepo }) => {
   const { loading, setLoading, setApiError } = useApiState(false);
   const [tableData, setTableData] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [order, setOrder] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState("new");
   const [currentPK, setCurrentPK] = useState(null);
@@ -24,7 +29,6 @@ const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token
   const allowedActions = allowed_actions || [];
   const api = isTrue(isRepo) ? "/api/repo/" : "/api/crud/" + (datasource ? datasource + '/' : '');
 
-  // Force FK column and static_values columns to non-editable in the detail form
   const tableColumnsForForm = (table_columns || []).map(col =>
     (col.column_name === fkColumn || col.column_name in staticValues)
       ? { ...col, editable: false }
@@ -32,39 +36,77 @@ const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token
   );
 
   useEffect(() => {
-    if (fkValue !== null && fkValue !== undefined) loadData();
+    if (fkValue !== null && fkValue !== undefined) loadData(1, order, pageSize);
   }, [fkValue]);
 
-  const loadData = () => {
+  const loadData = (page = currentPage, ord = order, ps = pageSize) => {
     setLoading(true);
     const queryParams = new URLSearchParams();
     const staticParts = Object.entries(staticValues).map(([k, v]) => `${k}:${v}`).join(",");
     const filterVal = [fkColumn + ":" + fkValue, staticParts].filter(Boolean).join(",");
     queryParams.append("filter", filterVal);
     queryParams.append("cols", getColsParamForURL(table_columns || [], pkColumns));
+    queryParams.append("offset", (page - 1) * ps);
+    queryParams.append("limit", ps);
+    if (ord) queryParams.append("order_by", ord);
     if (versioned) queryParams.append("v", 1);
     const tbl = table_for_list || table;
     apiClient.get(api + tbl + '?' + queryParams)
-      .then((res) => { setTableData(extractResponseData(res) || []); setLoading(false); })
+      .then((res) => {
+        const tc = res.data.length === 0 || res.data.length === undefined ? res.data.total_count : res.total_count;
+        setTotalCount(tc || 0);
+        setTableData(extractResponseData(res) || []);
+        setLoading(false);
+      })
       .catch((err) => setApiError('Fehler beim Laden', err));
+  };
+
+  const handleTableChange = (pagination, _filters, sorter) => {
+    const page = pagination.current || 1;
+    const ps = pagination.pageSize || pageSize;
+    let newOrder = "";
+    if (sorter.hasOwnProperty("column") && !sorter.length && sorter.order)
+      newOrder = sorter.field + (sorter.order === "descend" ? " desc" : "");
+    if (sorter.length > 1)
+      newOrder = sorter.map((s) => s.field + (s.order === "descend" ? " desc" : "")).join(",");
+    setCurrentPage(page);
+    setPageSize(ps);
+    setOrder(newOrder);
+    loadData(page, newOrder, ps);
   };
 
   const deleteRow = (record) => {
     const queryParams = new URLSearchParams();
     queryParams.append("pk", getPKParamForURL(pkColumns));
     apiClient.delete(api + table + '/' + getPKForURL(record, pkColumns, isRepo) + '?' + queryParams)
-      .then(() => { message.success('Erfolgreich gelöscht.'); loadData(); })
+      .then(() => { message.success('Erfolgreich gelöscht.'); loadData(currentPage, order, pageSize); })
       .catch((err) => setApiError('Fehler beim Löschen', err));
   };
+
+  const renderSortIcon = (sortColumns, column_name) => {
+    const sorted = sortColumns?.find((col) => col.column.dataIndex === column_name);
+    if (!sorted?.order) return <CaretUpFilled className="inactive" style={{ fontSize: '14px' }} />;
+    return sorted.order === "ascend"
+      ? <CaretUpFilled style={{ fontSize: '14px' }} />
+      : <CaretDownFilled style={{ fontSize: '14px' }} />;
+  };
+
+  const columnTitle = (label, column_name) => ({ sortColumns }) => (
+    <div className="th-div-custom">
+      <span className="th-div-custom-title">{label}</span>
+      <span>{renderSortIcon(sortColumns, column_name)}</span>
+    </div>
+  );
 
   const columns = (table_columns || [])
     .filter(col => !col.showdetailsonly)
     .map(col => ({
-      title: col.column_label,
+      title: columnTitle(col.column_label, col.column_name),
       dataIndex: col.column_name,
       key: col.column_name,
       ellipsis: true,
-      width: 150
+      width: 150,
+      sorter: { compare: Sorter.DEFAULT, multiple: 3 },
     }))
     .concat([{
       title: " ", key: "action", width: 80, fixed: "right",
@@ -93,14 +135,22 @@ const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token
         columns={columns}
         dataSource={tableData}
         loading={loading}
-        pagination={{ defaultPageSize: 10, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
+        onChange={handleTableChange}
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: totalCount,
+          hideOnSinglePage: true,
+          showSizeChanger: true,
+          showTotal: (total) => `Gesamt: ${total}`
+        }}
         scroll={{ x: 'max-content', y: 300 }}
       />
       {showModal &&
         <CRUDModal
           tableColumns={tableColumnsForForm}
           handleCancel={() => setShowModal(false)}
-          handleSave={() => { setShowModal(false); loadData(); }}
+          handleSave={() => { setShowModal(false); loadData(currentPage, order, pageSize); }}
           type={modalMode}
           tableName={table}
           pk={currentPK}

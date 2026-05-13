@@ -407,26 +407,24 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     .filter((col) => !col.showdetailsonly)
     .map((col) => ({
       ...getColumn(col.column_label, col.column_name, col.datatype, col.ui),
-      ...(!isTrue(isRepo) && {
-        filterDropdown: ({ confirm, clearFilters }) => (
-          <ColumnFilterDropdown
-            confirm={confirm}
-            clearFilters={clearFilters}
-            datasource={datasource}
-            tableName={tableForList || tableName}
-            columnName={col.column_name}
-            ui={col.ui}
-            currentValue={columnFilters[col.column_name] || ""}
-            onFilter={(val) => applyColumnFilter(col.column_name, val)}
-            onReset={() => removeColumnFilter(col.column_name)}
-          />
-        ),
-        filteredValue: columnFilters[col.column_name]
-          ? [columnFilters[col.column_name]]
-          : searchParams.get(col.column_name)
-            ? [searchParams.get(col.column_name)]
-            : null,
-      })
+      filterDropdown: ({ confirm, clearFilters }) => (
+        <ColumnFilterDropdown
+          confirm={confirm}
+          clearFilters={clearFilters}
+          datasource={datasource || "0"}
+          tableName={tableForList || tableName}
+          columnName={col.column_name}
+          ui={col.ui}
+          currentValue={columnFilters[col.column_name] || ""}
+          onFilter={(val) => applyColumnFilter(col.column_name, val)}
+          onReset={() => removeColumnFilter(col.column_name)}
+        />
+      ),
+      filteredValue: columnFilters[col.column_name]
+        ? [columnFilters[col.column_name]]
+        : searchParams.get(col.column_name)
+          ? [searchParams.get(col.column_name)]
+          : null,
     }))
     .concat(
       (allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate") || allowedActions.includes("export_dsdb"))

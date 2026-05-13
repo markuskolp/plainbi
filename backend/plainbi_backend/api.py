@@ -484,6 +484,8 @@ def distinctvalues(tokdata,db,tabnam,colnam):
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
+    if db in ("0", "repo"):
+        tabnam = repo_table_prefix + tabnam
     out={}
     q=request.args.get('q')
     limit=request.args.get('limit')
