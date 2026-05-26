@@ -1435,7 +1435,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         pkcols=[(metadata["columns"])[0]]
         log.warning("update_item implicit pk first column")
 
-    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,column_list=",".join(pkcols))
     if "total_count" in chkout.keys():
         if chkout["total_count"]==0:
             out["error"]="db_upd-id-not-found"
@@ -1551,8 +1551,8 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
                 out["message"]+=" beim Aktualisieren eines Datensatzes"
             dbg("++++++++++ leaving db_upd returning %s", str(out))
             return out
-    # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (könnte ja Triggers geben)
-    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
+    # den aktuellen Datensatz wieder aus der DB holen und zurückgeben (nur PK-Spalten, um große Felder nicht nochmal zu lesen)
+    out=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,column_list=",".join(pkcols),versioned=is_versioned,is_repo=is_repo,user_id=user_id,customsql=customsql)
     dbg("++++++++++ leaving db_upd returning %s", str(out))
     return out
 
