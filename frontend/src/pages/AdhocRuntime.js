@@ -135,7 +135,8 @@ const AdhocRuntime = (props) => {
         const href = URL.createObjectURL(res.data);
         const link = document.createElement('a');
         link.href = href;
-        link.setAttribute('download', 'Adhoc_' + id + "_" + dt + "." + _format.toLowerCase());
+        const safeName = (adhoc.name || "").replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, "_").trim().substring(0, 50);
+        link.setAttribute('download', 'Adhoc_' + id + (safeName ? "_" + safeName : "") + "_" + dt + "." + _format.toLowerCase());
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
