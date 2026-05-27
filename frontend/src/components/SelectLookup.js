@@ -166,8 +166,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
 
   const onDropdownVisibleChange = (open) => {
     if (open) {
-      const label = getSelectedLabel();
-      setSearchText(label);
+      setSearchText("");
       currentSearch.current = "";
       currentOffset.current = 0;
       if (allDataLoaded.current) {
