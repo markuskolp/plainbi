@@ -67,10 +67,20 @@ const AdhocRuntime = (props) => {
         });
         setUrlParamsActive(hasUrlParams);
         setParamValues(defaults);
+        const allRequiredHaveValues = params.every(p => {
+          if (!isTrue(p.required) || p.ui === 'hidden') return true;
+          const v = defaults[p.name_technical];
+          return v !== null && v !== undefined && v !== "";
+        });
         if (params.length > 0) {
-          if (format !== 'XLSX' && format !== 'CSV') getData(defaults);
-          else if (hasUrlParams || autorun) getBlobData(format, defaults);
-          else setLoading(false);
+          if (format !== 'XLSX' && format !== 'CSV') {
+            if (allRequiredHaveValues) getData(defaults);
+            else setLoading(false);
+          } else if ((hasUrlParams || autorun) && allRequiredHaveValues) {
+            getBlobData(format, defaults);
+          } else {
+            setLoading(false);
+          }
         } else if (format === 'XLSX' || format === 'CSV') {
           getBlobData(format, {});
         } else {
