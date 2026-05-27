@@ -2379,6 +2379,7 @@ def get_adhoc_data(tokdata,id):
         dbg("get_adhoc_data: adhoc sql after subsitution: %s",adhoc_sql)
     # substitute global environment params
     adhoc_sql=adhoc_sql.replace("$(APP_USER)",tokdata['username'])
+    adhoc_sql=adhoc_sql.replace("$(APP_USER_EMAIL)",prof.get("email") or "")
     # substitute request data
     if isinstance(dataitem,dict):
         for p,v in dataitem.items():
