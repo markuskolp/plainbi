@@ -2543,12 +2543,18 @@ def get_adhoc_data(tokdata,id):
                     # Create a new sheet "info"
                     dbg("get_adhoc_data: add info sheet")
                     param_labels = {}
+                    param_lookup_ids = {}
                     try:
                         param_rows, _ = db_exec(config.repoengine,
-                            "SELECT name, name_technical FROM plainbi_adhoc_parameter WHERE adhoc_id=:adhoc_id",
+                            "SELECT name, name_technical, ui, lookup FROM plainbi_adhoc_parameter WHERE adhoc_id=:adhoc_id",
                             {"adhoc_id": adhocid})
                         if isinstance(param_rows, list):
                             param_labels = {row["name_technical"]: row["name"] for row in param_rows}
+                            param_lookup_ids = {
+                                row["name_technical"]: row["lookup"]
+                                for row in param_rows
+                                if row.get("ui") in ("lookup", "lookupn") and row.get("lookup")
+                            }
                     except Exception:
                         pass
                     active_params = dataitem if dataitem else (myparams if myparams else {})
@@ -2560,7 +2566,19 @@ def get_adhoc_data(tokdata,id):
                     if active_params:
                         info_rows.append(("Filter:", ""))
                         for k, v in active_params.items():
-                            info_rows.append((param_labels.get(k, k) + ":", str(v)))
+                            display_v = str(v)
+                            lkp_id = param_lookup_ids.get(k)
+                            if lkp_id and v:
+                                try:
+                                    lkp_items, _, _, _ = repo_lookup_select(
+                                        config.repoengine, lkp_id,
+                                        selected=str(v), username=tokdata["username"]
+                                    )
+                                    if isinstance(lkp_items, list) and lkp_items:
+                                        display_v = str(lkp_items[0].get("d", v))
+                                except Exception:
+                                    pass
+                            info_rows.append((param_labels.get(k, k) + ":", display_v))
                     book.create_sheet(title=infosheet_name)
                     new_sheet = book[infosheet_name]
                     for row_idx, (a_val, b_val) in enumerate(info_rows, start=1):
