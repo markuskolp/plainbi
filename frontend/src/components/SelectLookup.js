@@ -26,6 +26,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   const lookupDataRef = useRef([]);
   const allDataLoaded = useRef(false); // true when server has < LOOKUP_LIMIT items total → client-side filter
   const fullData = useRef([]);         // complete unfiltered list when allDataLoaded
+  const initialOnChangeFired = useRef(false); // guard: call onChange with defaultValue only once per lookupid
 
   useEffect(() => { lookupDataRef.current = lookupData; }, [lookupData]);
 
@@ -35,6 +36,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
     currentSearch.current = "";
     allDataLoaded.current = false;
     fullData.current = [];
+    initialOnChangeFired.current = false;
     setHasMore(true);
     setSearchText("");
     fetchLookupData("", defaultValue, false);
@@ -53,7 +55,10 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   }, [defaultValue]);
 
   useEffect(() => {
-    if (defaultValue && selectedValue) handleChange(selectedValue);
+    if (defaultValue && selectedValue && !initialOnChangeFired.current) {
+      initialOnChangeFired.current = true;
+      handleChange(selectedValue);
+    }
   }, [lookupData]);
 
   const toOptions = (rows) => rows.map((row) => ({
