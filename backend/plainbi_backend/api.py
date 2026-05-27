@@ -2392,6 +2392,7 @@ def get_adhoc_data(tokdata,id):
     adhoc_dbengine = get_db_by_id_or_alias(adhoc_datasrc_id)
     db_typ = get_db_type(adhoc_dbengine)
     dbg("get_adhoc_data: prepare json pagination")
+    effective_order_by = order_by if order_by is not None else order_by_def
     if fmt=="JSON":
         dbg("get_adhoc_data: fmt JSON")
         real_total=None
@@ -2402,14 +2403,14 @@ def get_adhoc_data(tokdata,id):
             except Exception:
                 pass
         adhoc_sql= f"select x.* from ({adhoc_sql}) x"
-        adhoc_sql += add_offset_limit(db_typ,offset,limit,order_by)
+        adhoc_sql += add_offset_limit(db_typ,offset,limit,effective_order_by)
         dbg("get_adhoc_data JSON pagination: %s",adhoc_sql)
         dbg("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
     else:
         dbg("get_adhoc_data: not fmt JSON/HTML")
-        if order_by_def is not None:
-            dbg("get_adhoc_data: apply default order by (order by added)")
-            adhoc_sql+=" order by "+order_by_def.replace(":"," ")
+        if effective_order_by is not None:
+            dbg("get_adhoc_data: apply effective order by (order by added)")
+            adhoc_sql+=" order by "+effective_order_by.replace(":"," ")
     #
     # handle formats
     dbg("get_adhoc_data: fmt= %s",fmt)
