@@ -36,12 +36,13 @@ import pprint
 #import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 import decimal
+import math
 import csv
 import pandas as pd
 from flask_bcrypt import Bcrypt
 from openpyxl import load_workbook
 #from openpyxl.utils import get_column_letter
-from openpyxl.styles import Font
+from openpyxl.styles import Font, Alignment
 from openpyxl.worksheet.table import Table #, TableStyleInfo
 from openpyxl.utils import get_column_letter
 import smtplib
@@ -2588,6 +2589,15 @@ def get_adhoc_data(tokdata,id):
                         new_sheet[f'B{row_idx}'].font = deffont
                     if active_params:
                         new_sheet['A4'].font = font
+                    # description: wrap text + row height based on line count
+                    DESC_COL_WIDTH = 80
+                    desc_cell = new_sheet['B3']
+                    desc_cell.alignment = Alignment(wrap_text=True, vertical='top')
+                    new_sheet['A3'].alignment = Alignment(vertical='top')
+                    desc_text = adhoc_desc or ""
+                    desc_lines = desc_text.splitlines() if desc_text else [""]
+                    desc_line_count = sum(max(1, math.ceil(len(line) / DESC_COL_WIDTH)) for line in desc_lines)
+                    new_sheet.row_dimensions[3].height = max(15, desc_line_count * 15)
                     #autofit columns
                     for column in new_sheet.columns:
                         max_length = 0
@@ -2598,7 +2608,10 @@ def get_adhoc_data(tokdata,id):
                                     max_length = len(cell.value)
                             except:
                                 pass
-                        adjusted_width = (max_length + 2) * 1.2  # Zusätzlicher Puffer und Skalierungsfaktor für die Breite
+                        if column_letter == 'B':
+                            adjusted_width = min((max_length + 2) * 1.2, DESC_COL_WIDTH)
+                        else:
+                            adjusted_width = (max_length + 2) * 1.2
                         new_sheet.column_dimensions[column_letter].width = adjusted_width
                     # new sql sheet
                     dbg("get_adhoc_data: add sql sheet")
