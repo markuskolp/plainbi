@@ -1,6 +1,6 @@
 import React from "react";
 import Table from "../components/Table";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, Button, Form, Divider, Collapse, Tag, Space } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
@@ -36,16 +36,17 @@ const AdhocRuntime = (props) => {
   const [order, setOrder] = useState("");
   const [sortState, setSortState] = useState({});
   const [columnFilters, setColumnFilters] = useState({});
+  const adhocRef = useRef({});
 
   useEffect(() => {
-    getAdhoc();
-    getParameters();
+    getAdhoc().then(() => getParameters());
   }, []);
 
   const getAdhoc = async () => {
-    apiClient.get("/api/repo/adhoc/" + id)
+    return apiClient.get("/api/repo/adhoc/" + id)
       .then((res) => {
         const resData = res.data.length === 0 || res.data.length === undefined ? res.data.data[0] : res.data[0];
+        adhocRef.current = resData;
         setAdhoc(resData);
       })
       .catch((err) => setApiError('Es gab einen Fehler beim Laden des Adhoc.', err));
@@ -150,7 +151,7 @@ const AdhocRuntime = (props) => {
         const href = URL.createObjectURL(res.data);
         const link = document.createElement('a');
         link.href = href;
-        const safeName = (adhoc.name || "").replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, "_").trim().substring(0, 50);
+        const safeName = (adhocRef.current.name || adhoc.name || "").replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, "_").trim().substring(0, 50);
         link.setAttribute('download', 'Adhoc_' + id + (safeName ? "_" + safeName : "") + "_" + dt + "." + _format.toLowerCase());
         document.body.appendChild(link);
         link.click();
