@@ -6,7 +6,6 @@ import { Alert, Button, Form, Divider, Collapse, Tag, Space } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
 import { DownloadOutlined, PlayCircleOutlined, FilterFilled } from "@ant-design/icons";
 import LoadingMessage from "../components/LoadingMessage";
-import { Sorter } from "../utils/sorter";
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { extractResponseData, isTrue } from "../utils/dataUtils";
@@ -33,6 +32,7 @@ const AdhocRuntime = (props) => {
   const [errorFields, setErrorFields] = useState(new Set());
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [order, setOrder] = useState("");
   const [columnFilters, setColumnFilters] = useState({});
   const PAGE_SIZE = 50;
 
@@ -109,15 +109,17 @@ const AdhocRuntime = (props) => {
       .join('&');
   };
 
-  const getData = async (params, page, filters) => {
+  const getData = async (params, page, filters, ord) => {
     const p = params !== undefined ? params : paramValues;
     const pg = page !== undefined ? page : currentPage;
     const cf = filters !== undefined ? filters : columnFilters;
+    const o = ord !== undefined ? ord : order;
     setLoading(true);
     const body = buildBody(p);
     let pageQuery = `offset=${(pg - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}`;
     const filterQuery = buildFilterQuery(cf);
     if (filterQuery) pageQuery += '&' + filterQuery;
+    if (o) pageQuery += '&order_by=' + encodeURIComponent(o);
     const req = body
       ? apiClient.post("/api/repo/adhoc/" + id + "/data?" + pageQuery, body)
       : apiClient.get("/api/repo/adhoc/" + id + "/data?" + pageQuery);
@@ -206,12 +208,23 @@ const AdhocRuntime = (props) => {
 
   const isExportFormat = format === 'XLSX' || format === 'CSV';
 
-  const handlePageChange = (page) => getData(undefined, page);
+  const handleTableChange = (pagination, _filters, sorter) => {
+    const page = pagination.current || 1;
+    let newOrder = "";
+    if (Array.isArray(sorter))
+      newOrder = sorter.filter(s => s.order).map(s => s.field + (s.order === "descend" ? " desc" : "")).join(",");
+    else if (sorter.order)
+      newOrder = sorter.field + (sorter.order === "descend" ? " desc" : "");
+    setCurrentPage(page);
+    setOrder(newOrder);
+    getData(undefined, page, undefined, newOrder);
+  };
 
   const handleExecute = () => {
     if (validate()) {
       setColumnFilters({});
-      isExportFormat ? getBlobData(format) : getData(undefined, 1, {});
+      setOrder("");
+      isExportFormat ? getBlobData(format) : getData(undefined, 1, {}, "");
     }
   };
 
@@ -220,7 +233,7 @@ const AdhocRuntime = (props) => {
     return {
       title: column_label,
       dataIndex: column_name,
-      sorter: { compare: Sorter.DEFAULT, multiple: 3 },
+      sorter: { multiple: 3 },
       width: Math.max(column_label.length * 10, 80),
       filterIcon: <FilterFilled style={{ color: hasFilter ? '#1677ff' : undefined }} />,
       filterDropdown: ({ confirm, clearFilters }) => (
@@ -338,7 +351,8 @@ const AdhocRuntime = (props) => {
             size="small"
             columns={columns.map((column) => getColumn(column, column))}
             dataSource={data}
-            pagination={{ current: currentPage, pageSize: PAGE_SIZE, total, onChange: handlePageChange, showSizeChanger: false }}
+            onChange={handleTableChange}
+            pagination={{ current: currentPage, pageSize: PAGE_SIZE, total, showSizeChanger: false }}
             scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
             loading={loading}
             rowKey="id"
