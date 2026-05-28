@@ -20,7 +20,9 @@ const Table = props => {
         ...otherColumnProps,
         dataIndex,
         sorter: {
-          compare: (rowA, rowB) => compare(rowA[dataIndex], rowB[dataIndex]),
+          ...(typeof compare === 'function'
+            ? { compare: (rowA, rowB) => compare(rowA[dataIndex], rowB[dataIndex]) }
+            : {}),
           ...otherSorterProps,
         }
       };

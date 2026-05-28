@@ -32,9 +32,10 @@ const AdhocRuntime = (props) => {
   const [errorFields, setErrorFields] = useState(new Set());
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [order, setOrder] = useState("");
+  const [sortState, setSortState] = useState({});
   const [columnFilters, setColumnFilters] = useState({});
-  const PAGE_SIZE = 50;
 
   useEffect(() => {
     getAdhoc();
@@ -109,14 +110,15 @@ const AdhocRuntime = (props) => {
       .join('&');
   };
 
-  const getData = async (params, page, filters, ord) => {
+  const getData = async (params, page, filters, ord, ps) => {
     const p = params !== undefined ? params : paramValues;
     const pg = page !== undefined ? page : currentPage;
     const cf = filters !== undefined ? filters : columnFilters;
     const o = ord !== undefined ? ord : order;
+    const psize = ps !== undefined ? ps : pageSize;
     setLoading(true);
     const body = buildBody(p);
-    let pageQuery = `offset=${(pg - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}`;
+    let pageQuery = `offset=${(pg - 1) * psize}&limit=${psize}`;
     const filterQuery = buildFilterQuery(cf);
     if (filterQuery) pageQuery += '&' + filterQuery;
     if (o) pageQuery += '&order_by=' + encodeURIComponent(o);
@@ -210,19 +212,27 @@ const AdhocRuntime = (props) => {
 
   const handleTableChange = (pagination, _filters, sorter) => {
     const page = pagination.current || 1;
+    const ps = pagination.pageSize || pageSize;
+    const newSortState = {};
     let newOrder = "";
-    if (Array.isArray(sorter))
-      newOrder = sorter.filter(s => s.order).map(s => s.field + (s.order === "descend" ? " desc" : "")).join(",");
-    else if (sorter.order)
+    if (Array.isArray(sorter)) {
+      sorter.filter(s => s.order).forEach(s => { newSortState[s.field] = s.order; });
+      newOrder = Object.entries(newSortState).map(([f, o]) => f + (o === "descend" ? " desc" : "")).join(",");
+    } else if (sorter.order) {
+      newSortState[sorter.field] = sorter.order;
       newOrder = sorter.field + (sorter.order === "descend" ? " desc" : "");
+    }
+    setSortState(newSortState);
     setCurrentPage(page);
+    setPageSize(ps);
     setOrder(newOrder);
-    getData(undefined, page, undefined, newOrder);
+    getData(undefined, page, undefined, newOrder, ps);
   };
 
   const handleExecute = () => {
     if (validate()) {
       setColumnFilters({});
+      setSortState({});
       setOrder("");
       isExportFormat ? getBlobData(format) : getData(undefined, 1, {}, "");
     }
@@ -234,6 +244,7 @@ const AdhocRuntime = (props) => {
       title: column_label,
       dataIndex: column_name,
       sorter: { multiple: 3 },
+      sortOrder: sortState[column_name] ?? null,
       width: Math.max(column_label.length * 10, 80),
       filterIcon: <FilterFilled style={{ color: hasFilter ? '#1677ff' : undefined }} />,
       filterDropdown: ({ confirm, clearFilters }) => (
@@ -352,7 +363,7 @@ const AdhocRuntime = (props) => {
             columns={columns.map((column) => getColumn(column, column))}
             dataSource={data}
             onChange={handleTableChange}
-            pagination={{ current: currentPage, pageSize: PAGE_SIZE, total, showSizeChanger: false }}
+            pagination={{ current: currentPage, pageSize, total, showSizeChanger: true, pageSizeOptions: [20, 50, 100, 200], showTotal: (t) => `Gesamt: ${t}` }}
             scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
             loading={loading}
             rowKey="id"
