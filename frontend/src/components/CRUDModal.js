@@ -26,6 +26,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
   const [errorFields, setErrorFields] = useState(new Set());
   const [externalActionTimeout, setExternalActionTimeout] = useState(null);
   const [username, setUsername] = useState("plainbi");
+  const [activeTabKey, setActiveTabKey] = useState('main');
 
   let api = isRepo === 'true' ? "/api/repo/" : "/api/crud/" + (datasource ? datasource + '/' : '');
 
@@ -263,6 +264,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
         token={token}
         datasource={datasource}
         isRepo={isRepo}
+        isActive={activeTabKey === dp.alias}
       />
     }))
   ] : null;
@@ -284,7 +286,7 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
           <Button key="3" type="primary" htmlType="submit" onClick={handleOk} loading={saving}>Speichern</Button>
         ]}
       >
-        {showTabs ? <Tabs items={tabItems} /> : mainContent}
+        {showTabs ? <Tabs items={tabItems} activeKey={activeTabKey} onChange={setActiveTabKey} /> : mainContent}
       </Modal>
     </React.Fragment>
   );

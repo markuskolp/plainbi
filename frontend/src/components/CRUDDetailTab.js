@@ -9,7 +9,7 @@ import { extractResponseData, isTrue } from "../utils/dataUtils";
 import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUtils";
 import { Sorter } from "../utils/sorter";
 
-const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token, datasource, isRepo }) => {
+const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token, datasource, isRepo, isActive = false }) => {
   const { loading, setLoading, setApiError } = useApiState(false);
   const [tableData, setTableData] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -38,6 +38,10 @@ const CRUDDetailTab = ({ pageConfig, fkColumn, fkValue, staticValues = {}, token
   useEffect(() => {
     if (fkValue !== null && fkValue !== undefined) loadData(1, order, pageSize);
   }, [fkValue]);
+
+  useEffect(() => {
+    if (isActive && fkValue !== null && fkValue !== undefined) loadData(1, order, pageSize);
+  }, [isActive]);
 
   const loadData = (page = currentPage, ord = order, ps = pageSize) => {
     setLoading(true);

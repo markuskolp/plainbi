@@ -13,7 +13,7 @@ const stripHtml = (val) => {
   }
 };
 
-const ColumnFilterDropdown = ({ confirm, clearFilters, datasource, tableName, columnName, ui, currentValue, onFilter, onReset }) => {
+const ColumnFilterDropdown = ({ confirm, clearFilters, datasource, tableName, columnName, ui, currentValue, onFilter, onReset, urlBase, extraParams }) => {
   const [inputValue, setInputValue] = useState(currentValue || "");
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,12 +23,20 @@ const ColumnFilterDropdown = ({ confirm, clearFilters, datasource, tableName, co
   const currentOffset = useRef(0);
   const currentSearch = useRef("");
 
-  useEffect(() => { fetchValues("", false); }, []);
+  useEffect(() => { if (urlBase || (datasource && tableName && columnName)) fetchValues("", false); }, []);
 
   const buildUrl = (q, offset) => {
     const params = new URLSearchParams({ limit: DISTINCT_LIMIT });
     if (q) params.append("q", q);
     if (offset > 0) params.append("offset", offset);
+    if (urlBase) {
+      if (extraParams) {
+        Object.entries(extraParams).forEach(([k, v]) => {
+          if (v !== null && v !== undefined && v !== "") params.append(k, v);
+        });
+      }
+      return `${urlBase}?${params}`;
+    }
     return `/api/distinctvalues/${datasource}/${tableName}/${columnName}?${params}`;
   };
 
@@ -57,6 +65,7 @@ const ColumnFilterDropdown = ({ confirm, clearFilters, datasource, tableName, co
   const onInputChange = (e) => {
     const val = e.target.value;
     setInputValue(val);
+    if (!(urlBase || (datasource && tableName && columnName))) return;
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => fetchValues(val, false), 300);
   };

@@ -2265,9 +2265,60 @@ def get_lookup(tokdata,id):
 ##
 ###########################
 """
+GET /api/repo/adhoc/<id>/distinctvalues/<col>  Distinct values of a column from the adhoc result (for column filters)
 GET /api/repo/adhoc/<id>/data	The data of a adhoc (result of its SQL)
 GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its SQL), but as a Excel (XLSX) or CSV file
 """
+
+@api.route(repo_api_prefix+'/adhoc/<id>/distinctvalues/<colnam>', methods=['GET'])
+@token_required
+def adhoc_distinctvalues(tokdata, id, colnam):
+    dbg("++++++++++ entering adhoc_distinctvalues id=%s col=%s", str(id), str(colnam))
+    if not all(c.isalnum() or c == '_' for c in colnam):
+        return myjsonify({"error": "Invalid column name"}), 400
+    prof = get_profile(config.repoengine, tokdata['username'])
+    user_id = prof["user_id"]
+    get_rep_adhoc_res = get_repo_adhoc_sql_stmt(config.repoengine, id, user_id)
+    if "error" in get_rep_adhoc_res.keys():
+        return myjsonify(get_rep_adhoc_res), 500
+    adhoc_sql = get_rep_adhoc_res["sql"]
+    adhoc_datasrc_id = get_rep_adhoc_res["datasrc_id"] or 1
+    adhoc_sql = adhoc_sql.replace("$(APP_USER)", tokdata['username'])
+    adhoc_sql = adhoc_sql.replace("$(APP_USER_EMAIL)", prof.get("email") or "")
+    for key, value in request.args.items():
+        if key not in ("limit", "offset", "q"):
+            adhoc_sql = adhoc_sql.replace("$("+key+")", value)
+    q = request.args.get('q')
+    limit = request.args.get('limit')
+    offset = request.args.get('offset')
+    adhoc_dbengine = get_db_by_id_or_alias(adhoc_datasrc_id)
+    db_typ = get_db_type(adhoc_dbengine)
+    if db_typ == "mssql": cast_typ = "varchar(max)"
+    elif db_typ == "oracle": cast_typ = "varchar2(4000)"
+    else: cast_typ = "varchar"
+    inner = f"SELECT DISTINCT x.{colnam} AS dv FROM ({adhoc_sql}) x WHERE x.{colnam} IS NOT NULL"
+    params = None
+    if q:
+        wrapped = f"SELECT dv FROM ({inner}) dv_sub WHERE LOWER(CAST(dv AS {cast_typ})) LIKE :q"
+        params = {"q": f"%{q.lower()}%"}
+    else:
+        wrapped = f"SELECT dv FROM ({inner}) dv_sub"
+    out = {}
+    try:
+        count_items, count_cols = db_exec(adhoc_dbengine, f"SELECT COUNT(*) FROM ({wrapped}) cnt_sub", params)
+        real_total = int(count_items[0][count_cols[0]]) if count_items else 0
+    except Exception:
+        real_total = None
+    data_sql = wrapped + add_offset_limit(db_typ, offset, limit, "dv")
+    try:
+        items, columns = db_exec(adhoc_dbengine, data_sql, params)
+    except Exception as e:
+        out["error"] = "adhoc_distinctvalues error"
+        out["detail"] = str(e)
+        return myjsonify(out), 500
+    out["data"] = [row["dv"] for row in pre_jsonify_items_transformer(items)]
+    out["total_count"] = real_total if real_total is not None else len(items)
+    return myjsonify(out)
 
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET', 'POST'])
 @token_required
@@ -2397,14 +2448,35 @@ def get_adhoc_data(tokdata,id):
     effective_order_by = order_by if order_by is not None else order_by_def
     if fmt=="JSON":
         dbg("get_adhoc_data: fmt JSON")
+        # column filters: filter=col~val (LIKE match)
+        col_filters = []
+        for fval in request.args.getlist('filter'):
+            if '~' in fval:
+                parts = fval.split('~', 1)
+                col = parts[0]
+                if all(c.isalnum() or c == '_' for c in col):
+                    col_filters.append((col, parts[1]))
+        filter_params = None
+        if col_filters:
+            if db_typ == "mssql": cast_typ = "varchar(max)"
+            elif db_typ == "oracle": cast_typ = "varchar2(4000)"
+            else: cast_typ = "varchar"
+            filter_parts = []
+            filter_params = {}
+            for i, (col, val) in enumerate(col_filters):
+                filter_parts.append(f"LOWER(CAST(x.{col} AS {cast_typ})) LIKE :cf_{i}")
+                filter_params[f"cf_{i}"] = f"%{val.lower()}%"
+            adhoc_sql = f"SELECT x.* FROM ({adhoc_sql}) x WHERE " + " AND ".join(filter_parts)
+            dbg("get_adhoc_data: column filters applied: %s", adhoc_sql)
         real_total=None
         if limit is not None:
             try:
-                count_items,count_cols=db_exec(adhoc_dbengine,f"SELECT COUNT(*) FROM ({adhoc_sql}) cnt_sub")
+                count_items,count_cols=db_exec(adhoc_dbengine,f"SELECT COUNT(*) FROM ({adhoc_sql}) cnt_sub",filter_params)
                 real_total=int(count_items[0][count_cols[0]]) if count_items else 0
             except Exception:
                 pass
-        adhoc_sql= f"select x.* from ({adhoc_sql}) x"
+        if not col_filters:
+            adhoc_sql = f"select x.* from ({adhoc_sql}) x"
         adhoc_sql += add_offset_limit(db_typ,offset,limit,effective_order_by)
         dbg("get_adhoc_data JSON pagination: %s",adhoc_sql)
         dbg("get_adhoc_data pagination offset=%s limit=%s",offset,limit)
@@ -2420,7 +2492,7 @@ def get_adhoc_data(tokdata,id):
         # execute adhoc sql
         dbg("get_adhoc_data: execute adhoc sql")
         try:
-            items, columns = db_exec(adhoc_dbengine,adhoc_sql)
+            items, columns = db_exec(adhoc_dbengine,adhoc_sql,filter_params)
         except SQLAlchemyError as e_sqlalchemy:
             err("adhoc_sql_errors: %s", str(e_sqlalchemy))
             if last_stmt_has_errors(e_sqlalchemy, out):

@@ -2,15 +2,16 @@ import React from "react";
 import Table from "../components/Table";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Alert, Button, Form, Divider, Collapse } from "antd";
+import { Alert, Button, Form, Divider, Collapse, Tag, Space } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
-import { DownloadOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { DownloadOutlined, PlayCircleOutlined, FilterFilled } from "@ant-design/icons";
 import LoadingMessage from "../components/LoadingMessage";
 import { Sorter } from "../utils/sorter";
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { extractResponseData, isTrue } from "../utils/dataUtils";
 import CRUDFormItem from "../components/CRUDFormItem";
+import ColumnFilterDropdown from "../components/ColumnFilterDropdown";
 
 const AdhocRuntime = (props) => {
 
@@ -32,6 +33,7 @@ const AdhocRuntime = (props) => {
   const [errorFields, setErrorFields] = useState(new Set());
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [columnFilters, setColumnFilters] = useState({});
   const PAGE_SIZE = 50;
 
   useEffect(() => {
@@ -74,7 +76,7 @@ const AdhocRuntime = (props) => {
         });
         if (params.length > 0) {
           if (format !== 'XLSX' && format !== 'CSV') {
-            if (allRequiredHaveValues) getData(defaults);
+            if (allRequiredHaveValues) getData(defaults, 1, {});
             else setLoading(false);
           } else if ((hasUrlParams || autorun) && allRequiredHaveValues) {
             getBlobData(format, defaults);
@@ -84,13 +86,13 @@ const AdhocRuntime = (props) => {
         } else if (format === 'XLSX' || format === 'CSV') {
           getBlobData(format, {});
         } else {
-          getData({});
+          getData({}, 1, {});
         }
       })
       .catch(() => {
         setHasParams(false);
         if (format === 'XLSX' || format === 'CSV') getBlobData(format, {});
-        else getData({});
+        else getData({}, 1, {});
       });
   };
 
@@ -101,12 +103,21 @@ const AdhocRuntime = (props) => {
       : undefined;
   };
 
-  const getData = async (params, page) => {
+  const buildFilterQuery = (filters) => {
+    return Object.entries(filters)
+      .map(([col, val]) => `filter=${encodeURIComponent(col + '~' + val)}`)
+      .join('&');
+  };
+
+  const getData = async (params, page, filters) => {
     const p = params !== undefined ? params : paramValues;
     const pg = page !== undefined ? page : currentPage;
+    const cf = filters !== undefined ? filters : columnFilters;
     setLoading(true);
     const body = buildBody(p);
-    const pageQuery = `offset=${(pg - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}`;
+    let pageQuery = `offset=${(pg - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}`;
+    const filterQuery = buildFilterQuery(cf);
+    if (filterQuery) pageQuery += '&' + filterQuery;
     const req = body
       ? apiClient.post("/api/repo/adhoc/" + id + "/data?" + pageQuery, body)
       : apiClient.get("/api/repo/adhoc/" + id + "/data?" + pageQuery);
@@ -175,20 +186,58 @@ const AdhocRuntime = (props) => {
     setErrorFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
+  const handleColumnFilter = (column, value) => {
+    const newFilters = { ...columnFilters, [column]: value };
+    setColumnFilters(newFilters);
+    getData(undefined, 1, newFilters);
+  };
+
+  const handleColumnFilterReset = (column) => {
+    const newFilters = { ...columnFilters };
+    delete newFilters[column];
+    setColumnFilters(newFilters);
+    getData(undefined, 1, newFilters);
+  };
+
+  const handleClearAllFilters = () => {
+    setColumnFilters({});
+    getData(undefined, 1, {});
+  };
+
   const isExportFormat = format === 'XLSX' || format === 'CSV';
 
   const handlePageChange = (page) => getData(undefined, page);
 
-  const handleExecute = () => { if (validate()) { isExportFormat ? getBlobData(format) : getData(undefined, 1); } };
+  const handleExecute = () => {
+    if (validate()) {
+      setColumnFilters({});
+      isExportFormat ? getBlobData(format) : getData(undefined, 1, {});
+    }
+  };
 
   function getColumn(column_label, column_name) {
+    const hasFilter = !!columnFilters[column_name];
     return {
       title: column_label,
       dataIndex: column_name,
       sorter: { compare: Sorter.DEFAULT, multiple: 3 },
-      width: column_label.length * 10
+      width: Math.max(column_label.length * 10, 80),
+      filterIcon: <FilterFilled style={{ color: hasFilter ? '#1677ff' : undefined }} />,
+      filterDropdown: ({ confirm, clearFilters }) => (
+        <ColumnFilterDropdown
+          confirm={confirm}
+          clearFilters={clearFilters}
+          columnName={column_name}
+          currentValue={columnFilters[column_name] || ""}
+          onFilter={(value) => handleColumnFilter(column_name, value)}
+          onReset={() => handleColumnFilterReset(column_name)}
+        />
+      ),
+      filtered: hasFilter,
     };
   }
+
+  const activeFilterEntries = Object.entries(columnFilters);
 
   return (
     <React.Fragment>
@@ -267,6 +316,16 @@ const AdhocRuntime = (props) => {
             }]}
           />
         )
+      )}
+      {activeFilterEntries.length > 0 && (
+        <Space wrap style={{ marginBottom: 8 }}>
+          {activeFilterEntries.map(([col, val]) => (
+            <Tag key={col} closable color="blue" onClose={() => handleColumnFilterReset(col)}>
+              {col}: {val}
+            </Tag>
+          ))}
+          <Button size="small" onClick={handleClearAllFilters}>Alle löschen</Button>
+        </Space>
       )}
       <div>
         {loading ? (
