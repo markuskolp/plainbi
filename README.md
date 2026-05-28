@@ -474,11 +474,12 @@ WHERE customer_id = $(customer_id)
   AND order_date <= $(date_to)
 ```
 
-The following global placeholder is always available without defining a parameter:
+The following global placeholders are always available without defining a parameter:
 
 | Placeholder | Value |
 |---|---|
 | `$(APP_USER)` | Username of the currently logged-in user |
+| `$(APP_USER_EMAIL)` | E-mail address of the currently logged-in user |
 
 ## Parameters
 
@@ -493,8 +494,11 @@ Parameters are defined per adhoc query in the **Adhoc Konfiguration** applicatio
 | `lookup` | Lookup alias — only used when `ui` is `lookup` (dropdown with values from a lookup table) |
 | `default_value` | Pre-filled value when the form opens. The query runs immediately with this value. |
 | `required` | Whether the field must be filled before executing |
+| `order_by_default` | Default sort order for the result table, e.g. `column_name asc` or `column_name:desc`. Applied to both the HTML view and Excel/CSV export. A URL parameter `?order_by=...` takes precedence. |
 
-When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query is executed automatically on page load using the default values, and can be re-run with different values by clicking **Ausführen**. Results are paginated server-side (50 rows per page).
+When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query runs automatically on page load **only if all required parameters have a default value or are supplied via URL**. If any required parameter has no value, the filter panel is shown and the user must fill it in before executing. Results are paginated server-side (50 rows per page).
+
+> **Note on string and date parameters:** Parameter values are substituted as plain strings into the SQL without automatic quoting. For string and date values, add quotes around the placeholder in your SQL: `'$(date_from)'` not `$(date_from)`.
 
 **Example** — SQL with two parameters:
 
@@ -576,4 +580,14 @@ Auto-run without showing the filter form at all (drill-down link):
 https://<server>/adhoc/<alias>?autorun=1&<name_technical>=<value>
 ```
 With `autorun=1` the filter panel is hidden and the query executes immediately. For Excel/CSV downloads, the browser is redirected back to the home page after the download starts. Parameters not supplied via URL fall back to their configured `default_value`.
+
+## Excel export
+
+When downloading an adhoc result as Excel (`.xlsx`), the file contains:
+
+- **daten** sheet — the query result
+- **info** sheet — metadata including creation timestamp, adhoc ID, description, and the active filter parameters with their display labels. For lookup parameters the human-readable display value is shown instead of the technical key.
+- **sql** sheet (hidden) — the executed SQL statement for traceability
+
+The filename follows the pattern `Adhoc_<id>_<name>_<timestamp>.xlsx`, e.g. `Adhoc_42_Umsatz_nach_Region_2025-05-27T14:30:00.xlsx`. The adhoc name is truncated to 50 characters and special characters are replaced with underscores.
 
