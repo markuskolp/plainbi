@@ -57,7 +57,8 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   useEffect(() => {
     if (defaultValue && selectedValue && !initialOnChangeFired.current) {
       initialOnChangeFired.current = true;
-      handleChange(selectedValue);
+      const valueCleansed = Array.isArray(selectedValue) ? selectedValue.join(",") : selectedValue;
+      onChange({ target: { name, value: valueCleansed || null } });
     }
   }, [lookupData]);
 
@@ -127,6 +128,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
             if (!q && allDataLoaded.current) fullData.current = options;
             setLookupData(options);
             setLoading(false);
+            if (isFirstLoad && !currentDefaultValue) initialOnChangeFired.current = true;
           }
         }
       })
@@ -150,9 +152,11 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   const onSearch = (value) => {
     setSearchText(value);
     if (allDataLoaded.current) {
-      const filtered = value
+      let filtered = value
         ? fullData.current.filter(o => o.label.toLowerCase().includes(value.toLowerCase()))
         : fullData.current;
+      if (allowNewValues && value && !filtered.some(o => o.label === value))
+        filtered = [...filtered, { value, label: value }];
       setLookupData(filtered);
       return;
     }
