@@ -325,13 +325,30 @@ def db_connect_test(db):
     dbg("  ++++++++++ leaving db_connect_test")
     return ok
 
+def _safe_order_by(order_by, dbtyp):
+    """Parse ORDER BY string and quote column names that contain spaces."""
+    parts = []
+    for part in order_by.replace(":", " ").split(','):
+        part = part.strip()
+        low = part.lower()
+        if low.endswith(' desc'):
+            col, direction = part[:-5].strip(), ' DESC'
+        elif low.endswith(' asc'):
+            col, direction = part[:-4].strip(), ' ASC'
+        else:
+            col, direction = part, ''
+        if ' ' in col and not (col.startswith('[') or col.startswith('"')):
+            col = f'[{col}]' if dbtyp == 'mssql' else f'"{col}"'
+        parts.append(col + direction)
+    return ','.join(parts)
+
 def add_offset_limit(dbtyp,offset,limit,order_by):
     dbg("++++++++++ entering add_offset_limit")
     sql=""
     if dbtyp=="mssql":
         # in Microsoft SQL Server a OFFSET or LIMIT clause requires a ORDER_BY
         if order_by is not None:
-            sql+=" ORDER BY "+order_by.replace(":"," ")
+            sql+=" ORDER BY "+_safe_order_by(order_by, dbtyp)
         else:
             if limit is not None or offset is not None:
                 sql+=" ORDER BY 1"
@@ -341,7 +358,7 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
             sql+=" FETCH NEXT "+limit+" ROWS ONLY"
     elif dbtyp=="sqlite":
         if order_by is not None:
-            sql+=" ORDER BY "+order_by.replace(":"," ")
+            sql+=" ORDER BY "+_safe_order_by(order_by, dbtyp)
         if limit is not None:
             sql+=" LIMIT "+limit
         else:
@@ -350,21 +367,21 @@ def add_offset_limit(dbtyp,offset,limit,order_by):
             sql+=" OFFSET "+offset
     elif dbtyp=="postgres":
         if order_by is not None:
-            sql+=" ORDER BY "+order_by.replace(":"," ")
+            sql+=" ORDER BY "+_safe_order_by(order_by, dbtyp)
         if limit is not None:
             sql+=" LIMIT "+limit
         if offset is not None:
             sql+=" OFFSET "+offset
     elif dbtyp=="oracle":
         if order_by is not None:
-            sql+=" ORDER BY "+order_by.replace(":"," ")
+            sql+=" ORDER BY "+_safe_order_by(order_by, dbtyp)
         if offset is not None:
             sql+=" OFFSET "+offset+" ROWS"
         if limit is not None:
             sql+=" FETCH NEXT "+limit+" ROWS ONLY"
     elif dbtyp=="snowflake":
         if order_by is not None:
-            sql+=" ORDER BY "+order_by.replace(":"," ")
+            sql+=" ORDER BY "+_safe_order_by(order_by, dbtyp)
         if offset is not None:
             sql+=" OFFSET "+offset+" ROWS"
         if limit is not None:
@@ -1046,7 +1063,13 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
         where=""
         params=None
         if filter is not None:
-            where=" WHERE LOWER(d) LIKE :q"
+            if db_typ == "mssql":
+                d_expr = "LOWER(CAST(d AS nvarchar(max)))"
+            elif db_typ == "oracle":
+                d_expr = "LOWER(CAST(d AS varchar2(4000)))"
+            else:
+                d_expr = "LOWER(CAST(d AS varchar))"
+            where=f" WHERE {d_expr} LIKE :q"
             params={"q": f"%{filter.lower()}%"}
         final_sql=wrapped+where+add_offset_limit(db_typ,offset,limit,effective_order_by)
         items,columns=db_exec(dbengine,final_sql,params)

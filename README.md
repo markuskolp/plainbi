@@ -496,7 +496,9 @@ Parameters are defined per adhoc query in the **Adhoc Konfiguration** applicatio
 | `required` | Whether the field must be filled before executing |
 | `order_by_default` | Default sort order for the result table, e.g. `column_name asc` or `column_name:desc`. Applied to both the HTML view and Excel/CSV export. A URL parameter `?order_by=...` takes precedence. |
 
-When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query runs automatically on page load **only if all required parameters have a default value or are supplied via URL**. If any required parameter has no value, the filter panel is shown and the user must fill it in before executing. Results are paginated server-side (50 rows per page).
+When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query runs automatically on page load **only if all required parameters have a default value or are supplied via URL**. If any required parameter has no value, the filter panel is shown and the user must fill it in before executing. Results are paginated server-side (50 rows per page by default; the user can change the page size via the pagination control).
+
+Clicking **Ausführen** re-runs the query with the current parameter values. Active column filters and sort order are preserved — they are not reset when re-executing.
 
 > **Note on string and date parameters:** Parameter values are substituted as plain strings into the SQL without automatic quoting. For string and date values, add quotes around the placeholder in your SQL: `'$(date_from)'` not `$(date_from)`.
 
@@ -559,6 +561,8 @@ Active column filters appear as tags above the table alongside any URL-based fil
 
 Column filters use a `LIKE '%value%'` match (case-insensitive). URL filters use an exact match.
 
+Adhoc result tables also support **server-side sorting**: clicking a column header cycles through ascending / descending / unsorted. Multiple columns can be sorted simultaneously. The current sort order is included when exporting to Excel or CSV.
+
 ## Adhoc URL parameters
 
 Adhoc queries can be pre-filled and triggered directly via URL. The `name_technical` of each parameter is used as the URL query parameter name.
@@ -585,9 +589,14 @@ With `autorun=1` the filter panel is hidden and the query executes immediately. 
 
 When downloading an adhoc result as Excel (`.xlsx`), the file contains:
 
-- **daten** sheet — the query result
-- **info** sheet — metadata including creation timestamp, adhoc ID, description, and the active filter parameters with their display labels. For lookup parameters the human-readable display value is shown instead of the technical key.
+- **daten** sheet — the query result, respecting active parameter filters, column filters and current sort order
+- **info** sheet — metadata with the following rows:
+  - **Erstellt am** — creation timestamp (seconds precision, e.g. `2025-05-29 14:30:00`)
+  - **Adhoc** — adhoc name and ID in parentheses, e.g. `Umsatz nach Region (42)`
+  - **Beschreibung** — adhoc description
+  - **Filter** *(if parameters are active)* — one row per parameter with its display label and value; for lookup parameters the human-readable display value is shown instead of the technical key
+  - **Spaltenfilter** *(if column filters are active)* — one row per active column filter showing column name and filter value
 - **sql** sheet (hidden) — the executed SQL statement for traceability
 
-The filename follows the pattern `Adhoc_<id>_<name>_<timestamp>.xlsx`, e.g. `Adhoc_42_Umsatz_nach_Region_2025-05-27T14:30:00.xlsx`. The adhoc name is truncated to 50 characters and special characters are replaced with underscores.
+The filename follows the pattern `Adhoc_<id>_<name>_<timestamp>.xlsx`, e.g. `Adhoc_42_Umsatz_nach_Region_2025-05-29T14:30:00.xlsx`. The adhoc name is truncated to 50 characters and special characters are replaced with underscores.
 

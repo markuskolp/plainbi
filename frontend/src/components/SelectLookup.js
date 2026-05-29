@@ -27,6 +27,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   const allDataLoaded = useRef(false); // true when server has < LOOKUP_LIMIT items total → client-side filter
   const fullData = useRef([]);         // complete unfiltered list when allDataLoaded
   const initialOnChangeFired = useRef(false); // guard: call onChange with defaultValue only once per lookupid
+  const searchGen = useRef(0);         // generation counter: ignore stale API responses
 
   useEffect(() => { lookupDataRef.current = lookupData; }, [lookupData]);
 
@@ -103,15 +104,18 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   const fetchLookupData = (q, currentDefaultValue, append) => {
     const offset = append ? currentOffset.current : 0;
     const isFirstLoad = !append && isInitialLoad.current;
+    const gen = append ? searchGen.current : ++searchGen.current;
     if (isFirstLoad) setLoading(true);
     else if (!append) setSearching(true);
 
     apiClient.get(buildUrl(q, offset))
       .then((res) => {
+        if (!append && gen !== searchGen.current) return;
         const options = toOptions(extractResponseData(res));
-        if (allowNewValues && q && !options.some((op) => op.label === q))
-          options.push({ value: q, label: q });
-        setHasMore(options.length === LOOKUP_LIMIT);
+        const serverCount = options.length;
+        if (allowNewValues && q && !options.some((op) => String(op.label) === q))
+          options.unshift({ value: q, label: q });
+        setHasMore(serverCount === LOOKUP_LIMIT);
         if (append) {
           setLookupData(prev => [...prev, ...options]);
           currentOffset.current += LOOKUP_LIMIT;
@@ -133,6 +137,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
         }
       })
       .catch((err) => {
+        if (!append && gen !== searchGen.current) return;
         setApiError('Es gab einen Fehler beim Laden der Werte.', { response: { data: { detail: err.toString() } } });
         setSearching(false);
         setLoadingMore(false);
@@ -151,12 +156,13 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
 
   const onSearch = (value) => {
     setSearchText(value);
+    currentSearch.current = value;
     if (allDataLoaded.current) {
       let filtered = value
-        ? fullData.current.filter(o => o.label.toLowerCase().includes(value.toLowerCase()))
+        ? fullData.current.filter(o => o.label != null && o.label.toLowerCase().includes(value.toLowerCase()))
         : fullData.current;
       if (allowNewValues && value && !filtered.some(o => o.label === value))
-        filtered = [...filtered, { value, label: value }];
+        filtered = [{ value, label: value }, ...filtered];
       setLookupData(filtered);
       return;
     }
@@ -169,17 +175,18 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   };
 
   const onDropdownVisibleChange = (open) => {
-    if (open) {
+    if (!open) {
       setSearchText("");
       currentSearch.current = "";
-      currentOffset.current = 0;
-      if (allDataLoaded.current) {
-        setLookupData(fullData.current);
-        return;
-      }
-      setHasMore(true);
-      fetchLookupData("", null, false);
+      return;
     }
+    currentOffset.current = 0;
+    if (allDataLoaded.current) {
+      setLookupData(fullData.current);
+      return;
+    }
+    setHasMore(true);
+    fetchLookupData("", null, false);
   };
 
   const onPopupScroll = (e) => {
@@ -200,7 +207,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   ) : (
     <Select
       placeholder="bitte auswählen ..."
-      mode={multiple ? "multiple" : ""}
+      mode={multiple ? "multiple" : undefined}
       allowClear
       showSearch
       disabled={disabled}

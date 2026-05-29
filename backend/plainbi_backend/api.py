@@ -75,7 +75,7 @@ else:
         with_swagger = False
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter, dbg, err, warn, dbg_api_call
-from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
+from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, _safe_order_by, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db
 
 # import the global variable config
@@ -2488,7 +2488,7 @@ def get_adhoc_data(tokdata,id):
         dbg("get_adhoc_data: not fmt JSON/HTML")
         if effective_order_by is not None:
             dbg("get_adhoc_data: apply effective order by (order by added)")
-            adhoc_sql += " order by " + effective_order_by.replace(":", " ")
+            adhoc_sql += " order by " + _safe_order_by(effective_order_by, db_typ)
     #
     # handle formats
     dbg("get_adhoc_data: fmt= %s",fmt)
@@ -2659,15 +2659,19 @@ def get_adhoc_data(tokdata,id):
                                 except Exception:
                                     pass
                             info_rows.append((param_labels.get(k, k) + ":", display_v))
+                    if col_filters:
+                        info_rows.append(("Spaltenfilter:", ""))
+                        for col, val in col_filters:
+                            info_rows.append((col + ":", val))
+                    header_labels = {"Filter:", "Spaltenfilter:"}
                     book.create_sheet(title=infosheet_name)
                     new_sheet = book[infosheet_name]
                     for row_idx, (a_val, b_val) in enumerate(info_rows, start=1):
                         new_sheet[f'A{row_idx}'] = a_val
                         new_sheet[f'B{row_idx}'] = b_val
-                        new_sheet[f'A{row_idx}'].font = deffont
+                        cell_font = font if a_val in header_labels else deffont
+                        new_sheet[f'A{row_idx}'].font = cell_font
                         new_sheet[f'B{row_idx}'].font = deffont
-                    if active_params:
-                        new_sheet['A4'].font = font
                     # description: wrap text + row height based on line count
                     DESC_COL_WIDTH = 80
                     desc_cell = new_sheet['B3']
