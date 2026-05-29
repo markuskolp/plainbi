@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, Button, Form, Divider, Collapse, Tag, Space } from "antd";
 import { PageHeader } from "@ant-design/pro-layout";
-import { DownloadOutlined, PlayCircleOutlined, FilterFilled } from "@ant-design/icons";
+import { DownloadOutlined, PlayCircleOutlined, FilterFilled, CaretUpFilled, CaretDownFilled } from "@ant-design/icons";
 import LoadingMessage from "../components/LoadingMessage";
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
@@ -143,9 +143,13 @@ const AdhocRuntime = (props) => {
     const now = new Date();
     const dt = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().substring(0, 19);
     const body = buildBody(p);
+    let exportQuery = `format=${_format}`;
+    const filterQuery = buildFilterQuery(columnFilters);
+    if (filterQuery) exportQuery += '&' + filterQuery;
+    if (order) exportQuery += '&order_by=' + encodeURIComponent(order);
     const req = body
-      ? apiClient.post("/api/repo/adhoc/" + id + "/data?format=" + _format, body, { responseType: 'blob' })
-      : apiClient.get("/api/repo/adhoc/" + id + "/data?format=" + _format, { responseType: 'blob' });
+      ? apiClient.post("/api/repo/adhoc/" + id + "/data?" + exportQuery, body, { responseType: 'blob' })
+      : apiClient.get("/api/repo/adhoc/" + id + "/data?" + exportQuery, { responseType: 'blob' });
     req
       .then((res) => {
         const href = URL.createObjectURL(res.data);
@@ -232,20 +236,28 @@ const AdhocRuntime = (props) => {
 
   const handleExecute = () => {
     if (validate()) {
-      setColumnFilters({});
-      setSortState({});
-      setOrder("");
-      isExportFormat ? getBlobData(format) : getData(undefined, 1, {}, "");
+      isExportFormat ? getBlobData(format) : getData(undefined, 1);
     }
   };
 
   function getColumn(column_label, column_name) {
     const hasFilter = !!columnFilters[column_name];
+    const currentSort = sortState[column_name];
     return {
-      title: column_label,
+      title: () => (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, userSelect: 'none' }}>
+          <span>{column_label}</span>
+          {currentSort === 'ascend'
+            ? <CaretUpFilled style={{ fontSize: 11, color: '#1677ff' }} />
+            : currentSort === 'descend'
+            ? <CaretDownFilled style={{ fontSize: 11, color: '#1677ff' }} />
+            : <CaretUpFilled style={{ fontSize: 11, color: '#d9d9d9' }} />}
+        </span>
+      ),
       dataIndex: column_name,
       sorter: { multiple: 3 },
       sortOrder: sortState[column_name] ?? null,
+      showSorterTooltip: false,
       width: Math.max(column_label.length * 10, 80),
       filterIcon: <FilterFilled style={{ color: hasFilter ? '#1677ff' : undefined }} />,
       filterDropdown: ({ confirm, clearFilters }) => (

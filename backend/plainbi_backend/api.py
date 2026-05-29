@@ -33,8 +33,10 @@ from urllib.parse import urlparse, parse_qs
 import json
 
 import pprint
+import re
 #import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text as sql_text
 import decimal
 import math
 import csv
@@ -2417,6 +2419,7 @@ def get_adhoc_data(tokdata,id):
     adhocid  = get_rep_adhoc_res["adhocid"]
     order_by_def  = get_rep_adhoc_res["order_by_def"]
     adhoc_desc  = get_rep_adhoc_res["adhocdesc"]
+    adhoc_name  = get_rep_adhoc_res.get("adhocname") or ""
     audit(tokdata,request,id=adhocid)
     if adhoc_datasrc_id is None:
         msg="adhoc datasource_id is not set - assuming 1"
@@ -2446,28 +2449,29 @@ def get_adhoc_data(tokdata,id):
     db_typ = get_db_type(adhoc_dbengine)
     dbg("get_adhoc_data: prepare json pagination")
     effective_order_by = order_by if order_by is not None else order_by_def
+    # column filters: filter=col~val (LIKE, case-insensitive) — shared for all formats
+    col_filters = []
+    for fval in request.args.getlist('filter'):
+        if '~' in fval:
+            parts = fval.split('~', 1)
+            col = parts[0]
+            if re.match(r'^[\w\s]+$', col, re.UNICODE):
+                col_filters.append((col, parts[1]))
+    filter_params = None
+    if col_filters:
+        if db_typ == "mssql": cast_typ = "varchar(max)"
+        elif db_typ == "oracle": cast_typ = "varchar2(4000)"
+        else: cast_typ = "varchar"
+        filter_parts = []
+        filter_params = {}
+        for i, (col, val) in enumerate(col_filters):
+            col_q = f"[{col}]" if db_typ == "mssql" else f'"{col}"'
+            filter_parts.append(f"LOWER(CAST(x.{col_q} AS {cast_typ})) LIKE :cf_{i}")
+            filter_params[f"cf_{i}"] = f"%{val.lower()}%"
+        adhoc_sql = f"SELECT x.* FROM ({adhoc_sql}) x WHERE " + " AND ".join(filter_parts)
+        dbg("get_adhoc_data: column filters applied: %s", adhoc_sql)
     if fmt=="JSON":
         dbg("get_adhoc_data: fmt JSON")
-        # column filters: filter=col~val (LIKE match)
-        col_filters = []
-        for fval in request.args.getlist('filter'):
-            if '~' in fval:
-                parts = fval.split('~', 1)
-                col = parts[0]
-                if all(c.isalnum() or c == '_' for c in col):
-                    col_filters.append((col, parts[1]))
-        filter_params = None
-        if col_filters:
-            if db_typ == "mssql": cast_typ = "varchar(max)"
-            elif db_typ == "oracle": cast_typ = "varchar2(4000)"
-            else: cast_typ = "varchar"
-            filter_parts = []
-            filter_params = {}
-            for i, (col, val) in enumerate(col_filters):
-                filter_parts.append(f"LOWER(CAST(x.{col} AS {cast_typ})) LIKE :cf_{i}")
-                filter_params[f"cf_{i}"] = f"%{val.lower()}%"
-            adhoc_sql = f"SELECT x.* FROM ({adhoc_sql}) x WHERE " + " AND ".join(filter_parts)
-            dbg("get_adhoc_data: column filters applied: %s", adhoc_sql)
         real_total=None
         if limit is not None:
             try:
@@ -2484,7 +2488,7 @@ def get_adhoc_data(tokdata,id):
         dbg("get_adhoc_data: not fmt JSON/HTML")
         if effective_order_by is not None:
             dbg("get_adhoc_data: apply effective order by (order by added)")
-            adhoc_sql+=" order by "+effective_order_by.replace(":"," ")
+            adhoc_sql += " order by " + effective_order_by.replace(":", " ")
     #
     # handle formats
     dbg("get_adhoc_data: fmt= %s",fmt)
@@ -2519,7 +2523,10 @@ def get_adhoc_data(tokdata,id):
             dbg("adhoc_dbengine %s",str(adhoc_dbengine))
             with adhoc_dbengine.connect() as conn:
                 dbg("adhoc_dbengine querying")
-                df = pd.read_sql_query(adhoc_sql,conn)
+                stmt = sql_text(adhoc_sql)
+                if filter_params:
+                    stmt = stmt.bindparams(**filter_params)
+                df = pd.read_sql_query(stmt, conn)
                 dbg("adhoc_dbengine query done")
         except SQLAlchemyError as e_sqlalchemy:
             err("adhoc_sql_errors(pd): %s", str(e_sqlalchemy))
@@ -2632,9 +2639,9 @@ def get_adhoc_data(tokdata,id):
                         pass
                     active_params = dataitem if dataitem else (myparams if myparams else {})
                     info_rows = [
-                        ("erstellt am:", str(datetime.now())),
-                        ("adhoc:", str(id)),
-                        ("description:", adhoc_desc or ""),
+                        ("Erstellt am:", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        ("Adhoc:", f"{adhoc_name} ({adhocid})"),
+                        ("Beschreibung:", adhoc_desc or ""),
                     ]
                     if active_params:
                         info_rows.append(("Filter:", ""))

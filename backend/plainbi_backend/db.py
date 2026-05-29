@@ -1112,6 +1112,7 @@ def get_repo_adhoc_sql_stmt(repoengine,id,user_id):
                 out["adhocid"]=lkp[0]["id"]
                 out["order_by_def"]=lkp[0]["order_by_default"]
                 out["adhocdesc"]=lkp[0]["description"]
+                out["adhocname"]=lkp[0]["name"]
                 return out
         else:
             log.warn("get_repo_adhoc_sql_stmt:lkp list len is not 1")
