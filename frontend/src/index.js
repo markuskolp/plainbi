@@ -16,7 +16,6 @@ import Login from "./pages/Login";
 import LoginSSO from "./pages/LoginSSO";
 import { ConfigProvider } from 'antd';
 import deDE from 'antd/locale/de_DE';
-import ERD from "./pages/ERD";
 
 const App = () => {
   const { token, removeToken, setToken } = useToken();
@@ -52,7 +51,6 @@ const App = () => {
               <Route path="apps" element={<Apps token={token} setToken={setToken} removeToken={removeToken}/>} />
               <Route path="apps/:id/:page_id?" element={<AppRuntime token={token} setToken={setToken} removeToken={removeToken} />} />
               <Route path="apps/:id/:page_id?/:pk?" element={<AppRuntime token={token} setToken={setToken} removeToken={removeToken} />} />
-              <Route path="erd" element={<ERD token={token} setToken={setToken} />} />
               <Route path="*" element={<NoPage />} />
             </Route>
           </Routes>

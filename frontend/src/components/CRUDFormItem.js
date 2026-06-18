@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Typography,
   Switch,
@@ -11,76 +11,29 @@ import {
   Modal,
   message
 } from "antd";
-import Editor from '@monaco-editor/react';
 import { FullscreenOutlined } from '@ant-design/icons';
 import SelectLookup from './SelectLookup';
 import MarkdownEditor from './MarkdownEditor';
+import CodeMirrorEditor from './CodeMirrorEditor';
 import { isTrue } from '../utils/dataUtils';
 import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { Text } = Typography;
 
-const monacoOptionsReadOnly = {
-  hideCursorInOverviewRuler: true,
-  minimap: { enabled: false },
-  scrollbar: { horizontalSliderSize: 2, verticalSliderSize: 10 },
-  readOnly: true,
-  automaticLayout: true,
-  lineNumbers: 'on',
-  fixedOverflowWidgets: true,
-};
-
-const monacoOptions = {
-  autoIndent: 'full',
-  contextmenu: true,
-  hideCursorInOverviewRuler: true,
-  matchBrackets: 'always',
-  minimap: { enabled: false },
-  scrollbar: { horizontalSliderSize: 2, verticalSliderSize: 10 },
-  selectOnLineNumbers: true,
-  roundedSelection: false,
-  readOnly: false,
-  cursorStyle: 'line',
-  automaticLayout: true,
-  fixedOverflowWidgets: true,
-};
-
 const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, lookupid, ui, defaultValue, onChange, tooltip, token, multiple, hasError }) => {
   const dateFormat = 'YYYY-MM-DD';
   const datetimeFormat = 'YYYY-MM-DD HH:mm';
   const [currentvalue, setCurrentvalue] = useState(defaultValue);
   const isMultiple = isTrue(multiple);
-  const editorRef = useRef(null);
-  const isExternalUpdate = useRef(false);
+
+  const [cmValue, setCmValue] = useState(defaultValue ?? '');
+  const [cmFullscreenValue, setCmFullscreenValue] = useState('');
   const [sqlFullscreen, setSqlFullscreen] = useState(false);
-  const fullscreenEditorRef = useRef(null);
-  const sqlCurrentValue = useRef(defaultValue ?? '');
 
-  // Force Monaco to recalculate positions after the Modal open animation completes
+  // Sync editor value when record data arrives from API
   useEffect(() => {
-    const handler = () => editorRef.current?.layout();
-    window.addEventListener('plainbi:modal-ready', handler);
-    return () => window.removeEventListener('plainbi:modal-ready', handler);
-  }, []);
-
-  // Sync fullscreen editor value on every open (onMount only fires on first open)
-  useEffect(() => {
-    if (sqlFullscreen && fullscreenEditorRef.current) {
-      fullscreenEditorRef.current.setValue(sqlCurrentValue.current);
-    }
-  }, [sqlFullscreen]);
-
-  // Sync Monaco editor when real record data arrives (loading starts with defaultValue="")
-  useEffect(() => {
-    if (!editorRef.current) return;
-    const incoming = defaultValue ?? '';
-    if (editorRef.current.getValue() !== incoming) {
-      isExternalUpdate.current = true;
-      editorRef.current.setValue(incoming);
-      isExternalUpdate.current = false;
-      sqlCurrentValue.current = incoming;
-    }
+    setCmValue(defaultValue ?? '');
   }, [defaultValue]);
 
   const handleChange = (e) => {
@@ -96,9 +49,8 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     onChange(name, value);
   };
 
-  const handleMonacoEditorChange = (value) => {
-    if (isExternalUpdate.current) return;
-    sqlCurrentValue.current = value;
+  const handleCmChange = (value) => {
+    setCmValue(value);
     onChange(name, value);
   };
 
@@ -107,13 +59,9 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
   };
 
   const formatJson = () => {
-    if (!editorRef.current) return;
     try {
-      const formatted = JSON.stringify(JSON.parse(editorRef.current.getValue()), null, 2);
-      isExternalUpdate.current = true;
-      editorRef.current.setValue(formatted);
-      isExternalUpdate.current = false;
-      sqlCurrentValue.current = formatted;
+      const formatted = JSON.stringify(JSON.parse(cmValue), null, 2);
+      setCmValue(formatted);
       onChange(name, formatted);
       message.success('JSON formatiert.');
     } catch (e) {
@@ -121,30 +69,30 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     }
   };
 
-  const openSqlFullscreen = () => setSqlFullscreen(true);
-
-  const applySqlFullscreen = () => {
-    if (fullscreenEditorRef.current && editorRef.current) {
-      const value = fullscreenEditorRef.current.getValue();
-      isExternalUpdate.current = true;
-      editorRef.current.setValue(value);
-      isExternalUpdate.current = false;
-      onChange(name, value);
-    }
-    setSqlFullscreen(false);
-  };
-
   const validateJson = () => {
-    if (!editorRef.current) return;
     try {
-      JSON.parse(editorRef.current.getValue());
+      JSON.parse(cmValue);
       message.success('JSON ist gültig.');
     } catch (e) {
       message.error('Ungültiges JSON: ' + e.message);
     }
   };
 
+  const openSqlFullscreen = () => {
+    setCmFullscreenValue(cmValue);
+    setSqlFullscreen(true);
+  };
+
+  const applySqlFullscreen = () => {
+    setCmValue(cmFullscreenValue);
+    onChange(name, cmFullscreenValue);
+    setSqlFullscreen(false);
+  };
+
   const isReadOnly = !isTrue(editable) || (isTrue(isprimarykey) && type !== "new" && type !== "duplicate");
+  const isCodeMirror = ui === 'textarea_sql' || ui === 'textarea_json';
+
+  if (ui === "hidden") return null;
 
   const renderField = () => {
     if (isReadOnly) {
@@ -152,13 +100,12 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
         return <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} allowNewValues="true" multiple={isMultiple} />;
       if (ui === "lookup")
         return <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} disabled="true" token={token} multiple={isMultiple} />;
-      if (ui === "textarea_sql")
+      if (ui === "textarea_sql" || ui === "textarea_json")
         return (
           <Space direction="vertical" style={{ width: "100%" }}>
             <Button size="small" icon={<FullscreenOutlined />} onClick={openSqlFullscreen}>Vollbild</Button>
             <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' }}>
-              <Editor height={300} language="sql" theme="vs" options={monacoOptionsReadOnly}
-                onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; }} />
+              <CodeMirrorEditor value={cmValue} language={ui === "textarea_json" ? "json" : "sql"} readOnly height={300} />
             </div>
           </Space>
         );
@@ -170,8 +117,6 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
         return <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} allowNewValues="true" multiple={isMultiple} />;
       case "lookup":
         return <SelectLookup name={name} lookupid={lookupid} defaultValue={defaultValue} onChange={handleChange} token={token} multiple={isMultiple} />;
-      case "hidden":
-        return "";
       case "numberinput":
         return <InputNumber name={name} defaultValue={defaultValue} onChange={handleNumberInputChange}
           onKeyDown={(e) => {
@@ -197,8 +142,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
           <Space direction="vertical" style={{ width: "100%" }}>
             <Button size="small" icon={<FullscreenOutlined />} onClick={openSqlFullscreen}>Vollbild</Button>
             <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' }}>
-              <Editor height={300} language="sql" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
-                onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; sqlCurrentValue.current = defaultValue ?? ''; }} />
+              <CodeMirrorEditor value={cmValue} onChange={handleCmChange} language="sql" height={300} />
             </div>
           </Space>
         );
@@ -211,8 +155,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
               <Button size="small" icon={<FullscreenOutlined />} onClick={openSqlFullscreen}>Vollbild</Button>
             </Space>
             <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, overflow: 'hidden' }}>
-              <Editor height={300} language="json" theme="vs" options={monacoOptions} onChange={handleMonacoEditorChange}
-                onMount={(editor) => { editorRef.current = editor; isExternalUpdate.current = true; editor.setValue(defaultValue ?? ''); isExternalUpdate.current = false; sqlCurrentValue.current = defaultValue ?? ''; }} />
+              <CodeMirrorEditor value={cmValue} onChange={handleCmChange} language="json" height={300} />
             </div>
           </Space>
         );
@@ -238,23 +181,19 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
     }
   };
 
-  const isMonaco = ui === 'textarea_sql' || ui === 'textarea_json';
-
-  if (ui === "hidden") return null;
-
   return (
     <>
       <Form.Item
-        name={isMonaco ? undefined : name}
+        name={isCodeMirror ? undefined : name}
         label={label}
-        rules={isMonaco ? [] : [{ required: isTrue(required) }]}
+        rules={isCodeMirror ? [] : [{ required: isTrue(required) }]}
         tooltip={tooltip}
         validateStatus={hasError ? "error" : ""}
         help={hasError ? "Pflichtfeld" : undefined}
       >
         {renderField()}
       </Form.Item>
-      {(ui === "textarea_sql" || ui === "textarea_json") && (
+      {isCodeMirror && (
         <Modal
           open={sqlFullscreen}
           onCancel={() => setSqlFullscreen(false)}
@@ -270,16 +209,15 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
             <Button key="apply" type="primary" onClick={applySqlFullscreen}>OK</Button>
           ]}
         >
-          <Editor
-            height="100%"
-            language={ui === "textarea_json" ? "json" : "sql"}
-            theme="vs"
-            options={isReadOnly ? monacoOptionsReadOnly : monacoOptions}
-            onMount={(editor) => {
-              fullscreenEditorRef.current = editor;
-              editor.setValue(sqlCurrentValue.current);
-            }}
-          />
+          <div style={{ height: '100%', overflow: 'hidden' }}>
+            <CodeMirrorEditor
+              value={cmFullscreenValue}
+              onChange={setCmFullscreenValue}
+              language={ui === "textarea_json" ? "json" : "sql"}
+              readOnly={isReadOnly}
+              height="100%"
+            />
+          </div>
         </Modal>
       )}
     </>

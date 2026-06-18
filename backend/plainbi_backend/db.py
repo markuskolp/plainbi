@@ -1963,7 +1963,7 @@ def db_connect(p_enginestr, params=None):
             dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True, echo_pool='debug', connect_args={'connect_timeout': 10}, pool_recycle=600)
         elif "snowflake" in p_enginestr:
             dbg("++++++++++ snowflake pool_size=5, pool_recycle=1800, pool_pre_ping=True")
-            dbengine = sqlalchemy.create_engine(enginestr, pool_size=5, max_overflow=0, pool_recycle=1800, pool_pre_ping=True, pool_timeout=30)
+            dbengine = sqlalchemy.create_engine(enginestr, pool_size=5, max_overflow=0, pool_recycle=1800, pool_pre_ping=True, pool_timeout=30, connect_args={"ocsp_fail_open": True})
         else:
             dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: engine url %s",dbengine.url)

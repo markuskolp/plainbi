@@ -138,7 +138,17 @@ table .anticon {
 div.monaco-editor * {
   font-family: Consolas, "Courier New", monospace !important;
 }
-.markdowncontainer {
+.cm-editor * {
+  font-family: Consolas, "Courier New", monospace !important;
+}
+.cm-editor .cm-selectionBackground,
+.cm-editor.cm-focused .cm-selectionBackground {
+  background-color: #b3d4ff !important;
+}
+.cm-editor .cm-content .cm-line::selection,
+.cm-editor .cm-content .cm-line ::selection {
+  background-color: #b3d4ff !important;
+}.markdowncontainer {
   display:flex;
 }
 .markdowncontainer_editor {
