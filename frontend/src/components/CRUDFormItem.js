@@ -240,6 +240,8 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
 
   const isMonaco = ui === 'textarea_sql' || ui === 'textarea_json';
 
+  if (ui === "hidden") return null;
+
   return (
     <>
       <Form.Item
