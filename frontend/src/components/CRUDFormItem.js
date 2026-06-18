@@ -113,6 +113,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
       isExternalUpdate.current = true;
       editorRef.current.setValue(formatted);
       isExternalUpdate.current = false;
+      sqlCurrentValue.current = formatted;
       onChange(name, formatted);
       message.success('JSON formatiert.');
     } catch (e) {
@@ -264,7 +265,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
             <Button key="close" onClick={() => setSqlFullscreen(false)}>Schließen</Button>
           ] : [
             <Button key="cancel" onClick={() => setSqlFullscreen(false)}>Abbrechen</Button>,
-            <Button key="apply" type="primary" onClick={applySqlFullscreen}>Übernehmen</Button>
+            <Button key="apply" type="primary" onClick={applySqlFullscreen}>OK</Button>
           ]}
         >
           <Editor
