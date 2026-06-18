@@ -326,9 +326,30 @@ def db_connect_test(db):
     return ok
 
 def _safe_order_by(order_by, dbtyp):
-    """Parse ORDER BY string and quote column names that contain spaces."""
-    parts = []
-    for part in order_by.replace(":", " ").split(','):
+    """Parse ORDER BY string and quote simple column names that contain spaces.
+    Uses paren-aware comma split so CASE WHEN expressions are not broken apart.
+    SQL expressions (CASE, functions) are never quoted."""
+    _SQL_KW = {'case', 'when', 'then', 'else', 'end', 'select', 'from', 'where', 'and', 'or', 'not', 'null', 'is'}
+    # paren-aware comma split
+    raw_parts = []
+    depth = 0
+    buf = []
+    for ch in order_by.replace(":", " "):
+        if ch == '(':
+            depth += 1
+            buf.append(ch)
+        elif ch == ')':
+            depth -= 1
+            buf.append(ch)
+        elif ch == ',' and depth == 0:
+            raw_parts.append(''.join(buf).strip())
+            buf = []
+        else:
+            buf.append(ch)
+    if buf:
+        raw_parts.append(''.join(buf).strip())
+    result = []
+    for part in raw_parts:
         part = part.strip()
         low = part.lower()
         if low.endswith(' desc'):
@@ -337,10 +358,12 @@ def _safe_order_by(order_by, dbtyp):
             col, direction = part[:-4].strip(), ' ASC'
         else:
             col, direction = part, ''
-        if ' ' in col and not (col.startswith('[') or col.startswith('"')):
+        # Only quote plain identifiers with spaces — not SQL expressions
+        is_expression = ('(' in col or any(w in _SQL_KW for w in col.lower().split()))
+        if ' ' in col and not is_expression and not (col.startswith('[') or col.startswith('"')):
             col = f'[{col}]' if dbtyp == 'mssql' else f'"{col}"'
-        parts.append(col + direction)
-    return ','.join(parts)
+        result.append(col + direction)
+    return ','.join(result)
 
 def add_offset_limit(dbtyp,offset,limit,order_by):
     dbg("++++++++++ entering add_offset_limit")
@@ -1042,7 +1065,7 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
     for m in reversed(list(re.finditer(r'\bORDER\s+BY\b', sql, re.IGNORECASE))):
         after=sql[m.start():]
         if after.count('(')==after.count(')'):
-            extracted_order_by=re.sub(r'^ORDER\s+BY\s+','',after,flags=re.IGNORECASE).strip()
+            extracted_order_by=re.sub(r'--[^\n]*','',re.sub(r'^ORDER\s+BY\s+','',after,flags=re.IGNORECASE)).strip()
             sql=sql[:m.start()].rstrip()
             break
 
@@ -1050,7 +1073,7 @@ def repo_lookup_select(repoengine,id,order_by=None,offset=None,limit=None,filter
     db_typ=get_db_type(dbengine)
     try:
         effective_order_by=order_by or extracted_order_by or "d"
-        wrapped=f"SELECT r, d FROM ({sql}) lkp_sub"
+        wrapped=f"SELECT r, d FROM ({sql}\n) lkp_sub"
         if selected is not None:
             if db_typ=="oracle":
                 cast="CAST(r AS VARCHAR2(4000))"

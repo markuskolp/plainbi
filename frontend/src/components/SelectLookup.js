@@ -12,7 +12,7 @@ const LOOKUP_LIMIT = 50;
 
 const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token, allowNewValues, multiple = false }) => {
 
-  const { loading, setLoading, error, errorMessage, setApiError } = useApiState(true);
+  const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(true);
   const [lookupData, setLookupData] = useState([]);
   const [selectedValue, setSelectedValue] = useState(null);
   const [searchText, setSearchText] = useState("");
@@ -138,7 +138,7 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
       })
       .catch((err) => {
         if (!append && gen !== searchGen.current) return;
-        setApiError('Es gab einen Fehler beim Laden der Werte.', { response: { data: { detail: err.toString() } } });
+        setApiError('Es gab einen Fehler beim Laden der Werte.', err);
         setSearching(false);
         setLoadingMore(false);
         isInitialLoad.current = false;
@@ -200,9 +200,12 @@ const SelectLookup = ({ name, lookupid, defaultValue, onChange, disabled, token,
   return loading ? (
     <LoadingMessage />
   ) : error ? (
-    <Space>
-      <WarningOutlined style={{ color: 'darkred' }} />
-      <Text style={{ color: 'darkred' }}>{errorMessage}</Text>
+    <Space direction="vertical" size={2}>
+      <Space>
+        <WarningOutlined style={{ color: 'darkred' }} />
+        <Text style={{ color: 'darkred' }}>{errorMessage}</Text>
+      </Space>
+      {errorDetail && <Text style={{ color: 'darkred', fontSize: 11 }}>{errorDetail}</Text>}
     </Space>
   ) : (
     <Select
