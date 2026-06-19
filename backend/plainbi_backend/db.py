@@ -1930,6 +1930,14 @@ def add_auth_to_where_clause(tab,where_clause,user_id):
 #base64_str = b.decode('utf-8') # convert bytes to string
 
 
+def snowflake_set_json_result_format(dbapi_connection, connection_record):
+    try:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("ALTER SESSION SET PYTHON_CONNECTOR_QUERY_RESULT_FORMAT = 'JSON'")
+        cursor.close()
+    except Exception as e:
+        log.error("snowflake_set_json_result_format: %s", str(e))
+
 def postgres_set_search_path(dbapi_connection, connection_record):
     dbg("++++++++++ entering postgres_set_search_path")
     try:

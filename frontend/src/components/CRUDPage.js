@@ -138,6 +138,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
   const getPKRecordOpenModal = async (tableName) => {
     const queryParams = new URLSearchParams();
+    if (versioned) queryParams.append("v", 1);
     queryParams.append("filter", pkColumns + ":" + record_pk);
     apiClient.get(api + tableName + '?' + queryParams)
       .then((res) => {
