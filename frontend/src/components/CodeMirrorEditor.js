@@ -20,6 +20,7 @@ const editorTheme = EditorView.theme({
 const readOnlyExt = [EditorView.editable.of(false)];
 
 const CodeMirrorEditor = ({ value, onChange, language, readOnly, height = 300 }) => {
+  const h = typeof height === 'number' ? `${height}px` : height;
   const extensions = [
     language === 'json' ? json() : sql(),
     editorTheme,
@@ -29,7 +30,8 @@ const CodeMirrorEditor = ({ value, onChange, language, readOnly, height = 300 })
   return (
     <CodeMirror
       value={value ?? ''}
-      height={typeof height === 'number' ? `${height}px` : height}
+      height={h}
+      style={{ height: h }}
       extensions={extensions}
       onChange={readOnly ? undefined : onChange}
       basicSetup={{

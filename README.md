@@ -9,6 +9,16 @@ includes:
 - ... and more to come
 
 
+# Deployment
+
+```bat
+cd frontend
+deploy_frontend.bat dev|test|prod
+
+cd backend
+deploy_backend.bat dev|test|prod
+```
+
 # Backend configuration
 
 The backend is configured via environment variables, typically placed in a `.env` file. A custom config file path can be set via `PLAINBI_BACKEND_CONFIG`.

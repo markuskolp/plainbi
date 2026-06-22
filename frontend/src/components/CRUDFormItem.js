@@ -209,7 +209,7 @@ const CRUDFormItem = ({ type, name, label, required, isprimarykey, editable, loo
             <Button key="apply" type="primary" onClick={applySqlFullscreen}>OK</Button>
           ]}
         >
-          <div style={{ height: '100%', overflow: 'hidden' }}>
+          <div style={{ height: '100%' }}>
             <CodeMirrorEditor
               value={cmFullscreenValue}
               onChange={setCmFullscreenValue}
