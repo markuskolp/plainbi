@@ -1,0 +1,12 @@
+# mssql application tables init - custom tables used by plainbi applications
+[
+'''
+IF OBJECT_ID('PLAINBI.dbo.mmg_user', 'U') IS NULL
+CREATE TABLE PLAINBI.dbo.mmg_user (
+  username varchar(100) NOT NULL,
+  email    varchar(100) NULL,
+  fullname varchar(100) NULL,
+  PRIMARY KEY (username)
+)
+'''
+]

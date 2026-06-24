@@ -76,7 +76,7 @@ else:
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter, dbg, err, warn, dbg_api_call
 from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, _safe_order_by, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
-from plainbi_backend.repo import create_repo_db
+from plainbi_backend.repo import create_repo_db, create_app_db
 
 # import the global variable config
 import plainbi_backend.config as cfg
@@ -2203,6 +2203,7 @@ def init_repo():
     with config.repoengine.connect() as conn:
         pass
     create_repo_db(config.repoengine)
+    create_app_db(config.repoengine)
     return 'Repo initialized successfully', 200
 
 

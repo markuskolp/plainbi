@@ -103,7 +103,7 @@ from plainbi_backend.db import db_passwd, db_connect, db_connect_test, db_exec, 
 print("plainbi_backend.py imports create_app")
 from plainbi_backend.api import create_app
 print("plainbi_backend.py imports create_repo_db")
-from plainbi_backend.repo import create_repo_db
+from plainbi_backend.repo import create_repo_db, create_app_db
 
 print("plainbi_backend.py testdb")
 # for convenience a sqlalchemy connect string can be tested here
@@ -144,6 +144,7 @@ log.debug("repository is %s",(app.config["PLAINBI_REPOSITORY"])[:15]+"...")
 if args.initrepo:
     log.info("initialize repo")
     create_repo_db(config.repoengine)
+    create_app_db(config.repoengine)
     log.info("repository initialized")
     sys.exit(0)
 

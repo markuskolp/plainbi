@@ -5,16 +5,8 @@
 
 Weiterentwicklung:
 
-- **Audit erweitern mit Status, d.h. ob Aufruf erfolgreich war oder nicht - gerade bei Adhocs**
-- Tausendertrennzeichen in Adhoc Excelexport (5.321 anstatt 5321) - NK-Stellen so belassen (aber evtl. geht vorformatieren auf 2 NK-Stellen, aber nur wenn es ein Float/Decimal ist ?)
 - Backend Logging prüfen (Passwörter, etc.) und reduzieren (Daten von Resultset, etc.) bzw. aussagekräftiger
-- Unique constraints  sind im repo create script drinnen, aber am linux noch nicht aktiv
-- ~~Adhoc Export Excel -> Infoseite in Arial 9 ;-)~~
-- Dokumentation in Github schreiben zu Endpunkten, Konfigdateien, Install, Docker, etc.
 - plainbi_datasource: db_type enthält jdbc-url inkl. pw's !
-- ~~ohne Gruppenzuordnung ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind) .> als gid "nogroup" verwenden~~
-- ~~"usercol" als Parameter übergeben, damit Backend weiß, dass es beim insert/update den Username hier mitgeben soll (notwendig für vv-Trigger Logik)~~
-- ~~URL-Parameter "cols", damit man beim Holen von Daten nur die Spalten verwendet werden die man auch anzeigt / ebenso bei der Suche beachten~~
 
 
 ## Frontend
@@ -24,9 +16,7 @@ Weiterentwicklung:
 - defaultOrderBy verbessern - evtl. doch bei getColumn() nur über "defaultSortOrder" und weiter unten über "multiple" gehen um die Reihenfolge anzugeben bei mehreren Spalten
 - **Adhoc Tool ausbauen z.B. mit Cube JS zu einem SFO ähnlichen Berichtserstellungstool (Listenansicht)**
 - **Gruppe auf Startseite nur zeigen, wenn es Inhalte gibt**
-~~- Fehler beim Löschen z.B. von Adhoc besser anzeigen (wenn z.B. noch Berechtigung existiert und fk-constraint zuschlägt)~~
 - Sicht speichern übergreifend (nur Admin) oder je User (dabei Sortierung sowie Filter merken)
-- Zurückbutton: durch den neuen Home-Button lass ich den Zurückbutton evtl. komplett verschwinden.
 - Anzahl Datensätze pro Tabelle nicht überall einstellbar, warum ?
 
 - Rechtekonzept:
@@ -35,9 +25,7 @@ Weiterentwicklung:
   - auch auf "Page" Ebene Lese/Schreibrechte vergeben
 
 - Ressource "page" und "page_attachment" hinzufügen, damit man per Markdown eine Doku pflegen kann (Seiten oder News/Blogeintrag)
-- User auch vorab anlegen -> am besten über ein Button wo man aus dem AD auch die auslesen kann (falls AD in .env hinterlegt ist)
--  **ohne Gruppenzuordnung** ausgeben bei Admin's, damit sie alle Inhalte auf der Homepage sehen (falls diese keiner Gruppe zugeordnet sind)
-  - Endpoint /group/<gid>/resources -> hier kann man für <gid> auch **nogroup** schreiben, dann kommen alle Ressourcen die keiner Gruppe zugeordnet sind (Admins only)
+- Endpoint /group/<gid>/resources -> hier kann man für <gid> auch **nogroup** schreiben, dann kommen alle Ressourcen die keiner Gruppe zugeordnet sind (Admins only)
 - insert/update plainbi - nur felder liefern die verändert wurden (bisher wird immer der gesamte Record geliefert im PUT/POST Body)
 - 1 bis n vordefinierte Filter für ganze Seite (z.B. nicht konfigurierte Mappings, etc.) und entscheiden ob einer der **Filter beim Einstieg (je Seite)** auch sofort ziehen soll
 - **App Spezifikation validieren**

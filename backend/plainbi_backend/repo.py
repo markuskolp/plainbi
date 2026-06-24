@@ -141,6 +141,21 @@ import sqlalchemy
 repoEngine=sqlalchemy.create_engine('sqlite:////Users/kribbel/plainbi_repo.db.db') # ensure this is the correct path for the sqlite file. 
 """
 
+def create_app_db(engine):
+    repodir = os.path.dirname(__file__)
+    dbtyp = get_db_type(engine)
+    app_init_filename = os.path.join(repodir, "app_init_" + dbtyp + ".json")
+    if not os.path.isfile(app_init_filename):
+        log.debug("app_init_file %s does not exist - skipping", app_init_filename)
+        return
+    log.debug("app_init_file %s found - executing", app_init_filename)
+    with open(app_init_filename, "r") as f:
+        sql_create_list = hjson.loads(f.read(), strict=False)
+    for i, sql in enumerate(sql_create_list, 1):
+        log.info("-- App SQL %d: %s", i, sql)
+        db_exec(engine, sql)
+
+
 def create_pytest_tables(engine):
     dbtyp = get_db_type(engine)
     if dbtyp=="mssql":
