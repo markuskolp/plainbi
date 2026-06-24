@@ -48,7 +48,6 @@ Weiterentwicklung:
 - Edit only if in certain user or group (otherwise read only or hidden)
 - Grid edit
 - Tree view (mit Editiermöglichkeit / Iconauswahl)
-- Conditional row formatting (e.g. background color for the row)
 
 - Cascading prompts: also having a label dependent on a selected/entered value (e.g. ID of a address -> show the full address for this)
 - Input search box (Lookup) with onSearch loading from server: https://ant.design/components/input#input-demo-search-input-loading
@@ -80,12 +79,7 @@ Bugs:
           )
         );
 
-- wenn AdHocs (erwarteterweise) keine Daten liefern, gibt es bei Ausgabe als Excel oder CSV einen Fehler , aber HTML funktioniert
-- wenn der Name des AdHocs zu lange ist, wirft das Portal keinen Fehler, sondern sagt, es wurde erfolgreich gespeichert - es gibt aber keinen neuen Adhoc in der Liste
 - Sortierung aus Tabelle/View wird nicht übernommen ? (gerade bei View mit "order by offset 0 rows")
-- Seitenfilter und dann im Suchfeld suchen -> Seitenfilter wird aufgehoben z.B. https://dwh.mmgmuc.de/apps/dwh_testsuite/testlauf?test_lauf_id=202
 - applikations-spec: ignoriere groß/klein bei spaltennamen, pk, ...
 - wenn man User löscht und dieser zu einer Gruppe gehört, dann wird "erfolgreich" gezeigt (obwohl dieser nicht gelöscht wurde) - es sollte der Fehler gezeigt werden
-- **Filter und Pagination: wenn man auf Seite 2 ist und weitersucht kommt kein Ergebnis -> immer auf Page 1 zurückspringen !**
 - **abgelaufene Session/Token**: in Settings-Bereich auch auf abgelaufenes Token achten -> ruft aber CRUDPage auf ?!
-- TileVA.js -> Image verzieht sich wenn die Bildschirmbreite zu klein wird -> div und img element - das img übernimmt die Höhe, wenn man diese entfernt geht es -> aber wie lösen?
