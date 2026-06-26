@@ -1,15 +1,18 @@
 import React from 'react';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import LoadingMessage from "./LoadingMessage";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
   Button, Typography, Input, Space, Popconfirm,
   message, Tooltip, Breadcrumb, Alert, Tag
 } from "antd";
+import { Resizable } from 'react-resizable';
+import 'react-resizable/css/styles.css';
 import Table from "./Table";
 import { Sorter } from "../utils/sorter";
 import { CaretUpFilled, CaretDownFilled } from '@ant-design/icons';
 import { EditOutlined, DeleteOutlined, CopyOutlined, DownloadOutlined, UnorderedListOutlined, CalendarOutlined } from "@ant-design/icons";
+import ColumnSettingsDrawer from "./ColumnSettingsDrawer";
 import dayjs from 'dayjs';
 import CRUDModal from "./CRUDModal";
 import TableModal from "./TableModal";
@@ -25,6 +28,29 @@ import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUt
 
 const { Link } = Typography;
 
+const ResizableTitle = ({ onResize, width, ...restProps }) => {
+  if (!width) return <th {...restProps} />;
+  return (
+    <Resizable
+      width={width}
+      height={0}
+      onResize={onResize}
+      draggableOpts={{ enableUserSelectHack: false }}
+      handle={
+        <span
+          style={{
+            position: 'absolute', right: -4, top: 0, bottom: 0,
+            width: 8, cursor: 'col-resize', zIndex: 10,
+          }}
+          onClick={e => e.stopPropagation()}
+        />
+      }
+    >
+      <th {...restProps} style={{ ...(restProps.style || {}), position: 'relative', overflow: 'visible' }} />
+    </Resizable>
+  );
+};
+
 const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, token, sequence, breadcrumbItems, externalActions, conditionalRowFormats, detailPages }) => {
 
   const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(true);
@@ -39,18 +65,75 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [view, setView] = useState('table');
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new");
+  const colStorageKey   = 'plainbi_cols_'  + window.location.pathname + '/' + tableName;
+  const stateStorageKey = 'plainbi_state_' + window.location.pathname + '/' + tableName;
+
+  const _savedState = (() => { try { return JSON.parse(localStorage.getItem(stateStorageKey)) || {}; } catch (_) { return {}; } })();
+
   const [offset, setOffset] = useState(0);
   const [limit, setLimit] = useState(20);
-  const [order, setOrder] = useState("");
-  const [defaultOrderInactive, setDefaultOrderInactive] = useState(false);
+  const [order, setOrder] = useState(_savedState.order || "");
+  const [defaultOrderInactive, setDefaultOrderInactive] = useState(!!_savedState.order);
   const [totalCount, setTotalCount] = useState();
-  const [filter, setFilter] = useState();
-  const [columnFilters, setColumnFilters] = useState({});
+  const [filter, setFilter] = useState(_savedState.filter || "");
+  const [columnFilters, setColumnFilters] = useState(_savedState.columnFilters || {});
   const [tableParamChanged, setTableParamChanged] = useState(false);
-  const [typingTimeout, setTypingTimeout] = useState(null);
   const [externalActionTimeout, setExternalActionTimeout] = useState(null);
   const [filteredTableData, setFilteredTableData] = useState(null);
   const [searchParams] = useSearchParams();
+  const [colDrawerOpen, setColDrawerOpen] = useState(false);
+  const [tableKey, setTableKey] = useState(0);
+
+  const defaultColSettings = useCallback(() =>
+    tableColumns
+      .filter(c => !c.showdetailsonly)
+      .map(c => ({ key: c.column_name, visible: true, width: 150 }))
+  , [tableColumns]);
+
+  const handleReset = useCallback(() => {
+    const defaults = defaultColSettings();
+    setColSettings(defaults);
+    localStorage.removeItem(colStorageKey);
+    setFilter('');
+    setColumnFilters({});
+    setOrder('');
+    setDefaultOrderInactive(false);
+    localStorage.removeItem(stateStorageKey);
+    setOffset(0);
+    setTableKey(prev => prev + 1);
+    setTableParamChanged(prev => !prev);
+  }, [defaultColSettings, colStorageKey, stateStorageKey]);
+
+  const [colSettings, setColSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem(colStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const defaults = tableColumns.filter(c => !c.showdetailsonly).map(c => c.column_name);
+        const merged = parsed.filter(s => defaults.includes(s.key));
+        defaults.forEach(k => { if (!merged.find(s => s.key === k)) merged.push({ key: k, visible: true, width: 150 }); });
+        return merged;
+      }
+    } catch (_) {}
+    return tableColumns.filter(c => !c.showdetailsonly).map(c => ({ key: c.column_name, visible: true, width: 150 }));
+  });
+
+  const parsedSort = useMemo(() => {
+    if (!order) return {};
+    const trimmed = order.trim();
+    const isDesc = trimmed.endsWith(' desc');
+    const col = isDesc ? trimmed.slice(0, -5) : trimmed.split(',')[0];
+    return { [col]: isDesc ? 'descend' : 'ascend' };
+  }, [order]);
+
+  const isDirty = useMemo(() => {
+    if (filter) return true;
+    if (Object.keys(columnFilters).length > 0) return true;
+    if (order) return true;
+    const defaults = defaultColSettings();
+    if (colSettings.length !== defaults.length) return true;
+    return colSettings.some((s, i) => s.key !== defaults[i].key || !s.visible || s.width !== 150);
+  }, [filter, columnFilters, order, colSettings, defaultColSettings]);
 
   let { pk } = useParams();
   let record_pk = (pk ? pk.toString() : null);
@@ -68,6 +151,10 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const api = isTrue(isRepo) ? "/api/repo/" : "/api/crud/" + (datasource ? datasource + '/' : '');
 
   // ─── Initialisierung ─────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    localStorage.setItem(stateStorageKey, JSON.stringify({ filter, columnFilters, order }));
+  }, [filter, columnFilters, order]);
 
   useEffect(() => {
     getTableData(tableName);
@@ -261,19 +348,23 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const handleChange = (pagination, filters, sorter) => {
     const newOffset = pagination.current * pagination.pageSize - pagination.pageSize;
     const newLimit = pagination.pageSize;
-    let newOrder = "";
-    if (sorter.hasOwnProperty("column") && !sorter.length && sorter.order)
-      newOrder = sorter.field + (sorter.order == "descend" ? " desc" : "");
-    if (sorter.length > 1) {
-      newOrder = sorter.map((s) => s.field + (s.order == "descend" ? " desc" : "")).join(",");
-    }
     setOffset(newOffset);
     setLimit(newLimit);
-    setOrder(newOrder);
+    // Sortierung nur ändern wenn User explizit eine Spalte geklickt hat.
+    // Bei reinem Seitenwechsel ist sorter = {} → order nicht überschreiben.
+    if (sorter.hasOwnProperty("column")) {
+      setDefaultOrderInactive(true);
+      setOrder(sorter.order ? sorter.field + (sorter.order === "descend" ? " desc" : "") : "");
+    } else if (Array.isArray(sorter) && sorter.length > 0) {
+      setDefaultOrderInactive(true);
+      setOrder(sorter.map(s => s.field + (s.order === "descend" ? " desc" : "")).join(","));
+    } else if (Array.isArray(sorter) && sorter.length === 0) {
+      setOrder("");
+    }
     setTableParamChanged(!tableParamChanged);
   };
 
-  const searchData = (value) => { setFilter(value); setTableParamChanged(!tableParamChanged); };
+  const searchData = (value) => { setFilter(value); setTableParamChanged(prev => !prev); };
 
   const applyColumnFilter = (col, val) => {
     setColumnFilters(prev => ({ ...prev, [col]: val }));
@@ -293,14 +384,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     setTableParamChanged(prev => !prev);
   };
 
-  const searchDataWithTimeout = (value) => {
-    if (typingTimeout) clearTimeout(typingTimeout);
-    setTypingTimeout(setTimeout(() => {
-      setFilter(value);
-      setOffset(0);
-      setTableParamChanged(!tableParamChanged);
-    }, 600));
-  };
+
 
   // ─── Modal-Steuerung ─────────────────────────────────────────────────────────
 
@@ -328,29 +412,29 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
   // ─── Spalten-Rendering ───────────────────────────────────────────────────────
 
-  const renderSortIcon = (sortColumns, column_name) => {
-    const sorted = sortColumns?.find(({ column }) => column.key === column_name);
-    const defaultSorted = defaultOrderBy?.find((col) => col.column_name === column_name);
-    let dir = "";
-    if (sorted) { setDefaultOrderInactive(true); dir = sorted.order; }
-    else if (defaultSorted && !defaultOrderInactive) dir = defaultSorted.direction || "ascend";
-    if (!dir) return <CaretUpFilled className="inactive" style={{ fontSize: '14px' }} />;
-    return (dir === "ascend" || dir === "asc")
-      ? <CaretUpFilled style={{ fontSize: '14px' }} />
-      : <CaretDownFilled style={{ fontSize: '14px' }} />;
+  const renderSortIcon = (column_name) => {
+    const dir = parsedSort[column_name];
+    if (dir) return dir === 'descend'
+      ? <CaretDownFilled style={{ fontSize: '14px' }} />
+      : <CaretUpFilled style={{ fontSize: '14px' }} />;
+    const defaultSorted = !defaultOrderInactive && defaultOrderBy?.find((col) => col.column_name === column_name);
+    if (defaultSorted) return (defaultSorted.direction === 'descend' || defaultSorted.direction === 'desc')
+      ? <CaretDownFilled style={{ fontSize: '14px' }} />
+      : <CaretUpFilled style={{ fontSize: '14px' }} />;
+    return <CaretUpFilled className="inactive" style={{ fontSize: '14px' }} />;
   };
 
-  const columnTitle = (label, column_name) => ({ sortColumns }) => (
+  const columnTitle = (label, column_name) => () => (
     <div class="th-div-custom">
       <span class="th-div-custom-title">{label}</span>
-      <span>{renderSortIcon(sortColumns, column_name)}</span>
+      <span>{renderSortIcon(column_name)}</span>
     </div>
   );
 
   const getColumn = (column_label, column_name, datatype, ui) => ({
     title: columnTitle(column_label, column_name),
     dataIndex: column_name,
-    sorter: { compare: Sorter.DEFAULT, multiple: 3 },
+    sorter: { compare: Sorter.DEFAULT },
     ellipsis: { showTitle: false },
     render: (text) => (
       <Tooltip placement="topLeft" title={(ui === "html" || ui === "modal_json_to_table") && text ? '' : text}>
@@ -402,36 +486,54 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     }
   };
 
+  // ─── Spaltenbreite (ResizableTitle) ─────────────────────────────────────────
+
+  const handleColResize = (key) => (_, { size }) => {
+    const next = colSettings.map(s => s.key === key ? { ...s, width: size.width } : s);
+    setColSettings(next);
+    localStorage.setItem(colStorageKey, JSON.stringify(next));
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────────
 
-  const buildColumns = () => tableColumns
-    .filter((col) => !col.showdetailsonly)
-    .map((col) => ({
-      ...getColumn(col.column_label, col.column_name, col.datatype, col.ui),
-      filterDropdown: ({ confirm, clearFilters }) => (
-        <ColumnFilterDropdown
-          confirm={confirm}
-          clearFilters={clearFilters}
-          datasource={datasource || "0"}
-          tableName={tableForList || tableName}
-          columnName={col.column_name}
-          ui={col.ui}
-          currentValue={columnFilters[col.column_name] || ""}
-          onFilter={(val) => applyColumnFilter(col.column_name, val)}
-          onReset={() => removeColumnFilter(col.column_name)}
-        />
-      ),
-      filteredValue: columnFilters[col.column_name]
-        ? [columnFilters[col.column_name]]
-        : searchParams.get(col.column_name)
-          ? [searchParams.get(col.column_name)]
-          : null,
-    }))
-    .concat(
-      (allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate") || allowedActions.includes("export_dsdb"))
-        ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate"), allowedActions.includes("export_dsdb"))
-        : []
-    );
+  const buildColumns = () => {
+    const colMap = Object.fromEntries(tableColumns.map(c => [c.column_name, c]));
+    return colSettings
+      .filter(s => s.visible && colMap[s.key])
+      .map(s => {
+        const col = colMap[s.key];
+        return {
+          ...getColumn(col.column_label, col.column_name, col.datatype, col.ui),
+          width: s.width,
+          sortOrder: parsedSort[s.key],
+          sortIcon: () => null,
+          onHeaderCell: (column) => ({ width: column.width, onResize: handleColResize(s.key) }),
+          filterDropdown: ({ confirm, clearFilters }) => (
+            <ColumnFilterDropdown
+              confirm={confirm}
+              clearFilters={clearFilters}
+              datasource={datasource || "0"}
+              tableName={tableForList || tableName}
+              columnName={col.column_name}
+              ui={col.ui}
+              currentValue={columnFilters[col.column_name] || ""}
+              onFilter={(val) => applyColumnFilter(col.column_name, val)}
+              onReset={() => removeColumnFilter(col.column_name)}
+            />
+          ),
+          filteredValue: columnFilters[col.column_name]
+            ? [columnFilters[col.column_name]]
+            : searchParams.get(col.column_name)
+              ? [searchParams.get(col.column_name)]
+              : null,
+        };
+      })
+      .concat(
+        (allowedActions.includes("delete") || allowedActions.includes("update") || allowedActions.includes("duplicate") || allowedActions.includes("export_dsdb"))
+          ? getColumnAction(allowedActions.includes("delete"), allowedActions.includes("update"), allowedActions.includes("duplicate"), allowedActions.includes("export_dsdb"))
+          : []
+      );
+  };
 
   return (
     <React.Fragment>
@@ -442,27 +544,17 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         onDownload={(fmt) => getBlobData(tableName, fmt)}
         callRestAPI={callRestAPI}
         callStoredProcedure={callStoredProcedure}
+        onColumnSettings={() => setColDrawerOpen(true)}
+        onReset={handleReset}
+        isDirty={isDirty}
+        filter={filter}
+        onSearch={searchData}
+        breadcrumbItems={breadcrumbItems}
+        view={view}
+        onViewChange={setView}
       />
 
       <React.Fragment>
-          <Space style={{ marginBottom: 20, marginRight: 16, display: 'flex', justifyContent: 'space-between' }}>
-            <Space direction="vertical">
-              {breadcrumbItems ? <Breadcrumb items={breadcrumbItems} /> : ''}
-              <Input.Search
-                placeholder="Suche ..."
-                onSearch={searchData}
-                onChange={(e) => searchDataWithTimeout(e.target.value)}
-                style={{ width: 500 }}
-                allowClear
-              />
-            </Space>
-            {allowedActions.includes("view_calendar") &&
-              <Space>
-                <Button type={view === 'table' ? 'primary' : 'default'} icon={<UnorderedListOutlined />} onClick={() => setView('table')} />
-                <Button type={view === 'calendar' ? 'primary' : 'default'} icon={<CalendarOutlined />} onClick={() => setView('calendar')} />
-              </Space>
-            }
-          </Space>
 
           {(Object.keys(columnFilters).length > 0 || [...searchParams.keys()].length > 0) && (
             <Space wrap style={{ marginBottom: 8 }}>
@@ -500,12 +592,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
               <CRUDCalendar loading={loading} calendarData={calendarData} />
             ) : (
               <Table
+                key={tableKey}
                 size="small"
                 columns={buildColumns()}
+                components={{ header: { cell: ResizableTitle } }}
                 dataSource={filteredTableData ?? tableData}
                 pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
                 scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
-                tableLayout="auto"
+                tableLayout="fixed"
                 loading={loading}
                 onChange={handleChange}
                 onRow={onRow}
@@ -513,6 +607,17 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
             )
           )}
         </React.Fragment>
+
+      <ColumnSettingsDrawer
+        open={colDrawerOpen}
+        onClose={() => setColDrawerOpen(false)}
+        tableColumns={tableColumns}
+        colSettings={colSettings}
+        onChange={(next) => {
+          setColSettings(next);
+          localStorage.setItem(colStorageKey, JSON.stringify(next));
+        }}
+      />
 
       {showModal &&
         <CRUDModal tableColumns={tableColumns} handleCancel={closeModal} handleSave={closeAndRefreshModal} type={modalMode} tableName={tableName} pk={currentPK} pkColumns={pkColumns} userColumn={userColumn} versioned={versioned} datasource={datasource} isRepo={isRepo} token={token} sequence={sequence} externalActions={externalActions} detailPages={detailPages} />

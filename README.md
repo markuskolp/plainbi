@@ -559,6 +559,33 @@ https://<server>/apps/<app_alias>/<page_alias>?<field>=<value>&<field>=<value>&.
 
 URL filters are applied as exact matches and shown as blue tags above the table. Clicking the × on a tag removes the filter from the URL. Multiple URL filters are combined with AND.
 
+## Table toolbar features
+
+The tabular view of a CRUD page includes a toolbar with search, column settings and a reset button.
+
+### Search
+
+A search box is shown on the left of the toolbar. Typing searches all columns with a 600 ms debounce. Pressing Enter searches immediately. Clicking the × clears the search and refreshes the table.
+
+### Column settings
+
+The **Spalten** button (⏸ icon) opens a drawer where you can:
+- **Show/hide columns** — toggle visibility per column
+- **Reorder columns** — drag the grip handle to change the column order
+- **Resize columns** — drag the right edge of any column header to resize it
+
+All changes are saved to `localStorage` per page and restored on the next visit.
+
+### Sort
+
+Clicking a column header sorts by that column (ascending → descending → unsorted). The active sort is saved to `localStorage` and restored when the page is reopened.
+
+### Reset
+
+A **Zurücksetzen** button (orange) appears in the toolbar whenever the current state differs from the default — i.e. when any of the following are active: search text, column filters, sort order, hidden columns, reordered columns, or custom column widths. Clicking it resets all of the above back to defaults and clears the saved state for the current page.
+
+All state (search, sort, column filters, column settings) is saved separately per page, keyed by URL path and table name.
+
 ## Column filters
 
 Each column in the tabular view has a filter icon (funnel) in the header. Clicking it opens a dropdown with:
