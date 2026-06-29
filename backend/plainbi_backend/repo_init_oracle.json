@@ -730,12 +730,15 @@ begin execute immediate 'drop table plainbi_audit'; exception when others then n
 '''
 create table plainbi_audit (
   username varchar2(100)
- ,t timestamp 
+ ,t timestamp
  ,url varchar2(250)
  ,id varchar2(100)
  ,remark varchar2(1000)
  ,request_method varchar2(100)
  ,request_body varchar2(1000)
+ ,status varchar2(10)
+ ,error_msg varchar2(2000)
+ ,duration_ms number(10)
 )
 ''',
 '''
@@ -751,19 +754,22 @@ from plainbi_adhoc a left join plainbi_user u on a.owner_user_id = u.id
 '''
 create or replace view plainbi_audit_adhoc
 as
-select 
+select
   coalesce(u.fullname || ' (' || u.username || ' - id: ' || u.id || ')') || u.username) as user_name
-, u.username  
+, u.username
 , a.t as datum
 , a.id as adhoc_id
 , pa.name as adhoc_name
-, case 
+, case
 when a.url like '%XLSX' then 'Excel'
 when a.url like '%CSV' then 'CSV'
 when a.url like '%HTML' then 'HTML'
-else 'HTML' 
+else 'HTML'
 end as ausgabe_format
-from plainbi_audit a, plainbi_user u, plainbi_adhoc pa 
+, a.status
+, a.duration_ms
+, a.error_msg
+from plainbi_audit a, plainbi_user u, plainbi_adhoc pa
 where 1=1
 and a.username = u.username
 and a.id = pa.id

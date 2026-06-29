@@ -716,6 +716,9 @@ create table plainbi_audit (
  ,remark varchar
  ,request_method varchar
  ,request_body varchar
+ ,status varchar
+ ,error_msg varchar
+ ,duration_ms integer
 )
 ''',
 '''
@@ -737,19 +740,22 @@ DROP VIEW IF EXISTS plainbi_audit_adhoc;
 '''
 create view plainbi_audit_adhoc
 as
-select 
+select
   coalesce(concat(u.fullname, ' (', u.username, ' - id: ', u.id, ')'), u.username) as user_name
-, u.username  
+, u.username
 , a.t as datum
 , a.id as adhoc_id
 , pa.name as adhoc_name
-, case 
+, case
 when a.url like '%XLSX' then 'Excel'
 when a.url like '%CSV' then 'CSV'
 when a.url like '%HTML' then 'HTML'
-else 'HTML' 
+else 'HTML'
 end as ausgabe_format
-from plainbi_audit a, plainbi_user u, plainbi_adhoc pa 
+, a.status
+, a.duration_ms
+, a.error_msg
+from plainbi_audit a, plainbi_user u, plainbi_adhoc pa
 where 1=1
 and a.username = u.username
 and a.id = pa.id

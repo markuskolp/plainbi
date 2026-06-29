@@ -23,6 +23,7 @@ import sys
 import logging
 import traceback
 import tempfile
+import time
 from datetime import date,datetime
 
 import base64
@@ -54,7 +55,7 @@ import ast
 from dotenv import load_dotenv
 
 from functools import wraps
-from flask import Flask, jsonify, request, Response, Blueprint, make_response, session, url_for
+from flask import Flask, jsonify, request, Response, Blueprint, make_response, session, url_for, g
 from flask_session import Session
 #from flask_cors import CORS
 
@@ -165,6 +166,42 @@ def token_required(f):
         except jwt.InvalidTokenError:
             return myjsonify({'message': 'Invalid token x'}), 401
         return f(tokdata, *args, **kwargs)
+    return decorated
+
+
+def audited(f):
+    @wraps(f)
+    def decorated(tokdata, *args, **kwargs):
+        t0 = time.monotonic()
+        try:
+            result = f(tokdata, *args, **kwargs)
+            if isinstance(result, tuple):
+                resp_obj, code = result[0], result[1]
+            else:
+                resp_obj, code = result, 200
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            if int(code) < 400:
+                audit(tokdata, request, id=getattr(g, 'audit_id', None),
+                      status='ok', duration_ms=duration_ms)
+            else:
+                error_msg = None
+                try:
+                    data = resp_obj.get_json(silent=True)
+                    if data:
+                        parts = [data.get('message'), data.get('detail')]
+                        error_msg = ' | '.join(p for p in parts if p) or data.get('error')
+                    if not error_msg:
+                        error_msg = (resp_obj.get_data(as_text=True) or '')[:500]
+                except Exception:
+                    pass
+                audit(tokdata, request, id=getattr(g, 'audit_id', None),
+                      status='error', error_msg=error_msg, duration_ms=duration_ms)
+            return result
+        except Exception as e:
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            audit(tokdata, request, id=getattr(g, 'audit_id', None),
+                  status='error', error_msg=str(e)[:2000], duration_ms=duration_ms)
+            raise
     return decorated
 
 
@@ -342,6 +379,7 @@ def get_api_status():
 
 @api.route(api_root+'/email', methods=['POST'])
 @token_required
+@audited
 def sndemail(tokdata):
     """
     send an smtp email
@@ -387,7 +425,6 @@ def sndemail(tokdata):
             message: Email konnte nicht versendet werden
     """
     dbg("++++++++++ entering sndemail")
-    audit(tokdata,request)
     out={}
 
     dbg("sndemail: parse request data")
@@ -446,6 +483,7 @@ def sndemail(tokdata):
 
 @api.route(api_root+'/distinctvalues/<db>/<tabnam>/<colnam>', methods=['GET'])
 @token_required
+@audited
 def distinctvalues(tokdata,db,tabnam,colnam):
     """
     get distinct values of a column in a table
@@ -483,7 +521,6 @@ def distinctvalues(tokdata,db,tabnam,colnam):
     dbg("++++++++++ entering distinctvalues")
     dbg("distinctvalues param tab is <%s>",str(tabnam))
     dbg("distinctvalues param col is <%s>",str(colnam))
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -523,6 +560,7 @@ def distinctvalues(tokdata,db,tabnam,colnam):
 
 @api.route(api_root+'/exec/<db>/<procname>', methods=['POST'])
 @token_required
+@audited
 def dbexec(tokdata,db,procname):
     """
     run execute procedure in database
@@ -575,7 +613,6 @@ def dbexec(tokdata,db,procname):
     global nodb_msg
     dbg("++++++++++ entering dbexec")
     dbg_api_call(request)
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -639,6 +676,7 @@ def dbexec(tokdata,db,procname):
 # Define routes for CRUD operations
 @api.route(api_prefix+'/<db>/<tab>', methods=['GET'])
 @token_required
+@audited
 def get_all_items(tokdata,db,tab):
     """
     get database table contents (all rows)
@@ -709,7 +747,6 @@ def get_all_items(tokdata,db,tab):
     dbg("++++++++++ entering get_all_items")
     dbg_api_call(request)
     dbg("get_all_items: param tab is <%s>",str(tab))
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -821,6 +858,7 @@ def get_all_items(tokdata,db,tab):
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['GET'])
 @token_required
+@audited
 def get_item(tokdata,db,tab,pk):
     """
     get a specific row from a table given by database tablename and id (or any primary key)
@@ -881,7 +919,6 @@ def get_item(tokdata,db,tab,pk):
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
-    audit(tokdata,request)
     # check options
     out={}
     is_versioned=False
@@ -939,6 +976,7 @@ def get_item(tokdata,db,tab,pk):
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['POST'])
 @token_required
+@audited
 def get_item_post(tokdata,db,tab,pk):
     """
     get a specific row from a table given by database tablename and id (or any primary key)
@@ -1002,7 +1040,6 @@ def get_item_post(tokdata,db,tab,pk):
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
-    audit(tokdata,request)
     # check options
     out={}
     is_versioned=False
@@ -1061,6 +1098,7 @@ def get_item_post(tokdata,db,tab,pk):
 
 @api.route(api_prefix+'/<db>/<tab>', methods=['POST'])
 @token_required
+@audited
 def create_item(tokdata,db,tab):
     """
     create a new row in the database (insert)
@@ -1110,7 +1148,6 @@ def create_item(tokdata,db,tab):
     dbg("++++++++++ entering create_item")
     dbg_api_call(request)
     dbg("create_item: param tab is <%s>",str(tab))
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -1156,6 +1193,7 @@ def create_item(tokdata,db,tab):
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['PUT'])
 @token_required
+@audited
 def update_item(tokdata,db,tab,pk):
     """
     update a row in a table
@@ -1217,7 +1255,6 @@ def update_item(tokdata,db,tab,pk):
     dbg_api_call(request)
     dbg("update_item: param tab is <%s>",str(tab))
     dbg("update_item: param pk is <%s>",str(pk))
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -1277,6 +1314,7 @@ def update_item(tokdata,db,tab,pk):
 
 @api.route(api_prefix+'/<db>/<tab>/<pk>', methods=['DELETE'])
 @token_required
+@audited
 def delete_item(tokdata,db,tab,pk):
     """
     delete a row in a database
@@ -1329,7 +1367,6 @@ def delete_item(tokdata,db,tab,pk):
     dbg_api_call(request)
     dbg("delete_item: param tab is <%s>",str(tab))
     dbg("delete_item: param pk is <%s>",str(pk))
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -1376,6 +1413,7 @@ def delete_item(tokdata,db,tab,pk):
 
 @api.route(api_metadata_prefix+'/<db>/tables', methods=['GET'])
 @token_required
+@audited
 def get_metadata_tables(tokdata,db):
     """
     get names of all accessible tables in the database
@@ -1402,7 +1440,6 @@ def get_metadata_tables(tokdata,db):
     """
     dbg("++++++++++ entering get_metadata_tables")
     dbg_api_call(request)
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -1421,6 +1458,7 @@ def get_metadata_tables(tokdata,db):
 
 @api.route(api_metadata_prefix+'/<db>/table/<tab>', methods=['GET'])
 @token_required
+@audited
 def get_metadata_tab_columns(tokdata,db,tab):
     """
     get metadata of a table from the database dictionary
@@ -1453,7 +1491,6 @@ def get_metadata_tab_columns(tokdata,db,tab):
     dbg("++++++++++ entering get_metadata_tab_columns")
     dbg_api_call(request)
     dbg("get_metadata_tab_columns: param tab is <%s>",str(tab))
-    audit(tokdata,request)
     dbengine=get_db_by_id_or_alias(db)
     if dbengine is None:
         return myjsonify(nodb_msg),500
@@ -1489,6 +1526,7 @@ def get_metadata_tab_columns(tokdata,db,tab):
 # Define routes for REPO operations
 @api.route(repo_api_prefix+'/resources', methods=['GET'])
 @token_required
+@audited
 def get_resource(tokdata):
     """
     get the resources from the repository
@@ -1509,7 +1547,6 @@ def get_resource(tokdata):
     """
     dbg("++++++++++ entering get_resource")
     dbg_api_call(request)
-    audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
     out={}
@@ -1585,6 +1622,7 @@ from plainbi_external_resource per
 # mir zugeordnete Gruppen
 @api.route(repo_api_prefix+'/groups', methods=['GET'])
 @token_required
+@audited
 def get_my_groups(tokdata):
     """
     get my groups
@@ -1602,7 +1640,6 @@ def get_my_groups(tokdata):
     """
     dbg("++++++++++ entering get_my_groups")
     dbg_api_call(request)
-    audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
     out={}
@@ -1623,6 +1660,7 @@ def get_my_groups(tokdata):
 # 
 @api.route(repo_api_prefix+'/group/<gid>/resources', methods=['GET'])
 @token_required
+@audited
 def get_group_resources(tokdata,gid):
     """
     Resourcen gefiltert auf die Gruppe
@@ -1646,7 +1684,6 @@ def get_group_resources(tokdata,gid):
     """
     dbg("++++++++++ entering get_my_groups")
     dbg_api_call(request)
-    audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     user_id=prof["user_id"]
     user_is_admin_flag=prof["user_is_admin"]
@@ -1785,6 +1822,7 @@ def get_group_resources(tokdata,gid):
 # Define routes for REPO operations
 @api.route(repo_api_prefix+'/<tab>', methods=['GET'])
 @token_required
+@audited
 def get_all_repos(tokdata,tab):
     """
     get table contents of table <tab> in the repository (table name without prefix plainbi_)
@@ -1836,7 +1874,6 @@ def get_all_repos(tokdata,tab):
     dbg("++++++++++ entering get_all_repos")
     dbg_api_call(request)
     dbg("get_all_repos: param tab is <%s>",str(tab))
-    audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     myfilter, out = parse_filter(request.args.get('q'),request.args.get('filter'), out)
@@ -1858,6 +1895,7 @@ def get_all_repos(tokdata,tab):
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['GET'])
 @token_required
+@audited
 def get_repo(tokdata,tab,pk):
     """
     get a specific row from a repository table
@@ -1894,7 +1932,6 @@ def get_repo(tokdata,tab,pk):
     dbg("++++++++++ entering get_repo")
     dbg("get_repo: param tab is <%s>",str(tab))
     dbg("get_repo: param pk is <%s>",str(pk))
-    audit(tokdata,request)
     # check options
     prof=get_profile(config.repoengine,tokdata['username'])
     pkcols=[]
@@ -1931,6 +1968,7 @@ def get_repo(tokdata,tab,pk):
 
 @api.route(repo_api_prefix+'/<tab>', methods=['POST'])
 @token_required
+@audited
 def create_repo(tokdata,tab):
     """
     insert a new row into a repository table 
@@ -1968,7 +2006,6 @@ def create_repo(tokdata,tab):
     """
     dbg("++++++++++ entering create_repo")
     dbg("create_repo: param tab is <%s>",str(tab))
-    audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -2012,6 +2049,7 @@ def create_repo(tokdata,tab):
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['PUT'])
 @token_required
+@audited
 def update_repo(tokdata,tab,pk):
     """
     update a row in the repository
@@ -2056,7 +2094,6 @@ def update_repo(tokdata,tab,pk):
     dbg_api_call(request)
     dbg("update_repo: param tab is <%s>",str(tab))
     dbg("update_repo: param pk is <%s>",str(pk))
-    audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -2102,6 +2139,7 @@ def update_repo(tokdata,tab,pk):
 
 @api.route(repo_api_prefix+'/<tab>/<pk>', methods=['DELETE'])
 @token_required
+@audited
 def delete_repo(tokdata,tab,pk):
     """
     delete a row in the repositoy
@@ -2142,7 +2180,6 @@ def delete_repo(tokdata,tab,pk):
     dbg_api_call(request)
     dbg("delete_repo: param tab is <%s>",str(tab))
     dbg("delete_repo: param pk is <%s>",str(pk))
-    audit(tokdata,request)
     prof=get_profile(config.repoengine,tokdata['username'])
     out={}
     pkcols=[]
@@ -2215,6 +2252,7 @@ def init_repo():
 
 @api.route(repo_api_prefix+'/lookup/<id>/data', methods=['GET'])
 @token_required
+@audited
 def get_lookup(tokdata,id):
     """
     return then lookup data defined in the lookup repository table with id or alias
@@ -2240,7 +2278,6 @@ def get_lookup(tokdata,id):
     dbg("++++++++++ entering get_lookup")
     dbg_api_call(request)
     dbg("get_lookup: param id is <%s>",str(id))
-    audit(tokdata,request)
     out={}
     offset = request.args.get('offset')
     limit = request.args.get('limit')
@@ -2275,6 +2312,7 @@ GET /api/repo/adhoc/<id>/data?format=XLSX|CSV	The data of a adhoc (result of its
 
 @api.route(repo_api_prefix+'/adhoc/<id>/distinctvalues/<colnam>', methods=['GET'])
 @token_required
+@audited
 def adhoc_distinctvalues(tokdata, id, colnam):
     dbg("++++++++++ entering adhoc_distinctvalues id=%s col=%s", str(id), str(colnam))
     if not all(c.isalnum() or c == '_' for c in colnam):
@@ -2325,6 +2363,7 @@ def adhoc_distinctvalues(tokdata, id, colnam):
 
 @api.route(repo_api_prefix+'/adhoc/<id>/data', methods=['GET', 'POST'])
 @token_required
+@audited
 def get_adhoc_data(tokdata,id):
     """
     return then adhoc data defined in the adhoc repository table with id or alias
@@ -2421,7 +2460,7 @@ def get_adhoc_data(tokdata,id):
     order_by_def  = get_rep_adhoc_res["order_by_def"]
     adhoc_desc  = get_rep_adhoc_res["adhocdesc"]
     adhoc_name  = get_rep_adhoc_res.get("adhocname") or ""
-    audit(tokdata,request,id=adhocid)
+    g.audit_id = adhocid
     if adhoc_datasrc_id is None:
         msg="adhoc datasource_id is not set - assuming 1"
         adhoc_datasrc_id = 1
@@ -2991,7 +3030,7 @@ def login():
 
     #dbg("login: password=%s",password)
     #audit(item['username'],request)
-    audit(item['username'],request)
+    t0 = time.monotonic()
 
     used_ldap=False
     used_local=False
@@ -3006,7 +3045,7 @@ def login():
             authenticated = authenticate_local(username,password)
             dbg("login authenticated local = %s",authenticated)
     else:
-        username = login_username 
+        username = login_username
         dbg("ldap authentication skipped because no LDAP_HOST environment variable")
         used_local=True
         authenticated = authenticate_local(username,password)
@@ -3023,6 +3062,7 @@ def login():
                 if key=="tokenonly":  # this helps for testing
                     return token
         else:
+            audit(item['username'], request, status='ok', duration_ms=int((time.monotonic()-t0)*1000))
             return myjsonify({'access_token': token, "message":"Login erfolgreich", 'role': users[username]["rolename"]}), 200
     else:
         out["message"]='Benutzername oder Passwort ist falsch'
@@ -3035,6 +3075,7 @@ def login():
             out["detail"]="invalid-credentials in local auth"
         else:
             out["detail"]="invalid-credentials without ldap and local"
+    audit(item['username'], request, status='error', error_msg='invalid-credentials', duration_ms=int((time.monotonic()-t0)*1000))
     return myjsonify(out), 401
 
 
@@ -3161,6 +3202,7 @@ def login_sso():
 @api.route('/passwd', methods=['POST'])
 @api.route('/api/passwd', methods=['POST'])
 @token_required
+@audited
 def passwd(tokdata):
     """
     change a local users password 
@@ -3247,6 +3289,7 @@ def hash_passwd(pwd):
 @api.route('/cache', methods=['GET'])
 @api.route('/api/cache', methods=['GET'])
 @token_required
+@audited
 def cache(tokdata):
     """
     cache handling of metadata, profile
@@ -3306,6 +3349,7 @@ def cache(tokdata):
 @api.route('/clear_cache', methods=['GET'])
 @api.route('/api/clear_cache', methods=['GET'])
 @token_required
+@audited
 def clear_cache(tokdata):
     """
     clear caches (metadata and profile cache)
@@ -3334,6 +3378,7 @@ def clear_cache(tokdata):
 @api.route('/protected', methods=['GET'])
 @api.route('/api/protected', methods=['GET'])
 @token_required
+@audited
 def protected(tokdata):
     """
     show the own username
@@ -3358,6 +3403,7 @@ def protected(tokdata):
 @api.route('/profile', methods=['GET'])
 @api.route('/api/profile', methods=['GET'])
 @token_required
+@audited
 def profile(tokdata):
     """
     return json of the profile of the current user
@@ -3374,7 +3420,6 @@ def profile(tokdata):
           application/json: 
             message: Data processed successfully
     """
-    audit(tokdata,request)
     out=get_profile(config.repoengine,tokdata['username'])
     return myjsonify(out)
 
@@ -3396,7 +3441,6 @@ def logout(tokdata):
             message: logged out
     """
     dbg("logout")
-    audit(tokdata,request)
     return myjsonify({'message': 'logged out'})
 
 # dsdb export

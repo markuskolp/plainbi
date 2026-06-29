@@ -1997,7 +1997,7 @@ def db_connect(p_enginestr, params=None):
 
     return dbengine
 
-def audit(tokdata,req,id=None,msg=None):
+def audit(tokdata,req,id=None,msg=None,status=None,error_msg=None,duration_ms=None):
     dbg("++++++++++ entering audit")
     if isinstance(tokdata,dict):
         usrnam=tokdata["username"]
@@ -2006,14 +2006,17 @@ def audit(tokdata,req,id=None,msg=None):
     dbg('Audit rec: usr=%s,url=%s,id=%s,msg=%s',usrnam,req.url,str(id),str(msg))
     if id is not None:
         dbg("Audit Adhoc %d",id)
-    if "/login" in req.url: 
-        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body": None}
+    safe_error_msg = error_msg[:2000] if error_msg else None
+    if "/login" in req.url:
+        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body": None,
+                      "status":status, "error_msg":safe_error_msg, "duration_ms":duration_ms}
     else:
         #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json())}
         #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":None}
         #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json(force=True))}
-        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data)}
-    audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body)"
+        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data),
+                      "status":status, "error_msg":safe_error_msg, "duration_ms":duration_ms}
+    audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body,status,error_msg,duration_ms) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body,:status,:error_msg,:duration_ms)"
     try:
         dbg('Audit sql:%s',audit_sql )
         dbg('Audit params:%s',audit_params )

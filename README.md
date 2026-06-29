@@ -78,6 +78,28 @@ snowflake://<user>@<account>/?warehouse=<warehouse>&database=<db>&schema=PUBLIC&
 | `PLAINBI_BACKEND_DATE_FORMAT` | — | Python `strftime` format string for date values, e.g. `%d.%m.%Y`. If not set, the database default is used. |
 | `PLAINBI_BACKEND_DATETIME_FORMAT` | — | Python `strftime` format string for datetime values, e.g. `%d.%m.%Y %H:%M`. If not set, the database default is used. |
 
+## Audit logging
+
+All API calls (CRUD, adhoc, metadata, login) are logged to the `plainbi_audit` table with:
+- `username` — user who made the request
+- `t` — timestamp
+- `url` — request URL
+- `id` — resource id (e.g. adhoc ID for adhoc requests)
+- `request_method` — HTTP method (GET, POST, etc.)
+- `request_body` — request body (truncated)
+- `status` — 'ok' or 'error'
+- `error_msg` — error message if status='error' (up to 2000 chars)
+- `duration_ms` — request execution time in milliseconds
+
+A view `plainbi_audit_adhoc` filters audit entries for adhoc requests and joins them with user and adhoc metadata:
+```sql
+SELECT user_name, username, datum, adhoc_id, adhoc_name, ausgabe_format, status, duration_ms, error_msg
+FROM plainbi_audit_adhoc
+ORDER BY datum DESC;
+```
+
+**Migration for existing installations:** Run `backend/migration_audit_status.sql` to add the new columns to existing `plainbi_audit` tables (ALTER TABLE statements per database type).
+
 ## Authentication — LDAP
 
 If `LDAP_HOST` is set, plainbi uses LDAP for user authentication instead of local users.
