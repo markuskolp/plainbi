@@ -35,12 +35,14 @@ const ResizableTitle = ({ onResize, width, ...restProps }) => {
       width={width}
       height={0}
       onResize={onResize}
+      minConstraints={[80, 0]}
       draggableOpts={{ enableUserSelectHack: false }}
       handle={
         <span
           style={{
             position: 'absolute', right: -4, top: 0, bottom: 0,
             width: 8, cursor: 'col-resize', zIndex: 10,
+            userSelect: 'none', touchAction: 'none',
           }}
           onClick={e => e.stopPropagation()}
         />
@@ -505,6 +507,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         return {
           ...getColumn(col.column_label, col.column_name, col.datatype, col.ui),
           width: s.width,
+          ellipsis: true,
           sortOrder: parsedSort[s.key],
           sortIcon: () => null,
           onHeaderCell: (column) => ({ width: column.width, onResize: handleColResize(s.key) }),
