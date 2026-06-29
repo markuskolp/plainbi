@@ -45,6 +45,8 @@ const ResizableTitle = ({ onResize, width, ...restProps }) => {
             userSelect: 'none', touchAction: 'none',
           }}
           onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          onMouseUp={e => e.stopPropagation()}
         />
       }
     >
@@ -507,7 +509,6 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
         return {
           ...getColumn(col.column_label, col.column_name, col.datatype, col.ui),
           width: s.width,
-          ellipsis: true,
           sortOrder: parsedSort[s.key],
           sortIcon: () => null,
           onHeaderCell: (column) => ({ width: column.width, onResize: handleColResize(s.key) }),
