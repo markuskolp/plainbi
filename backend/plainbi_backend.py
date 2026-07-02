@@ -104,6 +104,8 @@ print("plainbi_backend.py imports create_app")
 from plainbi_backend.api import create_app
 print("plainbi_backend.py imports create_repo_db")
 from plainbi_backend.repo import create_repo_db, create_app_db
+import bcrypt
+import uvicorn
 
 print("plainbi_backend.py testdb")
 # for convenience a sqlalchemy connect string can be tested here
@@ -128,17 +130,12 @@ from plainbi_backend.config import config
 
 # show the version of the backend (defined in the config.py)
 if args.version:
-    print(app.config["VERSION"])
+    print(config.version)
     sys.exit(0)
 
-# for the next actions we need to connect to the repository
-#config.repoengine = db_connect(config.repository)
-if "PLAINBI_REPOSITORY" not in app.config:
-    log.error("No repository database connection description is specified in environment or config file")
-    sys.exit(0)
-
-config.repoengine = db_connect(app.config["PLAINBI_REPOSITORY"])
-log.debug("repository is %s",(app.config["PLAINBI_REPOSITORY"])[:15]+"...")
+# create_app() already connected config.repoengine to the effective repository
+# (args.repository if given, else config.repository) and exits on failure
+log.debug("repository is %s",(args.repository or config.repository)[:15]+"...")
 
 # initialize the repository
 if args.initrepo:
@@ -169,18 +166,17 @@ if args.passwd:
        sys.exit(0)
     log.info("setting passwd for user %s to %s",args.username,args.passwd)
     # the passwort is stored as hash
-    p=config.bcrypt.generate_password_hash(args.passwd)
+    p=bcrypt.hashpw(args.passwd.encode('utf-8'),bcrypt.gensalt())
     pwd_hashed=p.decode()
     log.info(f"hashed password is {pwd_hashed}")
-    #p=bcrypt.hashpw(item[c].encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
     db_passwd(config.repoengine,args.username,pwd_hashed)
     log.info("password for %s set",args.username)
     sys.exit(0)
 
 log.info("start standalone server "+__name__)
-log.warning("Use WSGI for production!")
+log.warning("Use gunicorn/uvicorn for production!")
 
 
 if __name__ == '__main__':
-    # run the flask app standalone
-    app.run(debug=config.dbg, host=config.host, port=config.port, use_reloader=False)
+    # run the FastAPI app standalone (dev only)
+    uvicorn.run(app, host=config.host, port=config.port, reload=False)

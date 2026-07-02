@@ -33,3 +33,9 @@ SMTP_PASSWORD=""
 
 PLAINBI_BACKEND_DATE_FORMAT="%Y-%m-%d"
 PLAINBI_BACKEND_DATETIME_FORMAT="%Y-%m-%d %H:%M:%S"
+
+# secret used to sign/verify JWT login tokens - must be set to a stable, random value
+# in production (e.g. `openssl rand -hex 32`) so tokens issued by one gunicorn/uvicorn
+# worker process validate on all the others; if unset a new random secret is generated
+# per process, which breaks auth across multiple workers
+PLAINBI_JWT_SECRET=""

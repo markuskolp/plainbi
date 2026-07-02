@@ -194,17 +194,33 @@ def test_client():
     print("\ntest_client - creating app")
     log.info("\ntest-client - creating app")
     # config is run above so it is not loaded again
-    flask_app = create_app()
+    fastapi_app = create_app()
 
     if get_db_type(config.repoengine) != "sqlite":
         log.error("\ntest-client - repoengine is not sqlite")
         sys.exit(2)
 
-    # Create a test client using the Flask application configured for testing
-    with flask_app.test_client() as testing_client:
-        # Establish an application context
-        with flask_app.app_context():
-            yield testing_client  # this is where the testing happens!
+    # Create a test client using the FastAPI application (httpx-based, no app_context
+    # equivalent needed - that was Flask-specific request/app-context machinery)
+    from fastapi.testclient import TestClient
+    import httpx
+    # backward-compat aliases: the test suite below calls response.get_json()/.data
+    # (Flask's test client API) - httpx.Response only has .json()/.content
+    if not hasattr(httpx.Response, "get_json"):
+        def _get_json(self):
+            # mirrors Flask's non-raising get_json() default: return None instead of
+            # raising when the body is empty/not valid JSON (e.g. a 204 response)
+            try:
+                return self.json()
+            except Exception:
+                return None
+        httpx.Response.get_json = _get_json
+    if not hasattr(httpx.Response, "data"):
+        httpx.Response.data = property(lambda self: self.content)
+    if not hasattr(httpx.Response, "get_data"):
+        httpx.Response.get_data = lambda self, as_text=False: (self.text if as_text else self.content)
+    with TestClient(fastapi_app) as testing_client:
+        yield testing_client
 
 #def test_000_add___user_joe(test):
 #    global headers,testuser_id
@@ -1598,7 +1614,9 @@ def test_4607_repo_adhoc2_param_body(test_client):
     format_url("get", test_url, testname=func_name())
     test_data = {"id" : "3" }
     log.info('adhoc with data params: %s',test_data)
-    response = test_client.get(test_url, json=test_data, headers=headers)
+    # httpx (used by FastAPI's TestClient) doesn't allow a body on its .get() shortcut;
+    # use .request() explicitly to still send a JSON body on this GET, as Flask's test client did
+    response = test_client.request("GET", test_url, json=test_data, headers=headers)
     assert response.status_code == 200
     json_out = response.get_json()
     print("got=",json_out)

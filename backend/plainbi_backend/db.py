@@ -24,10 +24,13 @@ import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import NullPool, QueuePool
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn,show_call_stack
-#import bcrypt
+import bcrypt
 from threading import Lock
 
-config.database_lock = Lock()
+# guard the check-then-set access to the two in-process caches below;
+# actual DB connections are pooled per-call in db_exec (no global lock needed there anymore)
+_metadata_cache_lock = Lock()
+_profile_cache_lock = Lock()
 
 metadata_col_query_mssql = """SELECT 
     DB_NAME() AS database_name,
@@ -140,36 +143,29 @@ and atc.owner||'.'||atc.table_name = UPPER('<fulltablename>')
 
 repo_columns_to_hash = { "plainbi_user" : ["password_hash"], "plainbi_datasource" : ["db_pass_hash"] }
 
-config.conn={}
 
-   
 def db_exec(engine, sql, params=None, metadata=None):
     dbg(f"+++ entering {inspect.currentframe().f_code.co_name} "+str(sql)[:50]+" ...")
-    
+
     dbg("sql is <%s>",str(sql),dbglevel=2)
     dbg("sql params are <%s>",str(params),dbglevel=3)
     #
     is_select=False
-    if not engine.url in config.conn.keys():
-        config.conn[engine.url]=None
     if params is not None:
         if not (isinstance(params, dict) or isinstance(params, list)):
             warn("called with params WITHOUT dict or list of dict")
     dbtyp=get_db_type(engine)
-    # using the flask server with wgsi requires sequential access to the sqlite repo
-    with config.database_lock:
-        dbg("check connection")
-        if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
-            dbg("connect")
-            try:
-                config.conn[engine.url] = engine.connect()
-            except Exception as e_connect:
-                err("cannot connect to database: %s",str(e_connect))
-                log.exception(e_connect)
-                raise e_connect
-        if config.conn[engine.url].closed:
-            dbg("open connection")
-            config.conn[engine.url] = engine.connect()
+    # checkout a pooled connection for just this call; the engine's own pool
+    # (QueuePool by default, see db_connect) handles real concurrency, so no
+    # global lock/shared-connection is needed here anymore
+    dbg("connect")
+    try:
+        conn = engine.connect()
+    except Exception as e_connect:
+        err("cannot connect to database: %s",str(e_connect))
+        log.exception(e_connect)
+        raise e_connect
+    try:
         dbg("execute")
         dml_anz=0
         if not isinstance(sql,list):
@@ -189,7 +185,7 @@ def db_exec(engine, sql, params=None, metadata=None):
                 is_select=True
             else:
                 is_select=False
-                dml_anz+=1 
+                dml_anz+=1
             try:
                 if myparams is not None:
                     # handle encodings
@@ -201,29 +197,29 @@ def db_exec(engine, sql, params=None, metadata=None):
                             mymetadata=metadata
                         handle_oracle_date_literals(myparams,mymetadata)
                     # exec in database
-                    res=config.conn[engine.url].execute(mysql,myparams)
+                    res=conn.execute(mysql,myparams)
                     dbg("sql=%s params=%s",mysql,myparams,dbglevel=3)
                 else:
-                    res=config.conn[engine.url].execute(mysql)
+                    res=conn.execute(mysql)
                     dbg("sql=%s",mysql,dbglevel=3)
             except Exception as e:
                 err("ERROR: %s",str(e))
                 err("ERROR: SQL is %s",str(mysqltxt))
                 err("ERROR: params are %s",str(myparams))
-                # Snowflake JWT token expired: invalidate connection and retry once
+                # Snowflake JWT token expired: invalidate connection and retry once with a fresh one from the pool
                 if dbtyp == "snowflake" and any(s in str(e).lower() for s in ["jwt token", "390144", "authentication token", "token has expired", "invalid token"]):
                     err("Snowflake JWT/auth error detected — invalidating connection and retrying once")
                     try:
-                        config.conn[engine.url].invalidate()
-                        config.conn[engine.url].close()
+                        conn.invalidate()
+                        conn.close()
                     except Exception:
                         pass
-                    config.conn[engine.url] = engine.connect()
+                    conn = engine.connect()
                     try:
                         if myparams is not None:
-                            res = config.conn[engine.url].execute(mysql, myparams)
+                            res = conn.execute(mysql, myparams)
                         else:
-                            res = config.conn[engine.url].execute(mysql)
+                            res = conn.execute(mysql)
                         err("Retry after JWT error succeeded")
                         if is_select:
                             items = [row._asdict() for row in res]
@@ -233,21 +229,11 @@ def db_exec(engine, sql, params=None, metadata=None):
                         err("Retry after JWT error also failed: %s", str(e_retry))
                         e = e_retry
                 try:
-                    config.conn[engine.url].rollback()
+                    conn.rollback()
                     err("Rollback done after error")
                 except Exception as e_rb:
                     err("Rollback failed: %s",str(e_rb))
-                try:
-                    if isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
-                        if not config.conn[engine.url].closed:
-                            config.conn[engine.url].close()
-                            err("Connection closed after error")
-                except Exception as e_cl:
-                    err("Connection close failed: %s",str(e_cl))
                 raise e
-            #if not is_select:
-            #    config.conn[engine.url].commit()
-            #   dbg("committed")
             if is_select:
                 dbg("is a select statement and returns data")
                 items = [row._asdict() for row in res]
@@ -255,23 +241,21 @@ def db_exec(engine, sql, params=None, metadata=None):
                 columns = list(res.keys())
         # commit at the end if there was any dml statement
         if dml_anz>0:
-            config.conn[engine.url].commit()
+            conn.commit()
             dbg("committed")
-        #close connection
-        if isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
-            if not config.conn[engine.url].closed:
-                config.conn[engine.url].close()
-                dbg("connection closed")
-            else:
-                dbg("connection is already closed")
-        else:
-            dbg("connection is not sqlalchemy connection for closing")
         if is_select:
             dbg("+++ leaving with data result")
             return items, columns
         else:
             dbg("+++ leaving with dml result status")
             return res
+    finally:
+        try:
+            if not conn.closed:
+                conn.close()
+                dbg("connection closed (returned to pool)")
+        except Exception as e_cl:
+            err("Connection close failed: %s",str(e_cl))
 
 def get_db_type(dbengine):
     """
@@ -595,8 +579,10 @@ def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
         else:
             cache_key+=pk_column_list if pk_column_list is not None else ""
         dbg("get_metadata_raw: cache key is %s",cache_key)
-        if cache_key in config.metadataraw_cache:
-            cached_val, cached_ts = config.metadataraw_cache[cache_key]
+        with _metadata_cache_lock:
+            cached = config.metadataraw_cache.get(cache_key)
+        if cached is not None:
+            cached_val, cached_ts = cached
             if time.time() - cached_ts < config.metadata_cache_ttl:
                 dbg("get_metadata_raw: cache hit for %s", cache_key)
                 return cached_val
@@ -768,7 +754,8 @@ def get_metadata_raw(dbengine,tab,pk_column_list=None,versioned=False):
         dbg("get_metadata_raw returns computed column_list")
     dbg("++++++++++ leaving get_metadata_raw returning for %s data %s",tab,out)
     if config.use_cache:
-        config.metadataraw_cache[cache_key] = (out, time.time())
+        with _metadata_cache_lock:
+            config.metadataraw_cache[cache_key] = (out, time.time())
         dbg("get_metadata_raw cached with ttl=%ds", config.metadata_cache_ttl)
     return out
 
@@ -1224,8 +1211,7 @@ def check_hash_columns(tab,item):
     if tab in repo_columns_to_hash.keys():
         for c in repo_columns_to_hash[tab]:
             if c in item.keys():
-                p=config.bcrypt.generate_password_hash(item[c])
-                #p=bcrypt.hashpw(item[c].encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
+                p=bcrypt.hashpw(item[c].encode('utf-8'),bcrypt.gensalt())
                 item[c]=p.decode()
                 dbg("check_hash_columns: hashed %s.%s",tab,c)
 
@@ -1735,13 +1721,14 @@ def get_profile(repoengine,u):
     profile eines Users
     """
     if config.use_cache:
-        if hasattr(config,"profile_cache"):
-            if u in config.profile_cache.keys():
-                dbg("get_profile: cache hit")
-                return config.profile_cache[u]
-        else:
-            config.profile_cache={}
-            dbg("get_profile: cache created")
+        with _profile_cache_lock:
+            if not hasattr(config,"profile_cache"):
+                config.profile_cache={}
+                dbg("get_profile: cache created")
+            cached_prof = config.profile_cache.get(u)
+        if cached_prof is not None:
+            dbg("get_profile: cache hit")
+            return cached_prof
 
     usr_sql = "select * from plainbi_user where username=:username"
     usr_items, usr_columns = db_exec(repoengine,usr_sql,{ "username" : u })
@@ -1769,8 +1756,9 @@ def get_profile(repoengine,u):
             l_groups.append({ "name" : i["name"], "alias" : i["alias"] })
         prof["groups"] = l_groups
         # add to cache
-        config.profile_cache[u] = prof
-    return prof 
+        with _profile_cache_lock:
+            config.profile_cache[u] = prof
+    return prof
 
     
 def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
@@ -1791,8 +1779,7 @@ def db_adduser(dbeng,usr,fullname=None,email=None,pwd=None,is_admin=False):
     if email is not None:
         item["email"]=email
     if pwd is not None:
-        #p=bcrypt.hashpw(pwd.encode('utf-8'),b'$2b$12$fb81v4oi7JdcBIofmi/Joe')
-        p=config.bcrypt.generate_password_hash(pwd)
+        p=bcrypt.hashpw(pwd.encode('utf-8'),bcrypt.gensalt())
         item["password_hash"]=p.decode()
 
     db_typ = get_db_type(dbeng)
@@ -1997,7 +1984,7 @@ def db_connect(p_enginestr, params=None):
 
     return dbengine
 
-def audit(tokdata,req,id=None,msg=None,status=None,error_msg=None,duration_ms=None):
+def audit(tokdata,req,id=None,msg=None,status=None,error_msg=None,duration_ms=None,body=None):
     dbg("++++++++++ entering audit")
     if isinstance(tokdata,dict):
         usrnam=tokdata["username"]
@@ -2007,14 +1994,12 @@ def audit(tokdata,req,id=None,msg=None,status=None,error_msg=None,duration_ms=No
     if id is not None:
         dbg("Audit Adhoc %d",id)
     safe_error_msg = error_msg[:2000] if error_msg else None
+    req_body = body if body is not None else getattr(req, 'data', None)
     if "/login" in req.url:
         audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body": None,
                       "status":status, "error_msg":safe_error_msg, "duration_ms":duration_ms}
     else:
-        #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json())}
-        #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":None}
-        #audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.get_json(force=True))}
-        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data),
+        audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req_body),
                       "status":status, "error_msg":safe_error_msg, "duration_ms":duration_ms}
     audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body,status,error_msg,duration_ms) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body,:status,:error_msg,:duration_ms)"
     try:

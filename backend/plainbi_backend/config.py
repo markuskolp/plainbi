@@ -65,7 +65,7 @@ if not hasattr(config,"is_loaded"):
     config.is_loaded = True
 
     # the current version number of plainbi backend
-    VERSION="0.95 30.12.2025"
+    VERSION="0.97 02.07.2026"
     config.version=VERSION
 
     if "PLAINBI_BACKEND_LOGFILE" in os.environ:
@@ -74,7 +74,15 @@ if not hasattr(config,"is_loaded"):
         config.logfile = PLAINBI_BACKEND_LOGFILE
 
     # create a secret for the plainbi backend api jwt token
-    SECRET_KEY = os.urandom(24)  # for JWT
+    # a stable secret is required so tokens issued by one worker process validate
+    # on all others (gunicorn/uvicorn run multiple worker processes) - fall back to
+    # a per-process random secret (with a warning) only if none is configured
+    if "PLAINBI_JWT_SECRET" in os.environ:
+        SECRET_KEY = os.environ["PLAINBI_JWT_SECRET"].encode("utf-8")
+    else:
+        SECRET_KEY = os.urandom(24)  # for JWT
+        log.warning("PLAINBI_JWT_SECRET not set - using a random per-process secret; "
+                    "tokens will NOT validate across multiple worker processes")
     config.SECRET_KEY= SECRET_KEY
     config.bcrypt_salt=b'$2b$12$26lKTogIpjOIbmp2hYP2au'
     log.debug("secret key generated")
