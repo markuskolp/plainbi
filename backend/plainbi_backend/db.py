@@ -956,7 +956,13 @@ def get_current_timestamp(dbengine):
     out={}
     dbg("in get_current_timestamp")
     db_typ = get_db_type(dbengine)
-    if db_typ in ("snowflake", "postgres", "sqlite", "oracle"):
+    if db_typ == "sqlite":
+        # sqlite's CURRENT_TIMESTAMP only has whole-second granularity, unlike the
+        # other engines below - two versioned inserts/updates/deletes on the same row
+        # within the same second would otherwise collide on the (pk, invalid_from_dt)
+        # unique constraint, so use strftime for millisecond precision instead
+        sql = "SELECT strftime('%Y-%m-%d %H:%M:%f','now') AS ts"
+    elif db_typ in ("snowflake", "postgres", "oracle"):
         sql = "SELECT CURRENT_TIMESTAMP AS ts"
     else:
         sql = 'SELECT GETDATE() as ts'

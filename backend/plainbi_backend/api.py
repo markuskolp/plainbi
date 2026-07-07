@@ -40,13 +40,11 @@ from typing import Optional
 import base64
 import hashlib
 import requests
-#import urllib
 from urllib.parse import urlparse, parse_qs
 import json
 
 import pprint
 import re
-#import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text as sql_text
 import decimal
@@ -55,7 +53,6 @@ import csv
 import pandas as pd
 import bcrypt
 from openpyxl import load_workbook
-#from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, Alignment
 from openpyxl.worksheet.table import Table #, TableStyleInfo
 from openpyxl.utils import get_column_letter

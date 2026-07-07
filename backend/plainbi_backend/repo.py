@@ -240,6 +240,22 @@ def create_pytest_tables(engine):
     , PRIMARY KEY (nr)
     );
     """,
+    # get_next_seq()'s sqlite branch looks up sequence values in a plainbi_seq table
+    # (mirroring the one create_repo_db() sets up in the repository db) - the test
+    # target database needs its own copy so ?seq={s} inserts into pytest_api_testtable
+    # can generate a nr value the same way a real datasource with sequences would
+    """
+    DROP TABLE IF EXISTS plainbi_seq
+    """,
+    """
+    CREATE TABLE plainbi_seq (
+      sequence_name text primary key not null
+    , curval int not null
+    )
+    """,
+    f"""
+    INSERT INTO plainbi_seq (sequence_name, curval) VALUES ('{s}', 0)
+    """,
     f"""
     drop table if exists {tv}
     """,
