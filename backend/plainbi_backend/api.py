@@ -153,6 +153,8 @@ def get_current_user(authorization: Optional[str] = Depends(_api_key_header_sche
     (the frontend always sends the Bearer form, the pytest suite sends the raw form).
     Declared via APIKeyHeader (not a plain Header()) so FastAPI's /docs shows an
     Authorize button, replacing the old flasgger securityDefinitions.APIKeyHeader."""
+    if config.simple_mode:
+        return {"username": "simple_mode"}
     dbg("token req")
     dbg("token=%s",str(authorization))
     if not authorization:
@@ -188,6 +190,9 @@ _audit_id_ctxvar: ContextVar = ContextVar('plainbi_audit_id', default=None)
 def audited(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if config.simple_mode:
+            # no repository in simple mode, so there's nowhere to write plainbi_audit rows
+            return f(*args, **kwargs)
         tokdata = kwargs.get('tokdata')
         req = kwargs.get('request')
         raw_body = kwargs.get('raw_body', b'')
@@ -2753,32 +2758,42 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
     app.add_exception_handler(Exception, _unhandled_exception_handler)
     app.include_router(api_router)
 
-    repository = p_repository if p_repository else config.repository
-
-    # connect to the repository
-    config.repoengine = db_connect(repository)
-    if not db_connect_test(config.repoengine):
-        err("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
-        sys.exit(0)
-
-    # get datasources from repository
-    log.info("load datasources from plainbi_datasource")
-    load_datasources_from_repo()
-
-    if not config.database:
-        try:
-           config.database = config.datasources["1"]
-        except Exception as e:
-            log.warning("config datasource %s",str(e))
-            log.exception(e)
-
-    # if there is a database database now connect to it
-    if config.database:
-        config.dbengine = db_connect(config.database)
+    if config.simple_mode:
+        # no repository, no auth - CRUD only, straight against one fixed connection
+        log.warning("create_app: simple mode active, skipping repository/auth setup")
+        config.repoengine = None
+        config.dbengine = db_connect(config.simple_mode_connect)
         if not db_connect_test(config.dbengine):
-            err("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
+            err("cannot connect to database. Check PLAINBI_SIMPLE_MODE_CONNECT")
             sys.exit(0)
-        log.info(f"The default database connection description is {config.database}")
+        log.info(f"simple mode: connected to {config.simple_mode_connect[:15]}...")
+    else:
+        repository = p_repository if p_repository else config.repository
+
+        # connect to the repository
+        config.repoengine = db_connect(repository)
+        if not db_connect_test(config.repoengine):
+            err("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
+            sys.exit(0)
+
+        # get datasources from repository
+        log.info("load datasources from plainbi_datasource")
+        load_datasources_from_repo()
+
+        if not config.database:
+            try:
+               config.database = config.datasources["1"]
+            except Exception as e:
+                log.warning("config datasource %s",str(e))
+                log.exception(e)
+
+        # if there is a database database now connect to it
+        if config.database:
+            config.dbengine = db_connect(config.database)
+            if not db_connect_test(config.dbengine):
+                err("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
+                sys.exit(0)
+            log.info(f"The default database connection description is {config.database}")
 
     if config.PLAINBI_SSO_APPLICATION_ID is not None:
         log.info("prepare SSO Login")

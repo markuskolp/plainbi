@@ -152,14 +152,24 @@ if not hasattr(config,"is_loaded"):
         log.info("Logging in Debug mode")
 
 
+    # simple mode: no repository, no auth - just CRUD against one fixed database
+    # connection string, meant for quick/throwaway setups without a plainbi repo
+    config.simple_mode = "PLAINBI_SIMPLE_MODE_CONNECT" in os.environ.keys()
+    if config.simple_mode:
+        config.simple_mode_connect = os.environ["PLAINBI_SIMPLE_MODE_CONNECT"]
+        log.warning("PLAINBI_SIMPLE_MODE_CONNECT is set - running in simple mode: "
+                    "no repository, no authentication, CRUD only against this one connection")
+
     # repository connect
     if "PLAINBI_REPOSITORY" in os.environ.keys():
         config.repository = os.environ["PLAINBI_REPOSITORY"]
+    elif config.simple_mode:
+        config.repository = None
     else:
         # there must be a repository, otherwise quit
         log.error("No repository database connection description is specified in environment or config file")
         sys.exit(0)
-    log.debug("repository is %s",config.repository[:15]+"...")
+    log.debug("repository is %s",config.repository[:15]+"..." if config.repository else "None (simple mode)")
 
     # a default database.
     config.database = None

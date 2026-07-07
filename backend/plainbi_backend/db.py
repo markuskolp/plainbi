@@ -993,6 +993,10 @@ def get_db_by_id_or_alias(d):
     returns a sqlalchemy eninge object for the specified id or alias from the plainbi_datasource repo table
     """
     dbg("++++++++++ entering get_db_by_id_or_alias params=%s",str(d))
+    if config.simple_mode:
+        # no repository/datasource table to resolve aliases against - there's only
+        # ever the one connection given via PLAINBI_SIMPLE_MODE_CONNECT
+        return config.dbengine
     k=str(d)
     if d is None or k == "def":
         k="1"

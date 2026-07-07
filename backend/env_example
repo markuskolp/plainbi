@@ -14,6 +14,11 @@ PLAINBI_DATABASE="mssql+pymssql://{db_username}:{db_password}@{db_server}/{db_da
 #repo_password=""
 #repo_engine="sqlite:////Users/<username>/plainbi_repo.db?check_same_thread=False"
 
+# simple mode: set this to run without a repository and without authentication at
+# all - only the generic CRUD endpoints work, straight against this one connection
+# (no PLAINBI_REPOSITORY/PLAINBI_DATABASE needed, and this takes precedence over them)
+#PLAINBI_SIMPLE_MODE_CONNECT="sqlite:////Users/<username>/plainbi_simple.db"
+
 
 ldap_port="389"
 ldap_host=""
