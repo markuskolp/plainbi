@@ -21,6 +21,7 @@ frontend/coverage
 *.csv
 *.xlsx
 flask_session
+install_podman_container_plainbi.txt
 
 # logs
 logs
