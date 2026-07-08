@@ -82,6 +82,13 @@ more INSTALL.txt
 podman image
 podman image ls
 
+## podman build standalone backend
+
+cd /home/e10002068/Projects/plainbi_home/plainbi/backend
+git pull
+podman build -t artifactory.m-net.de/docker-virtual/dwh/plainbi_backend:0.1 .
+#podman push artifactory.m-net.de/docker-virtual/dwh/plainbi_backend:0.1
+
 
 ## kubernetes
 

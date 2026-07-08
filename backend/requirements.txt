@@ -17,6 +17,7 @@ PyJWT>=2.7.0
 python-dotenv>=1.0.0
 SQLAlchemy>=2.0.15
 XlsxWriter>=3.2
+psutil>=5.9.0
 # for sso
 identity
 msal

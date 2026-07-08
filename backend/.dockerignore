@@ -1,0 +1,18 @@
+# secrets / local config - never bake into an image
+.env
+.env_disabled
+
+# logs, caches, local db files, dev venvs
+*.log
+__pycache__/
+.pytest_cache/
+flask_session/
+*.db
+.venv/
+venv*/
+
+# tests and dev-only scratch files - not needed at runtime
+tests/
+snippets.py
+migration_audit_status.sql
+python_install_packages_and_start.txt

@@ -44,3 +44,23 @@ PLAINBI_BACKEND_DATETIME_FORMAT="%Y-%m-%d %H:%M:%S"
 # worker process validate on all the others; if unset a new random secret is generated
 # per process, which breaks auth across multiple workers
 PLAINBI_JWT_SECRET=""
+
+# CORS allowlist, comma separated origins, or "*" (default) to allow any origin.
+# Only matters when the frontend is NOT served same-origin behind nginx (e.g. a
+# standalone backend container) - same-origin requests are never subject to CORS.
+#PLAINBI_CORS_ORIGINS="https://myapp.example.com,https://otherapp.example.com"
+
+# gunicorn bind address/worker count (see backend/gunicorn.conf.py) - defaults to
+# 127.0.0.1:3001/4 workers for the combined nginx+backend deployment; a standalone
+# backend container's Dockerfile sets GUNICORN_BIND=0.0.0.0:3001 so it's reachable
+# from outside the container
+#GUNICORN_BIND="0.0.0.0:3001"
+#GUNICORN_WORKERS="4"
+
+# log rotation for PLAINBI_BACKEND_LOGFILE (uses logging.handlers.TimedRotatingFileHandler)
+#PLAINBI_BACKEND_LOG_ROTATE_WHEN="midnight"   # rotate interval: "midnight", "H", "D", "W0".. see stdlib docs
+#PLAINBI_BACKEND_LOG_BACKUP_COUNT="14"        # how many rotated files to keep
+
+# runtime log level control - see GET /api/loglevel/<level>?loggers=name1,name2
+# (levels: INFO, DEBUG, DEBUG1, DEBUG2, DEBUG3; loggers default to plainbi_backend.<module>)
+# omitting ?loggers= applies the level to everything and clears any per-module overrides

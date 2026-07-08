@@ -32,6 +32,7 @@ import logging
 import traceback
 import tempfile
 import time
+import psutil
 from datetime import date,datetime
 from contextvars import ContextVar
 from types import SimpleNamespace
@@ -66,6 +67,7 @@ from functools import wraps
 from fastapi import FastAPI, APIRouter, Request, Depends, HTTPException, Header
 from fastapi.responses import JSONResponse, Response, HTMLResponse, PlainTextResponse
 from fastapi.security import APIKeyHeader
+from fastapi.middleware.cors import CORSMiddleware
 import jwt
 from jwt import PyJWKClient
 import secrets
@@ -304,43 +306,44 @@ def get_backend_version(request: Request):
     dbversion=get_dbversion(config.repoengine)
     return PlainTextResponse(content="Plainbi Backend: "+config.version+"\nRepository: "+str(dbversion))
 
+_LOGLEVEL_TO_DBGLEVEL = {"INFO": 1, "DEBUG": 1, "DEBUG1": 1, "DEBUG2": 2, "DEBUG3": 3}
+
 @api_router.get(api_root+'/loglevel/{loglevel}')
 def set_log_level(loglevel: str, request: Request):
     """
-    set log level log.setLevel(
+    set the log level, either globally or (via ?loggers=name1,name2) for specific
+    modules only - e.g. GET /api/loglevel/DEBUG3?loggers=plainbi_backend.db turns
+    verbose tracing on for db.py alone, leaving every other module untouched.
+    Module names match Python's logger names, i.e. plainbi_backend.<module>.
     """
+    if loglevel not in _LOGLEVEL_TO_DBGLEVEL:
+        return PlainTextResponse(content=f"unknown log level {loglevel}", status_code=400)
+    stdlib_level = logging.INFO if loglevel == "INFO" else logging.DEBUG
+    new_dbglevel = _LOGLEVEL_TO_DBGLEVEL[loglevel]
+
+    lognames = None
     if len(request.query_params) > 0:
         for key, value in request.query_params.items():
             log.info("loglevel arg: %s val: %s",key,value)
             if key=="loggers":
-                lognames=value.split(",")
-                dbg("loggers are: "+str(lognames))
-                loggers = [logging.getLogger(name) for name in lognames]
-    else:
-        loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict if "plainbi" in name]
-        dbg("all plainbi loggers")
+                lognames=[n.strip() for n in value.split(",") if n.strip()]
 
-    for l in loggers:
-      if loglevel=="INFO":
-        l.setLevel(logging.INFO)
-        log.info(f"LogLevel {loglevel} for {l.name} enabled")
-        config.dbg_level = 1
-      if loglevel=="DEBUG":
-        l.setLevel(logging.DEBUG)
-        log.info(f"LogLevel {loglevel} for {l.name} enabled")
-        config.dbg_level = 1
-      if loglevel=="DEBUG1":
-        l.setLevel(logging.DEBUG)
-        log.info(f"LogLevel {loglevel} for {l.name} enabled")
-        config.dbg_level = 1
-      if loglevel=="DEBUG2":
-        l.setLevel(logging.DEBUG)
-        log.info(f"LogLevel {loglevel} for {l.name} enabled")
-        config.dbg_level = 2
-      if loglevel=="DEBUG3":
-        l.setLevel(logging.DEBUG)
-        log.info(f"LogLevel {loglevel} for {l.name} enabled")
-        config.dbg_level = 3
+    if lognames:
+        # per-module override: only these loggers change, everything else keeps
+        # whatever level it already had (process default or its own prior override)
+        for name in lognames:
+            logging.getLogger(name).setLevel(stdlib_level)
+            config.dbg_level_by_module[name] = new_dbglevel
+            log.info(f"LogLevel {loglevel} set for {name}")
+    else:
+        # no specific module named: set the process-wide default and drop all
+        # per-module overrides, so every module goes back to following it
+        config.dbg_level_by_module.clear()
+        config.dbg = (loglevel != "INFO")
+        config.dbg_level = new_dbglevel
+        for name in [n for n in logging.root.manager.loggerDict if "plainbi" in n]:
+            logging.getLogger(name).setLevel(stdlib_level)
+        log.info(f"LogLevel {loglevel} set globally")
     return PlainTextResponse(content='set log level '+loglevel, status_code=200)
 
 @api_router.get('/status')
@@ -359,11 +362,112 @@ def get_api_status():
             lg=logging.getLogger(l)
             s+=l+": "+logging.getLevelName(lg.getEffectiveLevel())
 
-    s+="\nLog Level: "+str(config.dbg_level)+"\n"
+    s+="\nLog Level (default): "+str(config.dbg_level)+"\n"
+    if config.dbg_level_by_module:
+        s+="Log Level (per-module overrides): "+str(config.dbg_level_by_module)+"\n"
 
     s+="\nall loggers: "+", ".join(logging.root.manager.loggerDict)
 
     return PlainTextResponse(content=s)
+
+
+@api_router.get('/ping')
+def ping():
+    """
+    minimal, fastest possible health check - no auth, no dependency checks,
+    no JSON encoding. If this doesn't respond, nothing will.
+    """
+    return PlainTextResponse(content="pong")
+
+
+@api_router.get('/health')
+def health():
+    """
+    liveness probe: confirms the process/event-loop is up and responsive.
+    Deliberately does not check dependencies (repository, datasources) - that's
+    what /health/ready is for. Suitable for a container orchestrator's
+    liveness probe (restart the container if this stops responding).
+    """
+    return myjsonify({"status": "ok"})
+
+
+@api_router.get('/health/ready')
+def health_ready():
+    """
+    readiness probe: confirms the backend's dependencies (repository/datasource
+    connections, cache) are actually usable, not just that the process is up.
+    Returns 503 if any configured dependency fails, 200 otherwise. Suitable for
+    a container orchestrator's readiness probe (stop routing traffic here if
+    this fails, without necessarily restarting the process).
+    """
+    checks = {}
+    ready = True
+
+    repoengine = getattr(config, "repoengine", None)
+    if repoengine is not None:
+        try:
+            db_exec(repoengine, "SELECT 1")
+            checks["repository"] = "ok"
+        except Exception as e:
+            checks["repository"] = f"error: {e}"
+            ready = False
+    else:
+        checks["repository"] = "not configured (simple mode)" if config.simple_mode else "not connected"
+
+    dbengine = getattr(config, "dbengine", None)
+    if dbengine is not None:
+        try:
+            db_exec(dbengine, "SELECT 1")
+            checks["database"] = "ok"
+        except Exception as e:
+            checks["database"] = f"error: {e}"
+            ready = False
+    else:
+        checks["database"] = "not configured"
+
+    checks["cache"] = "enabled" if config.use_cache else "disabled"
+
+    return myjsonify({"status": "ok" if ready else "error", "checks": checks}, 200 if ready else 503)
+
+
+@api_router.get('/metrics/system')
+def metrics_system():
+    """
+    system resource usage (CPU/RAM/disk) as flat JSON, meant to be scraped by
+    Zabbix (or similar) via HTTP agent items with JSONPath preprocessing, e.g.
+    $.cpu_percent, $.memory_percent, $.disk_percent
+    """
+    disk_path = os.environ.get("PLAINBI_METRICS_DISK_PATH", "/")
+    proc = psutil.Process()
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage(disk_path)
+    with proc.oneshot():
+        proc_mem = proc.memory_info()
+        out = {
+            "cpu_percent": psutil.cpu_percent(interval=None),
+            "cpu_count": psutil.cpu_count(),
+            "memory_total_bytes": mem.total,
+            "memory_used_bytes": mem.used,
+            "memory_available_bytes": mem.available,
+            "memory_percent": mem.percent,
+            "disk_path": disk_path,
+            "disk_total_bytes": disk.total,
+            "disk_used_bytes": disk.used,
+            "disk_free_bytes": disk.free,
+            "disk_percent": disk.percent,
+            "process_rss_bytes": proc_mem.rss,
+            "process_vms_bytes": proc_mem.vms,
+            "process_num_threads": proc.num_threads(),
+            "process_uptime_seconds": int(time.time() - proc.create_time()),
+        }
+    try:
+        load1, load5, load15 = os.getloadavg()
+        out["load_avg_1m"] = load1
+        out["load_avg_5m"] = load5
+        out["load_avg_15m"] = load15
+    except (AttributeError, OSError):
+        pass  # os.getloadavg() is not available on all platforms (e.g. Windows)
+    return myjsonify(out)
 
 
 @api_router.post(api_root+'/email')
@@ -2757,6 +2861,21 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
     app.add_exception_handler(HTTPException, _http_exception_handler)
     app.add_exception_handler(Exception, _unhandled_exception_handler)
     app.include_router(api_router)
+
+    # No-op when the frontend is served same-origin behind nginx (the combined
+    # deployment), but required for a standalone backend container where the
+    # frontend runs on a different origin - PLAINBI_CORS_ORIGINS is a comma
+    # separated allowlist, defaulting to "*" (no cookies/credentials are used,
+    # auth is a manually-read Authorization header, so a wildcard origin is safe)
+    cors_origins_env = os.environ.get("PLAINBI_CORS_ORIGINS", "*").strip()
+    cors_origins = ["*"] if cors_origins_env == "*" else [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     if config.simple_mode:
         # no repository, no auth - CRUD only, straight against one fixed connection

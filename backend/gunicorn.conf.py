@@ -1,8 +1,13 @@
 # gunicorn config for the plainbi FastAPI backend, replacing the old uWSGI .ini files.
 # start with: gunicorn -c gunicorn.conf.py "plainbi_backend.api:create_app()"
+import os
 
-bind = "127.0.0.1:3001"
-workers = 4
+# defaults match the combined nginx+backend deployment (nginx proxies to 127.0.0.1
+# from inside the same container/network namespace); override via env vars for a
+# standalone backend container, e.g. GUNICORN_BIND=0.0.0.0:3001 so it's reachable
+# from outside the container
+bind = os.environ.get("GUNICORN_BIND", "127.0.0.1:3001")
+workers = int(os.environ.get("GUNICORN_WORKERS", "4"))
 worker_class = "uvicorn.workers.UvicornWorker"
 
 

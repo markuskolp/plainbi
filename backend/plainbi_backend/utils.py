@@ -17,60 +17,78 @@ log = logging.getLogger(__name__)
 
 import urllib.parse
 
+def _caller_module_logger(caller_frame):
+    """
+    resolve a logger named after the CALLING module (e.g. "plainbi_backend.db")
+    rather than this module's own - so per-module levels (stdlib logger.setLevel()
+    and config.dbg_level_by_module, both set via GET /api/loglevel/<level>?loggers=...)
+    actually take effect for whichever module logged the message
+    """
+    module_name = caller_frame.f_globals.get('__name__', __name__)
+    return logging.getLogger(module_name)
+
+def _effective_dbg_level(caller_frame):
+    module_name = caller_frame.f_globals.get('__name__', __name__)
+    return config.dbg_level_by_module.get(module_name, config.dbg_level)
+
 def dbg(msg, *args, dbglevel=1, **kwargs):
     """
     customized debug log function
     implements 3 types of debug level message
     start backend with paramters -v -vv or -vvv
+    the effective level is per-module (config.dbg_level_by_module), falling back
+    to the process-wide default (config.dbg_level) if no override is set for the
+    calling module - see GET /api/loglevel/<level>?loggers=name1,name2
     """
-    if dbglevel <= config.dbg_level:
-        caller_frame=inspect.currentframe().f_back
-        if config.dbg_level >= 3:
+    caller_frame=inspect.currentframe().f_back
+    effective_level=_effective_dbg_level(caller_frame)
+    if dbglevel <= effective_level:
+        if effective_level >= 3:
             #func_name=str(get_call_stack_function_names(inspect.stack()))
             try:
                 func_name=[]
                 for f in inspect.stack()[1:]:
                     if f[3] in ('dispatch_request','decorated'): break
                     func_name.insert(0,f[3])
-                #func_name = ",".join(func_name)  
+                #func_name = ",".join(func_name)
             except Exception as e:
                 func_name = ["show_call_stack-err:"+str(e)[:15]]
         else:
             func_name=[caller_frame.f_code.co_name]
         fullmsg=f"{func_name}: {msg}"
-        log.debug(fullmsg,*args,**kwargs)
+        _caller_module_logger(caller_frame).debug(fullmsg,*args,**kwargs)
 
 def err(msg, *args, **kwargs):
     """
     customized log function
     start backend with paramters -v -vv or -vvv
     """
-    if config.dbg: 
-        if config.dbg_level >= 3:
+    caller_frame=inspect.currentframe().f_back
+    if config.dbg:
+        if _effective_dbg_level(caller_frame) >= 3:
             func_name=str(get_call_stack_function_names(inspect.stack()))
         else:
-            caller_frame=inspect.currentframe().f_back
             func_name=[caller_frame.f_code.co_name]
         fullmsg=f"{func_name}: {msg}"
     else:
         fullmsg = msg
-    log.error(fullmsg,*args,**kwargs)
+    _caller_module_logger(caller_frame).error(fullmsg,*args,**kwargs)
 
 def warn(msg, *args, **kwargs):
     """
     customized log function
     start backend with paramters -v -vv or -vvv
     """
-    if config.dbg: 
-        if config.dbg_level >= 3:
+    caller_frame=inspect.currentframe().f_back
+    if config.dbg:
+        if _effective_dbg_level(caller_frame) >= 3:
             func_name=str(get_call_stack_function_names(inspect.stack()))
         else:
-            caller_frame=inspect.currentframe().f_back
             func_name=[caller_frame.f_code.co_name]
         fullmsg=f"{func_name}: {msg}"
     else:
         fullmsg = msg
-    log.warning(fullmsg,*args,**kwargs)
+    _caller_module_logger(caller_frame).warning(fullmsg,*args,**kwargs)
 
 def db_subs_env(s: str, d: dict):
     """
