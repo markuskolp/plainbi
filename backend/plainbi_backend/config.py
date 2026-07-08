@@ -9,6 +9,7 @@ Configuration handling for the plainbi backend
 import os
 import sys
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import urllib
 from dotenv import load_dotenv
 
@@ -65,7 +66,7 @@ if not hasattr(config,"is_loaded"):
     config.is_loaded = True
 
     # the current version number of plainbi backend
-    VERSION="0.97 02.07.2026"
+    VERSION="0.97 (fastapi) 08.07.2026"
     config.version=VERSION
 
     if "PLAINBI_BACKEND_LOGFILE" in os.environ:
@@ -94,6 +95,11 @@ if not hasattr(config,"is_loaded"):
     config.metadata_cache_ttl = int(os.environ.get("PLAINBI_METADATA_CACHE_TTL", "300"))  # seconds
     config.dbg = False
     config.dbg_level = 1
+    # per-module overrides of config.dbg_level, keyed by logger/module name
+    # (e.g. "plainbi_backend.db") - set via GET /api/loglevel/<level>?loggers=name1,name2
+    # so debugging can be turned on/off for one part of the program at a time,
+    # without touching the process-wide default in config.dbg_level
+    config.dbg_level_by_module = {}
 
 
     if "PLAINBI_METADATA_CACHE" in os.environ.keys():
@@ -136,13 +142,21 @@ if not hasattr(config,"is_loaded"):
     log.setLevel(config.loglevel)
     formatter = logging.Formatter('%(message)s')  # formatter for screen log
     logfile_formatter = logging.Formatter('%(asctime)s  %(process)-7s %(module)-20s %(levelname)s %(message)s') # formatter for logfile log
+    # handlers are deliberately left at DEBUG (i.e. they never filter anything out
+    # themselves) - the actual filtering is done at the logger level below, via
+    # config.loglevel for the root logger and, at runtime, per-module overrides set
+    # through GET /api/loglevel/<level>?loggers=name1,name2. If handlers were tied
+    # to config.loglevel instead, a per-module DEBUG override would have no visible
+    # effect once records reached the (INFO-level) handlers.
     if config.logfile is not None:
-        fh = logging.FileHandler(config.logfile, mode='a', encoding='utf-8')
+        rotate_backup_count = int(os.environ.get("PLAINBI_BACKEND_LOG_BACKUP_COUNT", "14"))
+        rotate_when = os.environ.get("PLAINBI_BACKEND_LOG_ROTATE_WHEN", "midnight")
+        fh = TimedRotatingFileHandler(config.logfile, when=rotate_when, backupCount=rotate_backup_count, encoding='utf-8')
         fh.setFormatter(logfile_formatter)
-        fh.setLevel(config.loglevel)
+        fh.setLevel(logging.DEBUG)
         log.addHandler(fh)
     ch = logging.StreamHandler()
-    ch.setLevel(config.loglevel)
+    ch.setLevel(logging.DEBUG)
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
