@@ -215,6 +215,15 @@ const AdhocRuntime = (props) => {
 
   const isExportFormat = format === 'XLSX' || format === 'CSV';
 
+  // Debug logging
+  console.log('AdhocRuntime render:', {
+    adhoc_description: adhoc.description,
+    autorun,
+    isExportFormat,
+    hasParams,
+    shouldShowDescription: adhoc.description && !autorun && !isExportFormat
+  });
+
   const handleTableChange = (pagination, _filters, sorter) => {
     const page = pagination.current || 1;
     const ps = pagination.pageSize || pageSize;
@@ -288,9 +297,31 @@ const AdhocRuntime = (props) => {
         ] : []}
       />
       <br />
+      {adhoc.description && !autorun && !isExportFormat && (
+        <Collapse
+          defaultActiveKey={[]}
+          style={{ marginBottom: 16 }}
+          items={[{
+            key: 'description',
+            label: 'Beschreibung',
+            children: <div style={{ whiteSpace: 'pre-wrap' }}>{adhoc.description}</div>
+          }]}
+        />
+      )}
       {hasParams && !autorun && (
         isExportFormat ? (
           <>
+            {adhoc.description && (
+              <Collapse
+                defaultActiveKey={[]}
+                style={{ marginBottom: 16 }}
+                items={[{
+                  key: 'description',
+                  label: 'Beschreibung',
+                  children: <div style={{ whiteSpace: 'pre-wrap' }}>{adhoc.description}</div>
+                }]}
+              />
+            )}
             <Form labelCol={{ span: 6 }} wrapperCol={{ span: 14 }} layout="horizontal" style={{ maxWidth: 900 }}>
               {parameters.map(param => (
                 <CRUDFormItem

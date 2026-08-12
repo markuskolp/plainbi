@@ -19,4 +19,12 @@ SQLAlchemy>=2.0.15
 #pyuwsgi cannot be install in windows (at least if there is no cygwin)
 #pyuwsgi>=2.0.21
 flasgger
-
+# for sso
+identity
+msal
+#
+requests
+flask_session
+# snowflake support
+snowflake-connector-python>=3.0.0
+snowflake-sqlalchemy>=1.4.0
