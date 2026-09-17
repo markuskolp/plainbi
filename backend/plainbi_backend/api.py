@@ -76,7 +76,7 @@ else:
         with_swagger = False
 
 from plainbi_backend.utils import db_subs_env, prep_pk_from_url, is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params, pre_jsonify_items_transformer, parse_filter, dbg, err, warn, dbg_api_call
-from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, _safe_order_by, audit, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
+from plainbi_backend.db import sql_select, get_item_raw, get_metadata_raw, db_connect, db_connect_test, db_exec, db_ins, db_upd, db_del, get_current_timestamp, get_next_seq, repo_lookup_select, get_repo_adhoc_sql_stmt, get_repo_customsql_sql_stmt, get_profile, add_auth_to_where_clause, add_offset_limit, _safe_order_by, audit, start_audit_worker, db_adduser, db_passwd, get_db_type, get_dbversion, load_datasources_from_repo, get_db_by_id_or_alias
 from plainbi_backend.repo import create_repo_db, create_app_db
 
 # import the global variable config
@@ -180,6 +180,7 @@ def audited(f):
             else:
                 resp_obj, code = result, 200
             duration_ms = int((time.monotonic() - t0) * 1000)
+            dbg("TIMING request %dms %s %s status=%s", duration_ms, request.method, request.path, code)
             if int(code) < 400:
                 audit(tokdata, request, id=getattr(g, 'audit_id', None),
                       status='ok', duration_ms=duration_ms)
@@ -199,6 +200,7 @@ def audited(f):
             return result
         except Exception as e:
             duration_ms = int((time.monotonic() - t0) * 1000)
+            dbg("TIMING request %dms %s %s status=exception", duration_ms, request.method, request.path)
             audit(tokdata, request, id=getattr(g, 'audit_id', None),
                   status='error', error_msg=str(e)[:2000], duration_ms=duration_ms)
             raise
@@ -3853,6 +3855,9 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
     if not db_connect_test(config.repoengine):
         err("cannot connect to repository. Check repository database connection description 'PLAINBI_REPOSITORY' in config file or environment")
         sys.exit(0)
+
+    # audit entries are written by a background thread so requests don't wait on the repo-DB roundtrip
+    start_audit_worker()
 
     # get datasources from repository
     log.info("load datasources from plainbi_datasource")

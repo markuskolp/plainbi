@@ -22,7 +22,10 @@ const CRUDModal = ({ tableColumns, handleSave, handleCancel, type, tableName, pk
 
   const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(false);
   const [saving, setSaving] = useState(false);
-  const [recordData, setRecordData] = useState([]);
+  // null (not []), so it stays falsy until real data arrives — [] is truthy in JS, which caused
+  // form fields (and their lookups) to mount → unmount (when getRecordData sets null while loading)
+  // → remount (when the record arrives), firing every lookup fetch twice
+  const [recordData, setRecordData] = useState(null);
   const [errorFields, setErrorFields] = useState(new Set());
   const [externalActionTimeout, setExternalActionTimeout] = useState(null);
   const [username, setUsername] = useState("plainbi");

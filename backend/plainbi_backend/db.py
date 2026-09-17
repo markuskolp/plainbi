@@ -25,10 +25,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import NullPool, QueuePool
 from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn,show_call_stack
 #import bcrypt
-from threading import Lock
+from threading import Lock, Thread
+import queue
 
 config.database_locks = {}
 config.database_locks_lock = Lock()
+config.audit_queue = queue.Queue(maxsize=1000)
 
 def _get_db_lock(engine):
     """
@@ -160,8 +162,9 @@ config.conn={}
 
    
 def db_exec(engine, sql, params=None, metadata=None):
+    _t0_total = time.monotonic()
     dbg(f"+++ entering {inspect.currentframe().f_code.co_name} "+str(sql)[:50]+" ...")
-    
+
     dbg("sql is <%s>",str(sql),dbglevel=2)
     dbg("sql params are <%s>",str(params),dbglevel=3)
     #
@@ -209,6 +212,7 @@ def db_exec(engine, sql, params=None, metadata=None):
             else:
                 is_select=False
                 dml_anz+=1 
+            _t0_stmt = time.monotonic()
             try:
                 if myparams is not None:
                     # handle encodings
@@ -225,6 +229,8 @@ def db_exec(engine, sql, params=None, metadata=None):
                 else:
                     res=config.conn[engine.url].execute(mysql)
                     dbg("sql=%s",mysql,dbglevel=3)
+                dbg("TIMING db_exec stmt %d/%d %dms dbtyp=%s sql=%s", stmt_nr+1, stmt_anz,
+                    int((time.monotonic()-_t0_stmt)*1000), dbtyp, mysqltxt[:120])
             except Exception as e:
                 err("ERROR: %s",str(e))
                 err("ERROR: SQL is %s",str(mysqltxt))
@@ -294,6 +300,8 @@ def db_exec(engine, sql, params=None, metadata=None):
                 dbg("connection is already closed")
         else:
             dbg("connection is not sqlalchemy connection for closing")
+        dbg("TIMING db_exec TOTAL %dms (incl. lock-wait/connect/%d stmt(s)/commit/close) dbtyp=%s",
+            int((time.monotonic()-_t0_total)*1000), stmt_anz, dbtyp)
         if is_select:
             dbg("+++ leaving with data result")
             if is_list_input:
@@ -2085,19 +2093,37 @@ def audit(tokdata,req,id=None,msg=None,status=None,error_msg=None,duration_ms=No
         audit_params={"username":usrnam, "url":req.url, "remark":msg, "id":id, "method":req.method, "body":str(req.data),
                       "status":status, "error_msg":safe_error_msg, "duration_ms":duration_ms}
     audit_sql="insert into plainbi_audit (username,t,url,id,remark,request_method,request_body,status,error_msg,duration_ms) values (:username,CURRENT_TIMESTAMP,:url,:id,:remark,:method,:body,:status,:error_msg,:duration_ms)"
+    # audit_params contains only plain values at this point (no live Flask request object) —
+    # safe to hand off to the background worker so the HTTP response doesn't wait on the
+    # repo-DB roundtrip (audit_worker executes the actual db_exec()).
+    dbg('Audit sql:%s',audit_sql )
+    dbg('Audit params:%s',audit_params )
     try:
-        dbg('Audit sql:%s',audit_sql )
-        dbg('Audit params:%s',audit_params )
-        db_exec(config.repoengine, audit_sql, audit_params)
-        dbg('Audit executed')
-    except SQLAlchemyError as e_sqlalchemy:
-        log.error("audit error: %s",str(e_sqlalchemy))
-        log.exception(e_sqlalchemy)
-        dbg("continuing")
-    except Exception as e:
-        log.error("audit exception: %s",str(e))
-        dbg("continuing")
-    dbg("++++++++++ leaving audit")
+        config.audit_queue.put_nowait((audit_sql, audit_params))
+    except queue.Full:
+        log.error("audit queue full - dropping audit entry for %s", audit_params.get("url"))
+    dbg("++++++++++ leaving audit (queued)")
+
+def _audit_worker():
+    while True:
+        audit_sql, audit_params = config.audit_queue.get()
+        try:
+            db_exec(config.repoengine, audit_sql, audit_params)
+            dbg('Audit executed (background)')
+        except SQLAlchemyError as e_sqlalchemy:
+            log.error("audit error: %s",str(e_sqlalchemy))
+            log.exception(e_sqlalchemy)
+        except Exception as e:
+            log.error("audit exception: %s",str(e))
+        finally:
+            config.audit_queue.task_done()
+
+def start_audit_worker():
+    """Starts the background thread that writes queued audit entries to the repo DB.
+    Must be called once after config.repoengine is set up (e.g. from create_app())."""
+    t = Thread(target=_audit_worker, daemon=True, name="audit-worker")
+    t.start()
+    log.info("audit worker thread started")
 
 def get_snowflake_private_key(private_key):
     """Load and properly format a PEM private key for Snowflake"""
