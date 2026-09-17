@@ -27,7 +27,23 @@ from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_cla
 #import bcrypt
 from threading import Lock
 
-config.database_lock = Lock()
+config.database_locks = {}
+config.database_locks_lock = Lock()
+
+def _get_db_lock(engine):
+    """
+    One lock per database engine instead of a single global lock — so a slow
+    statement on one engine (e.g. Snowflake) does not block unrelated engines
+    (e.g. the SQLite repository, or other datasources) in the same process.
+    A per-engine lock is still needed because config.conn[engine.url] caches
+    a single shared Connection object per engine.
+    """
+    key = str(engine.url)
+    if key not in config.database_locks:
+        with config.database_locks_lock:
+            if key not in config.database_locks:
+                config.database_locks[key] = Lock()
+    return config.database_locks[key]
 
 metadata_col_query_mssql = """SELECT 
     DB_NAME() AS database_name,
@@ -156,8 +172,11 @@ def db_exec(engine, sql, params=None, metadata=None):
         if not (isinstance(params, dict) or isinstance(params, list)):
             warn("called with params WITHOUT dict or list of dict")
     dbtyp=get_db_type(engine)
+    is_list_input=isinstance(sql,list)
+    results=[]
     # using the flask server with wgsi requires sequential access to the sqlite repo
-    with config.database_lock:
+    # (and, per engine, config.conn[engine.url] caches a single shared Connection)
+    with _get_db_lock(engine):
         dbg("check connection")
         if not isinstance(config.conn[engine.url], sqlalchemy.engine.base.Connection):
             dbg("connect")
@@ -172,7 +191,7 @@ def db_exec(engine, sql, params=None, metadata=None):
             config.conn[engine.url] = engine.connect()
         dbg("execute")
         dml_anz=0
-        if not isinstance(sql,list):
+        if not is_list_input:
             stmts=[(sql,params)]
         else:
             stmts=[]
@@ -210,9 +229,14 @@ def db_exec(engine, sql, params=None, metadata=None):
                 err("ERROR: %s",str(e))
                 err("ERROR: SQL is %s",str(mysqltxt))
                 err("ERROR: params are %s",str(myparams))
-                # Snowflake JWT token expired: invalidate connection and retry once
-                if dbtyp == "snowflake" and any(s in str(e).lower() for s in ["jwt token", "390144", "authentication token", "token has expired", "invalid token"]):
-                    err("Snowflake JWT/auth error detected — invalidating connection and retrying once")
+                # Snowflake: token expiry or a stale/dropped pooled connection — invalidate and retry once.
+                # connection_invalidated is SQLAlchemy's own dialect-level disconnect detection (broader
+                # and more reliable than matching specific JWT error texts).
+                is_stale_connection = getattr(e, "connection_invalidated", False) or any(
+                    s in str(e).lower() for s in ["jwt token", "390144", "authentication token", "token has expired", "invalid token"]
+                )
+                if dbtyp == "snowflake" and is_stale_connection:
+                    err("Snowflake connection error detected (expired token or stale connection) — invalidating and retrying once")
                     try:
                         config.conn[engine.url].invalidate()
                         config.conn[engine.url].close()
@@ -224,13 +248,15 @@ def db_exec(engine, sql, params=None, metadata=None):
                             res = config.conn[engine.url].execute(mysql, myparams)
                         else:
                             res = config.conn[engine.url].execute(mysql)
-                        err("Retry after JWT error succeeded")
+                        err("Retry after connection error succeeded")
                         if is_select:
                             items = [row._asdict() for row in res]
                             columns = list(res.keys())
+                            if is_list_input:
+                                results.append((items, columns))
                         continue
                     except Exception as e_retry:
-                        err("Retry after JWT error also failed: %s", str(e_retry))
+                        err("Retry after connection error also failed: %s", str(e_retry))
                         e = e_retry
                 try:
                     config.conn[engine.url].rollback()
@@ -253,6 +279,8 @@ def db_exec(engine, sql, params=None, metadata=None):
                 items = [row._asdict() for row in res]
                 dbg("anz rows=%d",len(items))
                 columns = list(res.keys())
+                if is_list_input:
+                    results.append((items, columns))
         # commit at the end if there was any dml statement
         if dml_anz>0:
             config.conn[engine.url].commit()
@@ -268,6 +296,8 @@ def db_exec(engine, sql, params=None, metadata=None):
             dbg("connection is not sqlalchemy connection for closing")
         if is_select:
             dbg("+++ leaving with data result")
+            if is_list_input:
+                return results
             return items, columns
         else:
             dbg("+++ leaving with dml result status")
@@ -495,8 +525,16 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     sql_without_orderby_offset_limit=sql
     sql+=add_offset_limit(db_typ,offset,limit,order_by)
     dbg("sql_select: %s",sql)
+    sql_total_count=None
+    if with_total_count:
+        sql_total_count=f'SELECT COUNT(*) AS total_count FROM ({sql_without_orderby_offset_limit}) x'
     try:
-        items,columns=db_exec(dbengine,sql, my_where_clause_params)
+        if with_total_count:
+            # data + count in a single connection checkout instead of two —
+            # halves the connect/pool-ping round trips per list request (matters most on Snowflake)
+            (items,columns),(item_total_count,columns_total_count)=db_exec(dbengine,[sql,sql_total_count],[my_where_clause_params,my_where_clause_params])
+        else:
+            items,columns=db_exec(dbengine,sql, my_where_clause_params)
     except SQLAlchemyError as e_sqlalchemy:
         log.error("sqlalchemy exception in sql_select: %s",str(e_sqlalchemy))
         log.exception(e_sqlalchemy)
@@ -534,9 +572,6 @@ def sql_select(dbengine,tab,order_by=None,offset=None,limit=None,filter=None,wit
     
     dbg("sql_select: anz rows=%d",len(items))
     if with_total_count:
-        dbg("check totalcount")
-        sql_total_count=f'SELECT COUNT(*) AS total_count FROM ({sql_without_orderby_offset_limit}) x'
-        item_total_count,columns_total_count=db_exec(dbengine,sql_total_count,my_where_clause_params)
         total_count=(item_total_count[0])['total_count']
     return items,columns,total_count,"ok"
 
@@ -1007,6 +1042,7 @@ def get_db_by_id_or_alias(d):
         return config.datasources_engine[k]
     else:
         # not found yet - try to connect again
+        log.warning("get_db_by_id_or_alias: cache miss for key '%s' (known keys: %s) -> reloading ALL datasources (discards existing engines/pools!)", k, list(config.datasources_engine.keys()))
         dbg("get_db_by_id_or_alias connection not found -> reload")
         load_datasources_from_repo()
         if k in config.datasources_engine.keys():
@@ -1323,11 +1359,9 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
     dbg("db_ins: after check hash columns")
     if is_versioned:
         dbg("db_ins: versioned mode" )
-        ts=get_current_timestamp(dbeng)
-        dbg("db_ins: ts=%s",ts)
-        myitem["valid_from_dt"]=ts
+        # valid_from_dt/last_changed_dt kommen als CURRENT_TIMESTAMP direkt aus der DB (siehe SQL-Aufbau
+        # unten) statt über einen eigenen get_current_timestamp()-Roundtrip geholt zu werden
         myitem["invalid_from_dt"]="9999-12-31 00:00:00"
-        myitem["last_changed_dt"]=ts
         myitem["is_latest_period"]="Y"
         myitem["is_deleted"]="N"
         myitem["is_current_and_active"]="Y"
@@ -1402,12 +1436,10 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                 # there is an existing record -> terminate id
                 pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)
                 delitem={}
-                delitem["invalid_from_dt"]=ts
-                delitem["last_changed_dt"]=ts
                 delitem.update(pkwhere_params)
                 dbg("marker values length is %d",len(delitem))
                 dbg("db_ins: terminate deleted record")
-                dsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
+                dsql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
                 dbg("db_ins: terminate rec sql %s",dsql)
                 stmt.append(dsql)
                 stmtparam.append(delitem)
@@ -1429,6 +1461,9 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                
     param_list=[":"+k for k in myitem.keys()]
     col_list=[k for k in myitem.keys()]
+    if is_versioned:
+        col_list+=["valid_from_dt","last_changed_dt"]
+        param_list+=["CURRENT_TIMESTAMP","CURRENT_TIMESTAMP"]
     dbg("db_ins: construct sql" )
     param_list_str=",".join(param_list)
     col_list_str=",".join(col_list)
@@ -1482,17 +1517,6 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         pkcols=[(metadata["columns"])[0]]
         log.warning("update_item implicit pk first column")
 
-    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,column_list=",".join(pkcols))
-    if "total_count" in chkout.keys():
-        if chkout["total_count"]==0:
-            out["error"]="db_upd-id-not-found"
-            out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
-            return out
-    else:
-        out["error"]="db_upd-pk-check-failed"
-        out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
-        return out
-    
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
     dbg("update_item: pkwhere %s",pkwhere)
 
@@ -1504,15 +1528,23 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         dbg("update_item: 1")
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
-        ts=get_current_timestamp(dbeng)
-        # hole then alten Datensatz aus der DB mit dem angegebenen pk
+        # hole den alten Datensatz aus der DB mit dem angegebenen pk — dient zugleich als Existenz-Check
+        # (spart den früher zusätzlichen chkout-Roundtrip; ts kommt als CURRENT_TIMESTAMP direkt aus der DB
+        # statt über einen eigenen Roundtrip geholt zu werden)
         cur_row=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+        if "total_count" in cur_row.keys():
+            if cur_row["total_count"]==0:
+                out["error"]="db_upd-id-not-found"
+                out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+                return out
+        else:
+            out["error"]="db_upd-pk-check-failed"
+            out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+            return out
         upditem={}
-        upditem["invalid_from_dt"]=ts
-        upditem["last_changed_dt"]=ts
         upditem.update(pkwhere_params)
         dbg("marker values length is %d",len(upditem))
-        updsql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'" 
+        updsql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
         dbg("db_upd newrec sql: %s", updsql)
         stmt=[]
         stmtparam=[]
@@ -1538,17 +1570,21 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         newrec=reclist[0]
         # überschreibe mit neuen werten
         newrec.update(myitem)
-        newrec["valid_from_dt"]=ts
         newrec["invalid_from_dt"]="9999-12-31 00:00:00"
-        newrec["last_changed_dt"]=ts
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='Y'
+        # valid_from_dt/last_changed_dt kommen unten als CURRENT_TIMESTAMP direkt aus der DB —
+        # deshalb hier aus den gebundenen Parametern entfernen, sonst doppelt gesetzt
+        newrec.pop("valid_from_dt",None)
+        newrec.pop("last_changed_dt",None)
         _lcb_col = next((k for k in newrec.keys() if k.lower() == "last_changed_by"), None)
         if _lcb_col and changed_by is not None:
             newrec[_lcb_col]=changed_by
         dbg("db_upd: construct sql" )
         param_list=[":"+k for k in newrec.keys()]
         col_list=[k for k in newrec.keys()]
+        col_list+=["valid_from_dt","last_changed_dt"]
+        param_list+=["CURRENT_TIMESTAMP","CURRENT_TIMESTAMP"]
         param_list_str=",".join(param_list)
         col_list_str=",".join(col_list)
         newsql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
@@ -1574,6 +1610,16 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
             return out
     else:
         # nicht versionierter Standardfall
+        chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,column_list=",".join(pkcols))
+        if "total_count" in chkout.keys():
+            if chkout["total_count"]==0:
+                out["error"]="db_upd-id-not-found"
+                out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+                return out
+        else:
+            out["error"]="db_upd-pk-check-failed"
+            out["message"]="Datensatz in %s mit PK=%s ist nicht vorhanden" % (tab,pk)
+            return out
         othercols=[col for col in myitem.keys() if col not in pkcols]
         dbg("othercols %s",othercols)
         osetexp=[k+"=:"+k for k in othercols]
@@ -1622,33 +1668,31 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         pkcols=[(metadata["columns"])[0]]
         log.warning("db_del implicit pk first column")
 
-    chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
-    if "total_count" in chkout.keys():
-        if chkout["total_count"]==0:
-            out["error"]="db_del-pk-id-not-found"
-            out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
-            dbg("++++++++++ leaving db_del returning %s", str(out))
-            return out
-    else:
-        out["error"]="db_del-pk-check-id-not-found"
-        out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
-        dbg("++++++++++ leaving db_del returning %s", str(out))
-        return out
-
     pkwhere, pkwhere_params = make_pk_where_clause(pk,pkcols,is_versioned)
     dbg("db_del: pkwhere %s",pkwhere)
-        
+
     if is_versioned:
         # aktuellen Datensatz abschließen
         # neuen Datensatz anlegen
-        ts=get_current_timestamp(dbeng)
+        # hole den alten Datensatz — dient zugleich als Existenz-Check (spart den früher zusätzlichen
+        # chkout-Roundtrip); ts kommt als CURRENT_TIMESTAMP direkt aus der DB statt über einen eigenen
+        # Roundtrip geholt zu werden
         cur_row=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols,versioned=is_versioned)
+        if "total_count" in cur_row.keys():
+            if cur_row["total_count"]==0:
+                out["error"]="db_del-pk-id-not-found"
+                out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
+                dbg("++++++++++ leaving db_del returning %s", str(out))
+                return out
+        else:
+            out["error"]="db_del-pk-check-id-not-found"
+            out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
+            dbg("++++++++++ leaving db_del returning %s", str(out))
+            return out
         upditem={}
-        upditem["invalid_from_dt"]=ts
-        upditem["last_changed_dt"]=ts
         upditem.update(pkwhere_params)
         dbg("marker values length is %d",len(upditem))
-        sql=f"UPDATE {tab} SET invalid_from_dt=:invalid_from_dt,last_changed_dt=:last_changed_dt,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
+        sql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
         stmt=[]
         stmtparam=[]
         stmt.append(sql)
@@ -1671,18 +1715,22 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
         newrec=reclist[0]
-        newrec["valid_from_dt"]=ts
         newrec["invalid_from_dt"]="9999-12-31 00:00:00"
-        newrec["last_changed_dt"]=ts
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='N'
         newrec["is_deleted"]='Y'
+        # valid_from_dt/last_changed_dt kommen unten als CURRENT_TIMESTAMP direkt aus der DB —
+        # deshalb hier aus den gebundenen Parametern entfernen, sonst doppelt gesetzt
+        newrec.pop("valid_from_dt",None)
+        newrec.pop("last_changed_dt",None)
         _lcb_col = next((k for k in newrec.keys() if k.lower() == "last_changed_by"), None)
         if _lcb_col and changed_by is not None:
             newrec[_lcb_col]=changed_by
         dbg("db_upd: construct sql" )
         param_list=[":"+k for k in newrec.keys()]
         col_list=[k for k in newrec.keys()]
+        col_list+=["valid_from_dt","last_changed_dt"]
+        param_list+=["CURRENT_TIMESTAMP","CURRENT_TIMESTAMP"]
         param_list_str=",".join(param_list)
         col_list_str=",".join(col_list)
         newsql = f"INSERT INTO {tab} ({col_list_str}) VALUES ({param_list_str})"
@@ -1707,6 +1755,18 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
             log.error("++++++++++ leaving db_del returning %s", str(out))
             return out
     else:
+        chkout=get_item_raw(dbeng,tab,pk,pk_column_list=pkcols)
+        if "total_count" in chkout.keys():
+            if chkout["total_count"]==0:
+                out["error"]="db_del-pk-id-not-found"
+                out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
+                dbg("++++++++++ leaving db_del returning %s", str(out))
+                return out
+        else:
+            out["error"]="db_del-pk-check-id-not-found"
+            out["message"]="Der zu löschende Datensatz wurde nicht gefunden"
+            dbg("++++++++++ leaving db_del returning %s", str(out))
+            return out
         sql=f"DELETE FROM {tab} {pkwhere}"
         dbg("db_del sql %s",sql)
         dbg("db_del marker values length is %d",len(pkwhere_params))
@@ -1970,8 +2030,16 @@ def db_connect(p_enginestr, params=None):
             dbg("++++++++++ enable echo_pool debug for postgres")
             dbengine = sqlalchemy.create_engine(enginestr, pool_pre_ping=True, echo_pool='debug', connect_args={'connect_timeout': 10}, pool_recycle=600)
         elif "snowflake" in p_enginestr:
-            dbg("++++++++++ snowflake pool_size=5, pool_recycle=1800, pool_pre_ping=True")
-            dbengine = sqlalchemy.create_engine(enginestr, pool_size=5, max_overflow=0, pool_recycle=1800, pool_pre_ping=True, pool_timeout=30, connect_args={"ocsp_fail_open": True})
+            dbg("++++++++++ snowflake pool_size=5, pool_recycle=1800")
+            # no pool_pre_ping: it cost a real network roundtrip (SELECT 1) on every single
+            # checkout — since db_exec() already invalidates+retries once on a stale/expired
+            # connection (see connection_invalidated handling), the proactive ping is redundant
+            # and, for Snowflake's higher per-roundtrip latency, expensive relative to the benefit.
+            dbengine = sqlalchemy.create_engine(enginestr, pool_size=5, max_overflow=0, pool_recycle=1800, pool_timeout=30, connect_args={"ocsp_fail_open": True})
+            # explicitly force JSON result format instead of relying on pyarrow's absence —
+            # avoids silently falling back to Arrow/Blob-staged results if pyarrow ever becomes
+            # an (even transitive) dependency
+            sqlalchemy.event.listen(dbengine, 'connect', snowflake_set_json_result_format)
         else:
             dbengine = sqlalchemy.create_engine(enginestr)
     log.info("db_connect: engine url %s",dbengine.url)
@@ -2111,8 +2179,11 @@ def load_datasources_from_repo():
         config.datasources[alias]=sql_dbengine_str
         dbg(f"DATASOURCE {i['id']} engine_str={sql_dbengine_str}")
         if db_connect_test(sql_dbengine_str):
-            config.datasources_engine[str(id)] = db_connect(sql_dbengine_str)
-            config.datasources_engine[alias] = db_connect(sql_dbengine_str)
+            # eine Engine (ein Connection-Pool) für beide Keys — sonst bekommen "per ID" und "per Alias"
+            # referenzierte Zugriffe auf dieselbe Datenquelle zwei getrennte Pools/Sessions
+            eng = db_connect(sql_dbengine_str)
+            config.datasources_engine[str(id)] = eng
+            config.datasources_engine[alias] = eng
         else:
             log.warning('cannot connect to datasource_id: %d engine_str: %s',id,sql_dbengine_str)
     dbg("++++++++++ leaving load_datasources_from_repo")

@@ -3855,24 +3855,9 @@ def create_app(p_verbose=None, p_logfile=None, p_repository=None, p_database=Non
         sys.exit(0)
 
     # get datasources from repository
-    log.info("load datasources from plainbi_datasource")        
+    log.info("load datasources from plainbi_datasource")
     load_datasources_from_repo()
 
-    if not config.database:
-        try:
-           config.database = config.datasources["1"]
-        except Exception as e:
-            log.warning("config datasource %s",str(e))
-            log.exception(e)
-
-    # if there is a database database now connect to it
-    if config.database:
-        config.dbengine = db_connect(config.database)
-        if not db_connect_test(config.dbengine):
-            err("cannot connect to database. Check database connection description 'PLAINBI_DATABASE' in config file or environment")
-            sys.exit(0)
-        log.info(f"The default database connection description is {config.database}")
-    
     #from yourapplication.views.admin import admin
     #from yourapplication.views.frontend import frontend
     #app.register_blueprint(admin)

@@ -119,11 +119,13 @@ def repo_import_appl(repoengine,jsontxt,new_id=None,new_name=None,new_alias=None
     for gruppe in r["groups"]:
         # check existing group
         gitems,gcolumns,gtotal_count,ge = sql_select(repoengine,g_plainbitab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause="group = '"+gruppe+"'",versioned=False,is_repo=True,user_id=None, customsql=None)
-        if len(gitems) > 0:
-            g_alt = gitems[0]
+        if len(gitems) == 0:
+            log.warning("group %s not found - skip application to group assignment",gruppe)
+            continue
+        g_alt = gitems[0]
         ag_neu={}
-        ag_neu["application_id"]=a_neu["id"]
-        ag_neu["group_id"]=a_neu["id"]
+        ag_neu["adhoc_id"]=a_neu["id"]
+        ag_neu["group_id"]=g_alt["id"]
         # check existence
         r_ag_alt = get_item_raw(repoengine,ag_plainbitab,ag_neu,pk_column_list=ag_pkcols,versioned=False,version_deleted=False, is_repo=True, user_id=None, customsql=None)
         if "data" in r_ag_alt.keys():
@@ -235,11 +237,13 @@ def repo_import_adhoc(repoengine,jsontxt,new_id=None,new_name=None,new_alias=Non
     for gruppe in r["groups"]:
         # check existing group
         gitems,gcolumns,gtotal_count,ge = sql_select(repoengine,g_plainbitab,order_by=None,offset=None,limit=None,filter=None,with_total_count=False,where_clause="group = '"+gruppe+"'",versioned=False,is_repo=True,user_id=None, customsql=None)
-        if len(gitems) > 0:
-            g_alt = gitems[0]
+        if len(gitems) == 0:
+            log.warning("group %s not found - skip application to group assignment",gruppe)
+            continue
+        g_alt = gitems[0]
         ag_neu={}
         ag_neu["application_id"]=a_neu["id"]
-        ag_neu["group_id"]=a_neu["id"]
+        ag_neu["group_id"]=g_alt["id"]
         # check existence
         r_ag_alt = get_item_raw(repoengine,ag_plainbitab,ag_neu,pk_column_list=ag_pkcols,versioned=False,version_deleted=False, is_repo=True, user_id=None, customsql=None)
         if "data" in r_ag_alt.keys():

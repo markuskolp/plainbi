@@ -1,281 +1,302 @@
+# Plainbi Backend Endpoints
+
+Route prefixes used below:
+- `api_root` = `/api`
+- `api_prefix` = `/api/crud`
+- `repo_api_prefix` = `/api/repo`
+- `api_metadata_prefix` = `/api/metadata`
+
+Most endpoints also exist without the `/api` prefix (e.g. `/version` alongside `/api/version`) — kept for backwards compatibility.
+
+All endpoints except `/login`, `/login_sso`, `GET /api/repo/init_repo`, `GET /api/repo/application/<appid>/dsdb`, `GET /api/repo/lookup/<lkpid>/dsdb`, `GET(/api)/static/<id>` and the `/api/settings*` endpoints require a Bearer token (`@token_required`, obtained via `/login`). All require calls are additionally logged to `plainbi_audit` (`@audited`).
+
+Full interactive docs (Swagger/Flasgger) are generated from the docstrings in `api.py` — this file is a condensed reference.
+
+## Utils / misc
+
 ===========
-===========
-GET /
+GET /, GET /api
 
-    just the welcome message to the backend rest server if no specific url is given
-
-===========
-GET /api/version
-GET /version
-
-    return the version number of the backend
+    welcome message
 
 ===========
-GET /api/dbversion
-GET /api/db_version
-GET /api/backend_version
+GET /version, GET /api/version
 
-    return the database type and version of the backend
+    backend version number
+
+===========
+GET /api/backend_version, GET /api/db_version, GET /api/dbversion
+
+    database type and version the backend is connected to
+
+===========
+GET /api/loglevel/<loglevel>
+
+    change the runtime log level
+
+===========
+GET /status, GET /api/status
+
+    API status/health check
+
+===========
+POST /api/email
+
+    send an SMTP email (needs SMTP_SERVER/SMTP_PORT/SMTP_USER/SMTP_PASSWORD env vars, see README.md)
+
+    Body: {"to": "...", "subject": "...", "body": "..."}
+
+===========
+GET /api/distinctvalues/<db>/<tabnam>/<colnam>
+
+    distinct values of a column in a table (used for column-filter dropdowns)
+
+    Parameters
+    ----------
+    db : id or alias of the database configured in plainbi_datasource (0/"repo" = repository)
+    tabnam, colnam : table/column name
+
+    Query params
+        q       filter substring (LIKE, case-insensitive)
+        offset, limit  pagination
+
+    returns json with keys "data", "total_count"
+
+===========
+POST /api/exec/<db>/<procname>
+
+    execute a stored procedure — MS SQL Server only
+
+    Body: JSON object of parameter_name: value pairs, embedded directly into the EXEC statement (values are not bound as SQL params — quote string values yourself if needed)
+
+    returns json with keys "data"/"columns" (if the proc returns a resultset) or "message"
+
+## CRUD (api_prefix = /api/crud)
 
 ===========
 GET /api/crud/<db>/<tab>
 
-    get table contents (all rows)
+    get table contents
 
     Parameters
     ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
+    db : id or alias of the database configured in plainbi_datasource (0 = repository)
     tab : name of database table
+
+    Query params
+        v            versioned mode (only current/active rows)
+        cols         comma-separated list of columns to return
+        q            filter condition over all columns
+        filter       comma-separated column:value filters — "~" = LIKE %value%, "!" = not equal
+        offset, limit  pagination
+        order_by     order by clause
+        customsql    id/alias of a saved SQL in plainbi_customersql, replaces the table
+        format       XLSX/CSV/TXT — triggers a file download instead of JSON
 
     returns json with keys "data", "columns", "total_count"
 
 ===========
 GET /api/crud/<db>/<tab>/<pk>
+POST /api/crud/<db>/<tab>/<pk>
 
-    get a specific row from a table given by database tablename and id (or any primary key)
+    get a specific row by primary key. The POST variant exists so a composite/complex pk can be sent in the request body instead of the URL (`pk` in the URL is then "#" or "@").
 
     Parameters
     ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    pk : identifier of the row in the table, primary key
-         if pk=# : pk is taken request.data
-         if more then on column in pk then comma separated
-    
-    returns jsons with key "data"  
+    pk : value of the primary key, comma-separated if composite. Can be url-safe-base64-encoded as `[base64@<encoded>]`. "#"/"@" means: take pk from request body (JSON) instead.
+
+    Query params
+        pk       explicit pk column name(s), if not derivable from metadata (comma-separated if composite)
+        cols     comma-separated list of columns to return
+        v        versioned mode
+        customsql  id/alias of a saved SQL in plainbi_customersql
+
+    returns json with key "data"; 204 if no record found
 
 ===========
 POST /api/crud/<db>/<tab>
 
-    create a new row in the database (insert)
+    insert a new row
 
-    Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    
-    Url Options:
-        pk=
-        seq=  Name der Sequence für den PK, wenn dieser None/Null ist
+    Query params
+        v         versioned mode
+        pk        explicit pk column name(s) if not derivable from metadata
+        seq       name of a DB sequence to generate the new pk value
+        usercol   column name to auto-fill with the logged-in username
 
-    returns json mit den keys "data"  i.e. the inserted row (might have new data f.e. sequence values, trigger)
+    Body: JSON object of the new row's column values
+
+    returns json with key "data" — the inserted row (incl. generated pk/trigger values)
 
 ===========
 PUT /api/crud/<db>/<tab>/<pk>
 
-    update a row in a table
+    update a row
 
-    Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    pk : identifier of the row in the table, primary key
-         if pk=# : pk is taken request.data
-         if more then on column in pk then comma separated
-    
-    Url Options:
-        pk=
-        v .. versioned table
+    Parameters/Query params: same pk handling as GET, plus `v`, `usercol`
 
-    returns json with key "data"  
+    Body: JSON object of changed column values
+
+    returns json with key "data"
 
 ===========
 DELETE /api/crud/<db>/<tab>/<pk>
 
-    delete a row in a database
+    delete a row
 
-    Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of database table
-    pk : Wert des Datensatz Identifier (Primary Key) dessen Datensatz gelöscht wird
-    
-    Url Options:
-        pk=
-        v -- versioned mode
-    
-    returns 200 or json with error msg
+    Parameters/Query params: same pk handling as GET, plus `v` (versioned = soft delete), `usercol`
+
+    returns 200 ("Record deleted successfully") or json with error msg
+
+## Metadata (api_metadata_prefix = /api/metadata)
 
 ===========
-GET api_metadata_prefix+/<db>/tables
+GET /api/metadata/<db>/tables
 
-    get names of all accessible tables in the database
-
-    Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-   
-    returns json with key "data"  
+    names of all accessible tables in the database
 
 ===========
-GET api_metadata_prefix+/<db>/table/<tab>
+GET /api/metadata/<db>/table/<tab>
 
-    get metadata of a table from the database dictionary
+    column metadata (names, datatypes, primary keys) of a table
 
-    Parameters
-    ----------
-    db: id or alias of the database configured in plainbi_database (id=0 is repository)
-    tab : name of the table
-    
-    returns json with columns and datatypes
+    Query params
+        pk    explicit pk column name(s), if not derivable automatically
 
-===========
-GET repo_/api/crud/resources
+## Repository (repo_api_prefix = /api/repo)
 
-    get the resource from the repository
-
-    returns json of all applications, adhocs, and external resources
+The repository holds plainbi's own config tables (`plainbi_*`, without the prefix in `<tab>`).
 
 ===========
-GET repo_/api/crud/<tab>
+GET /api/repo/resources
 
-    get table contents of table <tab> in the repository (table name without prefix plainbi_)
-
-    returns json with keys "data", "columns", "total_count"
+    all applications, adhocs and external resources visible to the current user
 
 ===========
-GET repo_/api/crud/<tab>/<pk>
+GET /api/repo/groups
 
-    get a specific row from a repository table
-
-    Parameters
-    ----------
-    tab : repository table name (without prefix plainbi_)
-    pk : Primary Key Identifier (Primary Key)
-    
-    Url Options:
-        pk=
-
-    returns json with keys "data"  
+    the calling user's permission groups
 
 ===========
-POST repo_/api/crud/<tab>
+GET /api/repo/group/<gid>/resources
 
-    insert a new row into a repository table 
-
-    Parameters
-    ----------
-    tab : repository table name (without prefix plainbi_)
-    
-    Url Options:
-        pk=
-        seq=  Name of Sequence for PK, in case None/Null is sent
-
-    return json with keys "data" of the newly inserted row
+    resources visible to a specific group; `gid` can be "nogroup" for resources not assigned to any group (admins only)
 
 ===========
-PUT repo_/api/crud/<tab>/<pk>
+GET /api/repo/<tab>
+GET /api/repo/<tab>/<pk>
+POST /api/repo/<tab>
+PUT /api/repo/<tab>/<pk>
+DELETE /api/repo/<tab>/<pk>
 
-    update a row in the repository
-
-    Parameters
-    ----------
-    tab : repository table name (without prefix plainbi_)
-    pk : Primary Key Identifier (Primary Key)
-    
-    Url Options:
-        pk=
-
-    returns json with keys "data" of the updated row
+    plain CRUD on a repository table (same semantics/params as the `/api/crud/...` endpoints above, `tab` without the `plainbi_` prefix)
 
 ===========
-DELETE repo_/api/crud/<tab>/<pk>
+GET /api/repo/init_repo
 
-    delete a row in the repositoy
-
-    Parameters
-    ----------
-    tab : repository table name (without prefix plainbi_)
-    pk : Primary Key Identifier (Primary Key) of the row to be deleted
-    
-    Url Options:
-        pk=
-
-    returns 200 or json of error message
+    (re-)initializes the repository schema. **HANDLE WITH CARE — always have a backup.** Not token-protected.
 
 ===========
-GET repo_/api/crud/init_repo
+GET /api/repo/lookup/<id>/data
 
-    initialize the repository: HANDLE WITH CARE and have a backup always
+    resolved data of a lookup (id or alias) — used for `ui: lookup`/`lookupn` dropdowns
 
-===========
-GET repo_/api/crud/lookup/<id>/data
-
-    return then lookup data defined in the lookup repository table with id or alias
-
-===========
-GET repo_/api/crud/adhoc/<id>/data
-
-    return then adhoc data defined in the adhoc repository table with id or alias
+    Query params
+        q, offset, limit, order_by   server-side search/pagination
+        selected                     resolve a value outside the current page (e.g. pre-selected value not in the first 50 results)
 
 ===========
-===========
-===========
-===========
-POST /api/login
-POST /login
+GET /api/repo/adhoc/<id>/distinctvalues/<colnam>
 
-    authenticate a user - login procedure
-    try LDAP first if it is configured (environment variables)
-    otherwise of if no success try local authentication
+    distinct values of a column from an adhoc's result set (for its column-filter dropdowns)
+
+    Query params: q, offset, limit (same as /api/distinctvalues)
 
 ===========
-POST /api/passwd
-POST /passwd
+GET/POST /api/repo/adhoc/<id>/data
 
-    change a local users password 
+    execute an adhoc query (id or alias) and return its result
 
-===========
-GET /api/hash_passwd/<pwd>
-GET /hash_passwd/<pwd>
-
-    just show the hashed password ... mainly for testing reasons
-
-===========
-GET /api/cache
-GET /cache
-
-    cache handling of metadata, profile
-    url params
-      on .... enable caching
-      off ... disable caching
-      clear ... clear caching
-      status ... show current cache handling setting
-
-    returns simple string and status 200
+    Query params
+        <name_technical>=value   adhoc parameter values (see README.md "Adhoc queries")
+        format        JSON (default) / XLSX / CSV
+        offset, limit  pagination
+        order_by      order by clause
 
 ===========
-GET /api/clear_cache
-GET /clear_cache
+GET /api/repo/application/<appid>/dsdb
+GET /api/repo/lookup/<lkpid>/dsdb
 
-    clear caching
+    export an application/lookup as a `.dsdb` file (for datasqill-based DevOps deployment). Not token-protected.
 
-    returns simple string and status 200
-
-===========
-GET /api/protected
-GET /protected
-
-    show the own username
+## Authentication
 
 ===========
-GET /api/profile
-GET /profile
+POST /login, POST /api/login
 
-    return json of the profile of the current user
+    authenticate with username/password — tries LDAP first if `LDAP_HOST` is configured, falls back to local auth
+
+    Body: {"username": "...", "password": "..."}
+    returns {"access_token": "<JWT>", "role": "..."} or 401
 
 ===========
-GET /api/logout
-GET /logout
+POST /login_sso, POST /api/login_sso
+
+    authenticate via Azure AD/Entra ID SSO (authorization code flow), see README.md "Authentication — SSO"
+
+===========
+POST /passwd, POST /api/passwd
+
+    change a local user's password
+
+===========
+GET /hash_passwd/<pwd>, GET /api/hash_passwd/<pwd>
+
+    show the hash of a password — for testing only
+
+===========
+GET /cache, GET /api/cache
+
+    metadata/profile cache handling. Query params (mutually exclusive): `on`, `off`, `clear`, `status`
+
+===========
+GET /clear_cache, GET /api/clear_cache
+
+    clear the metadata and profile caches
+
+===========
+GET /protected, GET /api/protected
+
+    returns the calling user's username — for testing token validity
+
+===========
+GET /profile, GET /api/profile
+
+    the calling user's profile
+
+===========
+GET /logout, GET /api/logout
 
     logout
 
-===========
-GET /static/<id>
-GET /api/static/<id>
-
-    gets a static base64 thing from the repo by id or alias without login
-    useful for logo etc.
-    base table is plainbi_static_file
+## Static / settings
 
 ===========
+GET /api/static/<id>, GET /static/<id>
+
+    a static base64-encoded asset (e.g. a logo) from `plainbi_static_file`, by id or alias. Not token-protected.
+
+===========
+GET /api/settings.js
+
+    JS snippet with app title/theme/SSO signin link etc., consumed by the frontend at startup. Not token-protected.
+
+===========
+GET /api/settings
+
+    all settings as JSON. Not token-protected.
+
+===========
+GET /api/setting/<name>
+
+    a single setting by name. Not token-protected.

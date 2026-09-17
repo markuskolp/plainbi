@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import LoadingMessage from "./LoadingMessage";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -166,7 +166,12 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     if (record_pk && allowedActions.includes("update") && !recordForPKLoaded) getPKRecordOpenModal(tableName);
   }, [tableName, tableParamChanged]);
 
-  useEffect(() => { getTableData(tableName); }, [view]);
+  const isFirstViewRender = useRef(true);
+  useEffect(() => {
+    // skip on mount — the tableName/tableParamChanged effect above already loads the initial data
+    if (isFirstViewRender.current) { isFirstViewRender.current = false; return; }
+    getTableData(tableName);
+  }, [view]);
 
   // ─── API Calls ───────────────────────────────────────────────────────────────
 
