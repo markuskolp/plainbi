@@ -32,7 +32,11 @@ const AdhocRuntime = (props) => {
   const [errorFields, setErrorFields] = useState(new Set());
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const pageSizeStorageKey = 'plainbi_adhoc_pagesize_' + id;
+  const [pageSize, setPageSize] = useState(() => {
+    try { const ps = parseInt(localStorage.getItem(pageSizeStorageKey), 10); return [20, 50, 100, 200].includes(ps) ? ps : 50; }
+    catch (_) { return 50; }
+  });
   const [order, setOrder] = useState("");
   const [sortState, setSortState] = useState({});
   const [columnFilters, setColumnFilters] = useState({});
@@ -239,6 +243,7 @@ const AdhocRuntime = (props) => {
     setSortState(newSortState);
     setCurrentPage(page);
     setPageSize(ps);
+    try { localStorage.setItem(pageSizeStorageKey, String(ps)); } catch (_) {}
     setOrder(newOrder);
     getData(undefined, page, undefined, newOrder, ps);
   };

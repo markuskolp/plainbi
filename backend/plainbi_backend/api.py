@@ -2496,9 +2496,8 @@ def get_adhoc_data(tokdata,id):
     for fval in request.args.getlist('filter'):
         if '~' in fval:
             parts = fval.split('~', 1)
-            col = parts[0]
-            if re.match(r'^[\w\s]+$', col, re.UNICODE):
-                col_filters.append((col, parts[1]))
+            if parts[0]:
+                col_filters.append((parts[0], parts[1]))
     filter_params = None
     if col_filters:
         if db_typ == "mssql": cast_typ = "varchar(max)"
@@ -2507,7 +2506,13 @@ def get_adhoc_data(tokdata,id):
         filter_parts = []
         filter_params = {}
         for i, (col, val) in enumerate(col_filters):
-            col_q = f"[{col}]" if db_typ == "mssql" else f'"{col}"'
+            if db_typ == "mssql":
+                col_q = "[" + col.replace("]", "]]") + "]"
+            else:
+                # snowflake/oracle report unquoted (uppercase) identifiers in lowercase -> quote them uppercase again
+                if db_typ in ("snowflake", "oracle") and re.match(r'^[a-z_][a-z0-9_$]*$', col):
+                    col = col.upper()
+                col_q = '"' + col.replace('"', '""') + '"'
             filter_parts.append(f"LOWER(CAST(x.{col_q} AS {cast_typ})) LIKE :cf_{i}")
             filter_params[f"cf_{i}"] = f"%{val.lower()}%"
         adhoc_sql = f"SELECT x.* FROM ({adhoc_sql}) x WHERE " + " AND ".join(filter_parts)

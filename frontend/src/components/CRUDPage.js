@@ -24,7 +24,15 @@ import Axios from 'axios';
 import apiClient from "../utils/apiClient";
 import useApiState from "../hooks/useApiState";
 import { extractResponseData, isTrue } from "../utils/dataUtils";
-import { getPKForURL, getPKParamForURL, getColsParamForURL } from "../utils/pkUtils";
+import { getPKForURL, getPKParamForURL, getColsParamForURL, base64UrlSafeEncode } from "../utils/pkUtils";
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
+
+// Werte mit Trennzeichen des filter-Params (, : ~ < > !) oder Sonderzeichen base64-kodieren,
+// sonst zerlegt das Backend sie falsch. URL-Params mit Operator-Syntax (z.B. "gt:5") bleiben unverändert.
+const encodeFilterValue = (val) => base64UrlSafeEncode(String(val), false);
+const encodeUrlFilterValue = (val) =>
+  /^(gt|ge|lt|le|ne):[^,:]*$/.test(val) ? val : encodeFilterValue(val);
 
 const { Link } = Typography;
 
@@ -55,7 +63,7 @@ const ResizableTitle = ({ onResize, width, ...restProps }) => {
   );
 };
 
-const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, token, sequence, breadcrumbItems, externalActions, conditionalRowFormats, detailPages }) => {
+const CRUDPage = ({ stateKey, name, tableName, tableForList, tableColumns, pkColumns, userColumn, defaultOrderBy, allowedActions, versioned, datasource, isRepo, token, sequence, breadcrumbItems, externalActions, conditionalRowFormats, detailPages }) => {
 
   const { loading, setLoading, error, errorMessage, errorDetail, setApiError } = useApiState(true);
 
@@ -69,18 +77,39 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   const [view, setView] = useState('table');
   const [currentPK, setCurrentPK] = useState();
   const [modalMode, setModalMode] = useState("new");
-  const colStorageKey   = 'plainbi_cols_'  + window.location.pathname + '/' + tableName;
-  const stateStorageKey = 'plainbi_state_' + window.location.pathname + '/' + tableName;
+  // stateKey (App-Alias + Page-Alias) statt URL-Pfad: /apps/x und /apps/x/<startpage> teilen sich denselben Zustand
+  const storageScope    = stateKey || window.location.pathname;
+  const colStorageKey   = 'plainbi_cols_'  + storageScope + '/' + tableName;
+  const stateStorageKey = 'plainbi_state_' + storageScope + '/' + tableName;
+  // Fallback auf alten, pfadbasierten Schlüssel, damit bisher gespeicherte Zustände nicht verloren gehen
+  const readStorage = (key, legacyKey) => {
+    try { return localStorage.getItem(key) ?? localStorage.getItem(legacyKey); } catch (_) { return null; }
+  };
+  const legacySuffix = window.location.pathname + '/' + tableName;
 
-  const _savedState = (() => { try { return JSON.parse(localStorage.getItem(stateStorageKey)) || {}; } catch (_) { return {}; } })();
+  const _savedState = (() => { try { return JSON.parse(readStorage(stateStorageKey, 'plainbi_state_' + legacySuffix)) || {}; } catch (_) { return {}; } })();
+
+  // Aufruf per Link mit URL-Filter: gemerkte Suche + Spaltenfilter ignorieren (nur für diesen Besuch)
+  // und auch nicht überschreiben — beim normalen Aufruf sind die eigenen Filter wieder da.
+  const [linkMode] = useState(() => new URLSearchParams(window.location.search).toString() !== "");
 
   const [offset, setOffset] = useState(0);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(PAGE_SIZE_OPTIONS.includes(_savedState.limit) ? _savedState.limit : 20);
   const [order, setOrder] = useState(_savedState.order || "");
   const [defaultOrderInactive, setDefaultOrderInactive] = useState(!!_savedState.order);
   const [totalCount, setTotalCount] = useState();
-  const [filter, setFilter] = useState(_savedState.filter || "");
-  const [columnFilters, setColumnFilters] = useState(_savedState.columnFilters || {});
+  const [filter, setFilter] = useState(linkMode ? "" : (_savedState.filter || ""));
+  const [columnFilters, setColumnFilters] = useState(linkMode ? {} : (_savedState.columnFilters || {}));
+
+  const persistState = (state) => {
+    try {
+      if (linkMode) {
+        const stored = JSON.parse(localStorage.getItem(stateStorageKey)) || _savedState;
+        state = { ...state, filter: stored.filter, columnFilters: stored.columnFilters };
+      }
+      localStorage.setItem(stateStorageKey, JSON.stringify(state));
+    } catch (_) {}
+  };
   const [tableParamChanged, setTableParamChanged] = useState(false);
   const [externalActionTimeout, setExternalActionTimeout] = useState(null);
   const [filteredTableData, setFilteredTableData] = useState(null);
@@ -102,15 +131,15 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     setColumnFilters({});
     setOrder('');
     setDefaultOrderInactive(false);
-    localStorage.removeItem(stateStorageKey);
+    persistState({ limit });  // Seitengröße bleibt erhalten
     setOffset(0);
     setTableKey(prev => prev + 1);
     setTableParamChanged(prev => !prev);
-  }, [defaultColSettings, colStorageKey, stateStorageKey]);
+  }, [defaultColSettings, colStorageKey, stateStorageKey, limit]);
 
   const [colSettings, setColSettings] = useState(() => {
     try {
-      const saved = localStorage.getItem(colStorageKey);
+      const saved = readStorage(colStorageKey, 'plainbi_cols_' + legacySuffix);
       if (saved) {
         const parsed = JSON.parse(saved);
         const defaults = tableColumns.filter(c => !c.showdetailsonly).map(c => c.column_name);
@@ -157,8 +186,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   // ─── Initialisierung ─────────────────────────────────────────────────────────
 
   useEffect(() => {
-    localStorage.setItem(stateStorageKey, JSON.stringify({ filter, columnFilters, order }));
-  }, [filter, columnFilters, order]);
+    persistState({ filter, columnFilters, order, limit });
+  }, [filter, columnFilters, order, limit]);
 
   useEffect(() => {
     getTableData(tableName);
@@ -174,6 +203,13 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
   }, [view]);
 
   // ─── API Calls ───────────────────────────────────────────────────────────────
+
+  // filter-Param: URL-Params (col:val) + Spaltenfilter (col~val), Werte kodiert
+  const buildFilterParam = () => {
+    const urlParts = [...searchParams.entries()].map(([col, val]) => `${col}:${encodeUrlFilterValue(val)}`);
+    const colParts = Object.entries(columnFilters).map(([col, val]) => `${col}~${encodeFilterValue(val)}`);
+    return [...urlParts, ...colParts].join(",");
+  };
 
   const getTableData = async (tableName) => {
     setLoading(true);
@@ -195,12 +231,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     }
 
     if (filter && filter.length > 0) queryParams.append("q", filter);
-    const filterParts = [];
-    const _searchParams = searchParams.toString().replaceAll("&", ",").replaceAll("=", ":");
-    if (_searchParams) filterParts.push(_searchParams);
-    const _colFilters = Object.entries(columnFilters).map(([col, val]) => `${col}~${val}`).join(",");
-    if (_colFilters) filterParts.push(_colFilters);
-    if (filterParts.length > 0) queryParams.append("filter", filterParts.join(","));
+    const _filterParam = buildFilterParam();
+    if (_filterParam) queryParams.append("filter", _filterParam);
     queryParams.append("cols", getColsParamForURL(tableColumns, pkColumns));
 
     let endpoint = api + tableName + '?' + queryParams;
@@ -211,7 +243,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
 
     apiClient.get(endpoint)
       .then((res) => {
-        setTotalCount(res.data.length === 0 || res.data.length === undefined ? res.data.total_count : res.total_count);
+        const _total = res.data.length === 0 || res.data.length === undefined ? res.data.total_count : res.total_count;
+        // Offset liegt hinter dem Ende (z.B. nach Löschen) → auf Seite 1 springen und neu laden
+        if (offset > 0 && _total !== undefined && offset >= _total) {
+          setOffset(0);
+          setTableParamChanged(prev => !prev);
+          return;
+        }
+        setTotalCount(_total);
         const resData = extractResponseData(res);
         setTableData(resData);
         try {
@@ -252,12 +291,8 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     if (versioned) queryParams.append("v", 1);
     if (order && order.length > 0) queryParams.append("order_by", order);
     if (filter && filter.length > 0) queryParams.append("q", filter);
-    const blobFilterParts = [];
-    const _blobSearchParams = searchParams.toString().replaceAll("&", ",").replaceAll("=", ":");
-    if (_blobSearchParams) blobFilterParts.push(_blobSearchParams);
-    const _blobColFilters = Object.entries(columnFilters).map(([col, val]) => `${col}~${val}`).join(",");
-    if (_blobColFilters) blobFilterParts.push(_blobColFilters);
-    if (blobFilterParts.length > 0) queryParams.append("filter", blobFilterParts.join(","));
+    const _filterParam = buildFilterParam();
+    if (_filterParam) queryParams.append("filter", _filterParam);
     queryParams.append("cols", getColsParamForURL(tableColumns, pkColumns));
     queryParams.append("format", _format);
     const htmlCols = tableColumns.filter(c => c.ui === 'html').map(c => c.column_name);
@@ -373,7 +408,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
     setTableParamChanged(!tableParamChanged);
   };
 
-  const searchData = (value) => { setFilter(value); setTableParamChanged(prev => !prev); };
+  const searchData = (value) => { setFilter(value); setOffset(0); setTableParamChanged(prev => !prev); };
 
   const applyColumnFilter = (col, val) => {
     setColumnFilters(prev => ({ ...prev, [col]: val }));
@@ -574,6 +609,7 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                     const next = new URLSearchParams(searchParams);
                     next.delete(key);
                     navigate(pathname + (next.toString() ? '?' + next.toString() : ''));
+                    setOffset(0);
                     setTableParamChanged(prev => !prev);
                   }}>
                     {label}: {val}
@@ -606,7 +642,14 @@ const CRUDPage = ({ name, tableName, tableForList, tableColumns, pkColumns, user
                 columns={buildColumns()}
                 components={{ header: { cell: ResizableTitle } }}
                 dataSource={filteredTableData ?? tableData}
-                pagination={{ defaultPageSize: 20, total: totalCount, hideOnSinglePage: true, showTotal: (total) => `Gesamt: ${total}` }}
+                pagination={{
+                  current: Math.floor(offset / limit) + 1,
+                  pageSize: limit,
+                  total: totalCount,
+                  showSizeChanger: true,
+                  pageSizeOptions: PAGE_SIZE_OPTIONS,
+                  showTotal: (total) => `Gesamt: ${total}`
+                }}
                 scroll={{ y: 'calc(100vh - 400px)', x: 'max-content' }}
                 tableLayout="fixed"
                 loading={loading}

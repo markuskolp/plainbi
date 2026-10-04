@@ -410,9 +410,10 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 cnt+=1
                 if cnt>1: cexp_cols+=concat_operator+"'"+csep+"'"+concat_operator
                 cexp_cols+=f"lower(coalesce(cast({lc} as {cast_coltyp}),''))"
-            for ftok in q_global.split(" "):
-                lftok=ftok.lower()
-                l_cexp.append(cexp_cols+" like lower('%"+lftok+"%')")
+            # bind params instead of literals: ' or :xyz in the search text must not break the sql
+            for i,ftok in enumerate(q_global.split(" ")):
+                l_cexp.append(cexp_cols+f" like :q_tok_{i}")
+                wparam[f"q_tok_{i}"] = "%"+ftok.lower()+"%"
         cexp="("+" AND ".join(l_cexp)+")" if l_cexp else "1=1"
         w+=cexp
     else:
@@ -431,10 +432,10 @@ def add_filter_to_where_clause(dbtyp, tab, where_clause, filter, columns, is_ver
                 cexp+=f"lower(coalesce(cast({lc} as {cast_coltyp}),''))"
             dbg("filter cexp:%s",cexp)
             for i,ftok in enumerate(filter_tokens):
-                lftok=ftok.lower()
                 if i>0:
                     w+=" AND "
-                w+=cexp+" like lower('%"+lftok+"%')"
+                w+=cexp+f" like :q_tok_{i}"
+                wparam[f"q_tok_{i}"] = "%"+ftok.lower()+"%"
         else:
             # disabled method with indivdual casts and or connected
             for ftok in filter_tokens:

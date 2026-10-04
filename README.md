@@ -13,6 +13,7 @@ includes:
 
 ```bat
 cd frontend
+npm run build
 deploy_frontend.bat dev|test|prod
 
 cd backend
@@ -528,7 +529,7 @@ Parameters are defined per adhoc query in the **Adhoc Konfiguration** applicatio
 | `required` | Whether the field must be filled before executing |
 | `order_by_default` | Default sort order for the result table, e.g. `column_name asc` or `column_name:desc`. Applied to both the HTML view and Excel/CSV export. A URL parameter `?order_by=...` takes precedence. |
 
-When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query runs automatically on page load **only if all required parameters have a default value or are supplied via URL**. If any required parameter has no value, the filter panel is shown and the user must fill it in before executing. Results are paginated server-side (50 rows per page by default; the user can change the page size via the pagination control).
+When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query runs automatically on page load **only if all required parameters have a default value or are supplied via URL**. If any required parameter has no value, the filter panel is shown and the user must fill it in before executing. Results are paginated server-side (50 rows per page by default; the user can change the page size via the pagination control — the chosen size is saved to `localStorage` per adhoc).
 
 Clicking **Ausführen** re-runs the query with the current parameter values. Active column filters and sort order are preserved — they are not reset when re-executing.
 
@@ -581,6 +582,8 @@ https://<server>/apps/<app_alias>/<page_alias>?<field>=<value>&<field>=<value>&.
 
 URL filters are applied as exact matches and shown as blue tags above the table. Clicking the × on a tag removes the filter from the URL. Multiple URL filters are combined with AND.
 
+When a page is opened with URL filters, the saved search text and saved column filters of that page are ignored for this visit, so they can't contradict the link. Sort order, column layout and page size are still restored. The saved filters are not overwritten either: opening the page normally (without URL filters) brings them back.
+
 ## Table toolbar features
 
 The tabular view of a CRUD page includes a toolbar with search, column settings and a reset button.
@@ -602,11 +605,15 @@ All changes are saved to `localStorage` per page and restored on the next visit.
 
 Clicking a column header sorts by that column (ascending → descending → unsorted). The active sort is saved to `localStorage` and restored when the page is reopened.
 
+### Pagination
+
+The table is paginated server-side with 20 rows per page by default. The page size (20/50/100/200) can be changed in the pagination bar, which is always shown — even when the result fits on a single page. The chosen page size is saved to `localStorage` per page. Changing the search text or any filter jumps back to page 1.
+
 ### Reset
 
-A **Zurücksetzen** button (orange) appears in the toolbar whenever the current state differs from the default — i.e. when any of the following are active: search text, column filters, sort order, hidden columns, reordered columns, or custom column widths. Clicking it resets all of the above back to defaults and clears the saved state for the current page.
+A **Zurücksetzen** button (orange) appears in the toolbar whenever the current state differs from the default — i.e. when any of the following are active: search text, column filters, sort order, hidden columns, reordered columns, or custom column widths. Clicking it resets all of the above back to defaults and clears the saved state for the current page. The page size is kept.
 
-All state (search, sort, column filters, column settings) is saved separately per page, keyed by URL path and table name.
+All state (search, sort, column filters, column settings, page size) is saved separately per page, keyed by app alias, page alias and table name — so `/apps/<app_alias>` (start page) and `/apps/<app_alias>/<page_alias>` share the same state. Pages outside an app (e.g. Settings) are keyed by URL path and table name.
 
 ## Column filters
 
@@ -619,6 +626,8 @@ Each column in the tabular view has a filter icon (funnel) in the header. Clicki
 Active column filters appear as tags above the table alongside any URL-based filters. Multiple column filters are combined with AND and also apply to Excel/CSV exports. **Alle löschen** removes all column filters at once.
 
 Column filters use a `LIKE '%value%'` match (case-insensitive). URL filters use an exact match.
+
+Filter values may contain blanks and special characters (`,` `:` `~` umlauts etc.): the frontend sends column filter values (and URL filter values) base64-encoded as `[base64@...]` inside the `filter` parameter, so they don't collide with its separators. URL filters in operator syntax (`gt:5`, `ne:x`, ...) are sent unchanged. The global search text is passed to the database as bind parameters.
 
 Adhoc result tables also support **server-side sorting**: clicking a column header cycles through ascending / descending / unsorted. Multiple columns can be sorted simultaneously. The current sort order is included when exporting to Excel or CSV.
 
