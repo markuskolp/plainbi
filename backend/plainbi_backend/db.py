@@ -396,10 +396,12 @@ def _safe_order_by(order_by, dbtyp):
             col, direction = part[:-4].strip(), ' ASC'
         else:
             col, direction = part, ''
-        # Only quote plain identifiers with spaces — not SQL expressions
-        is_expression = ('(' in col or any(w in _SQL_KW for w in col.lower().split()))
+        # Only quote plain identifiers with spaces — not SQL expressions.
+        # Expression = function call at the start (e.g. "coalesce(a,b)") or SQL keywords (CASE WHEN, IS NULL);
+        # parentheses inside a column name like "Account ID (SFO)" do not make it an expression.
+        is_expression = (re.match(r'^[\w.]+\s*\(', col) is not None or any(w in _SQL_KW for w in col.lower().split()))
         if ' ' in col and not is_expression and not (col.startswith('[') or col.startswith('"')):
-            col = f'[{col}]' if dbtyp == 'mssql' else f'"{col}"'
+            col = "[" + col.replace("]", "]]") + "]" if dbtyp == 'mssql' else '"' + col.replace('"', '""') + '"'
         result.append(col + direction)
     return ','.join(result)
 
