@@ -162,7 +162,16 @@ def urlsafe_decode_params(p):
         dbg("urlsafebase64decode not a str or dict %s",str(p))
         return p
 
-def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None):
+def max_ts_literal(dbtyp):
+    """
+    'end of time' value for invalid_from_dt of versioned tables.
+    SQL Server reads 'YYYY-MM-DD hh:mm:ss' for datetime as YYYY-DD-MM when the session language is
+    e.g. German -> '9999-12-31' fails with "out of range". The unseparated form is language independent.
+    Other databases keep the old literal (sqlite compares it as text).
+    """
+    return "99991231 00:00:00" if dbtyp == "mssql" else "9999-12-31 00:00:00"
+
+def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, table_alias=None, dbtyp=None):
     """
       this function makes a where clause from a list of primary key columns and values
 
@@ -207,7 +216,7 @@ def make_pk_where_clause(pk, pkcols, versioned=False, version_deleted=False, tab
     if versioned:
        if version_deleted:
            # get also last deleted version
-           w+=f" AND {alias_prefix}invalid_from_dt='9999-12-31 00:00:00'" 
+           w+=f" AND {alias_prefix}invalid_from_dt='{max_ts_literal(dbtyp)}'"
        else:
            w+=f" AND {alias_prefix}is_current_and_active = 'Y'" 
     dbg("++++++++++ leaving make_pk_where_clause return whereclause=%s , vallist=%s",w,str(mypk))

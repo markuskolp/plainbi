@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import NullPool, QueuePool
-from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn,show_call_stack
+from plainbi_backend.utils import is_id, last_stmt_has_errors, make_pk_where_clause, max_ts_literal, urlsafe_decode_params,add_filter_to_where_clause,dbg,err,warn,show_call_stack
 #import bcrypt
 from threading import Lock, Thread
 import queue
@@ -223,6 +223,8 @@ def db_exec(engine, sql, params=None, metadata=None):
                         else:
                             mymetadata=metadata
                         handle_oracle_date_literals(myparams,mymetadata)
+                    elif dbtyp=="mssql" and metadata is not None:
+                        handle_mssql_date_literals(myparams, metadata[stmt_nr] if isinstance(metadata,list) else metadata)
                     # exec in database
                     res=config.conn[engine.url].execute(mysql,myparams)
                     dbg("sql=%s params=%s",mysql,myparams,dbglevel=3)
@@ -858,7 +860,7 @@ def get_item_raw(dbengine,tab,pk,pk_column_list=None,column_list=None,versioned=
     dbg("get_item_raw[%s]: pk_columns %s",str(tab),str(pkcols))
     tabalias="x"
     selectliststr=get_selectliststr(column_list,tabalias)
-    pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias)
+    pkwhere, pkwhere_params = make_pk_where_clause(pk, pkcols, versioned, version_deleted, table_alias=tabalias, dbtyp=get_db_type(dbengine))
     dbg("get_item_raw[%s]: pkwhere <%s>, pkwhere_params <%s>",str(tab), str(pkwhere), str(pkwhere_params))
     if is_repo and user_id is not None:
         # check repo rights
@@ -1334,6 +1336,56 @@ def handle_oracle_date_literals(pitemlist,metadata):
                 dbg(f"warning: column {k} should be in metadata list")
     dbg("++++++++++ leaving handle_oracle_date_literals with %d date literal substitutions",cnt)
 
+_MSSQL_DATE_TYPES = ("date", "datetime", "datetime2", "smalldatetime")
+_DATE_LITERAL_FORMATS = ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
+                         "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M",
+                         "%Y%m%d %H:%M:%S", "%Y-%m-%d")
+
+def _parse_date_literal(v):
+    """parse a date/datetime string as sent by the frontend/backend; None if the format is unknown"""
+    s = v.strip()
+    fmts = [f for f in (config.backend_datetime_format, config.backend_date_format) if f] + list(_DATE_LITERAL_FORMATS)
+    for fmt in fmts:
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            pass
+    return None
+
+def _mssql_date_string(d, data_type):
+    """language independent literal for SQL Server (ISO 8601 with 'T' resp. unseparated date)"""
+    if data_type == "date":
+        return d.strftime("%Y%m%d")
+    if data_type == "smalldatetime":
+        return d.strftime("%Y-%m-%dT%H:%M:%S")
+    if data_type == "datetime":
+        return d.strftime("%Y-%m-%dT%H:%M:%S.") + f"{d.microsecond // 1000:03d}"  # datetime: max. 3 fractional digits
+    return d.strftime("%Y-%m-%dT%H:%M:%S.%f")  # datetime2
+
+def handle_mssql_date_literals(pitemlist, metadata):
+    """
+    SQL Server converts strings like '2026-10-13 12:00' for datetime columns depending on the session
+    language (German: YYYY-DD-MM -> "out of range" or silently swapped day/month).
+    Converting to python datetime objects does not help: pymssql renders them again as 'YYYY-MM-DD hh:mm:ss.mmm'.
+    Therefore string values of date/time columns are rewritten to a language independent ISO format here.
+    Unknown formats (and datetimeoffset) are left unchanged. param pitemlist is modified (for output)
+    """
+    if not isinstance(metadata, dict) or "column_data" not in metadata.keys():
+        return
+    coltypes = {str(c["column_name"]).lower(): str(c["data_type"]).lower() for c in metadata["column_data"]}
+    itemlist = [pitemlist] if isinstance(pitemlist, dict) else pitemlist
+    cnt = 0
+    for item in itemlist:
+        for k, v in item.items():
+            if isinstance(v, str) and v.strip() and coltypes.get(str(k).lower()) in _MSSQL_DATE_TYPES:
+                d = _parse_date_literal(v)
+                if d is not None:
+                    item[k] = _mssql_date_string(d, coltypes[str(k).lower()])
+                    cnt += 1
+                else:
+                    dbg(f"mssql date literal {k} value {v} has unknown format - left unchanged")
+    dbg("handle_mssql_date_literals: %d date literal substitutions", cnt)
+
 ## crud ops
 def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=None,is_repo=False, user_id=None, customsql=None):
     """ 
@@ -1371,7 +1423,7 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
         dbg("db_ins: versioned mode" )
         # valid_from_dt/last_changed_dt kommen als CURRENT_TIMESTAMP direkt aus der DB (siehe SQL-Aufbau
         # unten) statt über einen eigenen get_current_timestamp()-Roundtrip geholt zu werden
-        myitem["invalid_from_dt"]="9999-12-31 00:00:00"
+        myitem["invalid_from_dt"]=max_ts_literal(db_typ)
         myitem["is_latest_period"]="Y"
         myitem["is_deleted"]="N"
         myitem["is_current_and_active"]="Y"
@@ -1444,12 +1496,12 @@ def db_ins(dbeng,tab,item,pkcols=None,is_versioned=False,seq=None,changed_by=Non
                     return out
 
                 # there is an existing record -> terminate id
-                pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True)
+                pkwhere, pkwhere_params = make_pk_where_clause(pkout,pkcols,is_versioned,version_deleted=True,dbtyp=db_typ)
                 delitem={}
                 delitem.update(pkwhere_params)
                 dbg("marker values length is %d",len(delitem))
                 dbg("db_ins: terminate deleted record")
-                dsql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
+                dsql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='{max_ts_literal(db_typ)}'"
                 dbg("db_ins: terminate rec sql %s",dsql)
                 stmt.append(dsql)
                 stmtparam.append(delitem)
@@ -1554,7 +1606,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         upditem={}
         upditem.update(pkwhere_params)
         dbg("marker values length is %d",len(upditem))
-        updsql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
+        updsql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='{max_ts_literal(db_typ)}'"
         dbg("db_upd newrec sql: %s", updsql)
         stmt=[]
         stmtparam=[]
@@ -1580,7 +1632,7 @@ def db_upd(dbeng, tab,pk, item, pkcols, is_versioned, changed_by=None, is_repo=F
         newrec=reclist[0]
         # überschreibe mit neuen werten
         newrec.update(myitem)
-        newrec["invalid_from_dt"]="9999-12-31 00:00:00"
+        newrec["invalid_from_dt"]=max_ts_literal(db_typ)
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='Y'
         # valid_from_dt/last_changed_dt kommen unten als CURRENT_TIMESTAMP direkt aus der DB —
@@ -1702,7 +1754,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         upditem={}
         upditem.update(pkwhere_params)
         dbg("marker values length is %d",len(upditem))
-        sql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='9999-12-31 00:00:00'"
+        sql=f"UPDATE {tab} SET invalid_from_dt=CURRENT_TIMESTAMP,last_changed_dt=CURRENT_TIMESTAMP,is_latest_period='N',is_current_and_active='N' {pkwhere} AND invalid_from_dt='{max_ts_literal(db_typ)}'"
         stmt=[]
         stmtparam=[]
         stmt.append(sql)
@@ -1725,7 +1777,7 @@ def db_del(dbeng,tab,pk,pkcols,is_versioned=False,changed_by=None,is_repo=False,
         # die alten werte mit ggf den neuen überschreiben
         reclist=cur_row["data"]
         newrec=reclist[0]
-        newrec["invalid_from_dt"]="9999-12-31 00:00:00"
+        newrec["invalid_from_dt"]=max_ts_literal(db_typ)
         newrec["is_latest_period"]='Y'
         newrec["is_current_and_active"]='N'
         newrec["is_deleted"]='Y'
