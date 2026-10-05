@@ -527,7 +527,7 @@ Parameters are defined per adhoc query in the **Adhoc Konfiguration** applicatio
 | `lookup` | Lookup alias — only used when `ui` is `lookup` (dropdown with values from a lookup table) |
 | `default_value` | Pre-filled value when the form opens. The query runs immediately with this value. |
 | `required` | Whether the field must be filled before executing |
-| `order_by_default` | Default sort order for the result table, e.g. `column_name asc` or `column_name:desc`. Applied to both the HTML view and Excel/CSV export. A URL parameter `?order_by=...` takes precedence. |
+| `order_by_default` | Default sort order for the result table, e.g. `column_name asc` or `column_name:desc`. Applied to both the HTML view and Excel/CSV export. A URL parameter `?order_by=...` takes precedence. The adhoc SQL is wrapped as `select x.* from (<sql>) x` before sorting, so refer to the **result column names (aliases)** or column numbers (e.g. `2 desc`), not to source columns or table-qualified names. Column names with blanks/brackets (e.g. `Account ID (SFO)`) are quoted automatically. Don't put an `ORDER BY` into the adhoc SQL itself (SQL Server doesn't allow it inside the wrapper) — use `order_by_default` instead. |
 
 When an adhoc has one or more parameters, the user sees a collapsible filter panel above the results. The query runs automatically on page load **only if all required parameters have a default value or are supplied via URL**. If any required parameter has no value, the filter panel is shown and the user must fill it in before executing. Results are paginated server-side (50 rows per page by default; the user can change the page size via the pagination control — the chosen size is saved to `localStorage` per adhoc).
 

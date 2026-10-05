@@ -2100,15 +2100,16 @@ def audit(tokdata,req,id=None,msg=None,status=None,error_msg=None,duration_ms=No
     # repo-DB roundtrip (audit_worker executes the actual db_exec()).
     dbg('Audit sql:%s',audit_sql )
     dbg('Audit params:%s',audit_params )
+    _ensure_audit_worker()
     try:
         config.audit_queue.put_nowait((audit_sql, audit_params))
     except queue.Full:
         log.error("audit queue full - dropping audit entry for %s", audit_params.get("url"))
     dbg("++++++++++ leaving audit (queued)")
 
-def _audit_worker():
+def _audit_worker(q):
     while True:
-        audit_sql, audit_params = config.audit_queue.get()
+        audit_sql, audit_params = q.get()
         try:
             db_exec(config.repoengine, audit_sql, audit_params)
             dbg('Audit executed (background)')
@@ -2118,14 +2119,34 @@ def _audit_worker():
         except Exception as e:
             log.error("audit exception: %s",str(e))
         finally:
-            config.audit_queue.task_done()
+            q.task_done()
+
+_audit_worker_pid = None
+_audit_worker_lock = Lock()
+
+def _ensure_audit_worker():
+    """Make sure the audit worker thread runs in the *current* process.
+    uWSGI (master + preforking, no lazy-apps) calls create_app() in the master and then forks the
+    workers — threads don't survive a fork, so the thread started in the master never runs in the
+    workers and audit entries would just pile up in the queue. Therefore (re)start it per PID."""
+    global _audit_worker_pid
+    pid = os.getpid()
+    if _audit_worker_pid == pid:
+        return
+    with _audit_worker_lock:
+        if _audit_worker_pid == pid:
+            return
+        if _audit_worker_pid is not None:
+            # forked child: the inherited queue belongs to the parent's (dead) thread
+            config.audit_queue = queue.Queue(maxsize=1000)
+        Thread(target=_audit_worker, args=(config.audit_queue,), daemon=True, name="audit-worker").start()
+        _audit_worker_pid = pid
+        log.info("audit worker thread started (pid %s)", pid)
 
 def start_audit_worker():
     """Starts the background thread that writes queued audit entries to the repo DB.
-    Must be called once after config.repoengine is set up (e.g. from create_app())."""
-    t = Thread(target=_audit_worker, daemon=True, name="audit-worker")
-    t.start()
-    log.info("audit worker thread started")
+    Called from create_app(); after a fork, audit() restarts it in the worker process."""
+    _ensure_audit_worker()
 
 def get_snowflake_private_key(private_key):
     """Load and properly format a PEM private key for Snowflake"""

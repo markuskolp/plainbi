@@ -2535,6 +2535,9 @@ def get_adhoc_data(tokdata,id):
         dbg("get_adhoc_data: not fmt JSON/HTML")
         if effective_order_by is not None:
             dbg("get_adhoc_data: apply effective order by (order by added)")
+            # same wrapper as the JSON/HTML view -> order by refers to the result columns (aliases or column numbers) in both cases
+            if not col_filters:
+                adhoc_sql = f"select x.* from ({adhoc_sql}) x"
             adhoc_sql += " order by " + _safe_order_by(effective_order_by, db_typ)
     #
     # handle formats
